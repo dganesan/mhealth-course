@@ -1,10 +1,9 @@
 ---
 layout: default
-title: Home
-nav_order: 0
+title: Chapter 1
+nav_order: 1
 usemathjax: true
-description: "Website Overview"
-permalink: /
+description: "Chapter 1"
 ---
 
 # Chapter 1: Sensor data smoothing and filtering
