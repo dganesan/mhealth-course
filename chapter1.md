@@ -7,31 +7,6 @@ description: "Website Overview"
 permalink: /
 ---
 
-<p style="color: red; font-weight: bold">>>>>>  gd2md-html alert:  ERRORs: 0; WARNINGs: 1; ALERTS: 17.</p>
-<ul style="color: red; font-weight: bold"><li>See top comment block for details on ERRORs and WARNINGs. <li>In the converted Markdown or HTML, search for inline alerts that start with >>>>>  gd2md-html alert:  for specific instances that need correction.</ul>
-
-<p style="color: red; font-weight: bold">Links to alert messages:</p><a href="#gdcalert1">alert1</a>
-<a href="#gdcalert2">alert2</a>
-<a href="#gdcalert3">alert3</a>
-<a href="#gdcalert4">alert4</a>
-<a href="#gdcalert5">alert5</a>
-<a href="#gdcalert6">alert6</a>
-<a href="#gdcalert7">alert7</a>
-<a href="#gdcalert8">alert8</a>
-<a href="#gdcalert9">alert9</a>
-<a href="#gdcalert10">alert10</a>
-<a href="#gdcalert11">alert11</a>
-<a href="#gdcalert12">alert12</a>
-<a href="#gdcalert13">alert13</a>
-<a href="#gdcalert14">alert14</a>
-<a href="#gdcalert15">alert15</a>
-<a href="#gdcalert16">alert16</a>
-<a href="#gdcalert17">alert17</a>
-
-<p style="color: red; font-weight: bold">>>>>> PLEASE check and correct alert issues and delete this message and the inline alerts.<hr></p>
-
-
-
 # Chapter 1: Sensor data smoothing and filtering
 
 Most sensor data is affected to some extent by **noise**, that is unexplained variations in the data that in many cases is uninterpretable, and in almost all cases is not of interest to us. Data analysis is often considerably simpler if this noise can be removed from the data. This process is referred to by various terms - data smoothing, filtering, cleaning, and so on. The underlying idea in all these methods is to remove the noise while retaining the important characteristics of the signal.
