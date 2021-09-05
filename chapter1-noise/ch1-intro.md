@@ -1,7 +1,8 @@
 ---
 layout: default
 title: Chapter 1: Introduction to Sensor Data Smoothing and Filtering
-nav_exclude: true
+parent: Chapter 1
+nav_order: 1
 usemathjax: true
 description: "Chapter 1"
 ---

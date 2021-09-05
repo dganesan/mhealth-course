@@ -24,7 +24,7 @@ description: "Chapter 1"
 [3] [Matlab Arduino Tutorial: Filtering noise from acceleration data](http://www.youtube.com/watch?v=TeKk3DjN_gs)\
 [4] [The Scientist and Engineer’s Guide to Signal Processing](http://www.analog.com/en/content/scientist_engineers_guide/fca.html)\
 [5] [A numerical tour of signal processing](https://www.ceremade.dauphine.fr/~peyre/numerical-tour/)\
-[6] <span style="text-decoration:underline;">Physical activity sensor data</span>
+[6] <span style="text-decoration:underline;">Physical activity sensor data</span>\
 [7] [Acceleration/Vibration Noise Measurement](http://www.sensorsmag.com/sensors/acceleration-vibration/noise-measurement-8166)\
 [8] [Quadcopter: Accelerometer Data Filtering](http://philstech.blogspot.com/2012/04/quadcopter-accelerometer-data-filtering.html)\
 [9] [ECG Digital Filtering](http://joachimbehar.comuv.com/ECG_tuto_1.php)\

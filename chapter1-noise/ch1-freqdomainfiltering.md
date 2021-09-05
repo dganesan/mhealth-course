@@ -1,7 +1,8 @@
 ---
 layout: default
 title: Chapter 1: Frequency-domain Filtering
-nav_exclude: true
+parent: Chapter 1
+nav_order: 3
 usemathjax: true
 description: "Chapter 1"
 ---
