@@ -1,5 +1,13 @@
 ## Welcome to GitHub Pages
 
+
+#### [Lesson 4: Introduction to Smoothing and Filtering](chapter1/Chapter1-SmoothingFiltering.html) ([ipynb](https://github.com/dganesan/mhealth-course/blob/gh-pages/chapter1-noise/Chapter1-3D-Trajectory-Smoothing.ipynb))
+
+For visualizing our data, we'll be using [Matplotlib](https://matplotlib.org/)—an incredibly powerful visualization library with a bit of an eccentric API (thanks to Matlab). Open this notebook, learn about creating basic charts, and try to build some of your own. [![Open in Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/makeabilitylab/signals/master?filepath=Tutorials%2FIntroToMatplotlib.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/makeabilitylab/signals/blob/master/Tutorials/IntroToMatplotlib.ipynb)
+
+
+
+
 You can use the [editor on GitHub](https://github.com/dganesan/mhealth-course/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
 
 Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
