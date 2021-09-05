@@ -1,7 +1,7 @@
 ## Welcome to GitHub Pages
 
 
-#### [Lesson 4: Introduction to Smoothing and Filtering](chapter1/Chapter1-SmoothingFiltering.html) ([ipynb](https://github.com/dganesan/mhealth-course/blob/gh-pages/chapter1-noise/Chapter1-3D-Trajectory-Smoothing.ipynb))
+#### [Lesson 4: Introduction to Smoothing and Filtering](chapter1-noise/Chapter1-SmoothingFiltering.html) ([ipynb](https://github.com/dganesan/mhealth-course/blob/gh-pages/chapter1-noise/Chapter1-3D-Trajectory-Smoothing.ipynb))
 
 For visualizing our data, we'll be using [Matplotlib](https://matplotlib.org/)—an incredibly powerful visualization library with a bit of an eccentric API (thanks to Matlab). Open this notebook, learn about creating basic charts, and try to build some of your own. [![Open in Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/makeabilitylab/signals/master?filepath=Tutorials%2FIntroToMatplotlib.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/makeabilitylab/signals/blob/master/Tutorials/IntroToMatplotlib.ipynb)
 
