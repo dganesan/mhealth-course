@@ -19,7 +19,7 @@ description: "Chapter 1"
 
 # References
 
-[1] [Smoothing data with low pass filters](http://justinvoss.com/2011/11/07/smoothing-data-with-low-pass-filters/
+[1] [Smoothing data with low pass filters](http://justinvoss.com/2011/11/07/smoothing-data-with-low-pass-filters/)\
 [2] [Frame-rate independent low pass filter](http://phrogz.net/js/framerate-independent-low-pass-filter.html)\
 [3] [Matlab Arduino Tutorial: Filtering noise from acceleration data](http://www.youtube.com/watch?v=TeKk3DjN_gs)\
 [4] [The Scientist and Engineer’s Guide to Signal Processing](http://www.analog.com/en/content/scientist_engineers_guide/fca.html)\
