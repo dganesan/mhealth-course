@@ -1,7 +1,7 @@
 ---
 layout: default
-title: Chapter 1
-nav_order: 3
+title: Chapter 1: Time-series Smoothing and Filtering
+nav_exclude: true
 usemathjax: true
 description: "Chapter 1"
 ---
