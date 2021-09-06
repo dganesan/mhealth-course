@@ -2,6 +2,7 @@
 layout: default
 title: Chapter 1
 nav_order: 1
+has_children: true
 usemathjax: true
 description: "Chapter 1"
 ---
