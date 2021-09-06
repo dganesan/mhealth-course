@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Time-series Smoothing and Filtering
+title: Time-domain Smoothing
 parent: Chapter 1
 nav_order: 2
 usemathjax: true
