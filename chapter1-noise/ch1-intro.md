@@ -87,7 +87,6 @@ So, how do we deal with noise? Turns out that this is a vast topic, and there ar
 Other sensor information like GPS location is also susceptible to noise. GPS readings can be noisy due to a variety of reasons including clock error, tropospheric delays, multipath effects due to buildings, weather conditions, and so on. If you have used Google Maps or any other mapping service, you may be tempted to believe that GPS is fairly accurate, but the raw data coming from the GPS receiver often has noise that is being smoothed before it is displayed on screen. For example, the figure below shows what you would get if you blindly connected the GPS locations coming from your receiver while you are driving down a street. The green line shows the actual trajectory that should have been observed if the GPS readings were error-free.
 
 <p style="text-align:center;"><img src="images/image8.png" alt="drawing" class="center" width="600"/>
-![alt_text](images/image8.png "image_tooltip")
 
 _Figure 5: Noisy GPS readings while driving in red. Actual trajectory in green._
 
