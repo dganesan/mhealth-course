@@ -30,10 +30,10 @@ The second is frequency-domain approaches, which removes noise that is periodic 
 
 #### Example 2: ECG Data Filtering (Assignment 1)
 
-#### Example 3: [Fourier Decomposition](Chapter1-Fourier-Denoising.html)
+#### Example 3: [Fourier Decomposition](Chapter1-Fourier-Denoising.html)[ipynb](Chapter1-Fourier-Denoising.ipynb)
 <iframe width="320" height="240" src="https://www.youtube.com/embed/v1rEPYGzZ-c" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-#### Example 3: [Butterworth Filtering](Chapter1-ButterworthFilter.html)
+#### Example 3: [Butterworth Filtering](Chapter1-ButterworthFilter.html)[ipynb](Chapter1-ButterworthFilter.ipynb)
 <iframe width="320" height="240" src="https://www.youtube.com/embed/O68PSIXEU9Q" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-#### Example 4: [3D Trajectory Estimation](Chapter1-3D-Trajectory-Smoothing.html)
+#### Example 4: [3D Trajectory Estimation](Chapter1-3D-Trajectory-Smoothing.html)[ipynb](Chapter1-3D-Trajectory-Smoothing.ipynb)
