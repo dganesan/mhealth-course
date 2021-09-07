@@ -12,9 +12,9 @@ Most sensor data is affected to some extent by **noise**, that is unexplained va
 #### [Part 1: Introduction to Smoothing and Filtering](ch1-intro.md) 
 We start by explaining the difference between information and noise, and describe what causes noise in sensor data. We then show different examples of noisy signals and what are some common sources of noise in these signals.
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/4TI_h2Ad6AM" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<iframe width="320" height="240" src="https://www.youtube.com/embed/4TI_h2Ad6AM" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/Pq3ganioUzU" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<iframe width="320" height="240" src="https://www.youtube.com/embed/Pq3ganioUzU" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 #### [Part 2: Time-series Smoothing and Filtering](ch1-timedomainfiltering.md) 
 Noise removal techniques can be divided into two class. The first is time-domain approaches, where the information is contained in the amplitude of a signal. For example, you may be interested in the temperature of this room, the orientation of your phone, your location and driving trajectory, and so on. All of these contain information in the time domain.
