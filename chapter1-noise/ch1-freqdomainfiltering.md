@@ -27,7 +27,7 @@ Here’s the magic: _once you convert a signal to a weighted sum of sinusoidals,
 
 ## Types of Frequency-domain Filters
 
-![alt_text](images/image6.png "image_tooltip")
+<img src="images/image6.png" alt="drawing" width="600"/>
 
 _Figure 11: Types of frequency-domain filters_
 
@@ -47,7 +47,7 @@ In practice, one has to be careful about how to use the above filters. In many p
 A classic example of how these frequency domain filters are used for noise removal is in the case of ECG filtering, so let us discuss how this works. Figure 8 shows an example of the raw ECG data and the filtered ECG data that we would like to extract from it. There are three sources of noise in the ECG data shown in this picture:
 
 
-![alt_text](images/image3.png "image_tooltip")
+<img src="images/image3.png" alt="drawing" width="600"/>
 
 _Figure 8: (top) ECG signal with baseline wander, powerline interference, and other high-frequency noise, (bottom) filtered ECG signal. _
 
@@ -55,7 +55,7 @@ _Figure 8: (top) ECG signal with baseline wander, powerline interference, and ot
 
 **Powerline Noise**: The frequency of alternating current in the electrical mains is typically around 50-60Hz. Since this is in the frequency range of the ECG signal that we are interested in, it appears as a significant source of noise that can disrupt any measurement that we wish to make. This noise can be clearly seen in the ECG figure below. The blue curve is the measured ECG signal which has periodic variations of the power line on top of the actual ECG signal in red.  Power-line noise can be  removed from the ECG signal by implementing a notch filter at 50/60Hz.
 
-![alt_text](images/image9.png "image_tooltip")
+<img src="images/image9.png" alt="drawing" width="600"/>
 
 _Figure 9: (red) ECG signal without powerline noise, and (blue) ECG signal with powerline noise._
 
@@ -63,7 +63,7 @@ _Figure 9: (red) ECG signal without powerline noise, and (blue) ECG signal with 
 
 If we put these methods together, we get a filtering pipeline that looks like the one below. The ECG signal of interest is between 0.5Hz to 150Hz, so we can remove baseline wander by having a high-pass filter with a cutoff of 0.5Hz, and we can remove high frequency noise by having a low-pass filter with a cutoff of 150Hz. This leaves us with powerline interference, which we can remove with a notch filter with a 50Hz cutoff.
 
-![alt_text](images/image11.png "image_tooltip")
+<img src="images/image11.png" alt="drawing" width="600"/>
 
 _Figure 10: ECG filtering pipeline comprising several frequency-domain filters to cutoff low frequency baseline wander, high frequency RF noise and narrow frequency powerline noise. _
 
