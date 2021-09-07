@@ -65,7 +65,7 @@ The effect of exponential smoothing of an accelerometer signal obtained during w
   <img src="images/image12.png" alt="drawing" width="500"/>
 </p>
 
-_Figure 56: (left) accelerometer signal during walking without smoothing (right) after exponentially weighted smoothing with smoothing = 6 (i.e. _α = ⅙).
+_Figure 56: (left) accelerometer signal during walking without smoothing (right) after exponentially weighted smoothing with smoothing = 6 (i.e. _α = ⅙)._
 
 To see exponential averaging in practice, check out the demo in [2]. Try changing the smoothing parameter, and see its effect on the signal (the smoothing parameter is 1/α, so larger smoothing means smaller α). 
 

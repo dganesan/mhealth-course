@@ -16,7 +16,7 @@ We have discussed how to remove time-domain noise, now let us turn to noise in t
 
 A long time ago, French scientist and mathematician Jean Baptiste Fourier (1768–1830) proved the mathematical fact that any periodic waveform can be expressed as the sum of an infinite set of sine waves. The frequencies of these sine waves must be integer multiples of some period. An example of this observation is shown in Figure 4. You take two periodic sine waves, add them up, and you get a complicated looking curve. The inverse is also true. You can take any time-series pattern and break it down into a weighted sum of sinusoidal waves.
 
-![alt_text](images/image16.png "image_tooltip")
+<img src="images/image16.png" alt="drawing" width="500"/>
 
 _Figure 11:  What happens if we add a number of sine waves together, with some weights for each wave? We end up with a complicated waveform that is the summation of the individual waves. _
 
