@@ -53,8 +53,6 @@ As another example, take the case of the algorithm that detects how you are hold
 This problem is by no means isolated to accelerometer signals. For example, if you looked at signal from an ECG sensor, you would see a lot of noise sources such as those shown in Figure 2. 
 
 ![alt_text](images/image2.png "image_tooltip")
-<p style="text-align:center;"><img src="images/image2.png" alt="drawing" class="center" width="600"/>
-
 _Figure 2: Typical ECG signal with different interference sources_
 
 The figure shows four sources of noise in the ECG signal. One visible problem is power line interference i.e. the 50Hz power line signal causes electromagnetic interference which is recorded by the ECG device. This issue is particularly problematic for low frequency signals like ECG. Many other sources of ECG noise are present as well including those caused by breathing, muscle contractions, body movement, and so on. 
@@ -63,10 +61,6 @@ The figure shows four sources of noise in the ECG signal. One visible problem is
 ### Noise in Image Data
 
 Images are often noisy, and these sources of noise need to be filtered out before meaningful information can be extracted from the data. Here are two examples of noisy images, and how they look after they are cleaned. In the first example (boat), one could argue that the boat is at least visible in the noisy signal, but in the second example (eye), the noisy data makes it very hard to even identify the fact that it is an image of the eye. Thus, noise can severely impact the visual quality of the image to the point where it may be even hard for the human eye to identify the object(s) present in the image.
-
-<p style="text-align:center;"><img src="images/image10.png" alt="drawing" class="center" width="600"/>
-<p style="text-align:center;"><img src="images/image1.png" alt="drawing" class="center" width="300"/>
-<p style="text-align:center;"><img src="images/image15.png" alt="drawing" class="center" width="300"/>
 
 ![alt_text](images/image10.png "image_tooltip")
 ![alt_text](images/image1.png "image_tooltip")
@@ -92,6 +86,7 @@ So, how do we deal with noise? Turns out that this is a vast topic, and there ar
 
 Other sensor information like GPS location is also susceptible to noise. GPS readings can be noisy due to a variety of reasons including clock error, tropospheric delays, multipath effects due to buildings, weather conditions, and so on. If you have used Google Maps or any other mapping service, you may be tempted to believe that GPS is fairly accurate, but the raw data coming from the GPS receiver often has noise that is being smoothed before it is displayed on screen. For example, the figure below shows what you would get if you blindly connected the GPS locations coming from your receiver while you are driving down a street. The green line shows the actual trajectory that should have been observed if the GPS readings were error-free.
 
+<p style="text-align:center;"><img src="images/image8.png" alt="drawing" class="center" width="600"/>
 ![alt_text](images/image8.png "image_tooltip")
 
 _Figure 5: Noisy GPS readings while driving in red. Actual trajectory in green._
