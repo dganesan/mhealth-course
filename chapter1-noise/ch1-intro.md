@@ -37,7 +37,7 @@ Figure 1 shows the typical accelerations along the three axes (x, y, and z) whil
 
 ![alt_text](images/image4.png "image_tooltip")
 
-<img src="images/image4.png" alt="drawing" class="center" width="600"/>
+<p style="text-align:center;"><img src="images/image4.png" alt="drawing" class="center" width="600"/>
 
 _Figure 1: Typical pattern of x-, y-, and z accelerations while walking with smartphone in pocket._
 
