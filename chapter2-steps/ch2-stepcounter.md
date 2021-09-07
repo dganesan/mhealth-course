@@ -38,8 +38,8 @@ Even after we remove low and high frequency peaks, we may be left with some shor
 
 
 <p float="left">
-<img src="images/image6.png" alt="drawing" width="400"/>
-<img src="images/image10.png" alt="drawing" width="400"/>
+<img src="images/image6.png" alt="drawing" width="500"/>
+<img src="images/image10.png" alt="drawing" width="500"/>
 </p>
 
 _Figure 7: Zero crossings (left) and peaks (right) of the filtered magnitude signal_
@@ -47,7 +47,7 @@ _Figure 7: Zero crossings (left) and peaks (right) of the filtered magnitude sig
 **Step 3: Detecting Steps.** Once you have the smoothed data, let us consider how to detect the step. We could do what was suggested earlier, which is to look for large peaks and use that to detect steps. Another approach is to take the derivative (slope) of the smoothed acceleration signal. The derivative changes from negative to positive (or positive to negative) exactly when a step occurs, so you can just count the number of times the derivative changed from negative to positive to detect the number of steps that occurred.  Another possibility is to subtract the mean for each window and look at  zero crossings i.e. times when the signal crosses from the negative to positive in the upward direction (this can be tricky, however, since the signal baseline can change over time as shown below). 
 
 
-<img src="images/image3.png" alt="drawing" width="500"/>
+<img src="images/image3.png" alt="drawing" width="400"/>
 
 _Figure 8: Filtered data on the most active axis._
 
