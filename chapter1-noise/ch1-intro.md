@@ -35,8 +35,6 @@ Now that you understand the difference between information and noise, let us tur
 
 Figure 1 shows the typical accelerations along the three axes (x, y, and z) while walking. You can see that there is clearly some periodic pattern in this data, but it also seems really noisy making it hard to analyze the data to extract useful information such as number of steps. The noise in the accelerometer signal can be categorized into two types.
 
-![alt_text](images/image4.png "image_tooltip")
-
 <p style="text-align:center;"><img src="images/image4.png" alt="drawing" class="center" width="600"/>
 
 _Figure 1: Typical pattern of x-, y-, and z accelerations while walking with smartphone in pocket._
@@ -55,6 +53,7 @@ As another example, take the case of the algorithm that detects how you are hold
 This problem is by no means isolated to accelerometer signals. For example, if you looked at signal from an ECG sensor, you would see a lot of noise sources such as those shown in Figure 2. 
 
 ![alt_text](images/image2.png "image_tooltip")
+<p style="text-align:center;"><img src="images/image2.png" alt="drawing" class="center" width="600"/>
 
 _Figure 2: Typical ECG signal with different interference sources_
 
@@ -65,10 +64,12 @@ The figure shows four sources of noise in the ECG signal. One visible problem is
 
 Images are often noisy, and these sources of noise need to be filtered out before meaningful information can be extracted from the data. Here are two examples of noisy images, and how they look after they are cleaned. In the first example (boat), one could argue that the boat is at least visible in the noisy signal, but in the second example (eye), the noisy data makes it very hard to even identify the fact that it is an image of the eye. Thus, noise can severely impact the visual quality of the image to the point where it may be even hard for the human eye to identify the object(s) present in the image.
 
+<p style="text-align:center;"><img src="images/image10.png" alt="drawing" class="center" width="600"/>
+<p style="text-align:center;"><img src="images/image1.png" alt="drawing" class="center" width="300"/>
+<p style="text-align:center;"><img src="images/image15.png" alt="drawing" class="center" width="300"/>
+
+![alt_text](images/image10.png "image_tooltip")
 ![alt_text](images/image1.png "image_tooltip")
-
-![alt_text](images/image3.png "image_tooltip")
-
 ![alt_text](images/image15.png "image_tooltip")
 
 _Figure 3: Noise in images. (left) salt-and-pepper noise, and (right) fixed pattern noise in camera_
