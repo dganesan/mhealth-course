@@ -62,10 +62,10 @@ The effect of exponential smoothing of an accelerometer signal obtained during w
 
 <div class="row">
   <div class="column">
-	<img src="images/image4.png" alt="drawing" class="center" width="400"/>
+	<img src="images/image4.png" alt="drawing" width="200"/>
   </div>
   <div class="column">
-	<img src="images/image12.png" alt="drawing" class="center" width="400"/>
+	<img src="images/image12.png" alt="drawing" width="200"/>
   </div>
 </div>
 
