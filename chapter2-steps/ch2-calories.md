@@ -17,7 +17,7 @@ _Distance = number of steps × distance per step (1)_
 
 Distance per step depends on the speed and the height of user. The step length would be longer if the user is taller or running at higher speed. We use the steps counted in every two seconds to judge the current stride length. Table 2 shows the experimental data used to judge the current stride.
 
-<img src="images/image4.png" alt="drawing" width="600"/>
+<img src="images/image4.png" alt="drawing" width="300"/>
 
 _Table 2. Stride as a Function of Speed (steps per 2 s) and Height_
 
@@ -27,7 +27,7 @@ _Speed = steps per 2 s × stride/2 s (2)_
 
 **Estimating Calories**: Unfortunately, there is no accurate means for calculating the rate of expending calories. Some factors that determine it include body weight, intensity of workout, conditioning level, and metabolism. We can estimate it using a conventional approximation, however. Table 3 shows a typical relationship between calorie expenditure and running speed.
 
-<img src="images/image8.png" alt="drawing" width="600"/>
+<img src="images/image8.png" alt="drawing" width="300"/>
 
 _Table 3. Calories Expended vs. Running Speed_
 
