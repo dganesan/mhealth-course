@@ -7,6 +7,8 @@ usemathjax: true
 description: "Chapter 1"
 ---
 
+# Chapter 1: Sensor data smoothing and filtering
+
 Most sensor data is affected to some extent by **noise**, that is unexplained variations in the data that in many cases is uninterpretable, and in almost all cases is not of interest to us. Data analysis is often considerably simpler if this noise can be removed from the data. This chapter provides an overview of the sources of noise in typical sensor data and the methods by which noise can be removed.
 
 #### [Part 1: Introduction to Smoothing and Filtering](ch1-intro.md) 

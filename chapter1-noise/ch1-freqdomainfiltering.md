@@ -7,7 +7,7 @@ usemathjax: true
 description: "Chapter 1"
 ---
 
-# Chapter 1: Frequency-domain Filtering
+# Frequency-domain Filtering
 
 We have discussed how to remove time-domain noise, now let us turn to noise in the frequency domain. 
 

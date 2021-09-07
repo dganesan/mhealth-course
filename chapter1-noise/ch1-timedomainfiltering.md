@@ -7,7 +7,7 @@ usemathjax: true
 description: "Chapter 1"
 ---
 
-# Chapter 1: Time-series Smoothing and Filtering
+# Time-series Smoothing and Filtering
 
 We start our discussion of smoothing methods with the simplest method, moving average smoothing and proceed to a variant of this method referred to as exponential weighted smoothing. The fact that they are simple doesn’t mean that they are not useful - in spite of their simplicity, these methods are surprisingly effective in practice, and therefore very widely used.
 
