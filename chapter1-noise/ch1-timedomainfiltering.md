@@ -60,26 +60,10 @@ The smoothing factor applied to α here is something of a misnomer, as larger va
 
 The effect of exponential smoothing of an accelerometer signal obtained during walking is shown in Figure 3. You can now start to see the distinct steps much more cleanly, and you can even count them quite easily by eye. At this point, you might even be considering different possible algorithms that can automatically extract steps from the smoothed signal. Not bad for a simple smoothing algorithm!
 
-
 <p float="left">
-  <img src="images/image4.png" alt="drawing" width="200"/>
-  <img src="images/image12.png" alt="drawing" width="200"/>
+  <img src="images/image4.png" alt="drawing" width="400"/>
+  <img src="images/image12.png" alt="drawing" width="400"/>
 </p>
-
-<div class="row">
-  <div class="column">
-	<img src="images/image4.png" alt="drawing" width="200"/>
-  </div>
-  <div class="column">
-	<img src="images/image12.png" alt="drawing" width="200"/>
-  </div>
-</div>
-
-<img src="images/image4.png" alt="drawing" class="center" width="400"/>
-<img src="images/image12.png" alt="drawing" class="center" width="400"/>
-
-![alt_text](images/image4.png "image_tooltip")
-![alt_text](images/image12.png "image_tooltip")
 
 _Figure 56: (left) accelerometer signal during walking without smoothing (right) after exponentially weighted smoothing with smoothing = 6 (i.e. _α = ⅙).
 
