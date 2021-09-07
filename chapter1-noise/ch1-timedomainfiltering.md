@@ -7,19 +7,19 @@ usemathjax: true
 description: "Chapter 1"
 ---
 
-# Time-series Smoothing and Filtering
+## Time-series Smoothing and Filtering
 
 We start our discussion of smoothing methods with the simplest method, moving average smoothing and proceed to a variant of this method referred to as exponential weighted smoothing. The fact that they are simple doesn’t mean that they are not useful - in spite of their simplicity, these methods are surprisingly effective in practice, and therefore very widely used.
 
 
-## Over-sampling and Averaging
+### Over-sampling and Averaging
 
 Many sources of noise tend to be random in nature. Informally, this means that the noise has roughly equal amounts of positive and negative changes, and there is no pattern in the noise over time. Formally, the noise is said to be uncorrelated in time, has zero mean, and finite variance. 
 
 In this case, noise can be reduced by over-sampling the sensor and averaging the values. For example, take the case where you are writing an algorithm to determine the rotation of the screen of the mobile phone. If there were no noise, you may sample at a low rate of say 10 Hz (or 10 times/second), but since you have noise due to small hand movements (if you are holding the phone), you may use a sampling rate of 100 Hz. You can then average every 10 samples readings and the average value is reported at a 10 Hz frequency and used in the application to determine whether the screen has rotated. In this way, the noise in the acceleration signal is reduced. You might ask how much the noise reduces by this method. Mathematically, if you have N samples of a random noise signal, and average these samples, your noise reduces by a factor of 1/√N.
 
 
-## Moving Average Smoothing
+### Moving Average Smoothing
 
 Instead of averaging and reducing the number of samples, one can also perform a moving average. Lets try use an example to illustrate this approach. Figure 1 shows a noisy accelerometer signal, and let us try to apply a moving average smoothing to this signal. We are going to replace each sample by the average of the current sample, the sample before it, and the sample after it. 
 
@@ -42,7 +42,7 @@ The output of the moving average filter is:
 In the example above, we averaged three input values together, but we could have averaged more nearby points to smooth even more aggressively. As you increase the smoothing window, the signal will look cleaner and more visually pleasing, but beware of using too large a window since you will smooth out the important characteristics of the signal (for example, steps if you want to do step detection).
 
 
-## Exponential smoothing
+### Exponential smoothing
 
 Moving average assumes random noise where the statistics of the noise does not change over time. But what happens if the noise itself is a time varying? In this case, exponential smoothing is an effective alternative that works well in practice. The key idea is a small twist on the moving average method described earlier. Whereas the moving average smoothing gives equal weight to the set of values that are averaged, the idea in exponential smoothing is to assign exponentially decreasing weights as the observation get older. In other words, recent observations are given relatively more weight than the older observations.
 
@@ -60,8 +60,10 @@ The smoothing factor applied to α here is something of a misnomer, as larger va
 
 The effect of exponential smoothing of an accelerometer signal obtained during walking is shown in Figure 3. You can now start to see the distinct steps much more cleanly, and you can even count them quite easily by eye. At this point, you might even be considering different possible algorithms that can automatically extract steps from the smoothed signal. Not bad for a simple smoothing algorithm!
 
-![alt_text](images/image4.png "image_tooltip")
+<p style="text-align:center;"><img src="images/image4.png" alt="drawing" class="center" width="400"/>
+<p style="text-align:center;"><img src="images/image12.png" alt="drawing" class="center" width="400"/>
 
+![alt_text](images/image4.png "image_tooltip")
 ![alt_text](images/image12.png "image_tooltip")
 
 _Figure 56: (left) accelerometer signal during walking without smoothing (right) after exponentially weighted smoothing with smoothing = 6 (i.e. _α = ⅙).
@@ -69,7 +71,7 @@ _Figure 56: (left) accelerometer signal during walking without smoothing (right)
 To see exponential averaging in practice, check out the demo in [2]. Try changing the smoothing parameter, and see its effect on the signal (the smoothing parameter is 1/α, so larger smoothing means smaller α). 
 
 
-## Median Filtering
+### Median Filtering
 
 When the noise appears like sudden spikes in the data (also referred to as salt-and-pepper noise), then the moving average and exponential smoothing methods are not the best methods. An example is shown below, where the noise pattern comprises sharp spikes in the data. Exponential smoothing will remove noise, but has two issues. First, it averages some of the peaks in the data and they don’t quite have the same amplitude. Second, you will notice that the averaging causes a time lag in the peaks i.e. the peaks are shifted slightly to the right of the original peak. 
 
