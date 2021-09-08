@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Frequency-domain Filtering
-parent: Chapter 1
+parent: Data Smoothing
 nav_order: 3
 usemathjax: true
 description: "Chapter 1"

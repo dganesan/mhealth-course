@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Introduction
-parent: Chapter 2
+parent: Step Counting
 nav_order: 1
 usemathjax: true
 description: "Chapter 2"

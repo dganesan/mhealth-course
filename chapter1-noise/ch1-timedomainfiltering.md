@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Time-domain Smoothing
-parent: Chapter 1
+parent: Data Smoothing
 nav_order: 2
 usemathjax: true
 description: "Chapter 1"

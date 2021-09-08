@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Introduction
-parent: Chapter 1
+parent: Data Smoothing
 nav_order: 1
 usemathjax: true
 description: "Chapter 1"
