@@ -11,6 +11,9 @@ description: "CS328"
 
 ## Table of Contents
 {: .no_toc .text-delta }
+
+1. TOC
+{:toc}
 ---
 
 ## CS328: Mobile Health Sensing and Analytics

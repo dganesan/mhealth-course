@@ -12,6 +12,9 @@ description: "Step Counter"
 
 ## Table of Contents
 {: .no_toc .text-delta }
+
+1. TOC
+{:toc}
 ---
 
 ## Chapter 2: Designing a Pedometer and Calorie Counter

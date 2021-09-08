@@ -12,6 +12,9 @@ description: "Smoothing and Filtering"
 
 ## Table of Contents
 {: .no_toc .text-delta }
+
+1. TOC
+{:toc}
 ---
 
 ## Chapter 1: Sensor data smoothing and filtering
