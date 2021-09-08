@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Introduction
+title: Counting Calories
 parent: Step Counting
 grand_parent: Mobile Sensing &amp; Analytics
 nav_order: 3

@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Introduction
+title: Step Detection Algorithm
 parent: Step Counting
 grand_parent: Mobile Sensing &amp; Analytics
 nav_order: 2
