@@ -1,45 +1,44 @@
-## Welcome to GitHub Pages
+---
+layout: default
+title: CS328: Mobile Health Sensing and Analytics
+nav_order: 1
+has_children: true
+usemathjax: true
+description: "CS328"
+---
+## {{ page.title }}
+{: .no_toc }
+
+## Table of Contents
+{: .no_toc .text-delta }
+
+1. TOC
+{:toc}
+---
+
+## CS328: Mobile Health Sensing and Analytics
+
+Fitness gadgets such as ​Fitbit​, ​Apple Watch,​ ​Android Wear,​ and smartphone apps such as ​RunKeeper​ and M​oves​ calculate activity patterns, calories burned each day, track sleep patterns, and compute heart rate. We will learn how to build the computational elements for developing such applications by leveraging various sensors on smartphones, including the accelerometer, camera, microphone, and GPS. This is a hands-on course where students learn by doing! The course will include coverage of the following topics. 
+
+** Sensor data smoothing and denoising
+** Design of a pedometer and calorie counter using your smartphone
+** Recognition of everyday activities using inertial sensors on your smartphone
+** Evaluating classifier performance using cross-validation
+** Quantified self and personal data analytics
+** Voice-based health analytics
+** Physiological sensing using wearable sensors
+** GPS clustering to understand mobility patterns
+** Measuring sleep using wearable devices
+
+#### [Chapter 1: Introduction to Smoothing and Filtering](chapter1-noise/chapter1.md)
+
+#### [Chapter 2: How to Design a Step Counter](chapter2-steps/chapter2.md)
+
+#### [Chapter 3: Activity Recognition using Inertial Sensors](chapter3-activityrecognition/chapter3.md)
+
+#### [Chapter 4: Evaluating Classifier Performance](chapter4-evalclassifier/chapter4.md)
+
+#### Preliminaries: Python Basics [ipynb](https://colab.research.google.com/drive/1hheScRsp3Dy-mkJ1xu-EMPPwyhMAbytN?usp=sharing#scrollTo=0uJ1tEU1CtpR)
+This notebook gives you an introduction to the main building blocks that will be useful for class including working with multidimensional arrays in [Numpy](https://numpy.org/) and visualizations using  using [Matplotlib](https://matplotlib.org/), a powerful visualization library. Open this notebook, learn about creating basic charts, and try to build some of your own. 
 
 
-#### [Lesson 4: Introduction to Smoothing and Filtering](chapter1-noise/Chapter1-AccelerometerSmoothingFiltering.html) ([ipynb](https://github.com/dganesan/mhealth-course/blob/gh-pages/chapter1-noise/Chapter1-AccelerometerSmoothingFiltering.ipynb))
-
-For visualizing our data, we'll be using [Matplotlib](https://matplotlib.org/)—an incredibly powerful visualization library with a bit of an eccentric API (thanks to Matlab). Open this notebook, learn about creating basic charts, and try to build some of your own. [![Open in Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/makeabilitylab/signals/master?filepath=Tutorials%2FIntroToMatplotlib.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/makeabilitylab/signals/blob/master/Tutorials/IntroToMatplotlib.ipynb)
-
-
-
-
-You can use the [editor on GitHub](https://github.com/dganesan/mhealth-course/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
-
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
-
-### Markdown
-
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
-
-```markdown
-Syntax highlighted code block
-
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/dganesan/mhealth-course/settings/pages). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://support.github.com/contact) and we’ll help you sort it out.

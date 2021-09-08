@@ -17,7 +17,7 @@ _Figure 5: Step Detection Algorithm_
 
 **Step 1: Extract signal magnitude**: In the previously described algorithm, we selected the axis along which maximum acceleration occurred and focused on that one. Here, we are just going to take the magnitude of the entire acceleration vector i.e. 
 
-<p id="gdcalert6" ><span style="color: red; font-weight: bold">>>>>>  gd2md-html alert: equation: use MathJax/LaTeX if your publishing platform supports it. </span><br>(<a href="#">Back to top</a>)(<a href="#gdcalert7">Next alert</a>)<br><span style="color: red; font-weight: bold">>>>>> </span></p>
+<img src="images/image1.png" alt="drawing" width="600"/>
 
 , where x, y, and z are the readings of the accelerometer along the three axes. 
 
