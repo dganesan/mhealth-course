@@ -2,7 +2,7 @@
 layout: default
 title: Step Counting
 nav_order: 2
-parent: Mobile Health Sensing and Analytics
+parent: Mobile Sensing &amp; Analytics
 has_children: true
 usemathjax: true
 description: "Step Counter"

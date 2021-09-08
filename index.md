@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Mobile Health Sensing and Analytics
+title: Mobile Sensing &amp; Analytics
 nav_order: 1
 has_children: true
 usemathjax: true

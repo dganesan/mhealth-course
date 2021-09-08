@@ -2,7 +2,7 @@
 layout: default
 title: Data Smoothing
 nav_order: 1
-parent: Mobile Health Sensing and Analytics
+parent: Mobile Sensing &amp; Analytics
 has_children: true
 usemathjax: true
 description: "Smoothing and Filtering"
@@ -42,15 +42,15 @@ The second is frequency-domain approaches, which removes noise that is periodic 
 
 #### Notebook 2: ECG Data Filtering (Assignment 1)
 
-#### Notebook 3: [Fourier Decomposition](Chapter1-Fourier-Denoising.html) [[ipynb](Chapter1-Fourier-Denoising.ipynb)]
+#### Notebook 3: Fourier Decomposition [[html](Chapter1-Fourier-Denoising.html)] [[ipynb](Chapter1-Fourier-Denoising.ipynb)]
 The Fourier transform is a tool that allows you to take a signal and see the power of each frequency in it. This example notebook shows how you can remove frequency-domain noise from a signal using a fourier transform.
 <iframe width="320" height="240" src="https://www.youtube.com/embed/v1rEPYGzZ-c" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-#### Notebook 4: [Butterworth Filtering](Chapter1-ButterworthFilter.html) [[ipynb](Chapter1-ButterworthFilter.ipynb)]
+#### Notebook 4: Butterworth Filtering [[html](Chapter1-ButterworthFilter.html)] [[ipynb](Chapter1-ButterworthFilter.ipynb)]
 Frequency-domain noise can be removed by a combination of frequency filters. A low-pass filter can remove high frequency components while letting through low frequency components. A high pass filter does the reverse and lets high frequency components through while removing low frequency components. A notch filter removes a specific frequency from the signal. In this notebook, we show how to use a filter called a 'butterworth filter' to remove noise. A Butterworth filter is a popular frequency domain 'lowpass' filter that can remove high frequency noise while only letting the low frequencies through. Since many signals we deal with such as steps, heartbeats and breathing are low frequency signals i.e. only a few repetitions per minute, this is a good approach.
 <iframe width="320" height="240" src="https://www.youtube.com/embed/O68PSIXEU9Q" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-#### Notebook 5: [3D Trajectory Estimation](Chapter1-3D-Trajectory-Smoothing.html) [[ipynb](Chapter1-3D-Trajectory-Smoothing.ipynb)]
+#### Notebook 5: 3D Trajectory Estimation [[html](Chapter1-3D-Trajectory-Smoothing.html)] [[ipynb](Chapter1-3D-Trajectory-Smoothing.ipynb)]
 This is a more advanced example that shows how to use an inertial sensor (accelerometer, gyroscope, magnetometer) to track the trajectory of a smartphone in 3D space. The mathematical aspects are more complicated here and you will not learnt it in this class although this can be interesting for potential course projects.
 
 
