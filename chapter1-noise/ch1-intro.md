@@ -35,7 +35,7 @@ Now that you understand the difference between information and noise, let us tur
 
 Figure 1 shows the typical accelerations along the three axes (x, y, and z) while walking. You can see that there is clearly some periodic pattern in this data, but it also seems really noisy making it hard to analyze the data to extract useful information such as number of steps. The noise in the accelerometer signal can be categorized into two types.
 
-<p style="text-align:center;"><img src="images/image4.png" alt="drawing" class="center" width="400"/>
+<p style="text-align:center;"><img src="images/image4.png" alt="drawing" width="400"/>
 
 _Figure 1: Typical pattern of x, y, and z accelerations while walking with smartphone in pocket._
 
