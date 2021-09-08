@@ -1,12 +1,12 @@
 ---
 layout: default
-title: CS328: Mobile Health Sensing and Analytics
+title: CS328
 nav_order: 1
 has_children: true
 usemathjax: true
 description: "CS328"
 ---
-## {{ CS328: Mobile Health Sensing and Analytics }}
+## Mobile Health Sensing and Analytics
 {: .no_toc }
 
 ## Table of Contents

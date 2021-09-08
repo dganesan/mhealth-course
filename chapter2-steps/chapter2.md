@@ -2,11 +2,12 @@
 layout: default
 title: Chapter 2: Designing a Pedometer and Calorie Counter
 nav_order: 2
+parent: CS328
 has_children: true
 usemathjax: true
 description: "Step Counter"
 ---
-## {{Chapter 2: Designing a Pedometer and Calorie Counter }}
+## Designing a Pedometer and Calorie Counter
 {: .no_toc }
 
 ## Table of Contents

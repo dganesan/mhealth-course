@@ -2,6 +2,7 @@
 layout: default
 title: Chapter 1: Smoothing and Filtering
 nav_order: 1
+parent: CS328
 has_children: true
 usemathjax: true
 description: "Smoothing and Filtering"
