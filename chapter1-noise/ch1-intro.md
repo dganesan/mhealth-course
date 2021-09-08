@@ -35,7 +35,7 @@ Now that you understand the difference between information and noise, let us tur
 
 Figure 1 shows the typical accelerations along the three axes (x, y, and z) while walking. You can see that there is clearly some periodic pattern in this data, but it also seems really noisy making it hard to analyze the data to extract useful information such as number of steps. The noise in the accelerometer signal can be categorized into two types.
 
-<p style="text-align:center;"><img src="images/image4.png" alt="drawing" width="400"/>
+![alt_text](images/image4.png "image_tooltip")
 
 _Figure 1: Typical pattern of x, y, and z accelerations while walking with smartphone in pocket._
 
@@ -76,7 +76,7 @@ The reasons for image noise are many as well --- often, noise is caused by the c
 
 Audio data recorded by a microphone can also be highly susceptible to noise. The noise could be due to ambient sound, for example, you are speaking in a party where many other people are simultaneously talking. Or it could be due to a loud noise nearby such as talking near a construction site. Of course, the hardware and circuit could add to the noise as well. Below is an example that shows how much noise can distort an audio signal.
 
-<p style="text-align:center;"><img src="images/image13.png" alt="drawing" class="center" width="400"/>
+![alt_text](images/image13.png "image_tooltip")
 
 _Figure 4: Noisy audio signal_
 
@@ -87,7 +87,7 @@ So, how do we deal with noise? Turns out that this is a vast topic, and there ar
 
 Other sensor information like GPS location is also susceptible to noise. GPS readings can be noisy due to a variety of reasons including clock error, tropospheric delays, multipath effects due to buildings, weather conditions, and so on. If you have used Google Maps or any other mapping service, you may be tempted to believe that GPS is fairly accurate, but the raw data coming from the GPS receiver often has noise that is being smoothed before it is displayed on screen. For example, the figure below shows what you would get if you blindly connected the GPS locations coming from your receiver while you are driving down a street. The green line shows the actual trajectory that should have been observed if the GPS readings were error-free.
 
-<p style="text-align:center;"><img src="images/image8.png" alt="drawing" class="center" width="600"/>
+![alt_text](images/image8.png "image_tooltip")
 
 _Figure 5: Noisy GPS readings while driving in red. Actual trajectory in green._
 
