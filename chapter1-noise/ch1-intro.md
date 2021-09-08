@@ -9,7 +9,7 @@ description: "Chapter 1"
 
 ## Introduction to sensor data smoothing and filtering
 
-Most sensor data is affected to some extent by **noise**, that is unexplained variations in the data that in many cases is uninterpretable, and in almost all cases is not of interest to us. Data analysis is often considerably simpler if this noise can be removed from the data. This process is referred to by various terms - data smoothing, filtering, cleaning, and so on. The underlying idea in all these methods is to remove the noise while retaining the important characteristics of the signal.
+Most sensor data is affected to some extent by **noise**, that is unexplaine	d variations in the data that in many cases is uninterpretable, and in almost all cases is not of interest to us. Data analysis is often considerably simpler if this noise can be removed from the data. This process is referred to by various terms - data smoothing, filtering, cleaning, and so on. The underlying idea in all these methods is to remove the noise while retaining the important characteristics of the signal.
 
 Noise removal techniques can be divided into two class. The first is time-domain approaches, which is the more intuitive way of approaching the problem. The second is frequency-domain approaches, which removes noise that is periodic in nature. Our goal is not to provide a detailed mathematical exposition of these techniques but to keep it practical. You can tackle most issues with noise in sensor data analysis by understanding the general idea underlying these techniques, and by knowing which denoising technique to apply and when. Before we launch into these three classes, however, we give you a brief introduction into the difference being time and frequency domain information in signals, and noise in sensor signals.
 
@@ -37,7 +37,7 @@ Figure 1 shows the typical accelerations along the three axes (x, y, and z) whil
 
 <p style="text-align:center;"><img src="images/image4.png" alt="drawing" class="center" width="600"/>
 
-_Figure 1: Typical pattern of x-, y-, and z accelerations while walking with smartphone in pocket._
+_Figure 1: Typical pattern of x, y, and z accelerations while walking with smartphone in pocket._
 
 **Intrinsic sensor noise**: Some of the sources of noise in an accelerometer is due to the electronic noise from the circuitry that is converting the motion into a voltage signal and the mechanical noise from the sensor itself. There are several sources of electronic noise, referred to as Johnson noise, shot noise, flicker noise, and several others.  The mechanical noise of the sensor comes from thermo-mechanical noise, which arises due to the fact that an accelerometer has tiny moving parts, and these are susceptible to mechanical noise due to molecular agitation. Normally, you don’t have to worry about the intrinsic sensor noise because the sensor manufacturer would have carefully calibrated the sensor and the hardware filters to deal with them. But sometimes they do manifest in the signal. 
 
