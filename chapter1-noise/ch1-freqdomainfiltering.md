@@ -7,12 +7,12 @@ usemathjax: true
 description: "Chapter 1"
 ---
 
-# Frequency-domain Filtering
+## Frequency-domain Filtering
 
 We have discussed how to remove time-domain noise, now let us turn to noise in the frequency domain. 
 
 
-## How frequency domain filtering works
+### How frequency domain filtering works
 
 A long time ago, French scientist and mathematician Jean Baptiste Fourier (1768–1830) proved the mathematical fact that any periodic waveform can be expressed as the sum of an infinite set of sine waves. The frequencies of these sine waves must be integer multiples of some period. An example of this observation is shown in Figure 4. You take two periodic sine waves, add them up, and you get a complicated looking curve. The inverse is also true. You can take any time-series pattern and break it down into a weighted sum of sinusoidal waves.
 
@@ -25,7 +25,7 @@ What does all of this have to do with smoothing signals? A whole lot as it turns
 Here’s the magic: _once you convert a signal to a weighted sum of sinusoidals, you can just remove all the sinusoidals whose periods are outside the range that you expect, and what you are left with is a much cleaner signal! _This core idea is that by converting data from the time-domain (which we normally look at) to the frequency domain (which is this new way of viewing data as sinusoidals), we can more easily distinguish the useful data from noise and remove the noise.
 
 
-## Types of Frequency-domain Filters
+### Types of Frequency-domain Filters
 
 <img src="images/image6.png" alt="drawing" width="600"/>
 
@@ -42,7 +42,7 @@ Figure 11 shows four types of frequency-domain filters that are commonly used in
 In practice, one has to be careful about how to use the above filters. In many practical situations, removing frequencies abruptly causes unwanted artifacts in the signal. For example, some of you might have seen a ringing sound when you listen to percussion instruments in a concert. This topic is more involved and you can learn these in more advanced classes.
 
 
-## ECG Noise Removal
+### ECG Noise Removal
 
 A classic example of how these frequency domain filters are used for noise removal is in the case of ECG filtering, so let us discuss how this works. Figure 8 shows an example of the raw ECG data and the filtered ECG data that we would like to extract from it. There are three sources of noise in the ECG data shown in this picture:
 
@@ -67,7 +67,7 @@ If we put these methods together, we get a filtering pipeline that looks like th
 
 _Figure 10: ECG filtering pipeline comprising several frequency-domain filters to cutoff low frequency baseline wander, high frequency RF noise and narrow frequency powerline noise. _
 
-Conclusion
+## Conclusion
 
 I hope that this chapter gave you a glimpse of how to remove noise from raw sensor data and extract clean signals for further processing. While the filtering methods described are not comprehensive, you should be able to handle the vast majority of noise observed in sensor signals using these techniques. I would like to highlight two take-away messages from this section. The first is that effective noise removal is the foundation for any analytics that you wish to perform with sensor data. In practice, it is often important that you try to identify the source and type of noise in the signal, since that will allow you to remove the noise more effectively. The second take-away is that any method that you use for removing noise can come with some unwanted artifacts that you may have to deal with in later stages of analysis. So, make sure that you know the advantages and disadvantages of the filtering approaches that you are using before you start using them in your data processing.
 
