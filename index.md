@@ -1,6 +1,6 @@
 ---
 layout: default
-title: CS328
+title: Mobile Health Sensing and Analytics
 nav_order: 1
 has_children: true
 usemathjax: true
