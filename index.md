@@ -6,7 +6,7 @@ has_children: true
 usemathjax: true
 description: "CS328"
 ---
-## {{ page.title }}
+## {{ CS328: Mobile Health Sensing and Analytics }}
 {: .no_toc }
 
 ## Table of Contents

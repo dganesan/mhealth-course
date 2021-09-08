@@ -6,7 +6,7 @@ has_children: true
 usemathjax: true
 description: "Smoothing and Filtering"
 ---
-# {{ page.title }}
+# {{ Chapter 1: Smoothing and Filtering }}
 {: .no_toc }
 
 ## Table of Contents

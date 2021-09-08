@@ -6,7 +6,7 @@ has_children: true
 usemathjax: true
 description: "Step Counter"
 ---
-## {{ page.title }}
+## {{Chapter 2: Designing a Pedometer and Calorie Counter }}
 {: .no_toc }
 
 ## Table of Contents
