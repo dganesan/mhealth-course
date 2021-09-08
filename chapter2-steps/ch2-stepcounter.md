@@ -17,7 +17,7 @@ _Figure 5: Step Detection Algorithm_
 
 **Step 1: Extract signal magnitude**: In the previously described algorithm, we selected the axis along which maximum acceleration occurred and focused on that one. Here, we are just going to take the magnitude of the entire acceleration vector i.e. 
 
-<img src="images/image1.png" alt="drawing" width="600"/>
+<img src="images/image1.png" alt="drawing" width="100"/>
 
 , where x, y, and z are the readings of the accelerometer along the three axes. 
 

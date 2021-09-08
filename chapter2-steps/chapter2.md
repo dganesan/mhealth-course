@@ -27,12 +27,12 @@ We start by explaining what an accelerometer on a phone or fitness band measures
 
 <iframe width="320" height="240" src="https://www.youtube.com/embed/t40WyxXuwKk" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-#### Part 2: Sources of noise [[notes](ch2-intro.md)] [[slides 16-21](https://goo.gl/TSffoV)]
+#### Part 2: Sources of noise [[slides 16-21](https://goo.gl/TSffoV)]
 We describe some of the real-world challenges in accurately estimating the number of steps including common sources of noise such as the device moving around, differences across people in terms of their gait patterns, and others.
 
 <iframe width="320" height="240" src="https://www.youtube.com/embed/UExjHCCgd1g" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-#### Part 3: Distinguishing horizontal vs vertical movements [[notes](ch2-intro.md)] [[slides 22-26](https://goo.gl/TSffoV)]
+#### Part 3: Distinguishing horizontal vs vertical movements [[slides 22-26](https://goo.gl/TSffoV)]
 We look at a more complex problem where we have to distinguish between horizontal braking and acceleration while driving in a vehicle versus vertical changes in acceleration due to walking. This can let us distinguish between acceleration due to steps versus due to moving in a vehicle
 
 <iframe width="320" height="240" src="https://www.youtube.com/embed/eV0htD4r4ZI" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
