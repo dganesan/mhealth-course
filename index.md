@@ -39,9 +39,11 @@ This lesson provides an introduction into the first steps in processing sensor d
 #### [Lesson 2: How to Design a Step Counter](chapter2-steps/chapter2.html)
 The second lesson provides an overview of how step counters (also referred to as pedometers) work. We look at what characteristics of steps are sufficiently distinctive to be measured accurately by a step counter. We also look at how placement of the phone or smartwatch can affect the signal, as well as other sources of error. We discuss methods to deal with these errors. 
 
-#### [Lesson 3: Activity Recognition using Inertial Sensors](chapter3-activityrecognition/chapter3.html)
+#### [Lesson 3: Photoplethysmography](chapter4-heartrhythm/chapter4.html)
 
-#### [Lesson 4: Evaluating Classifier Performance](chapter4-evalclassifier/chapter4.html)
+#### [Lesson 4: Activity Recognition using Inertial Sensors](chapter3-activityrecognition/chapter3.html)
+
+#### [Lesson 5: Evaluating Classifier Performance](chapter4-evalclassifier/chapter4.html)
 
 
 

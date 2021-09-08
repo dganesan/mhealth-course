@@ -1,4 +1,4 @@
-<h2 class="no_toc" id="mobile-health-sensing-and-analytics">Mobile Health Sensing and Analytics</h2>
+I"ó<h2 class="no_toc" id="mobile-health-sensing-and-analytics">Mobile Health Sensing and Analytics</h2>
 
 <h2 class="no_toc text-delta" id="table-of-contents">Table of Contents</h2>
 
@@ -45,9 +45,10 @@
 <h4 id="lesson-2-how-to-design-a-step-counter"><a href="chapter2-steps/chapter2.html">Lesson 2: How to Design a Step Counter</a></h4>
 <p>The second lesson provides an overview of how step counters (also referred to as pedometers) work. We look at what characteristics of steps are sufficiently distinctive to be measured accurately by a step counter. We also look at how placement of the phone or smartwatch can affect the signal, as well as other sources of error. We discuss methods to deal with these errors.</p>
 
-<h4 id="lesson-3-photoplethysmography"><a href="chapter4-heartrhythm/chapter4.html">Lesson 3: Photoplethysmography</a></h4>
+<h4 id="lesson-3-photoplethysmography"><a href="chapter4-evalclassifier/chapter4.html">Lesson 3: Photoplethysmography</a></h4>
 
 <h4 id="lesson-4-activity-recognition-using-inertial-sensors"><a href="chapter3-activityrecognition/chapter3.html">Lesson 4: Activity Recognition using Inertial Sensors</a></h4>
 
 <h4 id="lesson-5-evaluating-classifier-performance"><a href="chapter4-evalclassifier/chapter4.html">Lesson 5: Evaluating Classifier Performance</a></h4>
 
+:ET
