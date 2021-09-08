@@ -7,6 +7,12 @@ nav_order: 3
 usemathjax: true
 description: "Chapter 2"
 ---
+## Table of Contents
+{: .no_toc .text-delta }
+
+1. TOC
+{:toc}
+---
 
 ## Counting Calories
 
