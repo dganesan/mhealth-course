@@ -81,7 +81,7 @@ To see exponential averaging in practice, check out the demo in [2]. Try changin
 
 When the noise appears like sudden spikes in the data (also referred to as salt-and-pepper noise), then the moving average and exponential smoothing methods are not the best methods. An example is shown below, where the noise pattern comprises sharp spikes in the data. Exponential smoothing will remove noise, but has two issues. First, it averages some of the peaks in the data and they don’t quite have the same amplitude. Second, you will notice that the averaging causes a time lag in the peaks i.e. the peaks are shifted slightly to the right of the original peak. 
 
-![alt_text](images/image7.png "image_tooltip")
+<img src="images/image7.png" alt="drawing" width="800"/>
 
 _Figure 7: Exponential smoothing vs Median filtering. Median filtering is better for removing spikes in the signal (salt-and-pepper noise) compared to exponential smoothing._
 

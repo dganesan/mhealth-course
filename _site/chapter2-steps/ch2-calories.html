@@ -1,0 +1,63 @@
+<h2 class="no_toc text-delta" id="table-of-contents">Table of Contents</h2>
+
+<ol id="markdown-toc">
+  <li><a href="#counting-calories" id="markdown-toc-counting-calories">Counting Calories</a></li>
+  <li><a href="#references" id="markdown-toc-references">References</a></li>
+</ol>
+<hr />
+
+<h2 id="counting-calories">Counting Calories</h2>
+
+<p>Determining the exact number of calories expended by an individual based on the number of steps that they have taken is an approximate science, and there is no accurate means of obtaining this measure. However, there are some useful heuristics that can be applied, and we are going to explore one of them. The basic idea is to figure out the running/walking speed of the individual (distance/time), and then use information about the weight to determine calories expended.</p>
+
+<p><strong>Estimating Distance Covered</strong>: After computing the steps parameter according to the algorithm above, we can use Equation 1 to get the distance parameter.</p>
+
+<p><em>Distance = number of steps × distance per step (1)</em></p>
+
+<p>Distance per step depends on the speed and the height of user. The step length would be longer if the user is taller or running at higher speed. We use the steps counted in every two seconds to judge the current stride length. Table 2 shows the experimental data used to judge the current stride.</p>
+
+<p><img src="images/image4.png" alt="drawing" width="300" /></p>
+
+<p><em>Table 2. Stride as a Function of Speed (steps per 2 s) and Height</em></p>
+
+<p><strong>Estimating Speed</strong>: Speed = distance/time, so Equation 2 can be used to get the speed parameter, as steps per 2 s and stride have all been calculated according to the algorithm above.</p>
+
+<p><em>Speed = steps per 2 s × stride/2 s (2)</em></p>
+
+<p><strong>Estimating Calories</strong>: Unfortunately, there is no accurate means for calculating the rate of expending calories. Some factors that determine it include body weight, intensity of workout, conditioning level, and metabolism. We can estimate it using a conventional approximation, however. Table 3 shows a typical relationship between calorie expenditure and running speed.</p>
+
+<p><img src="images/image8.png" alt="drawing" width="300" /></p>
+
+<p><em>Table 3. Calories Expended vs. Running Speed</em></p>
+
+<p>From Table 3, we can get (3).</p>
+
+<p><em>Calories (C/kg/h) = 1.25 × running speed (km/h) (3)</em></p>
+
+<p>The unit of the speed parameter used above is m/s; converting km/h to m/s gives Equation 4.</p>
+
+<p><em>Calories (C/kg/h) = 1.25 × speed (m/s) × 3600/1000 = 4.5 × speed (m/s) (4)</em></p>
+
+<p>The calories parameter would be updated every 2s with the distance and speed parameters. So, to account for a given athlete’s weight, we can convert Equation 4 to Equation 5 as indicated.</p>
+
+<p>Weight (kg) is a user input, and one hour is equal to 1800 two second intervals.</p>
+
+<p><em>Calories (C/2 s) = 4.5 × speed × weight/1800 = speed × weight/400 (5)</em></p>
+
+<p>If the user takes a break in place after walking or running, there would be no change in steps and distance, speed should be zero, then the calories expended can use Equation 6 since the caloric expenditure is around 1 C/kg/hour while resting.</p>
+
+<p><em>Calories (C/2 s) = 1 × weight/1800 (6)</em></p>
+
+<p>Finally, we can add calories for all 2-second intervals together to get the total calories expended.</p>
+
+<h2 id="references">References</h2>
+
+<p>[1] <a href="http://www.analog.com/static/imported-files/tech_articles/pedometer.pdf">Full-Featured Pedometer Design Realized with 3-Axis Digital Accelerometer</a>, Neil Zhao</p>
+
+<p>[2] <a href="http://nitarc.be/map/paper/AMBIT_ThuerVerwimp.pdf">Step Detection Algorithms for Accelerometers</a>, Guillaume Thuer and Tim Verwimp</p>
+
+<p>[3] <a href="http://www.livestrong.com/article/80988-caloric-intake-body-mass/">Calorie counting calculation</a>, Beth Spicer</p>
+
+<p>[4] <a href="http://ubicomp.cs.washington.edu/uwar/libby_peak_detection.pdf">A simple method for reliable footstep detection on embedded sensor platforms</a>, Ryan Libby</p>
+
+<p>[5] <a href="http://www.aosabook.org/en/500L/a-pedometer-in-the-real-world.html">A pedometer in the real world</a>, Dessy Daskalov</p>
