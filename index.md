@@ -30,6 +30,9 @@ Fitness gadgets such as ​Fitbit​, ​Apple Watch,​ ​Android Wear,​ and
 ** GPS clustering to understand mobility patterns
 ** Measuring sleep using wearable devices
 
+#### Preliminaries: Python Basics [[html](CS328_Python_Basics.html)] [[ipynb](https://colab.research.google.com/drive/1hheScRsp3Dy-mkJ1xu-EMPPwyhMAbytN?usp=sharing#scrollTo=0uJ1tEU1CtpR)]
+This notebook gives you an introduction to the main building blocks that will be useful for class including working with multidimensional arrays in [Numpy](https://numpy.org/) and visualizations using  using [Matplotlib](https://matplotlib.org/), a powerful visualization library. Open this notebook, learn about creating basic charts, and try to build some of your own. 
+
 #### [Chapter 1: Introduction to Smoothing and Filtering](chapter1-noise/chapter1.md)
 
 #### [Chapter 2: How to Design a Step Counter](chapter2-steps/chapter2.md)
@@ -38,7 +41,5 @@ Fitness gadgets such as ​Fitbit​, ​Apple Watch,​ ​Android Wear,​ and
 
 #### [Chapter 4: Evaluating Classifier Performance](chapter4-evalclassifier/chapter4.md)
 
-#### Preliminaries: Python Basics [ipynb](https://colab.research.google.com/drive/1hheScRsp3Dy-mkJ1xu-EMPPwyhMAbytN?usp=sharing#scrollTo=0uJ1tEU1CtpR)
-This notebook gives you an introduction to the main building blocks that will be useful for class including working with multidimensional arrays in [Numpy](https://numpy.org/) and visualizations using  using [Matplotlib](https://matplotlib.org/), a powerful visualization library. Open this notebook, learn about creating basic charts, and try to build some of your own. 
 
 
