@@ -1,1 +1,13 @@
 remote_theme: pmarsceill/just-the-docs
+
+title: CS328: Mobile Health Sensing and Analytics
+description: A learning resource for understanding mobile sensor data analytics
+
+# Turn on incremental building to reduce overall build time (still in beta)
+# See: https://jekyllrb.com/docs/configuration/incremental-regeneration/
+incremental: true
+
+# site.url: https://dganesan.github.io/mhealth-course
+# Make absolute paths work with GitHub pages
+baseurl: /mhealth-course
+
