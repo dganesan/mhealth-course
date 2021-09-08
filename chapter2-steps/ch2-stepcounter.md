@@ -2,6 +2,7 @@
 layout: default
 title: Introduction
 parent: Step Counting
+grand_parent: Mobile Sensing &amp; Analytics
 nav_order: 2
 usemathjax: true
 description: "Chapter 2"

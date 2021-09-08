@@ -2,6 +2,7 @@
 layout: default
 title: Introduction
 parent: Data Smoothing
+grand_parent: Mobile Sensing &amp; Analytics
 nav_order: 1
 usemathjax: true
 description: "Chapter 1"

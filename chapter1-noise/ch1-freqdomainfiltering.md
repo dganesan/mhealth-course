@@ -2,6 +2,7 @@
 layout: default
 title: Frequency-domain Filtering
 parent: Data Smoothing
+grand_parent: Mobile Sensing &amp; Analytics
 nav_order: 3
 usemathjax: true
 description: "Chapter 1"
