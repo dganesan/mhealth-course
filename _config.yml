@@ -1,6 +1,6 @@
 remote_theme: pmarsceill/just-the-docs
 
-title: CS328: Mobile Health Sensing and Analytics
+title: CS328 - Mobile Health Sensing and Analytics
 description: A learning resource for understanding mobile sensor data analytics
 
 # Turn on incremental building to reduce overall build time (still in beta)
