@@ -1,4 +1,4 @@
-<h2 class="no_toc text-delta" id="table-of-contents">Table of Contents</h2>
+I"z1<h2 class="no_toc text-delta" id="table-of-contents">Table of Contents</h2>
 
 <ol id="markdown-toc">
   <li><a href="#introduction-to-sensor-data-smoothing-and-filtering" id="markdown-toc-introduction-to-sensor-data-smoothing-and-filtering">Introduction to sensor data smoothing and filtering</a></li>
@@ -92,3 +92,4 @@
 
 <p><em>Figure 5: Noisy GPS readings while driving in red. Actual trajectory in green.</em></p>
 
+:ET

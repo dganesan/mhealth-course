@@ -83,7 +83,7 @@ The reasons for image noise are many as well --- often, noise is caused by the c
 
 Audio data recorded by a microphone can also be highly susceptible to noise. The noise could be due to ambient sound, for example, you are speaking in a party where many other people are simultaneously talking. Or it could be due to a loud noise nearby such as talking near a construction site. Of course, the hardware and circuit could add to the noise as well. Below is an example that shows how much noise can distort an audio signal.
 
-<img src="images/image13.png" alt="drawing" width="600"/>
+<img src="images/image13.png" alt="drawing" width="400"/>
 
 _Figure 4: Noisy audio signal_
 

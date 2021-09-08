@@ -1,11 +1,11 @@
-<h2 class="no_toc" id="mobile-health-sensing-and-analytics">Mobile Health Sensing and Analytics</h2>
+I"*<h2 class="no_toc" id="mobile-health-sensing-and-analytics">Mobile Health Sensing and Analytics</h2>
 
 <h2 class="no_toc text-delta" id="table-of-contents">Table of Contents</h2>
 
 <ol id="markdown-toc">
   <li><a href="#cs328-mobile-health-sensing-and-analytics" id="markdown-toc-cs328-mobile-health-sensing-and-analytics">CS328: Mobile Health Sensing and Analytics</a>    <ol>
       <li><a href="#introduction" id="markdown-toc-introduction">Introduction</a>        <ol>
-          <li><a href="#introduction-slides" id="markdown-toc-introduction-slides">[Introduction slides]</a></li>
+          <li><a href="#introduction-to-the-course-slides" id="markdown-toc-introduction-to-the-course-slides">Introduction to the course [slides]</a></li>
           <li><a href="#preliminaries-python-basics-html-ipynb" id="markdown-toc-preliminaries-python-basics-html-ipynb">Preliminaries: Python Basics [html] [ipynb]</a></li>
         </ol>
       </li>
@@ -27,7 +27,7 @@
 
 <h3 id="introduction">Introduction</h3>
 
-<h4 id="introduction-slides">[<a href="https://goo.gl/ftTBJR">Introduction slides</a>]</h4>
+<h4 id="introduction-to-the-course-slides">Introduction to the course [<a href="https://goo.gl/ftTBJR">slides</a>]</h4>
 
 <iframe width="320" height="240" src="https://www.youtube.com/embed/BtvTFG5fEHE" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen=""></iframe>
 
@@ -48,3 +48,4 @@
 
 <h4 id="lesson-4-evaluating-classifier-performance"><a href="chapter4-evalclassifier/chapter4.html">Lesson 4: Evaluating Classifier Performance</a></h4>
 
+:ET
