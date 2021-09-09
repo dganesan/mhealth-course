@@ -1,0 +1,152 @@
+I"M<h2 class="no_toc text-delta" id="table-of-contents">Table of Contents</h2>
+
+<ol id="markdown-toc">
+  <li><a href="#chapter-7-physiological-sensing" id="markdown-toc-chapter-7-physiological-sensing">Chapter 7: Physiological Sensing</a></li>
+  <li><a href="#electrocardiogram-ecg" id="markdown-toc-electrocardiogram-ecg">Electrocardiogram (ECG)</a>    <ol>
+      <li><a href="#how-do-you-detect-peaks-and-troughs-in-an-ecg-waveform" id="markdown-toc-how-do-you-detect-peaks-and-troughs-in-an-ecg-waveform">How do you detect peaks and troughs in an ECG waveform?</a></li>
+      <li><a href="#how-to-extract-ecg-features" id="markdown-toc-how-to-extract-ecg-features">How to extract ECG features?</a></li>
+    </ol>
+  </li>
+  <li><a href="#photoplethysmography-ppg" id="markdown-toc-photoplethysmography-ppg">Photoplethysmography (PPG)</a>    <ol>
+      <li><a href="#how-to-extract-heart-rate-hr-from-ppg" id="markdown-toc-how-to-extract-heart-rate-hr-from-ppg">How to extract Heart Rate (HR) from PPG?</a></li>
+      <li><a href="#how-to-extract-breathing-rate-br-from-ppg" id="markdown-toc-how-to-extract-breathing-rate-br-from-ppg">How to extract Breathing Rate (BR) from PPG?</a></li>
+    </ol>
+  </li>
+  <li><a href="#electrodermal-activity-eda" id="markdown-toc-electrodermal-activity-eda">Electrodermal Activity (EDA)</a>    <ol>
+      <li><a href="#eda-features" id="markdown-toc-eda-features">EDA features</a></li>
+    </ol>
+  </li>
+  <li><a href="#electroencephalography-eeg-electromyography-emg-and-others" id="markdown-toc-electroencephalography-eeg-electromyography-emg-and-others">Electroencephalography (EEG), Electromyography (EMG), and Others</a></li>
+  <li><a href="#references" id="markdown-toc-references">References</a></li>
+</ol>
+<hr />
+
+<h2 id="chapter-7-physiological-sensing">Chapter 7: Physiological Sensing</h2>
+
+<p>One of the interesting trends in the last several years is the explosion of wearable sensors that measure different physiological signals including cardiac rhythms, breathing, sweat, brain waves, gestures, muscular contractions, eye movements, and many others. For example, there’s the <a href="http://www.thinkmelon.com/">Melon</a> headband that measures focus by monitoring brain waves, the <a href="http://www.mybasis.com/">Basis</a> wristband that measures heart rate, skin temperature, and sleep, the <a href="https://www.thalmic.com/en/myo/">Myo</a> armband that measures muscular activity to detect gestures, the <a href="http://www.ihealthlabs.com/fitness-devices/wireless-pulse-oximeter/">iHealth</a> pulse oximeters, and many others. Indeed, in the next several years, we might well reach a point where health sensors are integrated into clothing, jewelry, and many other accessories. In this chapter, we are going to look at a few physiological signals, and discuss what they measure, and what features are useful.</p>
+
+<h2 id="electrocardiogram-ecg">Electrocardiogram (ECG)</h2>
+
+<p>ECG (or EKG) is a recording of the electrical activity of the heart. With each heartbeat, an electrical signal spreads from the top of the heart to the bottom. As it travels, the signal causes the heart to contract and pump blood. The process repeats with each new heartbeat. The heart’s electrical signals set the rhythm of the heartbeat. This can be measured by placing two electrodes at different points on the chest, and measuring the electrical activity between these electrodes.</p>
+
+<p>An ECG shows how fast your heart is beating, the rhythm of your heartbeat (steady vs irregular), and the strength and timing of the electrical signals as they pass through each part of the heart. Lets take a look at a typical ECG signal, and what types of features are useful to extract from the ECG signal.</p>
+
+<p id="gdcalert1"><span style="color: red; font-weight: bold">&gt;&gt;&gt;&gt;&gt;  gd2md-html alert: inline image link here (to images/image1.png). Store image on your image server and adjust path/filename/extension if necessary. </span><br />(<a href="#">Back to top</a>)(<a href="#gdcalert2">Next alert</a>)<br /><span style="color: red; font-weight: bold">&gt;&gt;&gt;&gt;&gt; </span></p>
+
+<p><img src="images/image1.png" alt="alt_text" title="image_tooltip" /></p>
+
+<p>A typical ECG wave looks as shown in the figure above. Each heartbeat comprises a sequence of peaks and trough, labeled P, Q, R, S, and T as shown in the figure. Occasionally, there is a U wave after T as well. This pattern repeats as long as a person’s heart is beating.</p>
+
+<h3 id="how-do-you-detect-peaks-and-troughs-in-an-ecg-waveform">How do you detect peaks and troughs in an ECG waveform?</h3>
+
+<p>You might be thinking that these peaks and troughs look quite similar to the step detector that we discussed in Chapter 2. Indeed, the peak detection algorithm that we used for the step detector is indeed a good starting point for detecting the peaks and troughs in ECG. As with step detection, you look for a change in the slope from positive to negative (peak) or negative to positive (trough). You then look at the sequence information to label the appropriate peaks (P, Q, R, S, T).</p>
+
+<h3 id="how-to-extract-ecg-features">How to extract ECG features?</h3>
+
+<p>Once you have the five (or six) peaks and troughs, the timing differences between them are useful features for classification. For example, you can extract the RR interval, PR interval, the QRS interval, the QT interval, the ST interval, and so on, and look at how these intervals vary to detect abnormalities in the heart.</p>
+
+<p>Obtaining heart rate from ECG is quite straightforward once you have the RR interval. Each RR interval corresponds to the time between two successive heartbeats, so you just need to compute the number of RR intervals in one minute, which is</p>
+
+<p id="gdcalert2"><span style="color: red; font-weight: bold">&gt;&gt;&gt;&gt;&gt;  gd2md-html alert: equation: use MathJax/LaTeX if your publishing platform supports it. </span><br />(<a href="#">Back to top</a>)(<a href="#gdcalert3">Next alert</a>)<br /><span style="color: red; font-weight: bold">&gt;&gt;&gt;&gt;&gt; </span></p>
+
+<p>(when RR is measured in seconds).</p>
+
+<p>You can also measure the breathing rate from heart rate information, but we will discuss this further when we talk about photoplethysmography (PPG) in the next section.</p>
+
+<h2 id="photoplethysmography-ppg">Photoplethysmography (PPG)</h2>
+
+<p>Photoplethysmography is a non-invasive technique for measuring blood volume changes in the blood vessels close to the skin. PPG has become a popular non-invasive method for extracting physiological measurements such as heart rate and oxygen saturation. PPG is typically measured by a device called a pulse oximeter, that is worn like a cap on the index finger (on the left below).</p>
+
+<p>But what makes PPG particularly appealing is that it can be measured using a built-in cellphone camera without any  additional hardware. Well, almost no additional hardware, since its often useful to have a cap as shown on the right below to block out ambient light.  By placing the index finger over the cellphone camera with its flash turned on, the camera records the light absorbed by the finger tissue. Then, from the video, each frame is processed by splitting every pixel into red, green and blue (RGB) components, which are then processed to extract heart rate and breathing rate.</p>
+
+<p id="gdcalert3"><span style="color: red; font-weight: bold">&gt;&gt;&gt;&gt;&gt;  gd2md-html alert: inline image link here (to images/image2.png). Store image on your image server and adjust path/filename/extension if necessary. </span><br />(<a href="#">Back to top</a>)(<a href="#gdcalert4">Next alert</a>)<br /><span style="color: red; font-weight: bold">&gt;&gt;&gt;&gt;&gt; </span></p>
+
+<p><img src="images/image2.png" alt="alt_text" title="image_tooltip" /></p>
+
+<p id="gdcalert4"><span style="color: red; font-weight: bold">&gt;&gt;&gt;&gt;&gt;  gd2md-html alert: inline image link here (to images/image3.png). Store image on your image server and adjust path/filename/extension if necessary. </span><br />(<a href="#">Back to top</a>)(<a href="#gdcalert5">Next alert</a>)<br /><span style="color: red; font-weight: bold">&gt;&gt;&gt;&gt;&gt; </span></p>
+
+<p><img src="images/image3.png" alt="alt_text" title="image_tooltip" /></p>
+
+<p>There are many apps that are available on the Android Store and iOS App Store that use photoplethysmography — some examples are <em><a href="https://play.google.com/store/apps/details?id=com.vitrox.facion.gui&amp;hl=en">Whats my Heart Rate</a></em>, which is an Android App, and <em><a href="http://itunes.apple.com/us/app/instant-heart-rate-by-azumio/id395042892">Instant Heart Rate </a>_and _<a href="http://itunes.apple.com/us/app/cardiograph/id441079429">Cardiograph</a></em>, which are iPhone apps. Lets take a look at how these apps work.</p>
+
+<p id="gdcalert5"><span style="color: red; font-weight: bold">&gt;&gt;&gt;&gt;&gt;  gd2md-html alert: inline image link here (to images/image4.png). Store image on your image server and adjust path/filename/extension if necessary. </span><br />(<a href="#">Back to top</a>)(<a href="#gdcalert6">Next alert</a>)<br /><span style="color: red; font-weight: bold">&gt;&gt;&gt;&gt;&gt; </span></p>
+
+<p><img src="images/image4.png" alt="alt_text" title="image_tooltip" /></p>
+
+<p id="gdcalert6"><span style="color: red; font-weight: bold">&gt;&gt;&gt;&gt;&gt;  gd2md-html alert: inline image link here (to images/image5.png). Store image on your image server and adjust path/filename/extension if necessary. </span><br />(<a href="#">Back to top</a>)(<a href="#gdcalert7">Next alert</a>)<br /><span style="color: red; font-weight: bold">&gt;&gt;&gt;&gt;&gt; </span></p>
+
+<p><img src="images/image5.png" alt="alt_text" title="image_tooltip" /></p>
+
+<h3 id="how-to-extract-heart-rate-hr-from-ppg">How to extract Heart Rate (HR) from PPG?</h3>
+
+<p>During the cardiac cycle, when the heartbeats, it creates a wave of blood that reaches the capillarity at the tip of the finger, when the capillarity is full of  blood, less light passes through and the finger. When the blood retracts, more light can pass through the tissue. If these  changes are recorded over time, a waveform is going to be created  that correspond to the pulsatile changes in the arterial blood in that tissue. These changes in the arterial blood volume correspond to the heart rate. This process is known as PPG. Using the method described above we try to detect the cardiac waveform and from that the heart rate.</p>
+
+<p>Heart rate estimation from the signal is as follows. From the recorded video, the green values from every frame were extracted in order to acquire the PPG signal. The green intensity average in the PPG signal formed peaks that correspond to cardiac pulse. A peak detection algorithm was used in order to find all the cardiac peaks in the signal. A peak is defined as the highest average of green values in a fixed window size (typically ~0.7 seconds). Once a peak was found, the time difference between consecutive peaks was computed. This time difference is known as R-R interval (RRI). From the R-R interval values the HR was estimated using the following formula:</p>
+
+<p id="gdcalert7"><span style="color: red; font-weight: bold">&gt;&gt;&gt;&gt;&gt;  gd2md-html alert: equation: use MathJax/LaTeX if your publishing platform supports it. </span><br />(<a href="#">Back to top</a>)(<a href="#gdcalert8">Next alert</a>)<br /><span style="color: red; font-weight: bold">&gt;&gt;&gt;&gt;&gt; </span></p>
+
+<h3 id="how-to-extract-breathing-rate-br-from-ppg">How to extract Breathing Rate (BR) from PPG?</h3>
+
+<p>Interestingly, the PPG signal can be used for extracting not just the heart rate but also the breathing rate of the individual. The reason why this is possible is because of a phenomenon called Respiratory sinus arrhythmia (RSA), which is a naturally occurring variation in heart rate that occurs during a breathing cycle. Heart rate increases during inspiration and decreases during expiration! Were you aware of this? We will skip the biological reasons for RSA, and focus on how to extract breathing rate from PPG.</p>
+
+<p>To view this behavior in a real dataset, focus on the blue curve in the figure below (ignore the red curve for now). The blue curve plots the average green intensity per frame. As we expected, the green intensity goes up and down for each heartbeat. But you can also see that there is another periodic pattern that is visible — the green intensity for each heartbeat is not identical, in fact the green intensity seems seems to spike every few heartbeats and go down after that. This pattern is caused by RSA as described earlier – the R-R interval on an ECG is shortened during inhalation and prolonged during exhalation.</p>
+
+<p id="gdcalert8"><span style="color: red; font-weight: bold">&gt;&gt;&gt;&gt;&gt;  gd2md-html alert: inline image link here (to images/image6.png). Store image on your image server and adjust path/filename/extension if necessary. </span><br />(<a href="#">Back to top</a>)(<a href="#gdcalert9">Next alert</a>)<br /><span style="color: red; font-weight: bold">&gt;&gt;&gt;&gt;&gt; </span></p>
+
+<p><img src="images/image6.png" alt="alt_text" title="image_tooltip" /></p>
+
+<p>How do we go about extracting the respiration rate (RR)? Recall that we are now looking for the frequency of changes in the heart rate. Whenever we want frequency domain information, we use an FFT to convert from time to frequency domain, and take the dominant frequency from the FFT. This is exactly what we do to obtain the respiration rate from the PPG signal.</p>
+
+<p>That completes our analysis of how PPG can be used to extract heart rate and breathing rate. To summarize, a) first, we get the average green intensity per frame, b) second, we use peak detection on a short window of samples to extract the RR interval, and from that obtain the HR, and c) third, we perform an FFT on the RR intervals obtained in step (b) to obtain the RR. The only thing left for you to do is to try this out on your smartphone!</p>
+
+<h2 id="electrodermal-activity-eda">Electrodermal Activity (EDA)</h2>
+
+<p>Electrodermal activity refers to electrical changes measured at the surface of the skin that arise when the skin receives innervating signals from the brain. When most people experience emotional arousal, increased cognitive workload or physical exertion, the brain sends signals to the skin to increase the level of sweating. The person may not feel any sweat on the surface of the skin, but the electrical conductance increases in a measurably significant way as the pores begin to fill below the surface.</p>
+
+<p>One of the key aspects of EDA is that it results from sympathetic neuronal activity i.e. its a neural response that cannot be controlled consciously by an individual. It is the only physiological parameter that is not affected by the cognitive processes of an individual! For example, you can slow your heart rate down by taking deep breaths, but you cannot consciously change the electrodermal response. As a result, EDA can be used to examine implicit emotional responses that may occur without conscious awareness or are beyond cognitive intent. This is one of the key reasons why it is widely used as a lie detector and for understanding emotion.</p>
+
+<h3 id="eda-features">EDA features</h3>
+
+<p>There are two main components to the overall complex referred to as EDA. One component</p>
+
+<p>is the general tonic-level EDA which relates to the slower acting components and</p>
+
+<p>background characteristics of the signal (slow climbing, slow declinations</p>
+
+<p>over time). The most common measure of this component is the Skin Conductance Level</p>
+
+<p>(SCL) and changes in the SCL are thought to reflect general changes in autonomic arousal.</p>
+
+<p>The other component is the phasic component and this refers to the faster changing</p>
+
+<p>elements of the signal - the Skin Conductance Response (SCR). This generally corresponds to sudden events – for example, if you are startled, that can create an SCR. Thus, while SCL changes over the course of minutes, SCR changes over the course of seconds.</p>
+
+<p>A typical SCR is shown in the figure on the right. The SCR can be sub-divided into several features that are useful for classification.</p>
+
+<ul>
+  <li><strong>latency</strong>, which is the amount of time between the stimulus and the rise of the wave.</li>
+  <li><strong>rise time</strong>, how long it takes for the skin conductance to shoot up to it’s peak.</li>
+  <li><strong>amplitude</strong> is the height of the SCR.</li>
+  <li><strong>half recovery time</strong> is the amount of time it takes for the wave to fall back to half it’s amplitude.</li>
+</ul>
+
+<p>The SCL is the background signal in the absence of an SCR. To obtain this measure, a small window of EDA samples is selected where there is no SCR present. From this window, the SCL level is just the average value of EDA.</p>
+
+<h2 id="electroencephalography-eeg-electromyography-emg-and-others">Electroencephalography (EEG), Electromyography (EMG), and Others</h2>
+
+<p>We have discussed a few physiological signals, but these are no means the only ones. There are many other signals that are very useful and have numerous applications.</p>
+
+<p>For example, EEG signals are recordings of brain signals. While EEG is traditionally captured by using a huge array of electrodes on the scalp (head), there have been many recent EEG headbands that require fewer electrodes and capture a subset of EEG signals. These signals can be useful in various ways. For example, the figure on the right shows EEG signals when an individual is aroused, relaxed, asleep and in deep sleep state. Clearly, these signals are very different, and using time-domain and frequency-domain techniques such as those you have seen, one might be able to extract features from the signal and classify them into the different states.</p>
+
+<p>Another interesting signal is EMG, which captures the electrical signal produced by skeletal muscles. There are some very interesting applications of this measure. For example, an armband worn below the elbow that measures EMG can be detect various gestures from your fingers, thereby enabling gesture-based interaction with computers and video games, or perhaps interaction with your home like switching on/off light bulbs by flicking your fingers.</p>
+
+<p>In conclusion, there are a wide range of physiological signals that can be measured using wearable sensors. As these sensors become commonplace, our ability to continuously measure these signals has grown, leading to new opportunities to take advantage of them in our daily lives.</p>
+
+<h2 id="references">References</h2>
+
+<p><a href="https://courses.cit.cornell.edu/ee476/FinalProjects/s2006/hmm32_pjw32/">Skin conductance for measuring mental state</a> - Course project</p>
+
+<p><a href="https://www.google.com/url?sa=t&amp;rct=j&amp;q=&amp;esrc=s&amp;source=web&amp;cd=1&amp;ved=0CCAQFjAA&amp;url=http%3A%2F%2Fwww.biopac.com%2Fmanuals%2FEDA%2520SCR%2520Analysis.pdf&amp;ei=pmoEVLyUFIfOggTK14KYBg&amp;usg=AFQjCNFyNSCtDdue-mM7PXbjZDTEKtJT3A&amp;sig2=ulvyVp8KF8XoKHN_jdmI2A&amp;bvm=bv.74115972,d.eXY">A Guide for Analysing Electrodermal Activity  (EDA) &amp; Skin Conductance Responses (SCRs)  for Psychological Experiments</a> -  Jason J Braithwaite,  Derrick G Watson, Robert Jones, Mickey Rowe</p>
+
+<p><a href="https://parasol.tamu.edu/dreu2013/Jimenez/documents/EXTRACTING%20HEART%20RATE%20AND%20RESPIRATION%20RATE%20USING%20A%20CELL%20PHONE%20CAMERA.pdf">Extracting Heart Rate and Respiration Rate using a Cell Phone Camera </a>- Jimenez, Parnandi, Gutierrez-Osuna</p>
+:ET

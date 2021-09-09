@@ -1,0 +1,326 @@
+I"��<h2 class="no_toc text-delta" id="table-of-contents">Table of Contents</h2>
+
+<hr />
+
+<style type="text/css">div#hs-eu-cookie-confirmation{background:#fff;height:auto;left:0;position:absolute;top:0;width:100%;z-index:100000000!important;border-bottom:1px solid #cbd6e2;border-top:1px solid #cbd6e2;box-shadow:0 1px 5px #eaf0f6;color:#33475b;font-family:inherit;font-size:inherit;font-weight:400!important;line-height:inherit;text-align:left;text-shadow:none!important;font-size:12px;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;line-height:18px}div#hs-eu-cookie-confirmation.hs-cookie-notification-position-bottom{position:fixed;border-bottom:0;bottom:0;top:auto;box-shadow:0 -1px 3px #eaf0f6}div#hs-eu-cookie-confirmation *{box-sizing:border-box!important}div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner{background:#fff;margin:0 auto;max-width:1000px;padding:20px}div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner a{text-decoration:none!important}div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner a,div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner a:hover{background:none!important;border:none!important;box-shadow:none!important;color:#0091ae;font-family:inherit;font-size:inherit;font-weight:400!important;line-height:inherit;text-align:left;text-shadow:none!important}div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner a:hover{text-decoration:underline!important}div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner div#hs-eu-policy-wording{margin-bottom:12px}div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner div#hs-en-cookie-confirmation-buttons-area,div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner div#hs-eu-cookie-confirmation-button-group{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center}div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner div#hs-en-cookie-confirmation-buttons-area{margin:10px 0 0!important;justify-content:flex-end;align-items:center}@media (max-width:800px){div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner div#hs-en-cookie-confirmation-buttons-area{justify-content:center}}div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner div#hs-eu-cookie-confirmation-button-group{justify-content:center}div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner a#hs-eu-confirmation-button,div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner a#hs-eu-cookie-settings-button,div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner a#hs-eu-decline-button{margin:6px!important}div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner a#hs-eu-confirmation-button,div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner a#hs-eu-decline-button{border-radius:3px;display:inline-block;padding:10px 16px!important;text-decoration:none!important}div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner a#hs-eu-confirmation-button{background-color:#ff7a59!important;border:1px solid #ff7a59!important;color:#fff;font-family:inherit;font-size:inherit;font-weight:400!important;line-height:inherit;text-align:left;text-shadow:none!important}div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner a#hs-eu-decline-button{border:1px solid #ff7a59!important;color:#ff7a59;font-family:inherit;font-size:inherit;font-weight:400!important;line-height:inherit;text-align:left;text-shadow:none!important}div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner a#hs-eu-cookie-settings-button{color:#ff7a59!important}div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner p{margin:0 0 12px;color:#33475b;font-family:inherit;font-size:inherit;font-weight:400!important;line-height:inherit;text-align:left;text-shadow:none!important}@media print{div#hs-eu-cookie-confirmation{display:none!important}}@media screen and (max-width:480px){div#hs-eu-cookie-confirmation{font-size:12px!important}div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner{padding:8px 14px 14px!important}div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner a,div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner a#hs-eu-confirmation-button{font-size:12px!important}div#hs-eu-cookie-confirmation div#hs-eu-cookie-confirmation-inner p{font-size:12px!important;margin-bottom:12px!important;line-height:15px!important}}@media only screen and (min-width:960px){div#hs-eu-cookie-confirmation{position:fixed}}</style>
+
+<div role="banner" id="hs-eu-cookie-confirmation" class="hs-cookie-notification-position-bottom" data-nosnippet="">
+
+<div id="hs-eu-cookie-confirmation-inner">
+
+<div id="hs-eu-policy-wording">This website stores cookies on your computer. These cookies are used to collect information about how you interact with our website and allow us to remember you. We use this information in order to improve and customize your browsing experience and for analytics and metrics about our visitors both on this website and other media. To find out more about the cookies we use, see our Privacy Policy.</div>
+
+If you decline, your information won’t be tracked when you visit this website. A single cookie will be used in your browser to remember your preference not to be tracked.
+
+<div id="hs-en-cookie-confirmation-buttons-area">
+
+<div id="hs-eu-cookie-confirmation-button-group">[Accept](javascript:void(0);) [Decline](javascript:void(0);)</div>
+
+</div>
+
+</div>
+
+</div>
+
+<style type="text/css">html.hs-messages-widget-open.hs-messages-mobile,html.hs-messages-widget-open.hs-messages-mobile body{overflow:hidden!important;position:relative!important}html.hs-messages-widget-open.hs-messages-mobile body{height:100%!important;margin:0!important}#hubspot-messages-iframe-container{display:initial!important;z-index:2147483647;position:fixed!important;bottom:0!important}#hubspot-messages-iframe-container.widget-align-left{left:0!important}#hubspot-messages-iframe-container.widget-align-right{right:0!important}#hubspot-messages-iframe-container.internal{z-index:1016}#hubspot-messages-iframe-container.internal iframe{min-width:108px}#hubspot-messages-iframe-container .shadow-container{display:initial!important;z-index:-1;position:absolute;width:0;height:0;bottom:0;content:""}#hubspot-messages-iframe-container .shadow-container.internal{display:none!important}#hubspot-messages-iframe-container .shadow-container.active{width:400px;height:400px}#hubspot-messages-iframe-container iframe{display:initial!important;width:100%!important;height:100%!important;border:none!important;position:absolute!important;bottom:0!important;right:0!important;background:transparent!important}</style>
+
+<div id="page-container" class="et-animated-content" style="padding-top: 84px; margin-top: -31px;">
+
+<div id="et-boc" class="et-boc">
+
+<header id="main-header" data-height-onload="84" data-height-loaded="true" data-fixed-height-onload="84" style="top: 0px;" class="et-fixed-header">
+
+<div class="container clearfix et_menu_container">
+
+<div class="logo_container"><span class="logo_helper"></span>[![Valencell](./Optical Heart Rate Monitoring Technology_ What You Need to Know_files/valencell-logo-two-color.png)
+
+<noscript>![Valencell](https://3ap96f18gb4f131eh84bgi1n-wpengine.netdna-ssl.com/wp-content/uploads/2016/08/valencell-logo-two-color.png)</noscript>
+
+](https://valencell.com/)</div>
+
+<div id="et-top-navigation" data-height="70" data-fixed-height="40" style="padding-left: 179px;">
+
+<nav id="top-menu-nav">
+
+*   [Technology](https://valencell.com/blog/optical-heart-rate-monitoring-what-you-need-to-know/#)
+    *   [Technology Overview](https://valencell.com/ppgsensors/)
+    *   [Benchmark Sensor System](https://valencell.com/access/#benchmark-section)
+    *   [Blood Pressure](https://valencell.com/bloodpressure/)
+    *   [Access to Our Tech](https://valencell.com/access/)
+*   [Health &amp; Medical](https://valencell.com/health-medical-devices/)
+*   [Consumer](https://valencell.com/consumer-devices/)
+*   [Validation](https://valencell.com/blog/optical-heart-rate-monitoring-what-you-need-to-know/#)
+    *   [Biometrics Lab](https://valencell.com/biometrics-lab/)
+    *   [White papers](https://valencell.com/white-papers/)
+    *   [Virtual Patent Marking](https://valencell.com/patents/)
+    *   [Customers](https://valencell.com/customers/)
+*   [About](https://valencell.com/blog/optical-heart-rate-monitoring-what-you-need-to-know/#)
+    *   [About](https://valencell.com/about-us/)
+    *   [Blog &amp; News](https://valencell.com/blog-news/)
+    *   [Leadership](https://valencell.com/leadership/)
+    *   [Careers](https://valencell.com/careers/)
+    *   [Media Tools](https://valencell.com/media-tools/)
+    *   [Contact Us](https://valencell.com/contact-us/)
+
+</nav>
+
+<div id="et_mobile_nav_menu">
+
+<div class="mobile_nav closed"><span class="select_page">Select Page</span><span class="mobile_menu_bar mobile_menu_bar_toggle"></span>
+
+*   [Technology](https://valencell.com/blog/optical-heart-rate-monitoring-what-you-need-to-know/#)
+    *   [Technology Overview](https://valencell.com/ppgsensors/)
+    *   [Benchmark Sensor System](https://valencell.com/access/#benchmark-section)
+    *   [Blood Pressure](https://valencell.com/bloodpressure/)
+    *   [Access to Our Tech](https://valencell.com/access/)
+*   [Health &amp; Medical](https://valencell.com/health-medical-devices/)
+*   [Consumer](https://valencell.com/consumer-devices/)
+*   [Validation](https://valencell.com/blog/optical-heart-rate-monitoring-what-you-need-to-know/#)
+    *   [Biometrics Lab](https://valencell.com/biometrics-lab/)
+    *   [White papers](https://valencell.com/white-papers/)
+    *   [Virtual Patent Marking](https://valencell.com/patents/)
+    *   [Customers](https://valencell.com/customers/)
+*   [About](https://valencell.com/blog/optical-heart-rate-monitoring-what-you-need-to-know/#)
+    *   [About](https://valencell.com/about-us/)
+    *   [Blog &amp; News](https://valencell.com/blog-news/)
+    *   [Leadership](https://valencell.com/leadership/)
+    *   [Careers](https://valencell.com/careers/)
+    *   [Media Tools](https://valencell.com/media-tools/)
+    *   [Contact Us](https://valencell.com/contact-us/)
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<div class="et_search_outer">
+
+<div class="container et_search_form_container">
+
+<form role="search" method="get" class="et-search-form" action="https://valencell.com/"><input type="search" class="et-search-field" placeholder="Search …" value="" name="s" title="Search for:" /></form>
+
+<span class="et_close_search_field"></span></div>
+
+</div>
+
+</header>
+
+<div id="et-main-area">
+
+<div id="main-content">
+
+<div class="container">
+
+<div id="content-area" class="clearfix">
+
+<div id="left-area">
+
+<article id="post-838" class="et_pb_post post-838 post type-post status-publish format-standard hentry category-blog">
+
+<div class="et_post_meta_wrapper">
+
+# Optical Heart Rate Monitoring: What You Need to Know
+
+[Blog](https://valencell.com/blog/)
+
+</div>
+
+<div class="entry-content">
+
+We get quite a few inquiries here at Valencell about optical heart rate monitoring and how it works. So we put together this guide to provide some answers to some of the most common questions we get on optical heart rate monitoring. This is a long post, so here’s a quick outline in case you want to scrool to a particular section:
+
+*   How does optical heart rate monitoring (OHRM) work?
+*   How does OHRM technology work?
+*   This must be a new innovation, right? A brief history of PPG
+*   What are the primary challenges with OHRM wearables?
+*   So how do I get OHRM right?
+*   What metrics you can get from PPG?
+*   What form factors are using OHRM?
+*   How are OHRM devices being used today?
+
+## **<a id="HowdoesOpticalHeartRateMonitoringwork" name="HowdoesOpticalHeartRateMonitoringwork"></a>How does Optical Heart Rate Monitoring (OHRM) work?**
+
+Most wearables with heart rate monitors today use a method called [<span class="s2">photoplethysmography (PPG)</span>](https://en.wikipedia.org/wiki/Photoplethysmogram) to measure heart rate. PPG is a technical term for shining light into the skin and measuring the amount of light that is scattered by blood flow. That’s an oversimplification, but PPG sensors are based on the fact that light entering the body will scatter in a predictable manner as the blood flow dynamics change, such as with changes in blood pulse rates (heart rate) or with changes in blood volume (cardiac output).
+
+## **<a id="HowDoesTheTechnologyWork" name="HowDoesTheTechnologyWork"></a>How does the technology work?**
+
+PPG sensors use four primary technical components to measure heart rate:
+
+1\. Optical emitters – generally at least 2 LED’s that send light waves into the skin, although some PPG sensors are adding more emitters and varying light wavelengths. Because of the wide differences in skin thickness, tone and morphology associated with a diversity of people, most state-of-the-art OHRM’s use multiple light wavelengths that interact differently with different levels of skin and tissue.
+
+2\. Photodetector(s) – the photodetector captures the light refracted from the user of the device and translates those signals into one’s and zero’s that can be calculated into meaningful heart rate data.
+
+3\. Accelerometer – the accelerometer measures motion and is used in combination with the photodetector signal as inputs into PPG algorithms.
+
+4\. Algorithms – the algorithms process the signals from the photodetector and the accelerometer into motion-tolerant heart rate data, but can also calculate additional biometrics such as  VO<sub>2</sub>, calories burned, R-R interval, heart rate variability, blood metabolite concentrations, blood oxygen levels, and even blood pressure.
+
+![MEMS Motion Sensor - Optical Sensors](./Optical Heart Rate Monitoring Technology_ What You Need to Know_files/PPG-diagram-optical-heart-300x195.jpg)
+
+<noscript>![MEMS Motion Sensor - Optical Sensors](https://3ap96f18gb4f131eh84bgi1n-wpengine.netdna-ssl.com/wp-content/uploads/2015/10/PPG-diagram-optical-heart-300x195.jpg)</noscript>
+
+_**Watch this:** [Building a Wearable with Heart Rate Monitoring ](https://valencell.com/blog/webinar-building-wearable-heart-rate-monitoring/)_
+
+## **<a id="PPGmustbeanewinnovation" name="PPGmustbeanewinnovation"></a>PPG sensors must be a new innovation, right?**
+
+PPG is actually almost 150 years old, but it has been revolutionized in the 21st century for new use cases. Real-time optical blood flow monitoring was first used in the late 1800s by having people hold their hand up to a candle in a dark room to see the vascular structure and blood flow. More recently in the early 1980s, the first pulse oximeters were launched for hospital use, measuring pulse rate and blood oxygen using two alternating LEDs. These are very similar to the finger or ear clip devices still used in healthcare facilities today.
+
+PPG sensor developments in the last 5-10 years have focused on consumer and medical wearable devices and services. This required a radical development known as motion-tolerant PPG because using PPG sensors during motion and activity massively increases the amount of motion noise that must be removed to find the blood flow signal.
+
+Here’s a brief visual history of PPG sensors:
+
+![optical heart rate monitoring - technology timeline](./Optical Heart Rate Monitoring Technology_ What You Need to Know_files/History-of-PPG-optical-heart.jpg)
+
+<noscript>![optical heart rate monitoring - technology timeline](https://3ap96f18gb4f131eh84bgi1n-wpengine.netdna-ssl.com/wp-content/uploads/2015/10/History-of-PPG-optical-heart.jpg)</noscript>
+
+## **<a id="WhataretheprimarychallengeswithOHRM" name="WhataretheprimarychallengeswithOHRM"></a>What are the primary challenges with OHRM wearables?**
+
+PPG sounds relatively simple, but it’s actually very difficult to implement accurately for wearables. Measuring PPG during a resting state (sleeping, sitting, and standing still) is relatively straightforward, but measuring PPG during physical activity is incredibly complex. In fact, there are five fundamental challenges you will face in building wearable devices with OHRM:
+
+1\. _**Optical noise**_ – The biggest technical hurdle in processing PPG sensor signals is separating the biometric signal from the noise, especially motion noise. Unfortunately, when you shine light into a person’s skin only a small fraction of the light returns to the sensor, and of the total light collected, only ~1/1000th of it may actually indicate heart-pumped blood flow. The rest of the signals are simply scattered by other material, such as skin, muscle, tendons, etc.
+
+2\. _**Skin tone**_ – Humans have a diverse range of skin tones and different skin tones absorb light differently. For example, darker skin absorbs more light, which presents a problem because many OHRM’s don’t use the right mitigations to accurately measure heart rate through dark skin. Check out this post for more detail: [Are PPG sensors less accurate for people with darker skin?](https://valencell.com/blog/are-ppg-sensors-less-accurate-for-people-with-darker-skin/) This also presents a problem for measuring heart rate through tattooed skin, which Apple found out the hard way in what became known as “<span class="s3">tattoogate</span>” when people with wrist tattoos found that the heart rate monitor on the Apple Watch performed poorly – or not at all – for them.
+
+_**Read this:** [How to Test Biometric Wearables ](https://valencell.com/blog/how-to-test-biometric-wearables/)_
+
+3\. _**Crossover problem**_ – One of the most challenging aspects of optical noise for OHRMs that is created by motion and activity happens during what is known as periodic activity, which is an activity that involves continuous repetition of similar motion. This is most often seen in the step rates measured during jogging and running because step rates typically fall into the same general range as that of heartbeats (140-180 beats/steps per minute). The problem that many OHRMs face is that it becomes easy for the algorithms interpreting incoming optical sensor data to mistake step rate (“cadence”) for heart rate. This is known as the “[<span class="s3">**crossover problem**</span>](https://www.google.com/patents/US20150018636)”, because if you look at the measurements on a graph when the heart rate and step rate crossover each other, many OHRMs tend to lock on to step rate and present that number as the heart rate, even though the heart rate may be changing drastically after the crossover.
+
+4\. _**Sensor location**_ – The [location of the OHRM on the body](https://valencell.com/blog/heart-rate-monitor-location-matters/) presents unique challenges that vary significantly by location. It turns out that the wrist is one of the worst places for accurate PPG monitoring of heart rate because of the much higher optical noise created in that region (muscle, tendon, bone, etc.) and because of the high degree of variability in vascular structure and blood [<span class="s4">perfusion</span>](https://en.wikipedia.org/wiki/Perfusion) across the human populations. The forearm is considerably better because of the higher density of blood vessels near the surface of the skin. However, the ear is by far the best location on the body for OHRM because it is essentially just cartilage and blood vessels, which don’t move much even when the body is in vigorous motion, and because of an ideal arteriole bank between the anti-tragus and concha of the ear, thereby drastically reducing the optical noise that must be filtered.
+
+![Location matters for PPG sensors](./Optical Heart Rate Monitoring Technology_ What You Need to Know_files/Location-matters-for-PPG-sensors.jpg)
+
+<noscript>![Location matters for PPG sensors](https://3ap96f18gb4f131eh84bgi1n-wpengine.netdna-ssl.com/wp-content/uploads/2015/10/Location-matters-for-PPG-sensors.jpg)</noscript>
+
+                                                               Click to download: [OHRM body location diagram](https://3ap96f18gb4f131eh84bgi1n-wpengine.netdna-ssl.com/wp-content/uploads/2016/09/Location-matters-for-PPG-sensors.pdf)
+
+5\. _**Low perfusion**_ – Perfusion is the process of a body delivering blood to capillary beds. As with skin tone, the level of perfusion is highly variable across populations, with issues such as obesity, diabetes, heart conditions, and arterial diseases each lowering blood perfusion. Low perfusion, especially in the body’s extremities where most wearable devices are located, can present challenges for OHRMs because the signal-to-noise ratio may be drastically reduced, as lower perfusion correlates with lower blood flow signals. The head region (including the ear, temple, and forehead) supports much higher perfusion and better quality photoplethysmograms than the wrists or feet.
+
+## **<a id="HowdoIgetOHRMright" name="HowdoIgetOHRMright"></a>So how do I get OHRM right?**
+
+OHRM is obviously very difficult to do accurately, but it’s certainly possible, and here’s how. At a high level, you need to have very good optomechanics and signal extraction algorithms.
+
+![optomechanics and signal extraction algorithms lists](./Optical Heart Rate Monitoring Technology_ What You Need to Know_files/opto-and-signal-extract-lists.jpg)
+
+<noscript>![optomechanics and signal extraction algorithms lists](https://3ap96f18gb4f131eh84bgi1n-wpengine.netdna-ssl.com/wp-content/uploads/2015/10/opto-and-signal-extract-lists.jpg)</noscript>
+
+Each of those has multiple dimensions, so let’s look at each one in more detail:
+
+### _**Optomechanics**_
+
+1.  Optomechanical coupling – is light guided and coupled to/from the body effectively in the device? This is critical to maximize the blood flow signal and minimize environmental noise, such as sunlight, that can add noise to the sensor.
+2.  Are the right wavelengths being used for the body location? Different wavelengths are required for different sensor locations on the body, in part because of the different physiological make-up of the body at different locations and because of the impact of environmental noise at different body locations.
+3.  Are multiple emitters being used and are they spaced apart correctly? The spacing of emitters is important to ensure you are measuring enough of the right kind of blood flow and fewer motion artifacts.
+4.  Are the mechanics such that gross displacement between the sensor and the skin are minimal during exercise or body motion? This can be a problem for many common wearables use cases, such as running, jogging, and particularly gym exercises.
+
+### _**Signal Extraction Algorithms**_
+
+1.  Have the algorithms been validated on a diverse population set? It’s important to make sure the device works on different skin tones, genders, health conditions, body types and levels of fitness, etc.
+2.  Are the algorithms robust to multiple types of motion noise? The algorithms must be able to work during different activities, including walking, running (high-speed steady runs and interval training), sprinting, gym activities (weight lifting, Crossfit, etc.) and everyday life activities like typing on a computer, talking on the phone, or riding in a vehicle.
+3.  Is the signal extraction methodology scalable to multiple form factors? You don’t want to have to use different algorithms for each different form factor you may want to use.
+4.  Are the algorithms continually improving to handle more use cases and new biometrics? This technology and the wearables market are advancing rapidly and you must continue to innovate to meet ongoing customer requirements.
+
+_**Read this: **[10 Optical Heart Rate Monitor Considerations for New Wearables](https://valencell.com/blog/10-optical-heart-rate-monitor-considerations-new-wearables/)_
+
+## **<a id="WhatmetricscanyougetfromPPG" name="WhatmetricscanyougetfromPPG"></a>What metrics can you get from PPG sensors?**
+
+While PPG is really hard to get right, when you do get it right, it can be very powerful. A high-quality PPG signal is foundational to a wealth of biometrics that the marketplace is demanding today. For example, here’s a list of some (but not all) of the biometrics you can derive from highly accurate, motion-tolerant PPG:
+
+*   <span class="s5">[<span class="s6">Breathing rate</span>](https://en.wikipedia.org/wiki/Respiratory_rate)</span> – breathing rate is the number of breaths taken in a period of time (typically 60 seconds) and lower resting breathing rates are generally correlated with higher levels of fitness.
+*   VO<sub>2</sub> max – VO<sub>2</sub> measures the maximum volume of oxygen someone can use and VO<sub>2</sub>max is widely considered to be an indicator of aerobic endurance.
+*   Blood oxygen levels (SpO<sub>2</sub>, oxygen saturation) – blood oxygen levels indicate the concentration of oxygen in the blood.
+*   <span class="s5">[<span class="s7">R-R Interval</span>](https://en.wikipedia.org/wiki/Heart_rate_variability)</span> (heart rate variability) – in layman’s terms, R-R interval is the time between blood pulses (or ECG beats), and generally the more varied the time between beats, the better. R-R interval analysis can be used as an indicator of stress levels and various cardiac issues, among other things.
+*   [Blood pressure](https://valencell.com/bloodpressure/) – most people are very familiar with blood pressure as an indicator of cardiovascular health, but most people don’t know that some of the most advanced technologies today can assess blood pressure using PPG sensor signals.
+*   <span class="s8">[<span class="s7">Cardiac efficiency</span>](https://www.google.com/patents/WO2015131065A1?cl=en)</span> <span class="s9">– this is another indicator of fitness that typically</span> measures how efficiently your heart works to take one step. This serves as a proxy for how hard your heart would have to work to do more challenging exercises like running or cycling.
+
+You can see below a simplified PPG signal and where each of the biometrics is measured within that signal.
+
+![PPG metrics over waves](data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==)
+
+<noscript>![PPG metrics over waves](https://3ap96f18gb4f131eh84bgi1n-wpengine.netdna-ssl.com/wp-content/uploads/2015/10/PPG-metrics.jpg)</noscript>
+
+_**Read this:** [How Accuracy Happens in Biometric Wearables and Why It Matters ](https://valencell.com/blog/biometric-wearable-accuracy/)_
+
+## **What form factors are using OHRM?****<a id="FormFactors" name="FormFactors"></a>**
+
+Wearable devices are taking all shapes and sizes these days, including wrist bands, smartwatches, audio earbuds, medical devices, hearing aids and many more. Since OHRM is becoming a requirement for almost all wearables, you need to make sure the OHRM technology you select for your device can be deployed in multiple form factors without having to completely go back to the drawing board.
+
+![Wearable form factors](data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==)
+
+<noscript>![Wearable form factors](https://3ap96f18gb4f131eh84bgi1n-wpengine.netdna-ssl.com/wp-content/uploads/2015/10/Form-factors-Aug-2021.jpg)</noscript>
+
+_**Read this: **[Whack-a-moles, disappearing features, and other signs your biometric wearable project needs help](https://valencell.com/blog/whack-a-moles-disappearing-features-and-other-signs-your-biometric-wearable-project-needs-help/)_
+
+## **<a id="UseCases" name="UseCases"></a>How are OHRM devices being used today?**
+
+All of those wearable form factors are being used in a wide variety of use cases and applications today. We typically see three primary scenarios:
+
+![optical heart rate monitoring table for Lifestyle, in-session, personal health ](data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==)
+
+<noscript>![optical heart rate monitoring table for Lifestyle, in-session, personal health ](https://3ap96f18gb4f131eh84bgi1n-wpengine.netdna-ssl.com/wp-content/uploads/2015/10/3-use-cases.jpg)</noscript>
+
+1\. Lifestyle – typically tracking things like steps, basic movement, resting and/or casual heart rate, etc. Comfort and style are typically valued over accuracy in this scenario, although we are starting to see that change with rising consumer interest in health and fitness analysis.
+
+2\. In-session – focused on real-time biometric measurement during a specific activity such as working out, running, biking or even fighting a fire. Stability and accuracy are highly valued in these scenarios.
+
+3\. Personal Health – ongoing measurement of personal health indicators such as heart rate, blood pressure, oxygen saturation, etc. These measurements can be used in conjunction with a prevention plan (in healthy populations) or a disease management plan (for those managing a health condition such as hypertension, diabetes, cardiovascular disease, etc.).  Accuracy and comfort are highly valued in these scenarios.
+
+_**Read this:** [We’re just scratching the surface with biometric wearables for fitness and health](https://valencell.com/blog/just-scratching-surface-biometric-wearables-fitness-health/)_
+
+
+
+
+## Step Detection Algorithm
+
+There are many different ways that we can design a step detection algorithm. We outline one such method in this section. The key insight in our method is to convert the 3-axis signal into a one axis magnitude signal, and then extract steps from this signal.
+
+<img src="images/image12.png" alt="drawing" width="600" />
+
+_Figure 5: Step Detection Algorithm_
+
+**Step 1: Extract signal magnitude**: In the previously described algorithm, we selected the axis along which maximum acceleration occurred and focused on that one. Here, we are just going to take the magnitude of the entire acceleration vector i.e. 
+
+<img src="images/image1.png" alt="drawing" width="100" />
+
+, where x, y, and z are the readings of the accelerometer along the three axes. 
+
+<img src="images/image5.png" alt="drawing" width="600" />
+
+_Figure 6: Example showing sources of noise in magnitude signal_
+
+**Step 2: Filter the signal to remove noise**: The second step is to remove noise, and extract the specific signal corresponding to walking. Before we perform this step, we need to know what are the sources of noise. There are several sources of noise that we need to filter out (shown in Figure 6):
+
+
+* **Jumpy peaks**: Since the phone is often carried in a pocket/purse, it can jiggle a little with each step. Also, some users have a bounce in their step, so even though they are taking a single step, the phone can bounce multiple times within this step. 
+* **Short peaks**: Small peaks can occur when a user is using a phone (e.g. making a call or using an app).
+* **Slow peaks**: Slow peaks can occur when the phone is moved or due to movements of the leg while sitting (if the phone is in the pant pocket)
+
+To remove these sources of noise, we are going to use frequency-domain noise removal. Notice that we need to remove high frequency variations like jumpy peaks and low frequency variations like slow peaks. A simple solution is to use a filter that keeps only frequencies relating to walking and removes the rest. For example, we know that typical walking pace may be under three steps a second (3 Hz) and over half step a second (0.5Hz), so perhaps we remove all frequencies above 5 Hz and below 0.5 Hz (just to give some margin for error). Note that this method would not be able to detect running or bicycling, which may have higher pace. 
+
+Even after we remove low and high frequency peaks, we may be left with some short peaks. A simple way to deal with this is to look only for large peaks and ignore small peaks.
+
+
+<p float="left">
+<img src="images/image6.png" alt="drawing" width="500" />
+<img src="images/image10.png" alt="drawing" width="500" />
+</p>
+
+_Figure 7: Zero crossings (left) and peaks (right) of the filtered magnitude signal_
+
+**Step 3: Detecting Steps.** Once you have the smoothed data, let us consider how to detect the step. We could do what was suggested earlier, which is to look for large peaks and use that to detect steps. Another approach is to take the derivative (slope) of the smoothed acceleration signal. The derivative changes from negative to positive (or positive to negative) exactly when a step occurs, so you can just count the number of times the derivative changed from negative to positive to detect the number of steps that occurred.  Another possibility is to subtract the mean for each window and look at  zero crossings i.e. times when the signal crosses from the negative to positive in the upward direction (this can be tricky, however, since the signal baseline can change over time as shown below). 
+
+
+<img src="images/image3.png" alt="drawing" width="400" />
+
+_Figure 8: Filtered data on the most active axis._
+
+**Dynamic Threshold-based Step Detection**: Another algorithm for step detection is a dynamic threshold detection algorithm. The first step in this algorithm is keeping track of the axis (x, y, or z) along which the maximum acceleration occurs. We can ignore all other axes and just focus on this specific one for our algorithm. Given this axis, we keep track of the min and max acceleration levels over a window of samples. In other words, we continuously measure the maximum and minimum values of the 3-axis acceleration every 50 samples. The average value, (_Max _+ _Min_)/2, is called the _dynamic threshold level_. For the following 50 samples, this threshold level is used to decide whether steps have been taken. As it is updated every 50 samples, the threshold is _dynamic_. The Max, Min, and (dynamic) Threshold for the z-axis is shown in Figure 4.
+
+Given the dynamic detection threshold, the step detection algorithm can work by looking for crossings of the threshold in the downward (or upward) direction. For example, if you look at Figure 4, you will see that each step involves a crossing of the threshold (orange line) in the downward direction with a substantial change in acceleration in the negative direction. In other words:
+
+_A step is defined as happening if there is a negative slope of the acceleration plot (sample_new &lt; sample_old) when the acceleration curve crosses below the dynamic threshold._
+
+These are just two possible algorithms for detecting steps. It won’t be perfect, and better algorithms are possible. I encourage you to try other schemes, and refine the step detection algorithm to improve its accuracy. If you find a better approach, please let me know!
+</div></article></div></div></div></div></div></div></div>
+:ET

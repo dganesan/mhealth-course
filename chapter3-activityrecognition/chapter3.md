@@ -74,24 +74,9 @@ One of the crucial steps in classifying sensor data is identifying distinguishin
 
 We have pre-generated several informative features that you can apply to the raw accelerometer readings, and a list of some of these features are provided below. As shown in the table, its useful to divide features into two classes - time domain features and frequency domain features. In this chapter, I will focus on providing an intuitive  understanding of the different features and why they might be useful for distinguishing between the classes. For a more mathematical explanation, refer to [1] and [2].
 
-
-<table>
-  <tr>
-   <td>Time domain features
-   </td>
-   <td>Frequency domain features
-   </td>
-  </tr>
-  <tr>
-   <td>Mean, Median, Variance, Standard deviation, Min, Max, Range, Zero-crossings, Angle, Angular velocity.
-   </td>
-   <td>Dominant frequency, Signal Energy
-   </td>
-  </tr>
-</table>
-
-
 **Time domain features:** The time-domain features are some statistical measures that you can extract from a window of samples (say 100 samples). Some of these are intuitive - for example, the mean is just an average of the acceleration over a window of samples. The median, as you know, is the number that you get if you sorted the acceleration values in the window and took the middle value. Standard deviation captures how much the acceleration varies from sample to sample, and so on. 
+
+*Examples of time domain features: Mean, Median, Variance, Standard deviation, Min, Max, Range, Zero-crossings, Angle, Angular velocity.*
 
 Figure 1 suggests why these features may be useful - for example, sitting and standing (e and f) have very low standard deviation since it's almost flat, whereas all other cases have high standard deviation. Therefore, the standard deviation feature can be useful to distinguish between these two cases and the rest. But how can we separate sitting from standing? The mean feature offers a solution - you can see that the mean for each axis is closer together in (e) than in (f), which suggests that this could be a useful feature. 
 
@@ -100,6 +85,9 @@ Some of the time-domain features are not so intuitive, but you are already famil
 **Frequency domain features:** This class of features represents information about periodic patterns and rhythmic behavior in the signal. Again, you saw such features in the pedometer case study, where you were asked to look for a periodic pattern in the walking signal. This is exactly the type of information that we are looking to extract, but by leveraging some more powerful methods. 
 
 While the methods themselves are outside the scope of our review, the features are important to understand. The dominant frequency feature corresponds to the most significant rhythmic component in the data. For example, in the case of the walking traces, this would be the steps, with a period of roughly ½ second per step. The signal energy is another way of looking at the amount of variation in the accelerometer data - the larger its periodic components, the more the signal energy. There are other such frequency domain features, but these two are sufficient for our needs.
+
+*Examples of frequency domain features: Dominant frequency, Signal Energy.*
+
 
 The figure below shows an example for walking on a treadmill. You can see that there seem to be a few dominant frequencies, and some of them are harmonics of the frequency of the walking. But the dominant frequencies give you sufficient information about the periodicity of walking.
 
