@@ -34,12 +34,13 @@ This notebook gives you an introduction to the main building blocks that will be
 Each of the following lessons has associated slides, videos, course notes, and Python notebooks that explain and illustrate the main concepts.
 
 #### [Lesson 1: Introduction to Smoothing and Filtering](chapter1-noise/chapter1.html)
-This lesson provides an introduction into the first steps in processing sensor data i.e. removing noise. The lesson describes sources of noise that present a challenge for analyzing sensor signals and describes methods to remove noise including time-domain noise removal and frequency-domain noise removal techniques.
+This lesson provides an introduction into the first steps in processing sensor data i.e. removing noise. The lesson describes sources of noise that present a challenge for analyzing sensor signals and describes methods to remove noise including time-domain noise removal and frequency-domain noise removal techniques. This lesson gives you the basic tools for removing noise and will help you with your first assignment which involves noise removal from accelerometer and ECG data.
 
 #### [Lesson 2: How to Design a Step Counter](chapter2-steps/chapter2.html)
-The second lesson provides an overview of how step counters (also referred to as pedometers) work. We look at what characteristics of steps are sufficiently distinctive to be measured accurately by a step counter. We also look at how placement of the phone or smartwatch can affect the signal, as well as other sources of error. We discuss methods to deal with these errors. 
+The second lesson provides an overview of how step counters (also referred to as pedometers) work. We look at what characteristics of steps are sufficiently distinctive to be measured accurately by a step counter. We also look at how placement of the phone or smartwatch can affect the signal, as well as other sources of error. We discuss methods to deal with these errors. This lesson will give you ideas on how to solve the assignment that asks you to design a step counter and check how it works for different sensor placements.
 
 #### [Lesson 3: Photoplethysmography](chapter4-heartrhythm/chapter4.html)
+The third lesson describes how fitness bands/smartwatches like Fitbit and Apple Watch measure heart rate. We look at how optical heart rate monitoring sensors work, and how to extract important metrics like heart rate and breathing rate from the photoplethsmography signal. We also look at the challenges involved in estimating heart rhythm accurately at the population scale. This lesson is useful for your assignment on estimating heart rate from the PPG signal obtained when you place your finger on a smartphone camera.
 
 #### [Lesson 4: Activity Recognition using Inertial Sensors](chapter3-activityrecognition/chapter3.html)
 

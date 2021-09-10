@@ -1,4 +1,4 @@
-<h2 class="no_toc" id="mobile-health-sensing-and-analytics">Mobile Health Sensing and Analytics</h2>
+I"<h2 class="no_toc" id="mobile-health-sensing-and-analytics">Mobile Health Sensing and Analytics</h2>
 
 <h2 class="no_toc text-delta" id="table-of-contents">Table of Contents</h2>
 
@@ -40,10 +40,10 @@
 <p>Each of the following lessons has associated slides, videos, course notes, and Python notebooks that explain and illustrate the main concepts.</p>
 
 <h4 id="lesson-1-introduction-to-smoothing-and-filtering"><a href="chapter1-noise/chapter1.html">Lesson 1: Introduction to Smoothing and Filtering</a></h4>
-<p>This lesson provides an introduction into the first steps in processing sensor data i.e. removing noise. The lesson describes sources of noise that present a challenge for analyzing sensor signals and describes methods to remove noise including time-domain noise removal and frequency-domain noise removal techniques. This lesson gives you the basic tools for removing noise and will help you with your first assignment which involves noise removal from accelerometer and ECG data.</p>
+<p>This lesson provides an introduction into the first steps in processing sensor data i.e. removing noise. The lesson describes sources of noise that present a challenge for analyzing sensor signals and describes methods to remove noise including time-domain noise removal and frequency-domain noise removal techniques.</p>
 
 <h4 id="lesson-2-how-to-design-a-step-counter"><a href="chapter2-steps/chapter2.html">Lesson 2: How to Design a Step Counter</a></h4>
-<p>The second lesson provides an overview of how step counters (also referred to as pedometers) work. We look at what characteristics of steps are sufficiently distinctive to be measured accurately by a step counter. We also look at how placement of the phone or smartwatch can affect the signal, as well as other sources of error. We discuss methods to deal with these errors. This lesson will give you ideas on how to solve the assignment that asks you to design a step counter and check how it works for different sensor placements.</p>
+<p>The second lesson provides an overview of how step counters (also referred to as pedometers) work. We look at what characteristics of steps are sufficiently distinctive to be measured accurately by a step counter. We also look at how placement of the phone or smartwatch can affect the signal, as well as other sources of error. We discuss methods to deal with these errors. This lesson</p>
 
 <h4 id="lesson-3-photoplethysmography"><a href="chapter4-heartrhythm/chapter4.html">Lesson 3: Photoplethysmography</a></h4>
 <p>The third lesson describes how fitness bands/smartwatches like Fitbit and Apple Watch measure heart rate. We look at how optical heart rate monitoring sensors work, and how to extract important metrics like heart rate and breathing rate from the photoplethsmography signal. We also look at the challenges involved in estimating heart rhythm accurately at the population scale. This lesson is useful for your assignment on estimating heart rate from the PPG signal obtained when you place your finger on a smartphone camera.</p>
@@ -52,3 +52,4 @@
 
 <h4 id="lesson-5-evaluating-classifier-performance"><a href="chapter4-evalclassifier/chapter4.html">Lesson 5: Evaluating Classifier Performance</a></h4>
 
+:ET
