@@ -3,7 +3,7 @@ layout: default
 title: PPG Analysis
 parent: Heart Rhythm Sensing
 grand_parent: Mobile Sensing &amp; Analytics
-nav_order: 1
+nav_order: 2
 usemathjax: true
 description: "PPG Analysis"
 ---
