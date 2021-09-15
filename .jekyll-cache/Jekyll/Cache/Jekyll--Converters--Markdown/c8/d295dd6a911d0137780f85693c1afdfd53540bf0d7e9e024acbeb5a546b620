@@ -1,4 +1,4 @@
-<h2 class="no_toc text-delta" id="table-of-contents">Table of Contents</h2>
+I"C<h2 class="no_toc text-delta" id="table-of-contents">Table of Contents</h2>
 
 <hr />
 
@@ -23,6 +23,6 @@
 <p><br /></p>
 
 <!-- Custom JavaScript files set in YAML front matter -->
-<svg id="fourWaveAlias" class="svgWithText" width="485" height="300" style="padding: 5px; margin-left: 110px; margin-right: 145px;"></svg>
-<script type="text/javascript" src="js/four_wave_alias.js"></script>
-
+<p>&lt;	 id=”fourWaveAlias” class=”svgWithText” width=”485” height=”300” style=”padding: 5px; margin-left: 110px; margin-right: 145px;”&gt;&lt;/svg&gt;
+<script type="text/javascript" src="js/four_wave_alias.js"></script></p>
+:ET

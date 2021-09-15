@@ -1,4 +1,4 @@
-<h2 class="no_toc text-delta" id="table-of-contents">Table of Contents</h2>
+I"?<h2 class="no_toc text-delta" id="table-of-contents">Table of Contents</h2>
 
 <hr />
 
@@ -23,6 +23,13 @@
 <p><br /></p>
 
 <!-- Custom JavaScript files set in YAML front matter -->
+<td>
 <svg id="fourWaveAlias" class="svgWithText" width="485" height="300" style="padding: 5px; margin-left: 110px; margin-right: 145px;"></svg>
 <script type="text/javascript" src="js/four_wave_alias.js"></script>
-
+<div class="controls">
+	<br />
+	<label for="waveAliasSlider">Sampling Period</label><br />
+	<input type="range" min="1" max="4" value="4" id="waveAliasSlider" step="1" oninput="updateAliasRate(value);" onmousedown="startSetAliasRate();" onmouseup="endSetAliasRate();" />
+</div>
+</td>
+:ET
