@@ -1,4 +1,4 @@
-<h2 class="no_toc text-delta" id="table-of-contents">Table of Contents</h2>
+I"�<h2 class="no_toc text-delta" id="table-of-contents">Table of Contents</h2>
 
 <ol id="markdown-toc">
   <li><a href="#sampling-rate-and-nyquist-frequency" id="markdown-toc-sampling-rate-and-nyquist-frequency">Sampling Rate and Nyquist Frequency</a></li>
@@ -9,7 +9,7 @@
 
 <p>Signals in the real world are continuous but for a computer to process the signals, they need to be sampled at a particular rate. For example, the accelerometer on your Fitbit may be sampling at 50Hz i.e. every 0.2 seconds in-order to detect steps. For example, the signal below is shown sampled at two different rates.</p>
 
-<p><img src="figures/sampling-rate.jpg" alt="drawing" width="500" /></p>
+<p><img src="figures/sampling-rate.webp" alt="drawing" width="500" /></p>
 
 <p><em>A continuous signal sampled at low sample rate (left) and high sample rate (right)</em></p>
 
@@ -23,3 +23,4 @@
 
 <p><em>A series of waveforms showing a 7 kHz and 13 kHz tone sampled in a 10 kHz system with the resulting “alias tones” that are generated and output.</em></p>
 
+:ET

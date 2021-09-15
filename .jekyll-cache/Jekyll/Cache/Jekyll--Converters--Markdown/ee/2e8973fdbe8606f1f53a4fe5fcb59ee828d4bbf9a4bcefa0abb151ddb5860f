@@ -1,0 +1,32 @@
+I"�<h2 class="no_toc text-delta" id="table-of-contents">Table of Contents</h2>
+
+<ol id="markdown-toc">
+  <li><a href="#sampling-rate-and-nyquist-frequency" id="markdown-toc-sampling-rate-and-nyquist-frequency">Sampling Rate and Nyquist Frequency</a></li>
+</ol>
+<hr />
+
+<h2 id="sampling-rate-and-nyquist-frequency">Sampling Rate and Nyquist Frequency</h2>
+
+<p>Signals in the real world are continuous but for a computer to process the signals, they need to be sampled at a particular rate. For example, the accelerometer on your Fitbit may be sampling at 50Hz i.e. every 0.2 seconds in-order to detect steps. For example, the signal below is shown sampled at two different rates.</p>
+
+<p><img src="figures/sampling-rate.webp" alt="drawing" width="500" />
+<em>A continuous signal sampled at low sample rate (left) and high sample rate (right)</em></p>
+
+<p>How many samples are necessary to ensure we are preserving the information contained in the signal?  If the signal contains high frequency components, we will need to sample at a higher rate to avoid losing information that is in the signal.  In general, to preserve the full information in the signal, it is necessary to sample at twice the maximum frequency of the signal.  This is known as the Nyquist rate, which comes from a surprising (but intuitive) result in signal processing that states that a signal can be exactly reproduced if it is sampled at a frequency F, where F is greater than twice the maximum frequency in the signal. For example, imagine we have an ECG signal composed of frequencies between 0 and 200 Hz. To properly digitize this signal, we must sample at  2∗200Hz. So, F needs to be 400Hz.</p>
+
+<p>What happens if we sample the signal at a frequency that is lower that the Nyquist rate?  When the signal is converted back into a continuous time signal, it will exhibit a phenomenon called aliasing.  Aliasing is the presence of unwanted components in the reconstructed signal.  These components were not present when the original signal was sampled.  In addition, some of the frequencies in the original signal may be lost in the reconstructed signal.  Aliasing occurs because signal frequencies can overlap if the sampling frequency is too low.  Frequencies “fold” around half the sampling frequency - which is why this frequency is often referred to as the folding frequency.</p>
+
+<p><img src="figures/aliasing.jpg" alt="drawing" width="500" />
+_A series of waveforms showing a 7 kHz and 13 kHz tone sampled in a 10 kHz system with the resulting “alias tones” that are generated and output.+</p>
+
+<p>What happens if we</p>
+
+<p>The choice of sampling rate has important implications on what periodi</p>
+
+<p>the maximum frequency that can be filtered using frequency domain methods.</p>
+
+<p>A surprising (but intuitively simple) result in signal processing is the Nyquist Sampling Theorem, which states that a continuous signal can be reconstructed as long as there are two samples per period for the highest frequency component in the underlying signal.</p>
+
+<p>That is, for a perfect reconstruction, our digital sampling frequency must be at least twice as fast as the fastest frequency in our continuous signal:  𝑓𝑠=2∗𝑚𝑎𝑥(𝑎𝑛𝑎𝑙𝑜𝑔𝑓𝑟𝑒𝑞) .</p>
+
+:ET

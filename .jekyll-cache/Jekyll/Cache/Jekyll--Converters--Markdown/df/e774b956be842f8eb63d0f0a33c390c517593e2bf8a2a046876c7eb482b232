@@ -1,0 +1,18 @@
+I"s<h2 class="no_toc text-delta" id="table-of-contents">Table of Contents</h2>
+
+<ol id="markdown-toc">
+  <li><a href="#sampling-rate-and-nyquist-frequency" id="markdown-toc-sampling-rate-and-nyquist-frequency">Sampling Rate and Nyquist Frequency</a></li>
+</ol>
+<hr />
+
+<h2 id="sampling-rate-and-nyquist-frequency">Sampling Rate and Nyquist Frequency</h2>
+
+<p>Most signals in life are continuous: pressure waves propogating through air, chemical reactions, body movement. For computers to process these continuous signals, however, they must be converted to digital representations via a Analog-to-Digital Converter (ADC). A digital signal is different from its continous counterpart in two primary ways:</p>
+
+<p>It is sampled at specific time steps. For example, sound is often sampled at 44.1 kHz (or once every 0.023 milliseconds).
+It is quantized at specific voltage levels. For example, on the Arduino Uno, the microcontroller has a 10-bit ADC, so an incoming, continuous voltage input can be discretized at  5𝑉210=4.88𝑚𝑉  steps.
+In this lesson, we will use audio data is our primary signal. Sound is a wonderful medium for learning because we can both visualize and hear the signal. Recall that a microphone responds to air pressure waves. We’ll plot these waveforms, manipulate them, and then play them. We suggest plugging in your headphones, so you can really hear the distinctions in the various audio samples.</p>
+
+<p>Note: We downsample audio data to 3,000 Hz and below. We could not get Chrome to play audio at these lower sampling rates (but they did work in Firefox). We’ll make a note of this again when it’s relevant.</p>
+
+:ET

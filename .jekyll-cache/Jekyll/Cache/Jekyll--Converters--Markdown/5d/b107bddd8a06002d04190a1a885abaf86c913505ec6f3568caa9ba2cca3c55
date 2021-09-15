@@ -1,0 +1,31 @@
+I"1<h2 class="no_toc text-delta" id="table-of-contents">Table of Contents</h2>
+
+<ol id="markdown-toc">
+  <li><a href="#sampling-rate-and-nyquist-frequency" id="markdown-toc-sampling-rate-and-nyquist-frequency">Sampling Rate and Nyquist Frequency</a>    <ol>
+      <li><a href="#nyquist-sampling-theorem" id="markdown-toc-nyquist-sampling-theorem">Nyquist Sampling Theorem</a></li>
+    </ol>
+  </li>
+</ol>
+<hr />
+
+<h2 id="sampling-rate-and-nyquist-frequency">Sampling Rate and Nyquist Frequency</h2>
+
+<p>Signals in the real world are continuous but for a computer to process the signals, they need to be sampled at a particular rate. For example, the accelerometer on your Fitbit may be sampling at 50Hz i.e. every 0.2 seconds in-order to detect steps. For example, the signal below is shown sampled at two different rates.</p>
+
+<p><img src="figures/sampling-rate.webp" alt="drawing" width="500" />
+<em>A continuous signal sampled at low sample rate (left) and high sample rate (right)</em></p>
+
+<p>The choice of sampling rate has important implications on the maximum frequency that can be filtered using frequency domain methods.</p>
+
+<h3 id="nyquist-sampling-theorem">Nyquist Sampling Theorem</h3>
+<p>The answer may surprise you and involves one of the most fundamental (and interesting) theorems in signal processing: the Nyquist Sampling Theorem, which states that a continuous signal can be reconstructed as long as there are two samples per period for the highest frequency component in the underlying signal.</p>
+
+<p>That is, for a perfect reconstruction, our digital sampling frequency  𝑓𝑠  must be at least twice as fast as the fastest frequency in our continuous signal:  𝑓𝑠=2∗𝑚𝑎𝑥(𝑎𝑛𝑎𝑙𝑜𝑔𝑓𝑟𝑒𝑞) .</p>
+
+<p>For example, imagine we have an analog signal composed of frequencies between 0 and 2,000 Hz. To properly digitize this signal, we must sample at  2∗2,000𝐻𝑧 . So,  𝑓𝑠  needs to be 4,000Hz.</p>
+
+<p>Now imagine that the fastest our digitizer can sample is 6,000 Hz: what frequency range can we properly capture? Since we need a minimum of two samples per period for proper reconstruction, we can only signals that change with a frequency of 0 to a maximum of 3,000Hz. This 3,000Hz limit is called the Nyquist rate or Nyquist limit: it is  12  the sampling rate  𝑓𝑠 .</p>
+
+<p>For many applications related to Human-Computer Interaction and Ubiquitous Computing, sampling at 4kHz is more than sufficient. This enables analysis of any signal between 0-2kHz. Human motion—ambulatory movement, limb motion, finger gestures, etc.—simply does not change that fast. Even electroencephalograms (EEG), which measure electrical activity in the brain, are often sampled at 500-1000Hz. However, for recording sound (humans can hear between ~0-20kHz), faster sampling rates are necessary.</p>
+
+:ET

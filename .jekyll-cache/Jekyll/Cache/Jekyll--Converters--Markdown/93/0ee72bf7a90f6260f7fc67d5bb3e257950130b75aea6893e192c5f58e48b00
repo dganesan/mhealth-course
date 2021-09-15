@@ -1,0 +1,23 @@
+I"�<h2 class="no_toc text-delta" id="table-of-contents">Table of Contents</h2>
+
+<ol id="markdown-toc">
+  <li><a href="#sampling-rate-and-nyquist-frequency" id="markdown-toc-sampling-rate-and-nyquist-frequency">Sampling Rate and Nyquist Frequency</a></li>
+</ol>
+<hr />
+
+<h2 id="sampling-rate-and-nyquist-frequency">Sampling Rate and Nyquist Frequency</h2>
+
+<p>Signals in the real world are continuous but for a computer to process the signals, they need to be sampled at a particular rate. For example, the accelerometer on your Fitbit may be sampling at 50Hz i.e. every 0.2 seconds in-order to detect steps. For example, the signal below is shown sampled at two different rates.</p>
+
+<p><img src="figures/sampling-rate.webp" alt="drawing" width="500" />
+<em>A continuous signal sampled at low sample rate (left) and high sample rate (right)</em></p>
+
+<p>The choice of sampling rate has important implications on the maximum frequency that can be filtered using frequency domain methods.</p>
+
+<p>A surprising (but intuitively simple) result in signal processing is the Nyquist Sampling Theorem, which states that a continuous signal can be reconstructed as long as there are two samples per period for the highest frequency component in the underlying signal.</p>
+
+<p>That is, for a perfect reconstruction, our digital sampling frequency must be at least twice as fast as the fastest frequency in our continuous signal:  𝑓𝑠=2∗𝑚𝑎𝑥(𝑎𝑛𝑎𝑙𝑜𝑔𝑓𝑟𝑒𝑞) .</p>
+
+<p>For example, imagine we have an ECG signal composed of frequencies between 0 and 200 Hz. To properly digitize this signal, we must sample at  2∗200Hz. So,  𝑓𝑠  needs to be 400Hz.</p>
+
+:ET
