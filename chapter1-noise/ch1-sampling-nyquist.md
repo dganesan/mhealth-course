@@ -14,6 +14,23 @@ description: "Chapter 1"
 {:toc}
 ---
 
+
+<table>
+	<tr class="figureCaption">
+	<td width="100%">
+	<b>Figure 1.</b>&nbsp; Crossing the Nyquist Frequency
+	</td>
+	</tr>
+	<tr>
+	<td>
+	<div id="animatedWrapper" class="animation" style="position: relative;">
+	<svg id="aliasFrequency" class="svgWithText" width="750" height="390" style=""></svg>
+	<script type="text/javascript" src="js/crossing_nyquist.js"></script>
+	</div>
+	</td>
+	</tr>
+</table>
+
 <table>
 	<tr class="figureCaption">
 		<td width="100%">

@@ -1,22 +1,23 @@
-<h2 class="no_toc text-delta" id="table-of-contents">Table of Contents</h2>
+I"÷<h2 class="no_toc text-delta" id="table-of-contents">Table of Contents</h2>
 
 <hr />
 
-<table>
-	<tr class="figureCaption">
-	<td width="100%">
-	<b>Figure 1.</b>&nbsp; Crossing the Nyquist Frequency
-	</td>
-	</tr>
-	<tr>
-	<td>
-	<div id="animatedWrapper" class="animation" style="position: relative;">
-	<svg id="aliasFrequency" class="svgWithText" width="750" height="390" style=""></svg>
-	<script type="text/javascript" src="js/crossing_nyquist.js"></script>
-	</div>
-	</td>
-	</tr>
-</table>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>				&lt;table&gt;
+						&lt;tr class="figureCaption"&gt;
+							&lt;td width="100%"&gt;
+							&lt;b&gt;Figure 1.&lt;/b&gt;&amp;nbsp; Crossing the Nyquist Frequency
+							&lt;/td&gt;
+						&lt;/tr&gt;
+						&lt;tr&gt;
+							&lt;td&gt;
+							&lt;div id="animatedWrapper" class="animation" style="position: relative;"&gt;
+							&lt;svg id="aliasFrequency" class="svgWithText" width="750" height="390" style=""&gt;&lt;/svg&gt;
+							&lt;script type="text/javascript" src="js/crossing_nyquist.js"&gt;&lt;/script&gt;
+  							&lt;/div&gt;
+  							&lt;/td&gt;
+						&lt;/tr&gt;
+  				&lt;/table&gt;
+</code></pre></div></div>
 
 <table>
 	<tr class="figureCaption">
@@ -42,3 +43,4 @@
 <svg id="fourWaveAlias" class="svgWithText" width="485" height="300" style="padding: 5px; margin-left: 110px; margin-right: 145px;"></svg>
 <script type="text/javascript" src="js/four_wave_alias.js"></script>
 
+:ET
