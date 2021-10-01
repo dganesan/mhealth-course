@@ -37,12 +37,12 @@ We look at a more complex problem where we have to distinguish between horizonta
 
 <iframe width="320" height="240" src="https://www.youtube.com/embed/eV0htD4r4ZI" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-#### Part 4: Designing a Step Counter [[notes](ch2-stepcounter.html)] [[slides 27-29](https://goo.gl/TSffoV)]
+#### Part 4: Designing a Step Counter [[notes](ch2-stepcounter.html)] [[slides 27-29](https://drive.google.com/file/d/0Bw0KEeNzOgzFdVlkeVExNTFydVk/view?usp=sharing&resourcekey=0-sWtnBt3JQpTEM8OzeyojZg)]
 This part describes how you design a step counter and how you detect the number of steps 
 
 <iframe width="320" height="240" src="https://www.youtube.com/embed/PYQMBEYPgoo" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-#### Part 5: Calorie Tracking [[notes](ch2-calories.html)] [[slides 30-31](https://goo.gl/TSffoV)]
+#### Part 5: Calorie Tracking [[notes](ch2-calories.html)] [[slides 30-31](https://drive.google.com/file/d/0Bw0KEeNzOgzFdVlkeVExNTFydVk/view?usp=sharing&resourcekey=0-sWtnBt3JQpTEM8OzeyojZg)]
 Step counters not only tell us the number of steps but also a (rough) estimate of the number of calories burned. We now look at how we can map from steps to calories.
 
 <iframe width="320" height="240" src="https://www.youtube.com/embed/Y7vNEf2ksB8" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
