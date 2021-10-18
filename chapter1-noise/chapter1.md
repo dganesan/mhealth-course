@@ -21,19 +21,19 @@ description: "Smoothing and Filtering"
 
 Most sensor data is affected to some extent by **noise**, that is unexplained variations in the data that in many cases is uninterpretable, and in almost all cases is not of interest to us. Data analysis is often considerably simpler if this noise can be removed from the data. This chapter provides an overview of the sources of noise in typical sensor data and the methods by which noise can be removed.
 
-#### Part 1: Introduction to Smoothing and Filtering [[notes](ch1-intro.html)] [[slides 1-11](https://goo.gl/LSKryY)]
+#### Part 1: Introduction to Smoothing and Filtering [[notes](ch1-intro.html)] [[slides 1-11](https://drive.google.com/file/d/0Bw0KEeNzOgzFTFVmWHVOS3VISm8/view?usp=sharing&resourcekey=0-U8Y7EnEa16jhOZG9wZaq0A)]
 We start by explaining the difference between information and noise, and describe what causes noise in sensor data. We then show different examples of noisy signals and what are some common sources of noise in these signals.
 
 <iframe width="320" height="240" src="https://www.youtube.com/embed/4TI_h2Ad6AM" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 <iframe width="320" height="240" src="https://www.youtube.com/embed/Pq3ganioUzU" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-#### Part 2: Time-series Smoothing and Filtering [[notes](ch1-timedomainfiltering.html)] [[slides 12-20](https://goo.gl/LSKryY)]
+#### Part 2: Time-series Smoothing and Filtering [[notes](ch1-timedomainfiltering.html)] [[slides 12-20](https://drive.google.com/file/d/0Bw0KEeNzOgzFTFVmWHVOS3VISm8/view?usp=sharing&resourcekey=0-U8Y7EnEa16jhOZG9wZaq0A)]
 Noise removal techniques can be divided into two class. The first is time-domain approaches, where the information is contained in the amplitude of a signal. For example, you may be interested in the temperature of this room, the orientation of your phone, your location and driving trajectory, and so on. All of these contain information in the time domain.
 
 <iframe width="320" height="240" src="https://www.youtube.com/embed/i9wRUw_X2XM" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-#### Part 3: Frequency-domain  Filtering [[notes](ch1-freqdomainfiltering.html)] [[slides 21-34](https://goo.gl/LSKryY)]
+#### Part 3: Frequency-domain  Filtering [[notes](ch1-freqdomainfiltering.html)] [[slides 21-34](https://drive.google.com/file/d/0Bw0KEeNzOgzFTFVmWHVOS3VISm8/view?usp=sharing&resourcekey=0-U8Y7EnEa16jhOZG9wZaq0A)]
 The second is frequency-domain approaches, which removes noise that is periodic in nature. For example, accelerometer readings when you walk show periodic motion and your heart beats in a quasi-periodic manner. Many noise sources are similarly periodic and can be removed using frequency domain filtering methods.
 
 <iframe width="320" height="240" src="https://www.youtube.com/embed/B7T7Yj4XdhI" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
