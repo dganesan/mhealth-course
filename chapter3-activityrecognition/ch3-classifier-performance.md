@@ -55,15 +55,10 @@ Having divided into training and test sets, the next question is how to evaluate
 When evaluating a classifier, there are different ways of measuring its performance. One commonly used method of evaluating whether the classifier correctly separated classes is to use a confusion matrix. Consider e.g. a three class problem with the classes Sitting, Standing, and Walking (let us refer to them as A, B, and C for ease of notation. A decision tree classifier may result in the following confusion matrix when tested on independent data.
 
 
- <img src="images/cm-1.png" alt="drawing" width="500"/>
+ <img src="images/cm-1.png" alt="drawing" width="600"/>
 
 
 The confusion matrix shows how the predictions are made by the model. The rows correspond to the known class of the data, i.e. the labels in the data. The columns correspond to the predictions made by the model. The value of each of element in the matrix is the number of predictions made with the class corresponding to the column for examples with the correct value as represented by the row. Thus, the diagonal elements show the number of correct classifications made for each class, and the off-diagonal elements show the errors made.
-
-
-
-<p id="gdcalert2" ><span style="color: red; font-weight: bold">>>>>>  gd2md-html alert: inline image link here (to images/image2.png). Store image on your image server and adjust path/filename/extension if necessary. </span><br>(<a href="#">Back to top</a>)(<a href="#gdcalert3">Next alert</a>)<br><span style="color: red; font-weight: bold">>>>>> </span></p>
-
 
  <img src="images/cm-2.png" alt="drawing" width="500"/>
 
@@ -81,7 +76,7 @@ Accuracy is the overall correctness of the model and is calculated as the sum of
 Precision is a measure of the accuracy provided that a specific class has been predicted. It is defined by:
 
 
- <img src="images/precision.png" alt="drawing" width="500"/>
+ <img src="images/precision.png" alt="drawing" width="300"/>
 
 
 where tp and fp are the numbers of true positive and false positive predictions for the considered class. In the confusion matrix above, the precision for the class A would be calculated as:
@@ -95,7 +90,7 @@ The number is reported by RDS as a value between 0 and 1.
 
 Recall is a measure of the ability of a prediction model to select instances of a certain class from a data set. It is commonly also called sensitivity, and corresponds to the true positive rate. It is defined by the formula:
 
- <img src="images/recall.png" alt="drawing" width="500"/>
+ <img src="images/recall.png" alt="drawing" width="300"/>
 
 
 where tp and fn are the numbers of true positive and false negative predictions for the considered class. tp + fn is the total number of test examples of the considered class. For class A in the matrix above, the recall would be:
@@ -107,9 +102,9 @@ Recall<sub>A</sub> = tp<sub>A</sub>/(tp<sub>A</sub>+e<sub>AB</sub>+e<sub>AC</sub
 
 Rather than have two measures (precision, recall), it is often preferred to combine both into a single number referred to as the F-measure. This measure can be interpreted as a weighted average of the precision and recall, where the measure reaches its best value at 1 and worst score at 0.
 
- <img src="images/recall.png" alt="drawing" width="500"/>
+ <img src="images/recall.png" alt="drawing" width="300"/>
 
 To recap - there are three commonly used performance measures for classifier performance: precision, recall and f-measure. The equations are shown below - all numbers can be obtained from a confusion matrix for the classifier.
 
- <img src="images/p-r-f.png" alt="drawing" width="500"/>
+ <img src="images/p-r-f.png" alt="drawing" width="400"/>
 
