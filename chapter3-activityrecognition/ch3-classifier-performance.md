@@ -76,7 +76,7 @@ Accuracy is the overall correctness of the model and is calculated as the sum of
 Precision is a measure of the accuracy provided that a specific class has been predicted. It is defined by:
 
 
- <img src="images/precision.png" alt="drawing" width="300"/>
+ <img src="images/precision.png" alt="drawing" width="200"/>
 
 
 where tp and fp are the numbers of true positive and false positive predictions for the considered class. In the confusion matrix above, the precision for the class A would be calculated as:
@@ -90,7 +90,7 @@ The number is reported by RDS as a value between 0 and 1.
 
 Recall is a measure of the ability of a prediction model to select instances of a certain class from a data set. It is commonly also called sensitivity, and corresponds to the true positive rate. It is defined by the formula:
 
- <img src="images/recall.png" alt="drawing" width="300"/>
+ <img src="images/recall.png" alt="drawing" width="200"/>
 
 
 where tp and fn are the numbers of true positive and false negative predictions for the considered class. tp + fn is the total number of test examples of the considered class. For class A in the matrix above, the recall would be:
@@ -101,8 +101,6 @@ Recall<sub>A</sub> = tp<sub>A</sub>/(tp<sub>A</sub>+e<sub>AB</sub>+e<sub>AC</sub
 #### F-measure
 
 Rather than have two measures (precision, recall), it is often preferred to combine both into a single number referred to as the F-measure. This measure can be interpreted as a weighted average of the precision and recall, where the measure reaches its best value at 1 and worst score at 0.
-
- <img src="images/recall.png" alt="drawing" width="300"/>
 
 To recap - there are three commonly used performance measures for classifier performance: precision, recall and f-measure. The equations are shown below - all numbers can be obtained from a confusion matrix for the classifier.
 
