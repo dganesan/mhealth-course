@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Voice-based Health Analytics
+title: Vocal Biomarkers
 nav_order: 5
 parent: Mobile Sensing &amp; Analytics
 has_children: false
