@@ -5,7 +5,7 @@ nav_order: 5
 parent: Mobile Sensing &amp; Analytics
 has_children: false
 usemathjax: true
-description: "Voice-based Health Analytics"
+description: "Vocal Biomarkers"
 ---
 ## Voice-based Health Analytics
 {: .no_toc }
