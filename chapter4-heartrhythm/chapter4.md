@@ -1,11 +1,11 @@
 ---
 layout: default
 title: Heart Rhythm Sensing
-nav_order: 2
+nav_order: 4
 parent: Mobile Sensing &amp; Analytics
 has_children: true
 usemathjax: true
-description: "Step Counter"
+description: "Health Rhythm Sensing"
 ---
 ## Sensing Heart Rhythm
 {: .no_toc }

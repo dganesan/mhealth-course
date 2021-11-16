@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Voice-based Health Analytics
-nav_order: 2
+nav_order: 5
 parent: Mobile Sensing &amp; Analytics
 has_children: false
 usemathjax: true
@@ -85,12 +85,12 @@ You might wonder how features that capture emotion differ from those described a
 * **Intensity:** The intensity reflects the effort to produce speech. Studies showed that angry utterance usually displays rapid rise of energy, and on the contrary sad speech usually is characterized by low intensity. Based on the observation, we need features that can describe the overall energy level and some momentary energy `onset' and `offset'.
 * **Temporal Aspects:** In temporal aspects are measures that can describe speech rate and voice activity (i.e., pauses). Some research showed that those two temporal properties may be affected by emotions. For example, sadness often result in slower speech and more pauses. 
 
-<img src="images/glottal-flow.png" alt="drawing" width="400"/>
+<img src="images/glottal-flow.png" alt="drawing" width="600"/>
 
 * **Voice Quality:** Emotions may also influence the voice quality of utterances. For example, some voice becomes sharp or jagged while some voice sounds soft. Glottal waveforms are useful to describe these sound characteristics. As illustrated in the above figure, a glottal (flow) waveform represents the time that the glottis is open (with air flowing between vocal folds), and the time the glottis is closed for each vibrational cycle. In addition, an open phase can be further broken down into opening and closing phases. If there is a sudden change in air flow (i.e., shorter open and close phases), it would produce more high frequency and the voice therefore sounds more jagged, other than soft. To capture it, we need features that describe timings of the phases and the ratios of closing to opening phase, open phase to total cycle, closed phase to total cycle, opening to open phase, and closing to open phase. 
 
 
-<img src="images/spectrogram.png" alt="drawing" width="400"/>
+<img src="images/spectrogram.png" alt="drawing" width="500"/>
 
 * **Spectrogram:** A spectrogram can describe the energy distribution across frequency bands (as shown above). The reason was that the emphasis on certain frequency may be speaker dependent and may be used to reflect emotions.
 * **Other Statistical Measures:** There are several basic statistical measures, which can help represent all possible dynamics which might be affected by emotions.
@@ -111,11 +111,11 @@ The challenge in speech recognition is to recognize a sequence of phonemes as a 
 
 To do this, speech recognizers use temporal models such as a Hidden Markov Model (HMM). At a high level, a HMM for each letter in the alphabet tries to look for a sequence of phonemes, while taking into account the fact that different people pronounce letters differently (therein the distribution shown below each circle in the figure below).
 
-<img src="images/HMM.png" alt="drawing" width="300"/>
+<img src="images/HMM.png" alt="drawing" width="500"/>
 
 Hidden Markov Models are extremely powerful, and can be composed to identify letters, then words, and then sentences as shown below. 
 
-<img src="images/HMM-sentence.png" alt="drawing" width="300"/>
+<img src="images/HMM-sentence.png" alt="drawing" width="500"/>
 
 As described earlier, the most useful feature for speech recognition is the acoustic feature vector (MFCC + others). These are the core features that are used to distinguish between different phonemes, and thereby the different letters, words, sentences, etc.
 
@@ -178,7 +178,7 @@ _Table 1: Speech Descriptors in Mental Status Exam_
 
 There are many interesting applications for affect/mental health monitoring by voice. Consider the following examples:
 
-<img src="images/applications.png" alt="drawing" width="500"/>
+<img src="images/applications.png" alt="drawing" width="700"/>
 
 **Cell-phone monitoring of healthy subjects as part of a health-care package.** Using voice analysis algorithms on the phone itself, the voice is analyzed during cell phone conversations. Subjects are directly informed if problems are detected by the voice analysis software. In the early stages, they are likely to seek treatment in many cases. Rather than individual sign-up, this would be part of a health “package" from a provider which includes physical health as well. 
 
@@ -186,7 +186,7 @@ There are many interesting applications for affect/mental health monitoring by v
 
 **Monitoring of human-computer speech interfaces and interpersonal speech for elders in assisted or independent care.** Environmental monitors (array microphones that work 10-20 feet from subjects) can be used to gather incidental speech between subjects. For subjects living alone, speech interfaces may be introduced as a convenient way for subjects to access email, text messages, news, weather and personal schedule information. These routine services provide regular opportunities to intercept and analyze their speech for mental health purposes.
 
-**Monitoring our stress in everyday lives. **Microphones, embedded in mobile phones and carried ubiquitously by people, provide the opportunity to continuously and non-invasively monitor stress in real-life situations using an approach very similar to that for identifying depression. Everyone experiences stressful situations, either because of work pressures, exams, personal circumstances, or others. Maybe your phone can inform you that you should do something about your stress levels, perhaps play calming music, or take a break.
+**Monitoring our stress in everyday lives.** Microphones, embedded in mobile phones and carried ubiquitously by people, provide the opportunity to continuously and non-invasively monitor stress in real-life situations using an approach very similar to that for identifying depression. Everyone experiences stressful situations, either because of work pressures, exams, personal circumstances, or others. Maybe your phone can inform you that you should do something about your stress levels, perhaps play calming music, or take a break.
 
 **Monitoring Social Interactions (or lack of it).** Your phone can recognize when there is conversation in the vicinity (using speech-based features), and also whether you are speaking or someone else (since individuals have distinctive speech patterns). Using this information, your phone may be able to monitor your daily social interactions, and identify whether you have gone long periods without contact with someone (a common problem in the digital age). Maybe it can give you notifications that its time to get off your computer and socialize!
 
