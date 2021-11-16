@@ -43,8 +43,12 @@ The second lesson provides an overview of how step counters (also referred to as
 The third lesson describes how fitness bands/smartwatches like Fitbit and Apple Watch measure heart rate. We look at how optical heart rate monitoring sensors work, and how to extract important metrics like heart rate and breathing rate from the photoplethsmography signal. We also look at the challenges involved in estimating heart rhythm accurately at the population scale. This lesson is useful for your assignment on estimating heart rate from the PPG signal obtained when you place your finger on a smartphone camera.
 
 #### [Lesson 4: Activity Recognition using Inertial Sensors](chapter3-activityrecognition/chapter3.html)  [[Slides](https://drive.google.com/file/d/0Bw0KEeNzOgzFZnhUN1p2dW1XOUk/view?usp=sharing&resourcekey=0-n1aXmftU7ipvCZAFdq0UpA)]
+The fourth lesson describes how to design a classifer for activity recognition i.e. the task which involves identifying the physical activity a user is performing. Activity recognition is useful because it permits us to gain useful knowledge about the habits of millions of users passively—just by having them carry cell phones or wear smart watches. We describe how you can build a simple classifier to recognize if a person is sitting, standing, jogging, walking upstairs, walking downstairs or driving a car. We also look at how to collect a training dataset and measure the performance of a classifier.
 
-#### [Lesson 5: Evaluating Classifier Performance](chapter4-evalclassifier/chapter4.html)
+#### [Lesson 5: Voice-based Health Analytics](chapter5-voiceanalytics/chapter5.html) [[Slides](https://drive.google.com/file/d/0Bw0KEeNzOgzFRm13c3NqREdxTUU/view?usp=sharing&resourcekey=0-m5VIqT4c3JBhd4kykBkIPA)]
+Voice is an extremely useful and important part of health analytics. There are many interesting questions that can be answered with audio processing -- for example, do changes in vocal pattern indicate symptoms of an underly neurological disease? how much social interaction does a person engage in? what is the emotional content of the voice? and so on. These indicators can be leveraged for understanding depression, stress, mood, and many other factors that are relevant to personal health. In this lesson, we discuss useful voice-based features that can be used for voice-based health analytics.
+
+
 
 
 
