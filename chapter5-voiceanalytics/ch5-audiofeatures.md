@@ -21,8 +21,6 @@ We will start with a discussion of useful speech features, and then proceed to s
 
 ### Voice Feature: Mel-frequency Spectral Coefficients (MFCC)
 
-<iframe width="320" height="240" src="https://www.youtube.com/embed/4SnsKeb1ljA" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-
 As with accelerometer data, the core of a voice-based emotion sensing approach is obtaining good features. Perhaps the most important feature and widely used in voice is Mel-frequency Spectral Coefficients (MFCC).
 
 MFCC is such a useful voice feature that it deserves to be discussed on its own. The MFCC feature (and variants) has been heavily used in speech recognition, for example, it is part of how the Siri software on an iPhone recognizes your command. 
