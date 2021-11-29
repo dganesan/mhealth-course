@@ -190,6 +190,8 @@ There are many interesting applications for affect/mental health monitoring by v
 
 **Monitoring Social Interactions (or lack of it).** Your phone can recognize when there is conversation in the vicinity (using speech-based features), and also whether you are speaking or someone else (since individuals have distinctive speech patterns). Using this information, your phone may be able to monitor your daily social interactions, and identify whether you have gone long periods without contact with someone (a common problem in the digital age). Maybe it can give you notifications that its time to get off your computer and socialize!
 
+### Example Notebook 1: Determining Gender from Speech [[html](Chapter5-GenderClassification-Voice.html)] [[ipynb](Chapter5-GenderClassification-Voice.ipynb)]
+This notebook tries to identify a voice as male or female, based upon acoustic properties of the voice and speech. The dataset consists of 3,168 recorded voice samples, collected from male and female speakers. The voice samples are pre-processed by analyzing frequency range of 0hz-280hz (human vocal range).
 
 ### Conclusion
 

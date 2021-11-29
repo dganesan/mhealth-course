@@ -57,5 +57,9 @@ To conclude this lesson, we provide a brief overview of other ways of measuring 
 
 <iframe width="320" height="240" src="https://www.youtube.com/embed/13II_ibiQig" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-#### Notebook 1:  (Assignment)
+#### Notebook 1: Analyzing Noisy PPG (Assignment)
+
+#### Notebook 2: Extracting Heart Rate from Noisy PPG [[html](Chapter4-HeartRate-from-Noisy-PPG.html)] [[ipynb](Chapter4-HeartRate-from-Noisy-PPG.ipynb)]
+In this notebook we'll go over how to analyze a noisy PPG signal and extract heart rate. We will take several examples, a very clean PPG signal, a noisy PPG signal with motion artifacts, a noisy PPG signal from a smartwatch, and a signal from a smartring.
+
 
