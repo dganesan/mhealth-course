@@ -35,7 +35,7 @@ One of the major surveys conducted by the Center for Diseases and Control is on 
 
 Sleep also affects ability to perform daily activities, as shown in the figure below. The two bars show the fraction of people who responded to the survey who had difficulty performing the specific activity. The dark blue bar corresponds to individuals who had difficulty while sleeping less than 7 hours a day, and the light blue bar corresponds to those who had difficulty in performing the tasks and slept 7-9 hours day. The conclusion seems rather clear - in general, less sleep seems correlated with greater difficulty in concentration, memory,  driving, workplace performance and other daily activities. 
 
-![alt_text](images/sleep-behaviors.png "image_tooltip")
+![alt_text](images/sleep-behavior.png "image_tooltip")
 
 ### How Much Sleep Do We Need? And How Much Sleep Are We Getting?
 
