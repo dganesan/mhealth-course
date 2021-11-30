@@ -48,6 +48,9 @@ The fourth lesson describes how to design a classifer for activity recognition i
 #### [Lesson 5: Voice-based Health Analytics](chapter5-voiceanalytics/chapter5.html) [[Slides](https://drive.google.com/file/d/0Bw0KEeNzOgzFRm13c3NqREdxTUU/view?usp=sharing&resourcekey=0-m5VIqT4c3JBhd4kykBkIPA)]
 Voice is an extremely useful and important part of health analytics. There are many interesting questions that can be answered with audio processing -- for example, do changes in vocal pattern indicate symptoms of an underly neurological disease? how much social interaction does a person engage in? what is the emotional content of the voice? and so on. These indicators can be leveraged for understanding depression, stress, mood, and many other factors that are relevant to personal health. In this lesson, we discuss useful voice-based features that can be used for voice-based health analytics.
 
+#### [Lesson 6: Sleep Sensing](chapter6-sleepsensing/chapter6.html) [[Slides](https://drive.google.com/file/d/1PC-8H7l06iG9JCHh6s1a29TE6jStaZMx/view?usp=sharing)]
+Sleep is increasingly recognized as important to public health, with sleep insufficiency linked to motor vehicle crashes, industrial disasters, and medical and other occupational errors. We discuss the importance of measuring sleep stages, and both traditional ways to measure sleep using polysomnography as well as how modern wearable devices can measure sleep and sleep stages.
+
 
 
 
