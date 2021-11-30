@@ -35,11 +35,13 @@ One of the major surveys conducted by the Center for Diseases and Control is on 
 
 Sleep also affects ability to perform daily activities, as shown in the figure below. The two bars show the fraction of people who responded to the survey who had difficulty performing the specific activity. The dark blue bar corresponds to individuals who had difficulty while sleeping less than 7 hours a day, and the light blue bar corresponds to those who had difficulty in performing the tasks and slept 7-9 hours day. The conclusion seems rather clear - in general, less sleep seems correlated with greater difficulty in concentration, memory,  driving, workplace performance and other daily activities. 
 
-![alt_text](images/image1.png "image_tooltip")
+![alt_text](images/sleep-behaviors.png "image_tooltip")
 
 ### How Much Sleep Do We Need? And How Much Sleep Are We Getting?
 
 How much sleep we need varies between individuals but generally changes as we age. The National Sleep Foundation suggests that school-age children (5-10 years) need 10-11 hours of sleep daily, teens (10-17 years) need 8.5-9.5 hours, and adults need 7-9 hours. According to data from the National Health Interview Survey, nearly 30\% of adults reported an average of ≤6 hours of sleep per day in 2005-2007. In 2009, only 31\% of high school students reported getting at least 8 hours of sleep on an average school night.
+
+![alt_text](images/sleep-difficulty.png "image_tooltip")
 
 
 ## How to measure sleep using wearable sensors?
@@ -50,7 +52,7 @@ Here's why: Collecting the data requires the person with sleep troubles to leave
 
 If you have ever participated in a sleep study, you would know that EEG (brain waves) is the most common way of measuring sleep. Of the modalities used in sleep studies, the most important one is EEG, and a wealth of information is available about how different EEG patterns can be used to distinguish between the sleep stages, and understand the quality of sleep. The figure below shows EEG signals for different sleep stages that a typical individual goes through during sleep.
 
-![alt_text](images/image2.png "image_tooltip")
+![alt_text](images/eeg-sleep.jpg "image_tooltip")
 
 Before we move on, let us first briefly discuss the sleep stages and their importance. It is widely thought that there are four stages of sleep as an individual progressively goes from light to deep sleep. These sleep stages are interspersed with REM sleep, where the brain is alert and one has vivid dreams. While researchers are not entirely sure of the role of all the sleep stages, it is considered that the sleep stages aid physical and mental recovery, and memory consolidation. REM sleep is considered to aid in creative thinking and making new connections between neurons. 
 
@@ -58,13 +60,15 @@ While EEG gives accurate data about sleep stages, as you might imagine EEG is cu
 
 Lets look at some of the other sensor modalities that are used in polysomnography. The figure below shows that different sleep stages also induce changes in other physiological parameters like the breathing pattern and ECG waveform.
 
-![alt_text](images/image3.jpg "image_tooltip")
+![alt_text](images/sleep-sensors.jpg "image_tooltip")
 
 ### Using respiration for sensing sleep
 
 How about using a respiration sensor for measuring sleep? Intuition suggests that your breathing must become slower and more controlled when you sleep, and this is indeed what datasets on sleeping suggest. The figure above shows the breathing pattern when you are in sleep state vs waking state, and shows that you indeed have substantial differences between the REM and non-REL states when it comes to breathing patterns.
 
 Let us delve into this a bit more. If you look at the figure below, you can see that NREM sleep is much more uniform, whereas there is more irregularity, and longer inhalations during REM sleep, perhaps as a result of the dreams! 
+
+![alt_text](images/respiration-sleep.png "image_tooltip")
 
 Similarly, ECG changes can be observed during different sleep stages, particularly in REM vs Non-REM sleep. 
 
@@ -82,13 +86,17 @@ Other days you spring out of bed with a smile on your face, feeling completely r
 
 During the night you go from light sleep to deep sleep, occasionally entering into a dream state which is called REM-sleep. These are things that your normal alarm clock does not care about, and will go off at the set time regardless of whether you are in a light sleep phase or in the deepest sleep. However, since you move differently in bed during the different phases, the Sleep Cycle alarm clock is able to use the accelerometer in your iPhone to monitor your movement and determine which sleep phase you are in. Sleep Cycle then uses a 30 minute alarm window that ends at your set alarm time and wakes you in your lightest sleep phase.”
 
-So, how do you detect sleep using an accelerometer. Let us first look at classifying when you are asleep vs awake. This should be relatively simple - we tend to move a lot more when we are awake then when we are asleep. The figure on the right shows the overall accelerometer activity (energy) during a vigilant phase vs while sleeping. Clearly, there are differences that would help classification. 
+So, how do you detect sleep using an accelerometer. Let us first look at classifying when you are asleep vs awake. This should be relatively simple - we tend to move a lot more when we are awake then when we are asleep. The figure below shows the overall accelerometer activity (energy) during a vigilant phase vs while sleeping. Clearly, there are differences that would help classification. 
+
+![alt_text](images/eda.png "image_tooltip")
 
 The figure below shows an example where motion-based detection of the wake state is shown on the top panel, and the ground truth of sleep states is shown below. What type of features would you use for this classification task? Intuitively, you can try to segment data into short time windows (30-60 seconds), and extract the peak acceleration, average acceleration, number of movements, etc for this window, and then feed these features to a classifier that tries to decide whether you are awake or asleep. However, one would have to be careful of confounding states - for example, if you are in front of your computer typing away, can this get detected as being asleep? Or if you are watching television on a couch, can this be classified as being asleep? and so on.
 
-![alt_text](images/image4.png "image_tooltip")
+![alt_text](images/motion-sleepstages.png "image_tooltip")
 
-If you are using a smart wristband for sleep detection, one approach to deal with confounders would be to augment the accelerometer energy with also postural information as shown in the figure on the right. If your wristband has a compass, you can use this sensor to get absolute orientation, but even if it only has an accelerometer, you can narrow down the orientation by just looking at the direction of the gravity vector. Before you sense orientation, however, you will need to calibrate your algorithm since you may not know a priori what direction is face-up vs face-down, but this may be something that only needs to be done once for a device.
+If you are using a smart wristband for sleep detection, one approach to deal with confounders would be to augment the accelerometer energy with also postural information as shown in the figure below. If your wristband has a compass, you can use this sensor to get absolute orientation, but even if it only has an accelerometer, you can narrow down the orientation by just looking at the direction of the gravity vector. Before you sense orientation, however, you will need to calibrate your algorithm since you may not know a priori what direction is face-up vs face-down, but this may be something that only needs to be done once for a device.
+
+![alt_text](images/posture.png "image_tooltip")
 
 The next question is whether we can classify sleep stage.  This is difficult to do in a reliable manner using just an accelerometer, but people have tried! Some of you might have noticed that you tend to have some jerky motions when you are about to slip into a deep sleep mode. The general idea is to take sense this pattern and use them to detect your current sleep stage. However, this is a difficult problem that research or commercial systems haven’t solved yet. (Many claim to identify sleep stage, but results tend to be quite unreliable).
 
@@ -103,7 +111,7 @@ Studies on the use of EDA have indicated that EDA storms can distinguish wake an
 
 While promising, this is an area where there is not solid evidence, so much more remains to be done before it is in widespread use.
 
-![alt_text](images/image5.png "image_tooltip")
+![alt_text](images/eda.png "image_tooltip")
 
 ### Using radar and ultrasound doppler to sense sleep
 
