@@ -192,6 +192,6 @@ Because they are so simple to implement and understand, time-domain smoothing is
 
 ### Example Notebook
 
-Below is an annotated python notebook that shows moving average, exp moving average and median filtering in action. Look through carefully and feel free to play around with the code.
-[Python notebook](https://drive.google.com/file/d/1j99uZHnei5SWwuVNFeY_-v7Q7OnHj7WV/view?usp=sharing)
+#### Notebook: Time Domain Noise Removal [[html](notebooks/Chapter1-TimeDomainNoiseRemoval.html)] [[ipynb](notebooks/Chapter1-TimeDomainNoiseRemoval.ipynb)]
+This annotated notebook shows a few examples of time-series signals and how different time-domain smoothing methods (moving average, exponentially weighted moving average, and median filtering) work on this data. 
 

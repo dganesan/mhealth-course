@@ -38,9 +38,11 @@ The second is frequency-domain approaches, which removes noise that is periodic 
 
 <iframe width="320" height="240" src="https://www.youtube.com/embed/B7T7Yj4XdhI" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-#### Notebook 1: Accelerometer Data Smoothing (Assignment 1)
+#### Notebook 1: Time Domain Noise Removal [[html](notebooks/Chapter1-TimeDomainNoiseRemoval.html)] [[ipynb](notebooks/Chapter1-TimeDomainNoiseRemoval.ipynb)]
+This notebook shows a few examples of time-series signals and how different time-domain smoothing methods (moving average, exponentially weighted moving average, and median filtering) work on this data. 
 
-#### Notebook 2: ECG Data Filtering (Assignment 1)
+#### Notebook 2: Frequency Domain Noise Removal [[html](notebooks/Chapter1-FreqDomainNoiseRemoval.html)] [[ipynb](notebooks/Chapter1-FreqDomainNoiseRemoval.ipynb)]
+This notebook shows a few examples of time-series signals and how different frequency-domain noise removal methods (low-pass, high-pass, and notch filter) work on this data. 
 
 #### Notebook 3: Fourier Decomposition [[html](Chapter1-Fourier-Denoising.html)] [[ipynb](Chapter1-Fourier-Denoising.ipynb)]
 The Fourier transform is a tool that allows you to take a signal and see the power of each frequency in it. This example notebook shows how you can remove frequency-domain noise from a signal using a fourier transform.
