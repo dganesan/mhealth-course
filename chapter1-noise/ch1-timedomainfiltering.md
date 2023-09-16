@@ -193,5 +193,5 @@ Because they are so simple to implement and understand, time-domain smoothing is
 ### Example Notebook
 
 Below is an annotated python notebook that shows moving average, exp moving average and median filtering in action. Look through carefully and feel free to play around with the code.
-[Python notebook]https://drive.google.com/file/d/1j99uZHnei5SWwuVNFeY_-v7Q7OnHj7WV/view?usp=sharing
+[Python notebook](https://drive.google.com/file/d/1j99uZHnei5SWwuVNFeY_-v7Q7OnHj7WV/view?usp=sharing)
 
