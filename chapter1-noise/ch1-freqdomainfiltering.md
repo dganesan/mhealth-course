@@ -18,14 +18,13 @@ description: "Chapter 1"
 
 We have discussed how to remove time-domain noise, now let us turn to noise in the frequency domain. 
 
-
 ### How frequency domain filtering works
 
 A long time ago, French scientist and mathematician Jean Baptiste Fourier (1768–1830) proved the mathematical fact that any periodic waveform can be expressed as the sum of an infinite set of sine waves. The frequencies of these sine waves must be integer multiples of some period. An example of this observation is shown in Figure 4. You take two periodic sine waves, add them up, and you get a complicated looking curve. The inverse is also true. You can take any time-series pattern and break it down into a weighted sum of sinusoidal waves.
 
 <img src="images/image16.png" alt="drawing" width="500"/>
 
-_Figure 10:  What happens if we add a number of sine waves together, with some weights for each wave? We end up with a complicated waveform that is the summation of the individual waves._
+_Figure 1:  What happens if we add a number of sine waves together, with some weights for each wave? We end up with a complicated waveform that is the summation of the individual waves._
 
 What does all of this have to do with smoothing signals? A whole lot as it turns out. The main idea is that noise in these waveforms are often concentrated in some frequencies, and not in others. For example, take the case of the accelerometer walking data in Figure 1. The rate at which you walk is typically one or two steps a second; even if you run, the step rate is a few steps a second. So the frequency of interest is only a few Hz.  Similarly, in the case of ECG, the useful frequencies of the electrical signals in the heart are between 0.5 - 150 Hz. In both cases, the frequencies of interest are limited to a relatively small range.
 
@@ -36,9 +35,9 @@ Here’s the magic: _once you convert a signal to a weighted sum of sinusoidals,
 
 <img src="images/image6.png" alt="drawing" width="600"/>
 
-_Figure 11: Types of frequency-domain filters_
+_Figure 2: Types of frequency-domain filters_
 
-Figure 11 shows four types of frequency-domain filters that are commonly used in practice:
+Figure 2 shows four types of frequency-domain filters that are commonly used in practice:
 
 
 * **Low-pass filter**: A low-pass filter passes signals with frequency lower than a certain cutoff frequency and attenuates (i.e. reduces the effect of) signals that are higher than the cutoff frequency. An example where a low-pass filter is used is to remove baseline variations in an ECG signal
@@ -56,7 +55,7 @@ A classic example of how these frequency domain filters are used for noise remov
 
 <img src="images/image3.png" alt="drawing" width="600"/>
 
-_Figure 8: (top) ECG signal with baseline wander, powerline interference, and other high-frequency noise, (bottom) filtered ECG signal._
+_Figure 3: (top) ECG signal with baseline wander, powerline interference, and other high-frequency noise, (bottom) filtered ECG signal._
 
 **Baseline Wander**: Baseline wander is a low-frequency component present in the ECG system which causes the signal to “wander” off from the actual ECG waveform. This is due to offset voltages in the electrodes, due to periodic breathing, and due to body movement. This noise can cause problems in the analysis of the ECG waveform. As you can see in Figure 8, baseline wander is a slowly oscillating waveform, with frequency much lower than the ECG signal that we are interested in. So, intuitively, it can be removed by using a high-pass filter with an appropriately chosen cutoff to remove the baseline wander while letting through the ECG waveform of interest.
 
@@ -64,7 +63,7 @@ _Figure 8: (top) ECG signal with baseline wander, powerline interference, and ot
 
 <img src="images/image9.png" alt="drawing" width="600"/>
 
-_Figure 9: (red) ECG signal without powerline noise, and (blue) ECG signal with powerline noise._
+_Figure 4: (red) ECG signal without powerline noise, and (blue) ECG signal with powerline noise._
 
 **High frequency Noise**: Various other electronic equipment in the vicinity of the ECG sensor including pacemakers, mobile phones, and other electronics can interfere with the ECG signal. These sources of noise are high frequency, and need to be removed by an appropriately selected low-pass filter.
 
@@ -72,12 +71,12 @@ If we put these methods together, we get a filtering pipeline that looks like th
 
 <img src="images/image11.png" alt="drawing" width="600"/>
 
-_Figure 10: ECG filtering pipeline comprising several frequency-domain filters to cutoff low frequency baseline wander, high frequency RF noise and narrow frequency powerline noise._
+_Figure 5: ECG filtering pipeline comprising several frequency-domain filters to cutoff low frequency baseline wander, high frequency RF noise and narrow frequency powerline noise._
 
-## Conclusion
+### Example Notebook
 
-I hope that this chapter gave you a glimpse of how to remove noise from raw sensor data and extract clean signals for further processing. While the filtering methods described are not comprehensive, you should be able to handle the vast majority of noise observed in sensor signals using these techniques. I would like to highlight two take-away messages from this section. The first is that effective noise removal is the foundation for any analytics that you wish to perform with sensor data. In practice, it is often important that you try to identify the source and type of noise in the signal, since that will allow you to remove the noise more effectively. The second take-away is that any method that you use for removing noise can come with some unwanted artifacts that you may have to deal with in later stages of analysis. So, make sure that you know the advantages and disadvantages of the filtering approaches that you are using before you start using them in your data processing.
-
+#### Notebook: Frequency Domain Noise Removal [[html](notebooks/Chapter1-FreqDomainNoiseRemoval.html)] [[ipynb](notebooks/Chapter1-FreqDomainNoiseRemoval.ipynb)]
+This notebook shows a few examples of time-series signals and how different frequency-domain noise removal methods (low-pass, high-pass, and notch filter) work on this data. 
 
 # References
 
