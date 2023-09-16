@@ -96,5 +96,77 @@ One solution to this issue is to use median filtering. The median filter operate
   …
 
  _s<sub>n-2</sub>_ = median(x<sub>n-2</sub> , x<sub>n-1</sub> , x<sub>n</sub>)
+ 
+### Comparison between the three methods
+
+When dealing with time-series data from sensors, it's essential to choose the appropriate filtering technique that aligns with the characteristics of the noise and the desired features you wish to preserve in the data.
+
+1. **Moving Average Smoothing**
+    - **Advantages**:
+        - Simple to implement and understand.
+        - Effective at reducing random noise.
+        - Provides a smoothed curve without much lag, depending on the window size.
+    - **Disadvantages**:
+        - Peaks can be smoothed out, especially with a larger window size.
+        - Sensitive to outliers, as it treats every point with equal weight.
+        - Can introduce a phase lag depending on the size of the window.
+    
+2. **Exponential Moving Average (EMA)**
+    - **Advantages**:
+        - Weights recent data more heavily, preserving more recent trends.
+        - Can be tuned (via the alpha parameter) to adjust the level of smoothing versus the lag.
+        - Requires less memory than the moving average as it doesn’t require storing previous observations.
+    - **Disadvantages**:
+        - Still can be influenced by significant outliers, although to a lesser extent than the moving average.
+        - The choice of alpha can be critical and may require iterative experimentation.
+
+3. **Median Filtering**
+    - **Advantages**:
+        - Excellent at preserving edges (sudden changes in data).
+        - Highly effective against salt-and-pepper noise (random high and low spikes).
+        - Not influenced by outliers, making it resistant to skewed data.
+    - **Disadvantages**:
+        - Might not smooth data as uniformly as the other methods.
+        - Requires sorting, which might not be efficient for large window sizes.
+
+### Python Code Examples using Pandas:
+
+To filter sensor data in Python, the Pandas library is a powerful tool. Below are code snippets for each of the three filtering techniques using Pandas:
+
+```python
+import pandas as pd
+import numpy as np
+
+# Create sample data
+data = {'Sensor': np.random.randn(100)}
+df = pd.DataFrame(data)
+
+# Moving Average Smoothing
+df['Moving_Avg'] = df['Sensor'].rolling(window=3).mean()
+
+# Exponential Moving Average
+df['Exp_MA'] = df['Sensor'].ewm(span=5, adjust=False).mean()
+
+# Median Filtering
+df['Median_Filter'] = df['Sensor'].rolling(window=3).median()
+```
+
+**Parameters Explanation**:
+- For `rolling()`: 
+    - `window`: Defines the number of observations to consider. It can be adjusted depending on the desired level of smoothing.
+- For `ewm()`: 
+    - `span`: Defines the span of the Exponential Moving Average i.e. how many samples to consider.
+
+### Alternate Methods using Numpy:
+
+You can also use Numpy's `convolve` function for moving average:
+
+```python
+window = 3
+weights = np.repeat(1.0, window) / window
+sma = np.convolve(df['Sensor'], weights, 'valid')
+```
+
+Remember that each method has its strengths and weaknesses, and it's essential to understand the underlying noise characteristics and the features of interest in your data before choosing a filter. It's also a good practice to visualize the filtered data to ensure it aligns with your expectations. 
 
 Because they are so simple to implement and understand, time-domain smoothing is often the first methods tried when faced with a problem. These work exceedingly well in practice, so in many cases you can stop here. But knowing a little bit about other approaches can help you be considerably more effective for sensor signals, and will separate you from your peers. So, let us move on to discuss a very powerful technique for noise removal --- frequency-domain smoothing (or filtering).
