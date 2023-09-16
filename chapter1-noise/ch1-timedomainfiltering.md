@@ -76,7 +76,7 @@ Where _s_<sub>previous</sub> is the previous smoothed value and _s_ is the curre
 
 Like with the simple moving average, one must take care when choosing the smoothing factor to ensure that important characteristics of the data are not lost. Again, depending on the implementation or use-case, you might want as many output samples as input samples, which can be achieved with appropriate parameters in the Python function, as shown in the example above.
 
-The effect of exponential smoothing of an accelerometer signal obtained during walking is shown in Figure 1. You can now start to see the distinct steps much more cleanly, and you can even count them quite easily by eye. At this point, you might even be considering different possible algorithms that can automatically extract steps from the smoothed signal. Not bad for a simple smoothing algorithm!
+The effect of exponential smoothing of an accelerometer signal obtained during walking is shown in Figure 1. You can now start to see the distinct steps much more cleanly, and you can even count them quite easily by eye. 
 
 <p float="left">
   <img src="images/image4.png" alt="drawing" width="500"/>
@@ -86,7 +86,7 @@ _Figure 1: (left) accelerometer signal during walking without smoothing (right) 
 
 ### Median Filtering
 
-When the noise appears like sudden spikes in the data (also referred to as salt-and-pepper noise) or if the data has outliers (i.e. spurious readings that are very large or very small compared to the data), then the moving average and exponential smoothing methods are not the best methods. An example is shown below, where the noise pattern comprises sharp spikes in the data. Exponential smoothing will remove noise but not very well.
+When the noise appears like sudden spikes in the data (also referred to as salt-and-pepper noise) or if the data has outliers (i.e. spurious readings that are very large or very small compared to the data) or if the data has sharp edges, then the moving average and exponential smoothing methods are not the best methods. An example is shown below, where the noise pattern comprises sharp spikes in the data. Exponential smoothing will remove noise but not very well.
 
 <img src="images/image7.png" alt="drawing" width="800"/>
 
@@ -188,4 +188,10 @@ sma = np.convolve(df['Sensor'], weights, 'valid')
 
 Remember that each method has its strengths and weaknesses, and it's essential to understand the underlying noise characteristics and the features of interest in your data before choosing a filter. It's also a good practice to visualize the filtered data to ensure it aligns with your expectations.
 
-Because they are so simple to implement and understand, time-domain smoothing is often the first methods tried when faced with a problem. These work exceedingly well in practice, so in many cases you can stop here. But knowing a little bit about other approaches can help you be considerably more effective for sensor signals, and will separate you from your peers. So, let us move on to discuss a very powerful technique for noise removal --- frequency-domain smoothing (or filtering).
+Because they are so simple to implement and understand, time-domain smoothing is often the first methods tried when faced with a problem. These work well in practice when noise is in the time domain but many sensor signals have frequency domain noise, so it is important not to rely too much on time domain smoothing.
+
+### Example Notebook
+
+Below is an annotated python notebook that shows moving average, exp moving average and median filtering in action. Look through carefully and feel free to play around with the code.
+[Python notebook]https://drive.google.com/file/d/1j99uZHnei5SWwuVNFeY_-v7Q7OnHj7WV/view?usp=sharing
+
