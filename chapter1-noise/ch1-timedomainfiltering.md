@@ -18,17 +18,9 @@ description: "Chapter 1"
 
 We start our discussion of smoothing methods with the simplest method, moving average smoothing and proceed to a variant of this method referred to as exponential weighted smoothing. The fact that they are simple doesn’t mean that they are not useful - in spite of their simplicity, these methods are surprisingly effective in practice, and therefore very widely used.
 
-
-### Over-sampling and Averaging
-
-Many sources of noise tend to be random in nature. Informally, this means that the noise has roughly equal amounts of positive and negative changes, and there is no pattern in the noise over time. Formally, the noise is said to be uncorrelated in time, has zero mean, and finite variance. 
-
-In this case, noise can be reduced by over-sampling the sensor and averaging the values. For example, take the case where you are writing an algorithm to determine the rotation of the screen of the mobile phone. If there were no noise, you may sample at a low rate of say 10 Hz (or 10 times/second), but since you have noise due to small hand movements (if you are holding the phone), you may use a sampling rate of 100 Hz. You can then average every 10 samples readings and the average value is reported at a 10 Hz frequency and used in the application to determine whether the screen has rotated. In this way, the noise in the acceleration signal is reduced. You might ask how much the noise reduces by this method. Mathematically, if you have N samples of a random noise signal, and average these samples, your noise reduces by a factor of 1/√N.
-
-
 ### Moving Average Smoothing
 
-Instead of averaging and reducing the number of samples, one can also perform a moving average. Lets try use an example to illustrate this approach. Figure 1 shows a noisy accelerometer signal, and let us try to apply a moving average smoothing to this signal. We are going to replace each sample by the average of the current sample, the sample before it, and the sample after it. 
+One common technique to smooth signals is to perform a moving average. Lets try use an example to illustrate this approach. Figure 1 shows a noisy accelerometer signal, and let us try to apply a moving average smoothing to this signal. We are going to replace each sample by the average of the current sample, the sample before it, and the sample after it. 
 
 More precisely, let us represent the input accelerometer signal as follows:
 
@@ -48,22 +40,41 @@ The output of the moving average filter is:
 
 In the example above, we averaged three input values together, but we could have averaged more nearby points to smooth even more aggressively. As you increase the smoothing window, the signal will look cleaner and more visually pleasing, but beware of using too large a window since you will smooth out the important characteristics of the signal (for example, steps if you want to do step detection).
 
+Note that in the above example, we have `n` input samples but `n-2` output samples. This is because there are only `n-2` valid windows of size three in the data. In some cases, though we might want as many output samples as input samples for convenience of processing the data -- you can specify this with appropriate parameters in thy python function all as shown below.
 
-### Exponential smoothing
+### Exponential Moving Average Smoothing
 
-Moving average assumes random noise where the statistics of the noise does not change over time. But what happens if the noise itself is a time varying? In this case, exponential smoothing is an effective alternative that works well in practice. The key idea is a small twist on the moving average method described earlier. Whereas the moving average smoothing gives equal weight to the set of values that are averaged, the idea in exponential smoothing is to assign exponentially decreasing weights as the observation get older. In other words, recent observations are given relatively more weight than the older observations.
+Exponential Moving Average (EMA) is another common technique to smooth signals, often used because it gives more weight to recent observations while still considering older observations but with exponentially decreasing weights. This property can be especially useful if you believe that recent observations carry more information about the future than older ones.
+
+Let's illustrate this approach with an example similar to the moving average technique. Consider Figure 2, showing another noisy accelerometer signal, and we decide to apply an EMA smoothing to this signal. For a window size of 3, we can define weights such that the current sample gets the highest weight, the previous sample gets a lesser weight, and the sample before that gets even lesser weight. 
 
 ![alt_text](images/image5.png "image_tooltip")
 
-where α is the smoothing factor, and 0 &lt; α &lt; 1. In other words, the smoothed output _s<sub>t </sub>_is a simple weighted average of the current observation _x<sub>t</sub>_ and the previous smoothed output _s<sub>t-1</sub>_. 
+More precisely, let us represent the input accelerometer signal as:
 
-You might wonder why this is called exponential smoothing, but this will become evident if you expand the above equation by substituting the defining equation for simple exponential smoothing back into itself 
+x =  x<sub>1</sub>, x<sub>2</sub>, x<sub>3</sub>, … x<sub>n</sub> where the index is the sample number.
 
-![alt_text](images/image14.png "image_tooltip")
+Now, consider weights a, b, and c, with a > b > c and a + b + c = 1. The output of the EMA filter is:
 
-In other words, as time passes the smoothed statistic s<sub>t</sub> becomes the weighted average of a greater and greater number of the past observations x<sub>t−n</sub>, and the weights assigned to previous observations are in general proportional to the terms of the geometric progression {1, (1 − α), (1 − α)<sup>2</sup>, (1 − α)<sup>3</sup>, ...}. A geometric progression is the discrete version of an exponential function, so this is where the name for this smoothing method originated.
+  _s<sub>1</sub>_ = a * x<sub>1</sub> + b * x<sub>2</sub> + c * x<sub>3</sub>
 
-The smoothing factor applied to α here is something of a misnomer, as larger values of α actually reduce the level of smoothing, and with α = 1 the output series is just the same as the original series (with lag of one time unit). Simple exponential smoothing is easily applied, and it produces a smoothed signal as soon as two observations are available.
+ _s<sub>2</sub>_ = a * x<sub>2</sub> + b * x<sub>3</sub> + c * x<sub>4</sub>
+
+ _s<sub>3</sub>_ = a * x<sub>3</sub> + b * x<sub>4</sub> + c * x<sub>5</sub>
+
+  …
+
+ _s<sub>n-2</sub>_ = a * x<sub>n-2</sub> + b * x<sub>n-1</sub> + c * x<sub>n</sub>
+
+For instance, if you choose a = 0.5, b = 0.3, and c = 0.2, it ensures that the current sample has more influence than the previous ones. 
+
+However, this simple illustration does not fully represent the true nature of EMA. In a generalized form, the weight given to each observation decreases exponentially, ensuring that every observation in the dataset has some amount of influence. This is mathematically expressed using a decay factor, often represented as α (alpha). The equation is:
+
+_s_ = α * x + (1 - α) * _s_<sub>previous</sub>
+
+Where _s_<sub>previous</sub> is the previous smoothed value and _s_ is the current smoothed value. The parameter α (alpha) is between 0 and 1, where a higher value gives more weight to recent observations. In libraries like pandas, `span` is often used instead of α, which is an alternative way of defining how much weight the observations should have.
+
+Like with the simple moving average, one must take care when choosing the smoothing factor to ensure that important characteristics of the data are not lost. Again, depending on the implementation or use-case, you might want as many output samples as input samples, which can be achieved with appropriate parameters in the Python function, as shown in the example above.
 
 The effect of exponential smoothing of an accelerometer signal obtained during walking is shown in Figure 3. You can now start to see the distinct steps much more cleanly, and you can even count them quite easily by eye. At this point, you might even be considering different possible algorithms that can automatically extract steps from the smoothed signal. Not bad for a simple smoothing algorithm!
 
@@ -71,15 +82,11 @@ The effect of exponential smoothing of an accelerometer signal obtained during w
   <img src="images/image4.png" alt="drawing" width="500"/>
   <img src="images/image12.png" alt="drawing" width="500"/>
 </p>
-
 _Figure 56: (left) accelerometer signal during walking without smoothing (right) after exponentially weighted smoothing with smoothing = 6_ (i.e. _α = ⅙).
-
-To see exponential averaging in practice, check out the demo in [2]. Try changing the smoothing parameter, and see its effect on the signal (the smoothing parameter is 1/α, so larger smoothing means smaller α). 
-
 
 ### Median Filtering
 
-When the noise appears like sudden spikes in the data (also referred to as salt-and-pepper noise), then the moving average and exponential smoothing methods are not the best methods. An example is shown below, where the noise pattern comprises sharp spikes in the data. Exponential smoothing will remove noise, but has two issues. First, it averages some of the peaks in the data and they don’t quite have the same amplitude. Second, you will notice that the averaging causes a time lag in the peaks i.e. the peaks are shifted slightly to the right of the original peak. 
+When the noise appears like sudden spikes in the data (also referred to as salt-and-pepper noise) or if the data has outliers (i.e. spurious readings that are very large or very small compared to the data), then the moving average and exponential smoothing methods are not the best methods. An example is shown below, where the noise pattern comprises sharp spikes in the data. Exponential smoothing will remove noise but not very well.
 
 <img src="images/image7.png" alt="drawing" width="800"/>
 
@@ -99,7 +106,7 @@ One solution to this issue is to use median filtering. The median filter operate
  
 ### Comparison between the three methods
 
-When dealing with time-series data from sensors, it's essential to choose the appropriate filtering technique that aligns with the characteristics of the noise and the desired features you wish to preserve in the data.
+When dealing with time-series data from sensors, it's essential to choose the appropriate filtering technique that aligns with the characteristics of the noise and the desired features you wish to preserve in the data. Below are some of the pros and cons of each of the above methods.
 
 1. **Moving Average Smoothing**
     - **Advantages**:
@@ -153,9 +160,15 @@ df['Median_Filter'] = df['Sensor'].rolling(window=3).median()
 
 **Parameters Explanation**:
 - For `rolling()`: 
-    - `window`: Defines the number of observations to consider. It can be adjusted depending on the desired level of smoothing.
+    - `window`: Defines the number of observations to consider. It can be adjusted depending on the desired level of smoothing. The result size depends on the method parameter:
+      - `valid` - Returns only those convolution results that are computed without padding. This shrinks the output size.
+      - `full` - Uses padding, resulting in an output size as large as the input. Edge windows are calculated using the available values, and the rest are filled using padding.
+      - Default is `None` which means the same size as input.
 - For `ewm()`: 
     - `span`: Defines the span of the Exponential Moving Average i.e. how many samples to consider.
+
+Below is an example of rolling window. 
+![alt_text](images/rolling-window.png "image_tooltip")
 
 ### Alternate Methods using Numpy:
 
@@ -167,6 +180,12 @@ weights = np.repeat(1.0, window) / window
 sma = np.convolve(df['Sensor'], weights, 'valid')
 ```
 
-Remember that each method has its strengths and weaknesses, and it's essential to understand the underlying noise characteristics and the features of interest in your data before choosing a filter. It's also a good practice to visualize the filtered data to ensure it aligns with your expectations. 
+**Parameters Explanation for Numpy's `convolve`**:
+- The third parameter to `convolve` specifies the mode:
+    - `valid` - Returns only those convolution results that are computed without any padding. This shrinks the output size.
+    - `full` - Uses padding, resulting in an output size larger than the input. Edge windows are calculated using the available values, and the rest are filled using padding.
+    - `same` - Returns convolution of the same size as the input, achieved by using adequate padding.
+
+Remember that each method has its strengths and weaknesses, and it's essential to understand the underlying noise characteristics and the features of interest in your data before choosing a filter. It's also a good practice to visualize the filtered data to ensure it aligns with your expectations.
 
 Because they are so simple to implement and understand, time-domain smoothing is often the first methods tried when faced with a problem. These work exceedingly well in practice, so in many cases you can stop here. But knowing a little bit about other approaches can help you be considerably more effective for sensor signals, and will separate you from your peers. So, let us move on to discuss a very powerful technique for noise removal --- frequency-domain smoothing (or filtering).
