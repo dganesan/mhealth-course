@@ -48,7 +48,9 @@ Exponential Moving Average (EMA) is another common technique to smooth signals, 
 
 Let's illustrate this approach with an example similar to the moving average technique. For a window size of 3, we can define weights such that the current sample gets the highest weight, the previous sample gets a lesser weight, and the sample before that gets even lesser weight. 
 
-[//]: # ![alt_text](images/image5.png "image_tooltip")
+<!---
+![alt_text](images/image5.png "image_tooltip")
+--->
 
 More precisely, let us represent the input accelerometer signal as:
 
@@ -190,8 +192,6 @@ Remember that each method has its strengths and weaknesses, and it's essential t
 
 Because they are so simple to implement and understand, time-domain smoothing is often the first methods tried when faced with a problem. These work well in practice when noise is in the time domain but many sensor signals have frequency domain noise, so it is important not to rely too much on time domain smoothing.
 
-### Example Notebook
-
-#### Notebook: Time Domain Noise Removal [[html](notebooks/Chapter1-TimeDomainNoiseRemoval.html)] [[ipynb](notebooks/Chapter1-TimeDomainNoiseRemoval.ipynb)]
+### Example Notebook: Time Domain Noise Removal [[html](notebooks/Chapter1-TimeDomainNoiseRemoval.html)] [[ipynb](notebooks/Chapter1-TimeDomainNoiseRemoval.ipynb)]
 This annotated notebook shows a few examples of time-series signals and how different time-domain smoothing methods (moving average, exponentially weighted moving average, and median filtering) work on this data. 
 
