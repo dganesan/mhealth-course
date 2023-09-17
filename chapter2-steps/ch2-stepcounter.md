@@ -51,17 +51,54 @@ Even after we remove low and high frequency peaks, we may be left with some shor
 
 _Figure 7: Zero crossings (left) and peaks (right) of the filtered magnitude signal_
 
-**Step 3: Detecting Steps.** Once you have the smoothed data, let us consider how to detect the step. We could do what was suggested earlier, which is to look for large peaks and use that to detect steps. Another approach is to take the derivative (slope) of the smoothed acceleration signal. The derivative changes from negative to positive (or positive to negative) exactly when a step occurs, so you can just count the number of times the derivative changed from negative to positive to detect the number of steps that occurred.  Another possibility is to subtract the mean for each window and look at  zero crossings i.e. times when the signal crosses from the negative to positive in the upward direction (this can be tricky, however, since the signal baseline can change over time as shown below). 
+**Step 3: Detecting Steps.** Once you have the smoothed data, let us consider how to detect the step. There are many approaches to do this. We could do what was suggested earlier, which is to look for large peaks and use that to detect steps. Another approach is to take the derivative (slope) of the smoothed acceleration signal. The derivative changes from negative to positive (or positive to negative) exactly when a step occurs, so you can just count the number of times the derivative changed from negative to positive to detect the number of steps that occurred.  Another possibility is to subtract the mean for each window and look at  zero crossings i.e. times when the signal crosses from the negative to positive in the upward direction (this can be tricky, however, since the signal baseline can change over time as shown below). 
 
+We will focus on detecting peaks using Python and tuning parameters to make it work effectively.
 
-<img src="images/image3.png" alt="drawing" width="400"/>
+## Implementing Step Counting in Python
 
-_Figure 8: Filtered data on the most active axis._
+Step counting, at its core, is about detecting repeating patterns or peaks in acceleration data that correspond to an individual's steps. In Python, the `scipy` library provides the `find_peaks` function that serves precisely this purpose, allowing us to detect peaks in our dataset easily.
 
-**Dynamic Threshold-based Step Detection**: Another algorithm for step detection is a dynamic threshold detection algorithm. The first step in this algorithm is keeping track of the axis (x, y, or z) along which the maximum acceleration occurs. We can ignore all other axes and just focus on this specific one for our algorithm. Given this axis, we keep track of the min and max acceleration levels over a window of samples. In other words, we continuously measure the maximum and minimum values of the 3-axis acceleration every 50 samples. The average value, (_Max _+ _Min_)/2, is called the _dynamic threshold level_. For the following 50 samples, this threshold level is used to decide whether steps have been taken. As it is updated every 50 samples, the threshold is _dynamic_. The Max, Min, and (dynamic) Threshold for the z-axis is shown in Figure 4.
+### The `find_peaks` Function
 
-Given the dynamic detection threshold, the step detection algorithm can work by looking for crossings of the threshold in the downward (or upward) direction. For example, if you look at Figure 4, you will see that each step involves a crossing of the threshold (orange line) in the downward direction with a substantial change in acceleration in the negative direction. In other words:
+The `find_peaks` function from the `scipy.signal` module is designed to identify the indices of relative maxima (peaks) in a 1D array. Its basic syntax is:
 
-_A step is defined as happening if there is a negative slope of the acceleration plot (sample_new &lt; sample_old) when the acceleration curve crosses below the dynamic threshold._
+```python
+from scipy.signal import find_peaks
 
-These are just two possible algorithms for detecting steps. It won’t be perfect, and better algorithms are possible. I encourage you to try other schemes, and refine the step detection algorithm to improve its accuracy. If you find a better approach, please let me know!
+peaks, properties = find_peaks(data_array, prominence=prom, width=wid)
+```
+
+In this function:
+
+- `data_array` is the 1D array or dataset where we want to identify peaks.
+- `prominence` is a parameter that defines how much a peak stands out relative to its surrounding data points, effectively describing the peak's height.
+- `width` is a parameter that specifies the width of the peaks.
+
+In our step counting context:
+
+```python
+peaks, _ = find_peaks(df['accel_mag'], prominence=prom, width=wid)
+num_steps = len(peaks)
+```
+
+We're identifying peaks in the `accel_mag` column of our DataFrame, which represents the magnitude of the acceleration data. Counting the number of these peaks gives us an estimate of the number of steps. However, typically, you will under/over estimate the number of steps by quite a large margin unless you fine tune the parameters of the `find_peaks` function.
+
+### Tuning Parameters: Prominence and Width
+
+1. **Prominence**: This parameter helps in distinguishing the true peaks from noise. A higher prominence value would mean that only the peaks which stand out prominently from their neighbors would be detected. This can be particularly useful to ensure that the small fluctuations or noise in the data do not get identified as steps.
+
+2. **Width**: The width parameter is crucial in the context of step detection because it directly relates to our intuition about the duration between consecutive steps. For instance, consider a typical walking pace: we expect a person to take around 1 to 2 steps every second, depending on their speed. If our data is sampled at 100 Hz (100 samples per second), a step, which takes half a second, would span roughly 50 samples. Thus, the `width` parameter can be tuned based on our expectations of step duration and the sampling rate of our data.
+
+### Importance of Sampling Rate
+
+The sampling rate, or the number of samples collected per unit of time, plays a pivotal role in peak detection. Given our earlier example, if we're walking at a pace of 1-2 steps per second:
+
+- At a 50 Hz sampling rate, a step might span 25 to 50 samples.
+- At a 100 Hz sampling rate, a step might span 50 to 100 samples.
+
+As you can see, the width parameter's optimal value changes with the sampling rate. Thus, when tweaking the `width` parameter, it's essential to consider the sampling rate of the data to ensure accurate peak (step) detection.
+
+### Summary
+
+The `find_peaks` function, with its prominence and width parameters, offers a flexible tool for step detection in accelerometer data. By understanding and adjusting these parameters in the context of our data's sampling rate and the expected step duration, we can achieve reliable and accurate step counting in Python.
