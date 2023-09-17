@@ -73,6 +73,58 @@ If we put these methods together, we get a filtering pipeline that looks like th
 
 _Figure 5: ECG filtering pipeline comprising several frequency-domain filters to cutoff low frequency baseline wander, high frequency RF noise and narrow frequency powerline noise._
 
+### Implementing Frequency-domain Filters in Python
+
+To perform frequency domain filtering on signals, we often use the combination of a design function (to design the filter) and a filtering function to apply it on our data. One common package used for this purpose in Python is `scipy.signal`. 
+
+In the provided code, the `butter` function from `scipy.signal` is used to design a Butterworth filter, which is a type of IIR (Infinite Impulse Response) filter. The `lfilter` function then applies this filter to a dataset. 
+
+Let's dive deeper:
+
+```python
+SAMPLING_RATE = 1000 # Hz 
+
+# Create filters 
+b_high, a_high = butter(2, 130/SAMPLING_RATE*2, btype='lowpass') # Low pass < 130 Hz
+b_low, a_low = butter(2, 20/SAMPLING_RATE*2, btype='highpass') # High pass > 40 Hz 
+b_notch, a_notch = butter(2, [59/SAMPLING_RATE*2, 61/SAMPLING_RATE*2], btype='bandstop') # Notch at 60 Hz
+
+# Apply filters 
+df['HighPass1'] = lfilter(b_high, a_high, df.Noisy1)
+df['LowPass2'] = lfilter(b_low, a_low, df.Noisy2)
+df['Notch3'] = lfilter(b_notch, a_notch, df.Noisy3)
+```
+
+#### Understanding the parameters and the role of the sampling rate
+
+1. **SAMPLING_RATE**: This represents how many data points are recorded per second. In digital signal processing, the Nyquist theorem states that a continuous signal can be completely described by its samples and fully reconstructed if it is sampled at a rate at least twice the signal's highest frequency. The factor of "2" is why we divide the frequency by twice the sampling rate.
+
+2. **butter function**: `butter(N, Wn, btype='low', analog=False, output='ba', fs=None)` is used to design an Nth order Butterworth filter. The function returns two arrays - `b` (numerator) and `a` (denominator) which can be used to construct the transfer function of the filter.
+
+   - `N`: The order of the filter.
+   - `Wn`: This is the critical frequency or frequencies. This parameter is normalized between 0 and 1, where 1 corresponds to the Nyquist frequency, half of the sampling rate. This is the reason for dividing by `SAMPLING_RATE*2` when specifying the cutoff.
+   - `btype`: Can be ‘lowpass’, ‘highpass’, ‘bandpass’, or ‘bandstop’, to determine the type of filter.
+   - `output`: Specifies the type of output: numerator/denominator (`'ba'`).
+
+3. **lfilter function**: `lfilter(b, a, x)` is used to apply the filter designed by `butter` to a signal `x`.
+   - `b`: The numerator polynomial coefficients of the IIR filter.
+   - `a`: The denominator polynomial coefficients of the IIR filter.
+   - `x`: The signal you want to filter.
+
+#### Why the need for the sampling rate in filter design?
+
+When designing a digital filter, frequencies are normalized to the Nyquist rate. So, the specification of cutoff or center frequencies in Hz often needs to be converted to a normalized form. This is why the sampling rate is crucial; it provides a context to convert between absolute frequency (in Hz) and normalized frequency.
+
+#### Summarizing the provided code:
+
+- A **low-pass filter** is designed that allows frequencies less than 130Hz.
+- A **high-pass filter** is designed that allows frequencies greater than 20Hz.
+- A **notch filter** (or band-stop filter) is designed to attenuate frequencies between 59Hz and 61Hz, which would be useful to remove noise or interference at 60Hz.
+
+Each filter is then applied to different noisy datasets using the `lfilter` function.
+
+In conclusion, frequency domain filtering is a powerful technique for signal processing, and understanding the role of sampling rates, filter design, and filter application is critical to effectively leveraging this method.
+
 ### Example Notebook
 
 #### Notebook: Frequency Domain Noise Removal [[html](notebooks/Chapter1-FreqDomainNoiseRemoval.html)] [[ipynb](notebooks/Chapter1-FreqDomainNoiseRemoval.ipynb)]
