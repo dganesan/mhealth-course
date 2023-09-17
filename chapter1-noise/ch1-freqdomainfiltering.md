@@ -115,7 +115,7 @@ df['Notch3'] = lfilter(b_notch, a_notch, df.Noisy3)
 
 When designing a digital filter, frequencies are normalized to the Nyquist rate. So, the specification of cutoff or center frequencies in Hz often needs to be converted to a normalized form. This is why the sampling rate is crucial; it provides a context to convert between absolute frequency (in Hz) and normalized frequency.
 
-#### Summarizing the provided code:
+#### Summarizing the provided code
 
 - A **low-pass filter** is designed that allows frequencies less than 130Hz.
 - A **high-pass filter** is designed that allows frequencies greater than 20Hz.
