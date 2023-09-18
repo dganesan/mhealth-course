@@ -23,7 +23,7 @@ Regardless of the specific smoothing method, they are all applied over rolling o
 ### Understanding Rolling or Sliding Windows
 
 **Concept**: A rolling or sliding window is a subset of data points in a series that "slides" across the dataset. The idea is to divide the dataset into many overlapping subsets, perform a computation on each subset, and then move the window by a fixed amount to the next position. Here is a visualization of this procedure.
-![alt_text](images/rolling-window.png "image_tooltip")
+![alt_text](figures/rolling-window.png "image_tooltip")
 
 For instance, if we have a dataset:
 
