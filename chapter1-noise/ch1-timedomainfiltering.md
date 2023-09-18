@@ -18,6 +18,40 @@ description: "Chapter 1"
 
 We start our discussion of smoothing methods with the simplest method, moving average smoothing and proceed to a variant of this method referred to as exponential weighted smoothing. The fact that they are simple doesn’t mean that they are not useful - in spite of their simplicity, these methods are surprisingly effective in practice, and therefore very widely used.
 
+Regardless of the specific smoothing method, they are all applied over rolling or sliding windows as shown below. In other words, a window of data is picked up, then it is smoothed using one of several methods (e.g. moving average), and then the smoothed output sequence is generated. 
+
+### Understanding Rolling or Sliding Windows
+
+**Concept**: A rolling or sliding window is a subset of data points in a series that "slides" across the dataset. The idea is to divide the dataset into many overlapping subsets, perform a computation on each subset, and then move the window by a fixed amount to the next position. Here is a visualization of this procedure.
+![alt_text](images/rolling-window.png "image_tooltip")
+
+For instance, if we have a dataset:
+
+```
+data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+```
+
+A rolling window of size 3 would generate the following subsets:
+
+```
+[1, 2, 3], [2, 3, 4], [3, 4, 5], ..., [8, 9, 10]
+```
+
+For each subset, an operation (like averaging for a moving average filter) is performed. The result of this operation on each subset generates a new series.
+
+**Why Rolling Windows?**: In time series analysis, data often contains fluctuations or noise that might obscure patterns. Analyzing the data in smaller chunks, or windows, allows us to mitigate the effects of these fluctuations and to discern underlying patterns or trends. 
+
+**Padding and Edge Effects**: One critical detail to note when using rolling windows is the "edge effect". At the beginning and end of our data series, there aren't enough data points to form a complete window. For example, with our dataset above, the first data point (1) does not have two preceding data points for a window of size 3.
+
+One solution to this is "padding", where we artificially extend our dataset at the beginning and end. There are different methods to do this:
+1. **Zero Padding**: Add zeros to the start or end of the dataset.
+2. **Reflective Padding**: Reflect the data points at the edge. For our data, this might mean adding a "0" before the "1" and an "11" after the "10".
+3. **Constant Padding**: Use the edge values as padding. For our data, this would mean adding another "1" before the "1" and another "10" after the "10".
+
+The choice of padding method depends on the nature of the data and the specific application. However, padding can introduce inaccuracies, so it's crucial to be aware of the potential implications.
+
+**Visualization**: Imagine a spotlight moving across a stage, illuminating only a small portion of the stage at a time. As the spotlight moves, you see a changing scene within its confines. Similarly, a rolling window "illuminates" a subset of the data, and as it slides, the subset changes, offering a "localized" view of the data at each position.
+
 ### Moving Average Smoothing
 
 One common technique to smooth signals is to perform a moving average. Lets try use an example to illustrate this approach. Lets say we have a noisy accelerometer signal, and let us try to apply a moving average smoothing to this signal. We are going to replace each sample by the average of the current sample, the sample before it, and the sample after it. 
