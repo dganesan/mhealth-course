@@ -51,7 +51,7 @@ Step counters not only tell us the number of steps but also a (rough) estimate o
 <iframe width="320" height="240" src="https://www.youtube.com/embed/Y7vNEf2ksB8" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 --->
 
-## Notebook: Step Counting with Find Peaks [[html](notebooks/Chapter2-StepCounting.html)] [[ipynb](notebooks/Chapter2-StepCounting.zip)]
+### Notebook: Step Counting with Find Peaks [[html](notebooks/Chapter2-StepCounting.html)] [[ipynb](notebooks/Chapter2-StepCounting.zip)]
 This notebook shows a step counter using `find_peaks` and applies it to a number of sample sensor logs. The different logs correspond to different sensor placements (left pocket, right pocket, wrist), and to different walking patterns (e.g. with delays between short burst of steps). The notebook shows how tweaking the `prominence` and `width` parameters can allow you to fine-tune the performance of the step counter.
 
 <!---
