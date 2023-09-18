@@ -39,9 +39,9 @@ A rolling window of size 3 would generate the following subsets:
 
 For each subset, an operation (like averaging for a moving average filter) is performed. The result of this operation on each subset generates a new series.
 
-**Why Rolling Windows?**: In time series analysis, data often contains fluctuations or noise that might obscure patterns. Analyzing the data in smaller chunks, or windows, allows us to mitigate the effects of these fluctuations and to discern underlying patterns or trends. 
+**Why Rolling Windows?**: In time series analysis, data often contains fluctuations or noise that might obscure patterns. Analyzing the data in smaller chunks, or windows, allows us to mitigate the effects of these fluctuations and to discern underlying patterns or trends. Imagine a spotlight moving across a stage, illuminating only a small portion of the stage at a time. As the spotlight moves, you see a changing scene within its confines. Similarly, a rolling window "illuminates" a subset of the data, and as it slides, the subset changes, offering a "localized" view of the data at each position.
 
-**Padding and Edge Effects**: One critical detail to note when using rolling windows is the "edge effect". At the beginning and end of our data series, there aren't enough data points to form a complete window. For example, with our dataset above, the first data point (1) does not have two preceding data points for a window of size 3.
+**Padding and Edge Effects**: One detail to note when using rolling windows is the "edge effect". At the beginning and end of our data series, there aren't enough data points to form a complete window. For example, with our dataset above, the first data point (1) does not have two preceding data points for a window of size 3.
 
 One solution to this is "padding", where we artificially extend our dataset at the beginning and end. There are different methods to do this:
 1. **Zero Padding**: Add zeros to the start or end of the dataset.
@@ -49,8 +49,6 @@ One solution to this is "padding", where we artificially extend our dataset at t
 3. **Constant Padding**: Use the edge values as padding. For our data, this would mean adding another "1" before the "1" and another "10" after the "10".
 
 The choice of padding method depends on the nature of the data and the specific application. However, padding can introduce inaccuracies, so it's crucial to be aware of the potential implications.
-
-**Visualization**: Imagine a spotlight moving across a stage, illuminating only a small portion of the stage at a time. As the spotlight moves, you see a changing scene within its confines. Similarly, a rolling window "illuminates" a subset of the data, and as it slides, the subset changes, offering a "localized" view of the data at each position.
 
 ### Moving Average Smoothing
 
