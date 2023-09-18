@@ -125,9 +125,7 @@ Each filter is then applied to different noisy datasets using the `lfilter` func
 
 In conclusion, frequency domain filtering is a powerful technique for signal processing, and understanding the role of sampling rates, filter design, and filter application is critical to effectively leveraging this method.
 
-### Example Notebook
-
-#### Notebook: Frequency Domain Noise Removal [[html](notebooks/Chapter1-FreqDomainNoiseRemoval.html)] [[ipynb](notebooks/Chapter1-FreqDomainNoiseRemoval.ipynb)]
+### Example Notebook: Frequency Domain Noise Removal [[html](notebooks/Chapter1-FreqDomainNoiseRemoval.html)] [[ipynb](notebooks/Chapter1-FreqDomainNoiseRemoval.ipynb)]
 This notebook shows a few examples of time-series signals and how different frequency-domain noise removal methods (low-pass, high-pass, and notch filter) work on this data. 
 
 <!---
