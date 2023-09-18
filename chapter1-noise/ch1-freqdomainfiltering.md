@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Frequency-domain Filtering
+title: Freq-domain Filtering
 parent: Data Smoothing
 grand_parent: Mobile Sensing &amp; Analytics
 nav_order: 3
@@ -130,6 +130,7 @@ In conclusion, frequency domain filtering is a powerful technique for signal pro
 #### Notebook: Frequency Domain Noise Removal [[html](notebooks/Chapter1-FreqDomainNoiseRemoval.html)] [[ipynb](notebooks/Chapter1-FreqDomainNoiseRemoval.ipynb)]
 This notebook shows a few examples of time-series signals and how different frequency-domain noise removal methods (low-pass, high-pass, and notch filter) work on this data. 
 
+<!---
 # References
 
 [1] [Smoothing data with low pass filters](http://justinvoss.com/2011/11/07/smoothing-data-with-low-pass-filters/)\
@@ -143,4 +144,6 @@ This notebook shows a few examples of time-series signals and how different freq
 [9] [ECG Digital Filtering](http://joachimbehar.comuv.com/ECG_tuto_1.php)\
 [10] [Techniques for accurate ECG signal processing](http://www.eetimes.com/document.asp?doc_id=1278571)\
 [11] [Kionix - Accelerometer Errors](http://kionixfs.kionix.com/en/document/AN012%20Accelerometer%20Errors.pdf)
+
+--->
 
