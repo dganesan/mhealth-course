@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Introduction to Smoothing
+title: Intro to Smoothing
 parent: Data Smoothing
 grand_parent: Mobile Sensing &amp; Analytics
 nav_order: 1
