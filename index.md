@@ -23,7 +23,7 @@ Fitness gadgets such as ​Fitbit​, ​Apple Watch,​ ​Android Wear,​ and
 <!---
 ### Introduction
 
-#### [[Introduction slides](https://drive.google.com/file/d/0Bw0KEeNzOgzFcVBRdjAyY3hzYjA/view?usp=sharing&resourcekey=0-OgSScA52ePgy3qA8zgemhw)]
+#### [[Introduction slides](https://drive.google.com/file/d/1j2wEaVO-UGrN5gIUIbTZGTM6q670wJwG/view?usp=drive_link)]
 
 <iframe width="320" height="240" src="https://www.youtube.com/embed/BtvTFG5fEHE" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
@@ -33,10 +33,10 @@ This notebook gives you an introduction to the main building blocks that will be
 
 Each of the following lessons has associated slides, videos, course notes, and Python notebooks that explain and illustrate the main concepts.
 
-### [Chapter 1: Introduction to Smoothing and Filtering](chapter1-noise/chapter1.html)  [[Slides](https://drive.google.com/file/d/0Bw0KEeNzOgzFTFVmWHVOS3VISm8/view?usp=sharing&resourcekey=0-U8Y7EnEa16jhOZG9wZaq0A)]
+### [Chapter 1: Introduction to Smoothing and Filtering](chapter1-noise/chapter1.html)  [[Slides](https://drive.google.com/file/d/1jo4hHP76vGtyNnOeWMaLCT0mmdynV-Nd/view?usp=drive_link)]
 This chapter provides an introduction into the first steps in processing sensor data i.e. removing noise. The chapter describes sources of noise that present a challenge for analyzing sensor signals and describes methods to remove noise including time-domain noise removal and frequency-domain noise removal techniques. This chapter gives you the basic tools for removing noise and will help you with your first assignment which involves noise removal from accelerometer and ECG data.
 
-### [Chapter 2: How to Design a Step Counter](chapter2-steps/chapter2.html)  [[Slides](https://drive.google.com/file/d/0Bw0KEeNzOgzFdVlkeVExNTFydVk/view?usp=sharing&resourcekey=0-sWtnBt3JQpTEM8OzeyojZg)]
+### [Chapter 2: How to Design a Step Counter](chapter2-steps/chapter2.html)  [[Slides](https://drive.google.com/file/d/1joGfgzsmzz55cQmhGwQvQImarvfrmdbF/view?usp=drive_link)]
 The second chapter provides an overview of how step counters (also referred to as pedometers) work. We look at what characteristics of steps are sufficiently distinctive to be measured accurately by a step counter. We also look at how placement of the phone or smartwatch can affect the signal, as well as other sources of error. We discuss methods to deal with these errors. This chapter will give you ideas on how to solve the assignment that asks you to design a step counter and check how it works for different sensor placements.
 
 ### [Chapter 3: Photoplethysmography](chapter4-heartrhythm/chapter4.html)  [[Slides](https://drive.google.com/file/d/0Bw0KEeNzOgzFLWpBMnV5cHNCYzA/view?usp=sharing&resourcekey=0-wID7JSxr1I4jmcmoAzvfgw)]
