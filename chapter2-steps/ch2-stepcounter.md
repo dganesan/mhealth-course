@@ -99,10 +99,6 @@ The sampling rate, or the number of samples collected per unit of time, plays a 
 
 As you can see, the width parameter's optimal value changes with the sampling rate. Thus, when tweaking the `width` parameter, it's essential to consider the sampling rate of the data to ensure accurate peak (step) detection.
 
-### Summary
-
-The `find_peaks` function, with its prominence and width parameters, offers a flexible tool for step detection in accelerometer data. By understanding and adjusting these parameters in the context of our data's sampling rate and the expected step duration, we can achieve reliable and accurate step counting in Python.
-
-## Notebook: Simple Step Counting [[html](notebooks/Chapter2-StepCounting.html)] [[ipynb](notebooks/Chapter2-StepCounting.zip)]
+### Notebook: Simple Step Counting [[html](notebooks/Chapter2-StepCounting.html)] [[ipynb](notebooks/Chapter2-StepCounting.zip)]
 This notebook shows a step counter using `find_peaks` and applies it to a number of sample sensor logs. The different logs correspond to different sensor placements (left pocket, right pocket, wrist), and to different walking patterns (e.g. with delays between short burst of steps). The notebook shows how tweaking the `prominence` and `width` parameters can allow you to fine-tune the performance of the step counter.
 
