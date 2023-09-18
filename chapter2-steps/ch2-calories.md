@@ -62,11 +62,7 @@ Finally, we can add calories for all 2-second intervals together to get the tota
 ## References
 
 [1] [Full-Featured Pedometer Design Realized with 3-Axis Digital Accelerometer](http://www.analog.com/static/imported-files/tech_articles/pedometer.pdf), Neil Zhao
-
 [2] [Step Detection Algorithms for Accelerometers](http://nitarc.be/map/paper/AMBIT_ThuerVerwimp.pdf), Guillaume Thuer and Tim Verwimp
-
 [3] [Calorie counting calculation](http://www.livestrong.com/article/80988-caloric-intake-body-mass/), Beth Spicer
-
 [4] [A simple method for reliable footstep detection on embedded sensor platforms](http://ubicomp.cs.washington.edu/uwar/libby_peak_detection.pdf), Ryan Libby
-
 [5] [A pedometer in the real world](http://www.aosabook.org/en/500L/a-pedometer-in-the-real-world.html), Dessy Daskalov
