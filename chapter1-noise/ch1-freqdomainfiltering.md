@@ -84,10 +84,13 @@ Let's dive deeper:
 ```python
 SAMPLING_RATE = 1000 # Hz 
 
+# calculate the Nyquist frequency
+nyq = 0.5 * SAMPLING_RATE
+
 # Create filters 
-b_high, a_high = butter(2, 130/SAMPLING_RATE*2, btype='lowpass') # Low pass < 130 Hz
-b_low, a_low = butter(2, 20/SAMPLING_RATE*2, btype='highpass') # High pass > 40 Hz 
-b_notch, a_notch = butter(2, [59/SAMPLING_RATE*2, 61/SAMPLING_RATE*2], btype='bandstop') # Notch at 60 Hz
+b_high, a_high = butter(2, 130/nyq, btype='lowpass') # Low pass < 130 Hz
+b_low, a_low = butter(2, 20/nyq, btype='highpass') # High pass > 40 Hz 
+b_notch, a_notch = butter(2, [59/nyq, 61/nyq], btype='bandstop') # Notch at 60 Hz
 
 # Apply filters 
 df['HighPass1'] = lfilter(b_high, a_high, df.Noisy1)
@@ -97,12 +100,12 @@ df['Notch3'] = lfilter(b_notch, a_notch, df.Noisy3)
 
 #### Understanding the parameters and the role of the sampling rate
 
-1. **SAMPLING_RATE**: This represents how many data points are recorded per second. In digital signal processing, the Nyquist theorem states that a continuous signal can be completely described by its samples and fully reconstructed if it is sampled at a rate at least twice the signal's highest frequency. The factor of "2" is why we divide the frequency by twice the sampling rate.
+1. **SAMPLING_RATE**: This represents how many data points are recorded per second. In digital signal processing, the Nyquist theorem states that a continuous signal can be completely described by its samples and fully reconstructed if it is sampled at a rate at least twice the signal's highest frequency. 
 
 2. **butter function**: `butter(N, Wn, btype='low', analog=False, output='ba', fs=None)` is used to design an Nth order Butterworth filter. The function returns two arrays - `b` (numerator) and `a` (denominator) which can be used to construct the transfer function of the filter.
 
    - `N`: The order of the filter.
-   - `Wn`: This is the critical frequency or frequencies. This parameter is normalized between 0 and 1, where 1 corresponds to the Nyquist frequency, half of the sampling rate. This is the reason for dividing by `SAMPLING_RATE*2` when specifying the cutoff.
+   - `Wn`: This is the critical frequency or frequencies. This parameter is normalized between 0 and 1, where 1 corresponds to the Nyquist frequency, half of the sampling rate. This is the reason for dividing by `SAMPLING_RATE/2` when specifying the cutoff.
    - `btype`: Can be ‘lowpass’, ‘highpass’, ‘bandpass’, or ‘bandstop’, to determine the type of filter.
    - `output`: Specifies the type of output: numerator/denominator (`'ba'`).
 
