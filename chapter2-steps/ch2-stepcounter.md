@@ -59,45 +59,53 @@ We will focus on detecting peaks using Python and tuning parameters to make it w
 
 Step counting, at its core, is about detecting repeating patterns or peaks in acceleration data that correspond to an individual's steps. In Python, the `scipy` library provides the `find_peaks` function that serves precisely this purpose, allowing us to detect peaks in our dataset easily.
 
-### The `find_peaks` Function
+## The `find_peaks` Function
 
-The `find_peaks` function from the `scipy.signal` module is designed to identify the indices of relative maxima (peaks) in a 1D array. Its basic syntax is:
+The `find_peaks` function from the `scipy.signal` module is designed for pinpointing the indices of relative maxima (peaks) in a 1D array. Its standard usage is:
 
 ```python
 from scipy.signal import find_peaks
 
-peaks, properties = find_peaks(data_array, prominence=prom, width=wid)
+peaks, properties = find_peaks(data_array, height=ht, prominence=prom, distance=dist, width=wid)
 ```
 
-In this function:
+For this function:
 
-- `data_array` is the 1D array or dataset where we want to identify peaks.
-- `prominence` is a parameter that defines how much a peak stands out relative to its surrounding data points, effectively describing the peak's height.
-- `width` is a parameter that specifies the width of the peaks.
+- `data_array` is the time-series dataset where we aim to detect peaks.
+- `height` serves as a threshold that peaks must surpass for detection.
+- `prominence` designates how elevated a peak is in relation to its neighbors, emphasizing the peak's relative prominence.
+- `distance` is the minimum horizontal separation (in data points) expected between peaks.
+- `width` refers to the width of the peaks at half-prominence.
 
-In our step counting context:
+Note that for the assignment, we primarily ask you to work with `distance` rather than the other parameters.
+
+For our step counting scenario:
 
 ```python
-peaks, _ = find_peaks(df['accel_mag'], prominence=prom, width=wid)
+peaks, _ = find_peaks(df['accel_mag'], height=ht, prominence=prom, distance=dist, width=wid)
 num_steps = len(peaks)
 ```
 
-We're identifying peaks in the `accel_mag` column of our DataFrame, which represents the magnitude of the acceleration data. Counting the number of these peaks gives us an estimate of the number of steps. However, typically, you will under/over estimate the number of steps by quite a large margin unless you fine tune the parameters of the `find_peaks` function.
+Here, we're looking for peaks in the `accel_mag` column of our DataFrame, which symbolizes the magnitude of acceleration data. By counting these peaks, we get an estimate of the steps taken. However, without careful parameter tuning, this estimate can differ significantly from the true value.
 
-### Tuning Parameters: Prominence and Width
+### Tuning Parameters: Height, Prominence, Distance, and Width
 
-1. **Prominence**: This parameter helps in distinguishing the true peaks from noise. A higher prominence value would mean that only the peaks which stand out prominently from their neighbors would be detected. This can be particularly useful to ensure that the small fluctuations or noise in the data do not get identified as steps.
+- **Height:** This threshold ensures only peaks exceeding a certain value are detected, helping to filter out minor fluctuations and zeroing in on significant movements.
 
-2. **Width**: The width parameter is crucial in the context of step detection because it directly relates to our intuition about the duration between consecutive steps. For instance, consider a typical walking pace: we expect a person to take around 1 to 2 steps every second, depending on their speed. If our data is sampled at 100 Hz (100 samples per second), a step, which takes half a second, would span roughly 50 samples. Thus, the `width` parameter can be tuned based on our expectations of step duration and the sampling rate of our data.
+- **Prominence:** Useful in discerning genuine peaks from mere noise. A heightened prominence value ensures only peaks distinctly pronounced from their surroundings are identified. This precision is important for sidestepping minor data disturbances being misconceived as steps.
 
-### Importance of Sampling Rate
+- **Distance:** Crucial for step detection, the `distance` parameter corresponds to our understanding of the time lapse between two successive steps. For example, during regular walking, we usually register 1-2 steps every second. Adjusting the `distance` parameter helps in preventing the recognition of multiple peaks within a single step's duration.
 
-The sampling rate, or the number of samples collected per unit of time, plays a pivotal role in peak detection. Given our earlier example, if we're walking at a pace of 1-2 steps per second:
+- **Width:** The `width` parameter captures the full width of a peak at its half-prominence. This becomes particularly relevant in discerning between short spikes (possibly noise or artifacts) and genuine peaks of activity, like steps. In our context, `width` can reflect the typical duration of a step, and filtering peaks based on this duration can improve accuracy.
 
-- At a 50 Hz sampling rate, a step might span 25 to 50 samples.
-- At a 100 Hz sampling rate, a step might span 50 to 100 samples.
+### The Role of Sampling Rate
 
-As you can see, the width parameter's optimal value changes with the sampling rate. Thus, when tweaking the `width` parameter, it's essential to consider the sampling rate of the data to ensure accurate peak (step) detection.
+Sampling rate, denoted as the number of samples gathered each second, is a cornerstone in peak detection. Given our earlier example of a 1-2 step walking rate:
+
+- With a 50 Hz sampling rate, a step might span 25 to 50 samples.
+- At a 100 Hz sampling rate, a step could range from 50 to 100 samples.
+
+Clearly, the optimal values for parameters, especially `distance` and `width`, will vary with the sampling rate. Thus, when adjusting these parameters for `find_peaks`, it's crucial to keep the sampling rate of your data in mind to ensure precise peak (step) detection.
 
 ## Notebook: Step Counting with Find Peaks [[html](notebooks/Chapter2-StepCounting.html)] [[ipynb](notebooks/Chapter2-StepCounting.zip)]
 This notebook shows a step counter using `find_peaks` and applies it to a number of sample sensor logs. The different logs correspond to different sensor placements (left pocket, right pocket, wrist), and to different walking patterns (e.g. with delays between short burst of steps). The notebook shows how tweaking the `prominence` and `width` parameters can allow you to fine-tune the performance of the step counter.
