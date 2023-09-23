@@ -39,27 +39,49 @@ The first step in designing any mobile health sensing algorithm is labeled data 
 
 While obtaining labeled data, make sure to collect sufficient data for each of the categories that you want to classify. For example, if you want to classify walking, ascending or descending stairs, sitting, and standing, then try to collect about 10 instances of each of these classes from each user, where each activity may be about 10-30 seconds long. You may also want to collect data while carrying the phone in different orientations, to make sure that your algorithms are less sensitive to orientation variations.
 
-In many cases, you will have to go through an IRB (Institutional Review Board) since the study involves “experimenting” on human subjects and there is some risk of harm (e.g., the subject could trip while jogging or climbing stairs). But if you are just trying it out on yourself for the purpose of the course, then there is no need to go through an IRB. This is the approach we will take.
+In this class, we will use the freely available Sensor Logger app supported for Android and iPhone  to create your own labeled datasets. (https://github.com/tszheichoi/awesome-sensor-logger)
 
+For example, if you are collecting data about four activities - sitting, standing, walking and jogging. Once you select your activities, you can use the app to collect accelerometer data.
+
+1. For each of the activities you choose to classify,  toggle “Accelerometer” on the “Logger” tab and click “Start Recording”. (You can turn off the “HTTP Data Push” during the data collection.) Click “Stop Recording” once finished.
+2. Collect at least 5 minutes of data for each activity (more is better). Make sure that you have collected data for all activities for a roughly equal length of time. Each activity can be multiple recording sessions (Start -> Stop), but each session be only one activity. You should name your session in the “Recordings” tab. (Click the recording, then click “Rename” to assign “walking”, “sitting” and etc.)
+3. Once you have collected all the data, you can either click “Select” on the “Recordings” tab or export each recording individually. When exporting, choose “Zipped CSV” which will contain all data in CSV format.
 
 ### Visualizing Common Activities 
 
-For the purpose of this document, we consider six activities: walking, jogging, ascending stairs, descending stairs, sitting, and standing. We selected these activities because they are performed regularly by many people in their daily routines. The activities also involve motions that often occur for substantial time periods, thus making them easier to recognize. Furthermore, most of these activities involve repetitive motions and hopefully this should also make the activities easier to recognize. We will assume that the z-axis captures the forward movement of the leg and the y-axis captures the upward and downward motion. The x-axis captures horizontal movement of the user’s leg. Figure 1 demonstrates these axes relative to a user. 
+For the purpose of this document, we consider six activities: walking, jogging, ascending stairs, descending stairs, sitting, and standing. We selected these activities because they are performed regularly by many people in their daily routines. The activities also involve motions that often occur for substantial time periods, thus making them easier to recognize. Furthermore, most of these activities involve repetitive motions and hopefully this should also make the activities easier to recognize.
 
-Figure 1 plots the accelerometer data for a typical user, for all three axes and for each of the six activities. It is clear that sitting and standing (Figure 1 e,f) do not exhibit periodic behavior but do 
+To aid in recognition, it's crucial to understand the directional sensitivity of accelerometers:
+- X-Axis: Captures horizontal movement of the user’s leg.
+- Y-Axis: Reflects upward and downward motion.
+- Z-Axis: Represents the forward movement of the leg.
 
-have distinctive patterns, based on the relative magnitudes of the x, y, and z, values, while the four other activities (Figure 1 a-d), which involve repetitive motions, do exhibit periodic behavior. Note that for most activities the y values have the largest accelerations. This is a consequence of Earth’s gravitational pull, which causes the accelerometer to measure a value of 9.8 m/s2 in the direction of the Earth’s center. For all activities except sitting this direction corresponds to the y axis.
+It's worth noting that the Y-values typically have the most significant accelerations across activities. This prevalence is attributed to Earth’s gravitational pull, which leads to a consistent 9.8 m/s^2 acceleration in the direction of the Earth’s center. For all activities, barring sitting, this direction predominantly aligns with the Y-axis.
 
-The periodic patterns for walking, jogging, ascending stairs, and descending stairs (Figure 1a-d) can be described in terms of the time between peaks and by the relative magnitudes of the acceleration values. The plot for walking, shown in Figure 1a, demonstrates a series of high peaks for the y-axis, spaced out at approximately ½ second intervals. The peaks for the z-axis acceleration data echo these peaks but with a lower magnitude. The distance between the peaks of the z-axis and y-axis data represent the time of one stride. The x-axis values (side to side) have an even lower magnitude but nonetheless mimic the peaks associated with the other axes. For jogging, similar trends are  seen for the z-axis and y-axis data, but the time between peaks is less (~¼ second), as one would expect. As one might expect, the range of y-axis acceleration values for jogging is greater than for  walking, although the shift is more noticeable in the negative direction. For descending stairs, one observes a series of small peaks for y axis acceleration that take place every ~½ second. Each small peak represents movement down a single stair. The z-axis values show a similar trend with negative acceleration, reflecting the regular movement down each stair. The x-axis data shows a series of semi-regular small peaks, with acceleration vacillating again between positive and negative values. For ascending stairs, there are a series of regular peaks for the z-axis data and y-axis data as well; these are spaced approximately ~¾ seconds apart, reflecting the longer time it takes to climb up stairs. 
+Figure 1 plots the accelerometer data for a typical user, for all three axes and for each of the six activities. 
+
+It is clear that sitting and standing do not exhibit periodic behavior but do have distinctive patterns, based on the relative magnitudes of the x, y, and z, values, while the four other activities (Figure 1 a-d), which involve repetitive motions, do exhibit periodic behavior. 
+
+The periodic patterns for walking, jogging, ascending stairs, and descending stairs can be described in terms of the time between peaks and by the relative magnitudes of the acceleration values. The plot for walking demonstrates a series of high peaks for the y-axis, spaced out at approximately ½ second intervals. The peaks for the z-axis acceleration data echo these peaks but with a lower magnitude. The distance between the peaks of the z-axis and y-axis data represent the time of one stride. The x-axis values (side to side) have an even lower magnitude but nonetheless mimic the peaks associated with the other axes. For jogging, similar trends are  seen for the z-axis and y-axis data, but the time between peaks is less (~¼ second), as one would expect. The range of y-axis acceleration values for jogging is greater than for  walking, although the shift is more noticeable in the negative direction. For descending stairs, one observes a series of small peaks for y axis acceleration that take place every ~½ second. Each small peak represents movement down a single stair. The z-axis values show a similar trend with negative acceleration, reflecting the regular movement down each stair. The x-axis data shows a series of semi-regular small peaks, with acceleration vacillating again between positive and negative values. For ascending stairs, there are a series of regular peaks for the z-axis data and y-axis data as well; these are spaced approximately ~¾ seconds apart, reflecting the longer time it takes to climb up stairs. 
 
 As one would expect, sitting and standing do not exhibit any regular periodic behavior and all of the acceleration values are relatively constant. As mentioned earlier, the primary differences between these activities is the relative magnitudes of values for each axis, due to the different orientations of the device with respect to the Earth when the user is sitting and standing Thus it appears easy to differentiate between sitting and standing, even though neither involves much movement. 
 
+<p float="left">
+  <img src="images/walking.png" alt="drawing" width="500"/>
+  <img src="images/jogging.png" alt="drawing" width="500"/>
+  <img src="images/upstairs.png" alt="drawing" width="500"/>
+  <img src="images/downstairs.png" alt="drawing" width="500"/>
+  <img src="images/sitting.png" alt="drawing" width="500"/>
+  <img src="images/standing.png" alt="drawing" width="500"/>
+</p>
+
+<!---
 <p float="left">
   <img src="images/image2.png" alt="drawing" width="500"/>
   <img src="images/image4.png" alt="drawing" width="500"/>
   <img src="images/image5.png" alt="drawing" width="500"/>
 </p>
-
+--->
 _Figure 1: Accelerometer data for common activities corresponding to one individual (data from [2])_
 
 Having looked at the data for the activities that we want to distinguish, let's turn our attention back to designing the classifier that will automatically determine user state.
@@ -71,13 +93,105 @@ One of the crucial steps in classifying sensor data is identifying distinguishin
 
 We have pre-generated several informative features that you can apply to the raw accelerometer readings, and a list of some of these features are provided below. As shown in the table, its useful to divide features into two classes - time domain features and frequency domain features. In this chapter, I will focus on providing an intuitive  understanding of the different features and why they might be useful for distinguishing between the classes. For a more mathematical explanation, refer to [1] and [2].
 
-**Time domain features:** The time-domain features are some statistical measures that you can extract from a window of samples (say 100 samples). Some of these are intuitive - for example, the mean is just an average of the acceleration over a window of samples. The median, as you know, is the number that you get if you sorted the acceleration values in the window and took the middle value. Standard deviation captures how much the acceleration varies from sample to sample, and so on. 
+## Time Domain Features
 
-*Examples of time domain features: Mean, Median, Variance, Standard deviation, Min, Max, Range, Zero-crossings, Angle, Angular velocity.*
+Time-domain features represent statistical measures derived from a sequence of samples within a specific window, such as 100 samples. These features serve as essential building blocks for discerning patterns and categorizing different activities based on accelerometer data.
 
-Figure 1 suggests why these features may be useful - for example, sitting and standing (e and f) have very low standard deviation since it's almost flat, whereas all other cases have high standard deviation. Therefore, the standard deviation feature can be useful to distinguish between these two cases and the rest. But how can we separate sitting from standing? The mean feature offers a solution - you can see that the mean for each axis is closer together in (e) than in (f), which suggests that this could be a useful feature. 
+#### Key Features:
+- *Mean*
+- *Median*
+- *Variance*
+- *Standard deviation*
+- *Min*
+- *Max*
+- *Range*
+- *Zero-crossings*
+- *Angle*
+- *Angular velocity*
 
-Some of the time-domain features are not so intuitive, but you are already familiar with at least one of these from the pedometer case study. Recall that in the pedometer case study, you had a dynamic threshold, and measured each time the signal crossed from above to below the threshold with a high slope. This is a crossing of the threshold (zero axis). So, counting the number of such crossings in a time window provides another useful feature.
+Let's delve deeper into some of these accelerometer-based time-domain features:
+
+#### 1. Mean
+
+- **Definition**: The average of acceleration values over a window.
+- **Utility**: Helps in differentiating activities based on their overall acceleration magnitude.
+- **Examples**: Clearly distinguishes between standing (which typically has a near-zero mean) and more dynamic activities like walking or running which exhibit higher means.
+- **Confounders**: Might blur the distinction between sitting and standing since both can portray similar mean values.
+
+#### 2. Median
+
+- **Definition**: The middle value once acceleration values are arranged in order.
+- **Utility**: Provides a more robust measure in the presence of outliers compared to the mean.
+- **Examples**: Helps differentiate between regular walking and sudden jolts during walking which might be seen as outliers.
+
+#### 3. Variance & Standard Deviation
+
+- **Definition**: Variance indicates the dispersion of numbers from the mean. The standard deviation is essentially the square root of variance.
+- **Utility**: Enables differentiation of activities based on variability.
+- **Examples**: Running, for instance, might exhibit a higher variance than walking. Additionally, walking upstairs can reflect a distinct variance pattern in contrast to flat surface walking.
+- **Confounders**: There might be overlapping variance values for activities that are somewhat similar.
+
+#### 4. Min, Max, & Range
+
+- **Definition**: Represents the minimum and maximum acceleration values within a window. The range is the differential between these values.
+- **Utility**: Recognizes the extreme limits of motion.
+- **Examples**: Activities like jumping can display a higher range than walking due to the drastic up-and-down motions involved.
+
+#### 5. Zero-Crossings
+
+- **Definition**: Counts the instances when the signal transits through a zero value.
+- **Utility**: Particularly beneficial for repetitive or cyclical motions.
+- **Examples**: Activities such as walking or running may manifest periodic zero-crossings, attributed to the consistent foot-strike patterns.
+- **Confounders**: Excessive noise within data can give rise to a higher count of zero-crossings.
+
+### 6. Other Features
+
+##### 6.1. Cross-Correlation
+
+- Measures the similarity between two signals relative to the delay imposed on one of them. For instance, comparing acceleration in the X-axis with that in the Y-axis.
+
+##### 6.2. Number of Peaks and Troughs
+
+- Presents data on the repetitiveness and intensity of specific activities. Activities with a higher frequency like jogging will likely register more peaks within a specific window than walking.
+
+##### 6.3. Slope of Zero Crossing
+
+- Indicates the rate of value change during a zero crossing. This can be pivotal in distinguishing between slow-paced and rapid movements.
+
+
+#### 7. Features from Gyroscopes and Magnetometers
+
+Although the primary emphasis has been on accelerometers, other sensors like gyroscopes and magnetometers are equally valuable. Gyroscopes record rotational movements, while magnetometers detect magnetic field intensity.
+
+##### 7.1. Gyroscope
+
+**Angle & Angular Velocity**: Provides insights into the rotation speed of an object. Activities involving turning or spinning will generally indicate higher values.
+
+- **Definition**: Angle denotes orientation inferred from accelerometer and gyroscope data integration. Angular velocity measures the change rate of this angle.
+- **Utility**: Offers insights into orientation and its variations.
+- **Examples**: Different body postures like standing and sitting might reflect varying orientations. Movements such as turning or twisting can be effectively captured using angular velocity.
+
+##### 7.2. Magnetometer
+
+- **Magnetic Field Strength**: Presents orientation data in relation to the Earth's magnetic field.
+- **Utility**: Can assist in determining the direction an individual is moving or facing.
+
+#### Combining Features
+
+Leveraging a single feature may not always be sufficient in differentiating activities, especially when there's an overlap. However, amalgamating multiple features can create a multi-dimensional realm, making activity categorization more precise and definitive. For instance, using just the mean and variance might not clearly differentiate between ascending and descending stairs, but their combination could provide a sharper distinction.
+
+### Observations and Insights
+
+Referring to *Figure 1*, it's evident why specific features are invaluable. Activities such as sitting and standing (*e* and *f* in the figure) portray a minimal standard deviation, indicating minimal activity. Conversely, other scenarios exhibit high standard deviation. This makes the standard deviation feature instrumental in differentiating these scenarios. To discern between sitting and standing, the mean feature can be a potential solution. The mean values for each axis in *e* seem more clustered than in *f*, signifying its utility.
+
+While some time-domain features might seem less intuitive, they often have practical applications. For instance, considering the pedometer case study, a dynamic threshold was used to track each time the signal transitioned from above to below this threshold with a pronounced slope. This is akin to a threshold (or zero-axis) crossing. Thus, tallying the number of such transits within a specific time frame emerges as another beneficial feature.
+
+---
+
+I hope this revised and formatted version provides clarity and a better understanding of time-domain features!
+
+
+
 
 **Frequency domain features:** This class of features represents information about periodic patterns and rhythmic behavior in the signal. Again, you saw such features in the pedometer case study, where you were asked to look for a periodic pattern in the walking signal. This is exactly the type of information that we are looking to extract, but by leveraging some more powerful methods. 
 
