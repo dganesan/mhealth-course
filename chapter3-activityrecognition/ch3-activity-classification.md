@@ -30,8 +30,7 @@ With activity recognition, we take a more general approach where we assume that 
 
 Let us make this distinction more concrete with an example. Consider three classes that we want to distinguish: Walking (W), Sitting (S), and Other (O). The first step in designing a classifier is to obtain some labeled datasets for these three classes - in other words, we might get several volunteers to have a phone in their pocket and provide 30 seconds of raw accelerometer data when they were engaged in each of the activities (i.e. 30 seconds of walking, 30 seconds of sitting, and 30 seconds of a few other activities). The second step is to decide on a bag of features to provide to the classifier - these features may or may not be important for distinguishing between the classes, but they provide a comprehensive set of possibilities to try. These features could be averages or standard deviations over a window, features that extract periodic patterns in the data, features that extract peak acceleration changes, and so on. Note that we don’t know which of these features are important - we hope that some combination of them would be sufficient to distinguish the classes. Once we do all this, we use a classification algorithm, and provide the features + training data. The classifier tries to learn which features are most important to distinguish between the classes. Once we have such a classifier, we can apply it to new datasets and evaluate its performance.
 
-Having provided a birds eye view of classification, let us turn to a step-by-step exploration of the data collection and processing pipeline. My goal is not to teach you the mathematical underpinnings of classification (courses like Artificial Intelligence and Machine Learning cover this in more detail); rather, my objective is to convey how these techniques can be used in practice so that you get an appreciation of them. 
-
+Having provided a birds eye view of classification, let us turn to a step-by-step exploration of the data collection and processing pipeline. 
 
 ### Labeled data collection
 
@@ -111,59 +110,52 @@ Time-domain features represent statistical measures derived from a sequence of s
 
 Let's delve deeper into some of these accelerometer-based time-domain features:
 
-#### 1. Mean
+#### Mean
 
 - **Definition**: The average of acceleration values over a window.
 - **Utility**: Helps in differentiating activities based on their overall acceleration magnitude.
 - **Examples**: Clearly distinguishes between standing (which typically has a near-zero mean) and more dynamic activities like walking or running which exhibit higher means.
 - **Confounders**: Might blur the distinction between sitting and standing since both can portray similar mean values.
 
-#### 2. Median
+#### Median
 
 - **Definition**: The middle value once acceleration values are arranged in order.
 - **Utility**: Provides a more robust measure in the presence of outliers compared to the mean.
 - **Examples**: Helps differentiate between regular walking and sudden jolts during walking which might be seen as outliers.
 
-#### 3. Variance & Standard Deviation
+#### Variance & Standard Deviation
 
 - **Definition**: Variance indicates the dispersion of numbers from the mean. The standard deviation is essentially the square root of variance.
 - **Utility**: Enables differentiation of activities based on variability.
 - **Examples**: Running, for instance, might exhibit a higher variance than walking. Additionally, walking upstairs can reflect a distinct variance pattern in contrast to flat surface walking.
 - **Confounders**: There might be overlapping variance values for activities that are somewhat similar.
 
-#### 4. Min, Max, & Range
+#### Min, Max, & Range
 
 - **Definition**: Represents the minimum and maximum acceleration values within a window. The range is the differential between these values.
 - **Utility**: Recognizes the extreme limits of motion.
 - **Examples**: Activities like jumping can display a higher range than walking due to the drastic up-and-down motions involved.
 
-#### 5. Zero-Crossings
+#### Zero-Crossings
 
 - **Definition**: Counts the instances when the signal transits through a zero value.
 - **Utility**: Particularly beneficial for repetitive or cyclical motions.
 - **Examples**: Activities such as walking or running may manifest periodic zero-crossings, attributed to the consistent foot-strike patterns.
 - **Confounders**: Excessive noise within data can give rise to a higher count of zero-crossings.
 
-### 6. Other Features
+#### Other Features
 
-##### 6.1. Cross-Correlation
+**Cross-Correlation** - Measures the similarity between two signals relative to the delay imposed on one of them. For instance, comparing acceleration in the X-axis with that in the Y-axis.
 
-- Measures the similarity between two signals relative to the delay imposed on one of them. For instance, comparing acceleration in the X-axis with that in the Y-axis.
+**Number of Peaks and Troughs** - Presents data on the repetitiveness and intensity of specific activities. Activities with a higher frequency like jogging will likely register more peaks within a specific window than walking.
 
-##### 6.2. Number of Peaks and Troughs
+**Slope of Zero Crossing** - Indicates the rate of value change during a zero crossing. This can be pivotal in distinguishing between slow-paced and rapid movements.
 
-- Presents data on the repetitiveness and intensity of specific activities. Activities with a higher frequency like jogging will likely register more peaks within a specific window than walking.
-
-##### 6.3. Slope of Zero Crossing
-
-- Indicates the rate of value change during a zero crossing. This can be pivotal in distinguishing between slow-paced and rapid movements.
-
-
-#### 7. Features from Gyroscopes and Magnetometers
+### Features from Gyroscopes and Magnetometers
 
 Although the primary emphasis has been on accelerometers, other sensors like gyroscopes and magnetometers are equally valuable. Gyroscopes record rotational movements, while magnetometers detect magnetic field intensity.
 
-##### 7.1. Gyroscope
+##### Gyroscope
 
 **Angle & Angular Velocity**: Provides insights into the rotation speed of an object. Activities involving turning or spinning will generally indicate higher values.
 
@@ -171,7 +163,7 @@ Although the primary emphasis has been on accelerometers, other sensors like gyr
 - **Utility**: Offers insights into orientation and its variations.
 - **Examples**: Different body postures like standing and sitting might reflect varying orientations. Movements such as turning or twisting can be effectively captured using angular velocity.
 
-##### 7.2. Magnetometer
+##### Magnetometer
 
 - **Magnetic Field Strength**: Presents orientation data in relation to the Earth's magnetic field.
 - **Utility**: Can assist in determining the direction an individual is moving or facing.
@@ -185,13 +177,6 @@ Leveraging a single feature may not always be sufficient in differentiating acti
 Referring to *Figure 1*, it's evident why specific features are invaluable. Activities such as sitting and standing (*e* and *f* in the figure) portray a minimal standard deviation, indicating minimal activity. Conversely, other scenarios exhibit high standard deviation. This makes the standard deviation feature instrumental in differentiating these scenarios. To discern between sitting and standing, the mean feature can be a potential solution. The mean values for each axis in *e* seem more clustered than in *f*, signifying its utility.
 
 While some time-domain features might seem less intuitive, they often have practical applications. For instance, considering the pedometer case study, a dynamic threshold was used to track each time the signal transitioned from above to below this threshold with a pronounced slope. This is akin to a threshold (or zero-axis) crossing. Thus, tallying the number of such transits within a specific time frame emerges as another beneficial feature.
-
----
-
-I hope this revised and formatted version provides clarity and a better understanding of time-domain features!
-
-
-
 
 **Frequency domain features:** This class of features represents information about periodic patterns and rhythmic behavior in the signal. Again, you saw such features in the pedometer case study, where you were asked to look for a periodic pattern in the walking signal. This is exactly the type of information that we are looking to extract, but by leveraging some more powerful methods. 
 
