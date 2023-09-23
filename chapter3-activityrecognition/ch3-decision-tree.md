@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Activity Classification with a Decision Tree
+title: Decision Tree Classifier
 parent: Activity Recognition
 grand_parent: Mobile Sensing &amp; Analytics
 nav_order: 4

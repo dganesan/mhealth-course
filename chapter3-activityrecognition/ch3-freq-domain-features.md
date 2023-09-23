@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Activity Classification with a Decision Tree
+title: Freq domain features
 parent: Activity Recognition
 grand_parent: Mobile Sensing &amp; Analytics
 nav_order: 3
