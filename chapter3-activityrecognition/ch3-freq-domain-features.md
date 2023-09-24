@@ -3,7 +3,7 @@ layout: default
 title: Freq domain features
 parent: Activity Recognition
 grand_parent: Mobile Sensing &amp; Analytics
-nav_order: 3
+nav_order: 4
 usemathjax: true
 description: "Activity Recognition"
 ---

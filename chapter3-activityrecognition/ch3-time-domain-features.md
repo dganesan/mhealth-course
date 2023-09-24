@@ -3,7 +3,7 @@ layout: default
 title: Time domain features
 parent: Activity Recognition
 grand_parent: Mobile Sensing &amp; Analytics
-nav_order: 2
+nav_order: 3
 usemathjax: true
 description: "Activity Recognition"
 ---
