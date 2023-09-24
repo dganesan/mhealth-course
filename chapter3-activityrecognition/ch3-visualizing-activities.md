@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Intro to Activity Classification
+title: Visualizing activities
 parent: Activity Recognition
 grand_parent: Mobile Sensing &amp; Analytics
 nav_order: 2
