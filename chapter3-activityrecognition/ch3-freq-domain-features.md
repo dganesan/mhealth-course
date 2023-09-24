@@ -15,18 +15,16 @@ description: "Activity Recognition"
 
 1. TOC
 {:toc}
----
-
-Certainly! Let's incorporate "cycling" as a prime example in our exploration of frequency domain features:
 
 ### Frequency Domain Features
 
 Frequency domain features offer insights into the periodic patterns and rhythmic behaviors inherent within a signal. Activities that manifest a repetitive or cyclic nature are especially ripe for analysis using these features. Recall the pedometer case study, where a periodic pattern in the walking signal was evident. By utilizing sophisticated techniques, we can extrapolate this rhythmic data even more effectively.
 
-While a comprehensive discussion on the methods may be beyond our current scope, understanding the core features and their practical applications is essential. We look at two frequency domain features in this section.
+## Extracting Frequency Domain Features: The Role of FFT
 
-#### Key Features:
+The Fast Fourier Transform (FFT) is a pivotal algorithm that facilitates the transformation of signals from their time domain representation to their frequency domain counterpart. Essentially, while every real-world signal exists in the time domain—composed of myriad sinusoids with varying frequencies—the FFT allows us to perceive these signals through a different lens: the frequency domain. Certain characteristics and nuances of a signal, often not easily seen in the time domain, become pronounced and accessible in the frequency domain, making this important for activity classification.
 
+While a comprehensive discussion on the frequency domain features is beyond our current scope, understanding the core features and their practical applications is essential. We look at two frequency domain features in this section.
 - **Dominant Frequency**
 - **Signal Energy**
 
@@ -54,13 +52,10 @@ The figure below shows an example for walking on a treadmill. You can see that t
 
 _Figure 2: Energy in different frequency bands for accelerometer data collected during walking_
 
-Extending our focus beyond accelerometer data, gyroscope data can also offer valuable frequency domain insights, especially in the context of cycling:
+Extending our focus beyond accelerometer data, gyroscope data can also offer valuable frequency domain insights. For example, consider the context of detecting various actions in cycling such as:
 
 - **Pedal Rotations**: The dominant frequency extracted from gyroscopic data during cycling would correlate to the consistent rotations of the pedals. As a rider pedals in rhythmic cycles, the gyroscope captures this behavior, making the dominant frequency a pivotal feature for analysis.
   
 - **Change in Cycling Speeds**: Variations in cycling speed, like transitioning from a slow pedal to a rapid sprint, will exhibit different rhythmic patterns in the data. Understanding the dominant frequency in these cases helps ascertain the main cycling rhythm.
 
-### Concluding Thoughts
-
-Frequency domain features, although somewhat more intricate than their time-domain counterparts, are instrumental in discerning activities based on their rhythmic and cyclic attributes. From distinguishing between a leisurely stroll and a rapid sprint using dominant frequencies to identifying the energy of rhythmic activities like cycling using signal energy, these features are foundational in signal analysis and activity identification.
-
+Thus, frequency domain features, although somewhat more complicated than their time-domain counterparts, are instrumental in discerning activities based on their rhythmic and cyclic 
