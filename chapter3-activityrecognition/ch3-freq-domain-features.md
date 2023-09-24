@@ -50,7 +50,7 @@ The figure below shows an example for walking on a treadmill. You can see that t
 
  <img src="images/image3.png" alt="drawing" width="700"/>
 
-_Figure 2: Energy in different frequency bands for accelerometer data collected during walking_
+_Figure 1: Energy in different frequency bands for accelerometer data collected during walking_
 
 Extending our focus beyond accelerometer data, gyroscope data can also offer valuable frequency domain insights. For example, consider the context of detecting various actions in cycling such as:
 
