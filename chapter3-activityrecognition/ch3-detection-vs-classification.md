@@ -44,6 +44,10 @@ Two points to note regarding use of rolling windows:
 
 ### From Raw Data to Activity Labels
 
+<p float="left">
+  <img src="images/raw-data-to-features.png" alt="drawing" width="500">
+</p>
+
 With the conceptual groundwork laid, let's understand the process of building an efficient activity recognition system. Here's a comprehensive breakdown of each stage:
 
 1. **Data Collection:** The first and probably most important step of any activity recognition system is collecting high quality labeled data across many individuals, many different real-world conditions with different noise characteristics. Before diving into classification, it's imperative to gather labeled datasets for each targeted activity. This typically involves participants or volunteers engaging in predefined activities while a recording device, often a smartphone or wearable, logs the sensor data. When generating labeled data:
