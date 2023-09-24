@@ -40,18 +40,17 @@ Whether overlapping or distinct, each window represents a 'snapshot' of movement
 
 Two points to note regarding use of rolling windows:
 - At a procedural level, the rolling window in classification is similar to rolling windows that we used for smoothing but with the crucial difference that we shifted by one sample in the smoothing case, whereas we shift by a full window or half window in this case. This is because the goal is different - in smoothing, we want to keep the same data length but just smooth the data whereas here, we want to aggregate data into say chunks over a longer window to determine what activity is occurring.
-- The window size should be selected such that it is long enough to recognize the activity of interest. For example, if the goal is to recognize walking up the stairs, then an appropriate window may be a few seconds. Neither very short windows (e.g. one second) and  long windows (e.g. 10 minutes) would be appropriate since there would be either too little information (former case) or the activity of interest may be mixed with other activities making it difficult to recognize (latter case)
+- The window size should be selected such that it is long enough to recognize the activity of interest. For example, if the goal is to recognize walking up the stairs, then an appropriate window may be a few seconds. Neither very short windows (e.g. one second) nor very long windows (e.g. 10 minutes) would be appropriate since there would be either too little information (former case) or the activity of interest may be mixed with other activities making it difficult to recognize (latter case).
 
 ### From Raw Data to Activity Labels
 
 With the conceptual groundwork laid, let's understand the process of building an efficient activity recognition system. Here's a comprehensive breakdown of each stage:
 
-1. **Data Collection:** The first and probably most important step of any activity recognition system is collecting high quality labeled data across many individuals, many different real-world conditions with different noise characteristics. Before diving into classification, it's imperative to gather labeled datasets for each targeted activity. This typically involves participants or volunteers engaging in predefined activities while a recording device, often a smartphone or wearable, logs the sensor data. 
+1. **Data Collection:** The first and probably most important step of any activity recognition system is collecting high quality labeled data across many individuals, many different real-world conditions with different noise characteristics. Before diving into classification, it's imperative to gather labeled datasets for each targeted activity. This typically involves participants or volunteers engaging in predefined activities while a recording device, often a smartphone or wearable, logs the sensor data. When generating labeled data:
 
-    - **Considerations:** While procuring this labeled data:
         - Ensure a balanced dataset across all activity categories.
         - Encourage participants to carry devices in various orientations to ensure orientation-agnostic algorithms.
-        - Gather sufficient longitudinal data per activity so you can break it down into windows.
+        - Gather sufficient longitudinal data per activity so you can break it down into windows. 
 
 2. **Feature Extraction:** The raw sensor data, while information-rich, isn't immediately fit for classification. One needs to extract the features, the identifiable patterns, and characteristics before using the data for classification models. Here, rolling windows segment the data, with each segment undergoing feature extraction. 
 
@@ -60,16 +59,11 @@ With the conceptual groundwork laid, let's understand the process of building an
     - **Similarity-based Features:** Methods like Dynamic Time Warping (DTW) can help in understanding the similarity between two temporal sequences, useful in matching activity patterns.
     - **Others:** Depending on the application, features capturing peak values, zero-crossings, or wavelet-based characteristics might also be of interest.
 
-3. **Model Training:** Having extracted a plethora of features, the next step is model training, where algorithms learn the mapping between these features and the corresponding activity labels. 
+3. **Model Training:** Having extracted a plethora of features, the next step is model training, where algorithms learn the mapping between these features and the corresponding activity labels. There are many machine learning algorithms but we will look at a few simpler ones in this class.
+	- **Decision Trees (DT):** Simple yet effective, DTs can classify data based on certain decision rules.
+	- **Random Forests (RF):** An ensemble of DTs, RFs offer improved accuracy and robustness.
 
-    - **Algorithmic Diversity:** Machine learning offers a diverse range of algorithms tailored for varied needs:
-        - **Decision Trees (DT):** Simple yet effective, DTs can classify data based on certain decision rules.
-        - **Random Forests (RF):** An ensemble of DTs, RFs offer improved accuracy and robustness.
-        - **Deep Learning:** If blessed with copious amounts of data, neural networks and deep learning models can unearth intricate patterns beyond the reach of traditional algorithms. 
-
-4. **Prediction:** The trained model can now be downloaded to a smartphone or smartwatch for performing real-time prections.
-
-    - **Real-world Implementation:** Think of your smartphone or smartwatch telling you you've been sitting too long or congratulating you on that intense running session. These devices, equipped with inertial sensors, employ the trained classification models to offer these insights in real-time, enhancing user experience and promoting healthy behaviors.
+4. **Prediction:** The trained model can now be downloaded to a smartphone or smartwatch for performing real-time predictions. For example, think of your smartphone or smartwatch telling you you've been sitting too long or congratulating you on that intense running session. These devices, equipped with inertial sensors, can leverage the classification models that you have trained to offer these insights in real-time, enhancing user experience and promoting healthy behaviors.
 
 ### Summing Up
 
