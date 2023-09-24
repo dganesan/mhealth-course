@@ -22,13 +22,13 @@ description: "Activity Recognition"
 
 Let's turn to a concrete example to illustrate how activity recognition can work. Consider the case where we want to identify whether a person is sitting, standing, jogging, walking upstairs, walking downstairs or driving a car. Our hypothesis is that each of these activities involves a different “signature” that can help detect the current state of the user. But this process is very different from the methods that you used so far to detect steps.
 
-#### **Detection: Counting Steps**
+### **Detection: Counting Steps**
 
 Recall your first assignment: detecting steps. At the heart of the step counter algorithm is the detection paradigm. Here, the primary objective is to identify and quantify singular, temporally-constrained events from a continuous stream of data. In our step counting exercise, each step was represented as a peak in the accelerometer data. Using Python's `find_peaks`, you designed algorithms to pick out these individual events, identifying the rhythmic up-down motion of walking.
 
 In this detection-based approach, the emphasis is on the temporal accuracy of detecting singular, repetitive events. However, this approach focuses on micro-scale details and might not be optimal for understanding broader behaviors or activities.
 
-#### **Classification: Recognizing Activities**
+### **Classification: Recognizing Activities**
 
 Now, think of activities as broader categories: walking, jogging, sitting, standing, etc. Unlike steps, these are not singular events but span over durations, often encompassing various movements and patterns. Recognizing such activities isn't about finding a single peak but capturing the holistic 'signature' of a movement over time.
 
