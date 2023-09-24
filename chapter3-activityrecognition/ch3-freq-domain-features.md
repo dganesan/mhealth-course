@@ -16,11 +16,11 @@ description: "Activity Recognition"
 1. TOC
 {:toc}
 
-### Frequency Domain Features
+## Frequency Domain Features
 
 Frequency domain features offer insights into the periodic patterns and rhythmic behaviors inherent within a signal. Activities that manifest a repetitive or cyclic nature are especially ripe for analysis using these features. Recall the pedometer case study, where a periodic pattern in the walking signal was evident. By utilizing sophisticated techniques, we can extrapolate this rhythmic data even more effectively.
 
-## Extracting Frequency Domain Features: The Role of FFT
+### Extracting Frequency Domain Features: The Role of FFT
 
 The Fast Fourier Transform (FFT) is a pivotal algorithm that facilitates the transformation of signals from their time domain representation to their frequency domain counterpart. Essentially, while every real-world signal exists in the time domain—composed of myriad sinusoids with varying frequencies—the FFT allows us to perceive these signals through a different lens: the frequency domain. Certain characteristics and nuances of a signal, often not easily seen in the time domain, become pronounced and accessible in the frequency domain, making this important for activity classification.
 
