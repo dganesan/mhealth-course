@@ -48,7 +48,7 @@ Visualizing a scenario of walking on a treadmill, as depicted in the subsequent 
 
 The figure below shows an example for walking on a treadmill. You can see that there seem to be a few dominant frequencies, and some of them are harmonics of the frequency of the walking. But the dominant frequencies give you sufficient information about the periodicity of walking.
 
- <img src="images/image3.png" alt="drawing" width="500"/>
+ <img src="images/image3.png" alt="drawing" width="700"/>
 
 _Figure 2: Energy in different frequency bands for accelerometer data collected during walking_
 

@@ -99,7 +99,7 @@ Leveraging a single feature may not always be sufficient in differentiating acti
 
 ### Observations and Insights
 
-Referring to *Figure 1*, it's evident why specific features are invaluable. Activities such as sitting and standing (*e* and *f* in the figure) portray a minimal standard deviation, indicating minimal activity. Conversely, other scenarios exhibit high standard deviation. This makes the standard deviation feature instrumental in differentiating these scenarios. To discern between sitting and standing, the mean feature can be a potential solution. The mean values for each axis in *e* seem more clustered than in *f*, signifying its utility.
+Referring to *Figure 1 and 2*, it's evident why specific features are invaluable. Activities such as sitting and standing portray a minimal standard deviation, indicating minimal activity. Conversely, other scenarios exhibit high standard deviation. This makes the standard deviation feature instrumental in differentiating these scenarios. To discern between sitting and standing, the mean feature can be a potential solution. 
 
 While some time-domain features might seem less intuitive, they often have practical applications. For instance, considering the pedometer case study, a dynamic threshold was used to track each time the signal transitioned from above to below this threshold with a pronounced slope. This is akin to a threshold (or zero-axis) crossing. Thus, tallying the number of such transits within a specific time frame emerges as another beneficial feature.
 
