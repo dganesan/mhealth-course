@@ -17,15 +17,50 @@ description: "Activity Recognition"
 {:toc}
 ---
 
-**Frequency domain features:** This class of features represents information about periodic patterns and rhythmic behavior in the signal. Again, you saw such features in the pedometer case study, where you were asked to look for a periodic pattern in the walking signal. This is exactly the type of information that we are looking to extract, but by leveraging some more powerful methods. 
+Certainly! Let's incorporate "cycling" as a prime example in our exploration of frequency domain features:
 
-While the methods themselves are outside the scope of our review, the features are important to understand. The dominant frequency feature corresponds to the most significant rhythmic component in the data. For example, in the case of the walking traces, this would be the steps, with a period of roughly ½ second per step. The signal energy is another way of looking at the amount of variation in the accelerometer data - the larger its periodic components, the more the signal energy. There are other such frequency domain features, but these two are sufficient for our needs.
+### Frequency Domain Features
 
-*Examples of frequency domain features: Dominant frequency, Signal Energy.*
+Frequency domain features offer insights into the periodic patterns and rhythmic behaviors inherent within a signal. Activities that manifest a repetitive or cyclic nature are especially ripe for analysis using these features. Recall the pedometer case study, where a periodic pattern in the walking signal was evident. By utilizing sophisticated techniques, we can extrapolate this rhythmic data even more effectively.
 
+While a comprehensive discussion on the methods may be beyond our current scope, understanding the core features and their practical applications is essential. We look at two frequency domain features in this section.
+
+#### Key Features:
+
+- **Dominant Frequency**
+- **Signal Energy**
+
+Let's explore these frequency domain features in detail:
+
+#### Dominant Frequency
+
+- **Definition**: Represents the most significant rhythmic component or periodic pattern within the data. 
+- **Utility**: Provides insights into the primary repetitive behavior of an activity.
+- **Examples**: In a walking trace, the dominant frequency would typically represent the periodic footfalls. If an individual takes a step roughly every half a second, this frequency would mirror the repetitive stepping pattern.
+
+####  Signal Energy
+
+- **Definition**: Measures the magnitude or intensity of variations within the accelerometer data. The more pronounced its periodic components, the higher the signal energy.
+- **Utility**: Gives an overall perspective on the robustness and amplitude of periodic elements within a signal.
+- **Examples**: Activities with clear repetitive patterns, such as cycling, would display higher signal energy due to the consistent pedal strokes.
+
+### Applications and Insights
+
+Visualizing a scenario of walking on a treadmill, as depicted in the subsequent figure, reveals a few dominant frequencies. Some could be harmonics of the main walking frequency. However, zeroing in on the primary dominant frequencies illuminates the core periodicity of the walking rhythm.
 
 The figure below shows an example for walking on a treadmill. You can see that there seem to be a few dominant frequencies, and some of them are harmonics of the frequency of the walking. But the dominant frequencies give you sufficient information about the periodicity of walking.
 
  <img src="images/image3.png" alt="drawing" width="500"/>
 
 _Figure 2: Energy in different frequency bands for accelerometer data collected during walking_
+
+Extending our focus beyond accelerometer data, gyroscope data can also offer valuable frequency domain insights, especially in the context of cycling:
+
+- **Pedal Rotations**: The dominant frequency extracted from gyroscopic data during cycling would correlate to the consistent rotations of the pedals. As a rider pedals in rhythmic cycles, the gyroscope captures this behavior, making the dominant frequency a pivotal feature for analysis.
+  
+- **Change in Cycling Speeds**: Variations in cycling speed, like transitioning from a slow pedal to a rapid sprint, will exhibit different rhythmic patterns in the data. Understanding the dominant frequency in these cases helps ascertain the main cycling rhythm.
+
+### Concluding Thoughts
+
+Frequency domain features, although somewhat more intricate than their time-domain counterparts, are instrumental in discerning activities based on their rhythmic and cyclic attributes. From distinguishing between a leisurely stroll and a rapid sprint using dominant frequencies to identifying the energy of rhythmic activities like cycling using signal energy, these features are foundational in signal analysis and activity identification.
+
