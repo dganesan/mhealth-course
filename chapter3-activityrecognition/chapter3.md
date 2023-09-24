@@ -22,10 +22,10 @@ description: "Activity Recognition"
 
 Having discussed the design of a pedometer that uses an accelerometer, let us now turn to the problem of activity recognition,  a task which involves identifying the physical activity a user is performing. Activity recognition is useful because it permits us to gain useful knowledge about the habits of millions of users passively—just by having them carry cell phones in their pockets. Such techniques can have a wide range of applications, including automatic customization of the mobile device’s behavior based upon a user’s activity (e.g., sending calls directly to voicemail if a user is jogging) and generating a daily/weekly activity profile to determine if a user is performing a healthy amount of exercise.
 
-#### Part 1: Introduction to Activity Classification [[notes](ch3-detection-vs-classification.html)]
+#### Part 1: Activity classification vs Step counting [[notes](ch3-detection-vs-classification.html)]
 We describe the difference between detection and classification, and provide an overview of a classification pipeline. We start with how to collect labeled data, and visualize the signal for a variety of common activities like walking, jogging, walking upstairs, walking downstairs, sitting and standing.
 
-#### Part 2: Introduction to Activity Classification [[notes](ch3-visualizing-activities.html)]
+#### Part 2: Visualizing accelerometer signals for common activities  [[notes](ch3-visualizing-activities.html)]
 We now visualize the accelerometer signal for a variety of common activities like walking, jogging, walking upstairs, walking downstairs, sitting and standing. This will help us get an intuitive feel for how the accelerometer signal differs for different activities.
 
 #### Part 3: Time-domain features for classification [[notes](ch3-time-domain-features.html)]
