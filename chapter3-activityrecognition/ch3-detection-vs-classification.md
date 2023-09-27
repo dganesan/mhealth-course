@@ -18,7 +18,7 @@ description: "Activity Recognition"
 ---
 
 
-## Chapter 3: Activity Recognition using Inertial Sensors [[Slides](https://drive.google.com/file/d/0Bw0KEeNzOgzFZnhUN1p2dW1XOUk/view?usp=sharing&resourcekey=0-n1aXmftU7ipvCZAFdq0UpA)]
+## Chapter 3: Activity Recognition using Inertial Sensors [[Slides](https://drive.google.com/file/d/1qfVTzDZgv0Lk49Z2MUrz-yQPi1wBF5xX/view?usp=drive_link)]
 
 Let's turn to a concrete example to illustrate how activity recognition can work. Consider the case where we want to identify whether a person is sitting, standing, jogging, walking upstairs, walking downstairs or driving a car. Our hypothesis is that each of these activities involves a different “signature” that can help detect the current state of the user. But this process is very different from the methods that you used so far to detect steps.
 
