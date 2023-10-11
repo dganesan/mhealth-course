@@ -101,11 +101,11 @@ for t, w in df.resample('100L'):
 
 In this code:
 
-- We resample the raw accelerometer data at 100 milliseconds intervals (`'100L'`).
+- We resample the raw accelerometer data at 100 milliseconds intervals ('100L').
 - For each window, we compute the mean and standard deviation for the X, Y, and Z accelerometer readings.
-- These features, along with the time stamp (`t`), are stored in a new DataFrame (`resampled_data`).
+- We create a dictionary (frame) for each window, populate it with the computed features and the time stamp (t), and then append it to a new DataFrame (resampled_data).
 
-After executing this code, `resampled_data` will hold the resampled accelerometer data with features calculated for each window.
+After executing this code, resampled_data will hold the resampled accelerometer data with features calculated for each window. Using a dictionary like this streamlines the process of iterative feature engineering and DataFrame population. The `append` method of pandas DataFrame can easily ingest dictionaries, where each key becomes a column in the DataFrame, and the corresponding value becomes the row entry for that column.
 
 ## Notebook: Step Counting with Find Peaks [[html](notebooks/Chapter3-Resampling.html)] [[ipynb](notebooks/Chapter3-Resampling.ipynb)]
 This notebook shows a step counter using `resample` and applies it to a synthetic temperature data trace. The initial temperature signal is generated at 10Hz over 2 weeks. The notebook shows how this can be resampled into hourly and daily intervals and a few features extracted for each window.
