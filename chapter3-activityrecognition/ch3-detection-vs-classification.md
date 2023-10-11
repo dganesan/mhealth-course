@@ -69,6 +69,12 @@ With the conceptual groundwork laid, let's understand the process of building an
 
 4. **Prediction:** The trained model can now be downloaded to a smartphone or smartwatch for performing real-time predictions. For example, think of your smartphone or smartwatch telling you you've been sitting too long or congratulating you on that intense running session. These devices, equipped with inertial sensors, can leverage the classification models that you have trained to offer these insights in real-time, enhancing user experience and promoting healthy behaviors.
 
+### Summing Up
+
+To wrap it up, while both step counting and activity classification revolve around understanding human movement, they cater to different scales of analysis. Step counting is about detecting individual events, while activity classification seeks to recognize broader patterns over longer timescales. As we transition from counting steps to recognizing activities, we move from a micro-scale, detection-based paradigm to a macro-scale, classification-based paradigm, better suited for understanding the intricate tapestry of human behavior.
+
+## Implementing feature extraction in Python
+
 ### The `resample` function
 
 A python function that is particularly useful for converting raw data into a feature vector is the resample function. Lets take the case of accelerometer data with three orthogonal axes: X, Y, and Z. 
@@ -101,10 +107,7 @@ In this code:
 
 After executing this code, `resampled_data` will hold the resampled accelerometer data with features calculated for each window.
 
-### Notebook: Step Counting with Find Peaks [[html](notebooks/Chapter3-Resampling.html)] [[ipynb](notebooks/Chapter3-Resampling.ipynb)]
+## Notebook: Step Counting with Find Peaks [[html](notebooks/Chapter3-Resampling.html)] [[ipynb](notebooks/Chapter3-Resampling.ipynb)]
 This notebook shows a step counter using `resample` and applies it to a synthetic temperature data trace. The initial temperature signal is generated at 10Hz over 2 weeks. The notebook shows how this can be resampled into hourly and daily intervals and a few features extracted for each window.
 
-### Summing Up
-
-To wrap it up, while both step counting and activity classification revolve around understanding human movement, they cater to different scales of analysis. Step counting is about detecting individual events, while activity classification seeks to recognize broader patterns over longer timescales. As we transition from counting steps to recognizing activities, we move from a micro-scale, detection-based paradigm to a macro-scale, classification-based paradigm, better suited for understanding the intricate tapestry of human behavior.
 
