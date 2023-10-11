@@ -34,7 +34,7 @@ Now, think of activities as broader categories: walking, jogging, sitting, stand
 
 For activity recognition, instead of analyzing each data point in isolation, we use a "rolling window" approach. This means we capture chunks (windows) of continuous data, extracting meaningful features from them, and then associating them with a specific activity label. This window can either overlap with the previous one, ensuring continuity, or be distinct, depending on our application requirements. By comparing it with the simple step detection, you can see that activity recognition deals with longer timescales.
 
-But why the rolling window? Let's think of a classroom analogy. Instead of assessing a student based on one answer, imagine if we evaluate their performance over a series of questions. This gives a more comprehensive view of their capabilities. Similarly, by analyzing chunks of data rather than individual data points, we can understand broader patterns and behaviors. This is shown in Figure 1 - the table of 3-axis accelerometer data is aggregated into windows of data (150 samples in the figure). Two cases are illustrated - in the above case, each rolling window shifts by half the window size and in the below case, there is no overlap. Both are used in practice.
+But why the rolling window? Let's think of a classroom analogy. Instead of assessing a student based on one answer, imagine if we evaluate their performance over a series of questions. This gives a more comprehensive view of their capabilities. Similarly, by analyzing chunks of data rather than individual data points, we can understand broader patterns and behaviors. This is shown in the figure below - the table of 3-axis accelerometer data is aggregated into windows of data (100 samples in the figure). Two cases are illustrated - in the above case, each rolling window shifts by half the window size and in the below case, there is no overlap. Both are used in practice.
 
 Whether overlapping or distinct, each window represents a 'snapshot' of movement, which is then transformed into a set of features (we will discuss what these features are in just a bit but for now lets focus on the concept). This is a crucial distinction from the step counting, where we were only interested in specific, singular peaks.
 
@@ -74,6 +74,8 @@ With the conceptual groundwork laid, let's understand the process of building an
 To wrap it up, while both step counting and activity classification revolve around understanding human movement, they cater to different scales of analysis. Step counting is about detecting individual events, while activity classification seeks to recognize broader patterns over longer timescales. As we transition from counting steps to recognizing activities, we move from a micro-scale, detection-based paradigm to a macro-scale, classification-based paradigm, better suited for understanding the intricate tapestry of human behavior.
 
 ## Implementing feature extraction in Python
+
+Lets look at how you can split the data into windows of appropriate size and extract features from that window of data in python.
 
 ### The `resample` function
 
