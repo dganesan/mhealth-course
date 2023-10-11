@@ -101,7 +101,7 @@ In this code:
 
 After executing this code, `resampled_data` will hold the resampled accelerometer data with features calculated for each window.
 
-## Notebook: Step Counting with Find Peaks [[html](notebooks/Chapter3-Resampling.html)] [[ipynb](notebooks/Chapter3-Resampling.ipynb)]
+### Notebook: Step Counting with Find Peaks [[html](notebooks/Chapter3-Resampling.html)] [[ipynb](notebooks/Chapter3-Resampling.ipynb)]
 This notebook shows a step counter using `resample` and applies it to a synthetic temperature data trace. The initial temperature signal is generated at 10Hz over 2 weeks. The notebook shows how this can be resampled into hourly and daily intervals and a few features extracted for each window.
 
 ### Summing Up
