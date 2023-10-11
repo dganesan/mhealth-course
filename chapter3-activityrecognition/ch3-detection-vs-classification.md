@@ -52,9 +52,9 @@ With the conceptual groundwork laid, let's understand the process of building an
 
 1. **Data Collection:** The first and probably most important step of any activity recognition system is collecting high quality labeled data across many individuals, many different real-world conditions with different noise characteristics. Before diving into classification, it's imperative to gather labeled datasets for each targeted activity. This typically involves participants or volunteers engaging in predefined activities while a recording device, often a smartphone or wearable, logs the sensor data. When generating labeled data:
 
-        - Ensure a balanced dataset across all activity categories.
-        - Encourage participants to carry devices in various orientations to ensure orientation-agnostic algorithms.
-        - Gather sufficient longitudinal data per activity so you can break it down into windows. 
+- Ensure a balanced dataset across all activity categories.
+- Encourage participants to carry devices in various orientations to ensure orientation-agnostic algorithms.
+- Gather sufficient longitudinal data per activity so you can break it down into windows. 
 
 2. **Feature Extraction:** The raw sensor data, while information-rich, isn't immediately fit for classification. One needs to extract the features, the identifiable patterns, and characteristics before using the data for classification models. Here, rolling windows segment the data, with each segment undergoing feature extraction. 
 
@@ -68,6 +68,41 @@ With the conceptual groundwork laid, let's understand the process of building an
 	- **Random Forests (RF):** An ensemble of DTs, RFs offer improved accuracy and robustness.
 
 4. **Prediction:** The trained model can now be downloaded to a smartphone or smartwatch for performing real-time predictions. For example, think of your smartphone or smartwatch telling you you've been sitting too long or congratulating you on that intense running session. These devices, equipped with inertial sensors, can leverage the classification models that you have trained to offer these insights in real-time, enhancing user experience and promoting healthy behaviors.
+
+### The `resample` function
+
+A python function that is particularly useful for converting raw data into a feature vector is the resample function. Lets take the case of accelerometer data with three orthogonal axes: X, Y, and Z. 
+
+```python
+import pandas as pd
+
+# Assuming your data frame 'df' has a DateTime index and columns 'x', 'y', and 'z' for accelerometer readings.
+resampled_data = pd.DataFrame()
+
+for t, w in df.resample('100L'):
+    frame = {}
+    frame['time'] = t
+    frame['x_mean'] = w['x'].mean()
+    frame['y_mean'] = w['y'].mean()
+    frame['z_mean'] = w['z'].mean()
+    
+    frame['x_std'] = w['x'].std()
+    frame['y_std'] = w['y'].std()
+    frame['z_std'] = w['z'].std()
+    
+    resampled_data = resampled_data.append(frame, ignore_index=True)
+```
+
+In this code:
+
+- We resample the raw accelerometer data at 100 milliseconds intervals (`'100L'`).
+- For each window, we compute the mean and standard deviation for the X, Y, and Z accelerometer readings.
+- These features, along with the time stamp (`t`), are stored in a new DataFrame (`resampled_data`).
+
+After executing this code, `resampled_data` will hold the resampled accelerometer data with features calculated for each window.
+
+## Notebook: Step Counting with Find Peaks [[html](notebooks/Chapter3-Resampling.html)] [[ipynb](notebooks/Chapter3-Resampling.ipynb)]
+This notebook shows a step counter using `resample` and applies it to a synthetic temperature data trace. The initial temperature signal is generated at 10Hz over 2 weeks. The notebook shows how this can be resampled into hourly and daily intervals and a few features extracted for each window.
 
 ### Summing Up
 
