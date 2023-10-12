@@ -142,84 +142,132 @@ From the table, \( p_{\text{High}} = \frac{4}{8} = 0.5 \) and \( p_{\text{Low}} 
 
 \[ \text{Entropy}(S) = -0.5 \log_2(0.5) - 0.5 \log_2(0.5) = 1 \]
 
+Certainly! Here's the step-by-step calculation presented in markdown format that should render as math in a browser:
+
+---
+
+### Initial Entropy Calculation:
+
+From the table, the probabilities are calculated as:
+
+\[ p_{\text{High}} = \frac{4}{8} = 0.5 \]
+\[ p_{\text{Low}} = \frac{4}{8} = 0.5 \]
+
+Thus, the initial entropy \( S \) is:
+
+\[ \text{Entropy}(S) = -0.5 \times \log_2(0.5) - 0.5 \times \log_2(0.5) = 1 \]
+
 ### Information Gain Calculation:
 
-**For Age**:
+#### For Age:
 
-1. For Age <40: 
+1. **Age <40:**
     - Total: 3
     - High Risk: 0
     - Low Risk: 3
-    - \( \text{Entropy} = 0 \) (since all are Low Risk)
+    - Entropy:
     
-2. For Age 40-55: 
+    \[ \text{Entropy} = 0 \] (since all are Low Risk)
+    
+2. **Age 40-55:** 
     - Total: 3
     - High Risk: 2
     - Low Risk: 1
-    - \( \text{Entropy} = - \frac{2}{3} \log_2 \left( \frac{2}{3} \right) - \frac{1}{3} \log_2 \left( \frac{1}{3} \right) = 0.918 \)
+    - Entropy:
     
-3. For Age >55: 
+    \[ \text{Entropy} = - \frac{2}{3} \times \log_2 \left( \frac{2}{3} \right) - \frac{1}{3} \times \log_2 \left( \frac{1}{3} \right) \approx 0.918 \]
+    
+3. **Age >55:** 
     - Total: 2
     - High Risk: 2
     - Low Risk: 0
-    - \( \text{Entropy} = 0 \) (since all are High Risk)
+    - Entropy:
+    
+    \[ \text{Entropy} = 0 \] (since all are High Risk)
+
+Weighted Entropy for Age:
 
 \[ \text{Weighted Entropy for Age} = \frac{3}{8} \times 0 + \frac{3}{8} \times 0.918 + \frac{2}{8} \times 0 = 0.344 \]
 \[ \text{Information Gain for Age} = 1 - 0.344 = 0.656 \]
 
-**For Smoker**:
-1. For Smoker = Yes: 
+#### For Smoker:
+
+1. **Smoker = Yes:** 
     - Total: 4
     - High Risk: 3
     - Low Risk: 1
-    - \( \text{Entropy} = - \frac{3}{4} \log_2 \left( \frac{3}{4} \right) - \frac{1}{4} \log_2 \left( \frac{1}{4} \right) = 0.811 \)
+    - Entropy:
     
-2. For Smoker = No: 
+    \[ \text{Entropy} = - \frac{3}{4} \times \log_2 \left( \frac{3}{4} \right) - \frac{1}{4} \times \log_2 \left( \frac{1}{4} \right) \approx 0.811 \]
+    
+2. **Smoker = No:** 
     - Total: 4
     - High Risk: 1
     - Low Risk: 3
-    - \( \text{Entropy} = 0.811 \) (since it's symmetric to the Smoker = Yes case)
+    - Entropy:
+    
+    \[ \text{Entropy} = 0.811 \] (symmetric to the Smoker = Yes case)
+
+Weighted Entropy for Smoker:
 
 \[ \text{Weighted Entropy for Smoker} = 0.811 \]
 \[ \text{Information Gain for Smoker} = 1 - 0.811 = 0.189 \]
 
-**For Exercise**:
-1. For Exercise = Regularly: 
+#### For Exercise:
+
+1. **Exercise = Regularly:** 
     - Total: 4
     - High Risk: 1
     - Low Risk: 3
-    - \( \text{Entropy} = 0.811 \)
+    - Entropy:
     
-2. For Exercise = Rarely: 
+    \[ \text{Entropy} = 0.811 \]
+    
+2. **Exercise = Rarely:** 
     - Total: 4
     - High Risk: 3
     - Low Risk: 1
-    - \( \text{Entropy} = 0.811 \) (similar to the Regularly case)
+    - Entropy:
+    
+    \[ \text{Entropy} = 0.811 \]
+
+Weighted Entropy for Exercise:
 
 \[ \text{Weighted Entropy for Exercise} = 0.811 \]
 \[ \text{Information Gain for Exercise} = 1 - 0.811 = 0.189 \]
 
-The attribute with the highest Information Gain is **Age**. So, Age will be the root node.
+The attribute with the highest Information Gain is **Age**. Thus, Age will be the root node.
 
 ### Second Level:
 
-We'll choose the Age group 40-55 as it has the maximum uncertainty and compute the Information Gain for the remaining attributes within that group.
+Within the Age group 40-55:
 
-1. For Smoker within Age 40-55: 
+1. **For Smoker within Age 40-55:** 
     - Smoker = Yes: High Risk: 2 (Entropy = 0)
     - Smoker = No: High Risk: 1, Low Risk: 1 (Entropy = 1)
 
-\[ \text{Weighted Entropy for Smoker within Age 40-55} = \frac{2}{3} \times 0 + \frac{1}{3} \times 1 = 0.333 \]
-\[ \text{Information Gain for Smoker within Age 40-55} = 0.918 - 0.333 = 0.585 \]
+    Weighted Entropy:
 
-2. For Exercise within Age 40-55:
+    \[ \text{Weighted Entropy for Smoker within Age 40-55} = \frac{2}{3} \times 0 + \frac{1}{3} \times 1 = 0.333 \]
+    \[ \text{Information Gain for Smoker within Age 40-55} = 0.918 - 0.333 = 0.585 \]
+
+2. **For Exercise within Age 40-55:**
     - Regularly: High Risk: 1, Low Risk: 1 (Entropy = 1)
     - Rarely: High Risk: 1 (Entropy = 0)
 
-\[ \text{Weighted Entropy for Exercise within Age 40-55} = \frac{2}{3} \times 1 + \frac{1}{3} \times 0 = 0.666 \]
-\[ \text{Information Gain for Exercise within Age 
+    Weighted Entropy:
 
-Here, **Exercise** has the higher Information Gain, so the next level node under Age 40-55 will be Exercise.
+    \[ \text{Weighted Entropy for Exercise within Age 40-55} = \frac{2}{3} \times 1 + \frac{1}{3} \times 0 = 0.666 \]
+    \[ \text{Information Gain for Exercise within Age 40-55} = 0.918 - 0.666 = 0.252 \]
+
+Comparing the Information Gain for both attributes:
+
+- **Information Gain for Smoker within Age 40-55:** 0.585
+- **Information Gain for Exercise within Age 40-55:** 0.252
+
+The attribute "Smoker" has the higher Information Gain for the data subset within Age 40-55. So, the next level node under "Age 40-55" will be "Smoker".
+
+To determine the final classification under each branch, you would continue the process of calculating Information Gain until you reach leaves with maximum purity or until you run out of attributes to split on.
 
 **Conclusion**:
 The decision tree starts with Age as the root node. For the age group 40-55, the next level node will be based on Exercise. Similarly, we can determine nodes for other age groups. The idea is to keep branching based on the attribute that provides the maximum information gain, ensuring the most significant separation in the target variable.
