@@ -142,7 +142,7 @@ Our target variable is:
 ### Initial Entropy Calculation:
 
 From the table:
-- $p_{\text{Low}} = \frac{6}{13}$
+- $`p_{\text{Low}} = \frac{6}{13}`$
 - $p_{\text{High}} = \frac{7}{13}$
 
 Thus, the entropy for this set \( S \) is:
