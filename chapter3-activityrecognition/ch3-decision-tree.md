@@ -142,8 +142,8 @@ Our target variable is:
 ### Initial Entropy Calculation:
 
 From the table:
-- \( p_{\text{Low}} = \frac{6}{13} \)
-- \( p_{\text{High}} = \frac{7}{13} \)
+- $p_{\text{Low}} = \frac{6}{13}$
+- $p_{\text{High}} = \frac{7}{13}$
 
 Thus, the entropy for this set \( S \) is:
 \[ \text{Entropy}(S) = -\frac{6}{13} \log_2(\frac{6}{13}) - \frac{7}{13} \log_2(\frac{7}{13}) \approx 1\]
