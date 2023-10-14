@@ -1,4 +1,7 @@
 remote_theme: pmarsceill/just-the-docs
+# Build settings
+markdown: kramdown
+usemathjax: true
 
 title: mHealth Analytics 
 description: A learning resource for understanding mobile sensor data analytics
