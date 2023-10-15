@@ -3,7 +3,7 @@ layout: default
 title: Evaluating Classifier Performance
 parent: Activity Recognition
 grand_parent: Mobile Sensing &amp; Analytics
-nav_order: 6
+nav_order: 8
 usemathjax: true
 description: "Chapter 3"
 ---

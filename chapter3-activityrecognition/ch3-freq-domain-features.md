@@ -58,4 +58,4 @@ Extending our focus beyond accelerometer data, gyroscope data can also offer val
   
 - **Change in Cycling Speeds**: Variations in cycling speed, like transitioning from a slow pedal to a rapid sprint, will exhibit different rhythmic patterns in the data. Understanding the dominant frequency in these cases helps ascertain the main cycling rhythm.
 
-Thus, frequency domain features, although somewhat more complicated than their time-domain counterparts, are instrumental in discerning activities based on their rhythmic and cyclic 
+Thus, frequency domain features, although somewhat more complicated than their time-domain counterparts, are instrumental in discerning activities based on their rhythmic and cyclic behavior.
