@@ -16,93 +16,101 @@ description: "Chapter 3"
 
 ## Chapter 4: Evaluating Classifier Performance
 
-We have a data set of examples of activities (sitting, standing, etc) where we know which activity was being performed. How do we go about measuring the performance of your decision tree classifier?
+So far, we have seen how to construct a decision tree classifier. But how do we ensure that our decision tree classifier (or any classifier) is up to the task? This chapter delves into the world of classifier evaluation.
 
-To do this we use a test set consisting of examples where we know what activity was being performed but the classifier doesn’t! We train the classifier on the training set, apply it to the test set, and then measure performance by comparing the predicted labels with the true labels (which were not available to the classifier). This is the general idea, but there are several ways to go about dividing the data into training and test sets, as well as evaluating performance of the classifier on these sets. We tackle these two questions in this chapter.
+### Understanding the Confusion Matrix
 
+At the heart of evaluating classifiers is the confusion matrix. It offers a snapshot of how a classifier performed, providing insights into both correct predictions and different types of errors.
 
-## Cross Validation
+A confusion matrix for our three-class problem (Sitting, Standing, and Walking) can be visualized as:
 
-Cross validation is an evaluation method to identify how well the classifier will perform for data it has not already seen. One way is to not use the entire data set when training a learner. Some of the data is removed before training begins. Then when training is done, the data that was removed can be used to test the performance of the learned model on ``new'' data. This is the basic idea for a whole class of model evaluation methods called _cross validation_.
+| **Actual \ Predicted** | **Sitting (A)** | **Standing (B)** | **Walking (C)** |
+|----------------------|--------------|---------------|--------------|
+| **Sitting (A)**          | 25           | 5             | 2            |
+| **Standing (B)**        | 3            | 28            | 1            |
+| **Walking (C)**         | 1            | 0             | 30           |
 
+The **rows** of this matrix represent the **actual** classes, while the **columns** represent the **predicted** classes.
 
-### Holdout method
+### True Positives, True Negatives, False Positives, and False Negatives
 
-The **holdout method** is the simplest kind of cross validation. The data set is separated into two sets, called the training set and the testing set. A common rule of thumb is to use 70\% of the dataset for training and 30\% for testing. Dividing the data into training and test subsets is usually done randomly, in order to guarantee that there is no systematic error in the process.
+To better interpret the matrix, we need to understand a few essential terms:
 
-The classifier is learnt using the training set only. Then the classifier is asked to predict the output values for the data in the testing set (it has never seen these output values before). The errors it makes are accumulated as before to give the mean absolute test set error, which is used to evaluate the model.  
+- **True Positive (TP)**: Refers to the cases where the classifier correctly predicts a positive outcome. For instance, in our example, there are **25** TPs for **Sitting (A)** where the classifier correctly predicted 'Sitting' when the actual activity was indeed 'Sitting'.
 
-However, its evaluation may depend heavily on which data points end up in the training set and which end up in the test set, and thus the evaluation may be significantly different depending on how the division is made.
+- **True Negative (TN)**: Refers to the cases where the classifier correctly predicts a negative outcome. Considering the 'Sitting' class, a TN would be a situation where an instance was correctly predicted as 'not Sitting'.
 
+- **False Positive (FP)**: It's when the classifier incorrectly predicts a positive outcome. For instance, if the actual activity was 'Sitting', but the classifier predicted 'Walking', it has committed a false positive error for the 'Walking' class. 
 
-### N-fold cross validation
+- **False Negative (FN)**: It's when the classifier incorrectly predicts a negative outcome. If the actual activity was 'Walking' but the classifier predicted 'Sitting', it has made a false negative error for the 'Walking' class.
 
-**N-fold cross validation** is one way to improve over the holdout method. The data set is divided into _n_ subsets, and the holdout method is repeated _n_ times. Each time, one of the _n_ subsets is used as the test set and the other _n-1_ subsets are put together to form a training set. Then the average error across all _n_ trials is computed. The advantage of this method is that it matters less how the data gets divided. Every data point gets to be in a test set exactly once, and gets to be in a training set _n-1_ times. This is more robust to issues of how you end up dividing data into training and test sets. The disadvantage of this method is that the training algorithm has to be rerun from scratch _n _times, which means it takes _n_ times as much computation to make an evaluation. However, this is not an issue for small datasets such as the one you will be working with.
+**Visual Example**:
 
+Let's break down the 'Walking' activity in our matrix:
+- **30** instances were correctly classified as **Walking (C)** – these are **True Positives**.
+- **1** instance of **Standing (B)** was mistakenly classified as **Walking (C)** – a **False Positive** for the 'Walking' detection.
+- **2** instances were actually **Sitting (A)** but were mistakenly classified as **Walking (C)** – these are also **False Positives** for the 'Walking' detection.
+- Instances where the actual activities were either **Sitting (A)** or **Standing (B)** and were not classified as **Walking (C)** contribute to **True Negatives** for 'Walking'.
 
-### Is all of this necessary?
+### Metrics Derived from the Confusion Matrix
 
-This sounds like a lot of work, so you might wonder if it is necessary to divide your data this way. But it is absolutely vital to measure the performance of a classifier on an independent test set. Every classifier looks for patterns in the training data, i.e. correlations between the features and the class. Some of the patterns discovered may be spurious, i.e. they are valid in the training data due to randomness in how the training data was selected, but they are not valid, or not as strong, in the whole dataset. A classifier that relies on these spurious patterns will have higher accuracy on the training examples than it will on the rest of the data. Only accuracy measured on an independent test set is a fair estimate of accuracy on the the entire data. The phenomenon of relying on patterns that are strong only in the training data is called overfitting. 
+**Accuracy**: Represents the overall correctness of the classifier.
 
+\[ \text{Accuracy} = \frac{\text{Sum of correct classifications (diagonal values)}}{\text{Total number of classifications}} \]
 
-## Performance measures
+Number of Correct Predictions (Diagonal elements): 25 + 28 + 30 = 83
+Total Predictions: Sum of all elements in the matrix = 95
 
-Having divided into training and test sets, the next question is how to evaluate the performance of the classifier. 
+\[ \text{Accuracy} = \frac{83}{95} = 0.8737 \] or 87.37\%
 
+While Accuracy is calculated across all classes, the bellow three metrics i.e. Precision, Recall, and F1 Score, are typically defined for each class, especially in multi-class classification problems.
 
-### The Confusion matrix
+**Precision**: Given that a specific class was predicted, how often was that prediction correct? 
 
-When evaluating a classifier, there are different ways of measuring its performance. One commonly used method of evaluating whether the classifier correctly separated classes is to use a confusion matrix. Consider e.g. a three class problem with the classes Sitting, Standing, and Walking (let us refer to them as A, B, and C for ease of notation. A decision tree classifier may result in the following confusion matrix when tested on independent data.
+\[ \text{Precision}_A = \frac{\text{tp}_A}{\text{tp}_A + \text{fp}_A} \]
+Where tp (true positive) is the correct prediction count for that class, and fp (false positive) is the count of other classes incorrectly predicted as that class.
 
+For Sitting (A), Precision would be:
 
- <img src="images/cm-1.png" alt="drawing" width="600"/>
+\[ \text{Precision}_A = \frac{25}{25 + 3 + 1} \approx 0.86 \]
 
+**Recall (Sensitivity)**: Of all the instances of a specific class in the dataset, how many were correctly predicted by the classifier?
 
-The confusion matrix shows how the predictions are made by the model. The rows correspond to the known class of the data, i.e. the labels in the data. The columns correspond to the predictions made by the model. The value of each of element in the matrix is the number of predictions made with the class corresponding to the column for examples with the correct value as represented by the row. Thus, the diagonal elements show the number of correct classifications made for each class, and the off-diagonal elements show the errors made.
+\[ \text{Recall}_A = \frac{\text{tp}_A}{\text{tp}_A + \text{fn}_A} \]
+Where fn (false negative) is the count of instances of that class incorrectly predicted as another class.
 
- <img src="images/cm-2.png" alt="drawing" width="500"/>
+For Sitting (A), Recall would be:
 
+\[ \text{Recall}_A = \frac{25}{25 + 5 + 2} \approx 0.78 \]
 
-In the calculations below, we will also use this abstract confusion matrix for notation.
+**F-measure (F1 Score)**: A balanced harmonic mean of Precision and Recall, helpful when you want to balance the two metrics and have a single performance number.
 
+\[ \text{F1 Score} = 2 \times \frac{\text{Precision} \times \text{Recall}}{\text{Precision} + \text{Recall}} \]
 
-#### Accuracy
+To get the F1 Score, we first need the precision and recall for each class. Let's compute it for the class 'Sitting (A)':
 
-Accuracy is the overall correctness of the model and is calculated as the sum of correct classifications divided by the total number of classifications.
+#### Precision for 'Sitting (A)':
+\[ \text{Precision}_A = \frac{\text{TP}_A}{\text{TP}_A + \text{FP}_A} = \frac{25}{25 + 3 + 1} = \frac{25}{29} = 0.8621 \]
 
+#### Recall for 'Sitting (A)':
+\[ \text{Recall}_A = \frac{\text{TP}_A}{\text{TP}_A + \text{FN}_A} = \frac{25}{25 + 5 + 2} = \frac{25}{32} = 0.7813 \]
 
-#### Precision
+#### F1 Score for 'Sitting (A)':
+\[ \text{F1 Score}_A = 2 \times \frac{0.8621 \times 0.7813}{0.8621 + 0.7813} = 0.8197 \]
 
-Precision is a measure of the accuracy provided that a specific class has been predicted. It is defined by:
+Similarly, you can calculate the precision, recall, and F1 Score for classes 'Standing (B)' and 'Walking (C)'.
 
+With these evaluation metrics in hand, you can rigorously assess your decision tree classifier and understand its strengths and potential areas of improvement.
 
- <img src="images/precision.png" alt="drawing" width="200"/>
+### Caveat: Data Imbalance (Class Skewness)
 
+Often, the dataset used to evaluate a classifier might not have an even distribution of classes. Imagine a scenario where you have 1000 instances of 'Walking' but only 50 instances of 'Sitting' and 50 instances of 'Standing'. This creates a data imbalance.
 
-where tp and fp are the numbers of true positive and false positive predictions for the considered class. In the confusion matrix above, the precision for the class A would be calculated as:
+**Problems with Data Imbalance**:
+- **Biased Classifier**: The classifier might tend to favor classes with a higher number of instances. It could achieve a high accuracy simply by predicting the majority class for all inputs, leaving the minority class poorly classified.
+  
+- **Misleading Accuracy**: With skewed data, a high accuracy might not indicate a well-performing classifier. For instance, a naive classifier that always predicts 'Walking' would achieve an accuracy of approximately 91\% in the skewed dataset above. Yet, it would be entirely failing to identify 'Sitting' and 'Standing' instances.
 
-Precision<sub>A</sub> = tp<sub>A</sub>/(tp<sub>A</sub>+e<sub>BA</sub>+e<sub>CA</sub>) = 25/(25+3+1) ≈ 0.86
+When faced with imbalanced datasets, it's essential to use metrics beyond just accuracy. Precision, recall, and F1 score give a clearer picture of classifier performance.
 
-The number is reported by RDS as a value between 0 and 1.
-
-
-#### Recall
-
-Recall is a measure of the ability of a prediction model to select instances of a certain class from a data set. It is commonly also called sensitivity, and corresponds to the true positive rate. It is defined by the formula:
-
- <img src="images/recall.png" alt="drawing" width="200"/>
-
-
-where tp and fn are the numbers of true positive and false negative predictions for the considered class. tp + fn is the total number of test examples of the considered class. For class A in the matrix above, the recall would be:
-
-Recall<sub>A</sub> = tp<sub>A</sub>/(tp<sub>A</sub>+e<sub>AB</sub>+e<sub>AC</sub>) = 25/(25+5+2) ≈ 0.78
-
-
-#### F-measure
-
-Rather than have two measures (precision, recall), it is often preferred to combine both into a single number referred to as the F-measure. This measure can be interpreted as a weighted average of the precision and recall, where the measure reaches its best value at 1 and worst score at 0.
-
-To recap - there are three commonly used performance measures for classifier performance: precision, recall and f-measure. The equations are shown below - all numbers can be obtained from a confusion matrix for the classifier.
-
- <img src="images/p-r-f.png" alt="drawing" width="400"/>
-
+The implications of these errors can vary based on the application. In some contexts, a false positive might be more problematic than a false negative, and vice-versa.

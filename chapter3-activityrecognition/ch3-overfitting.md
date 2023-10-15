@@ -33,15 +33,17 @@ Imagine our cardiac risk assessment dataset has some inconsistencies. Maybe a fe
 
 ## Addressing Overfitting: Basic Approaches
 
+Cross validation is an evaluation method to identify how well the classifier will perform for data it has not already seen. One way is to not use the entire data set when training a learner. Some of the data is removed before training begins. Then when training is done, the data that was removed can be used to test the performance of the learned model on ``new'' data. This is the basic idea for a whole class of model evaluation methods called _cross validation_.
+
 ### Train-Test Split
 
-A foundational approach to handle overfitting is dividing the data into a training set and a test set. 
+A foundational approach to handle overfitting by cross-validation is dividing the data into a training set and a test set. This is also referred to as the **holdout method** and is the simplest kind of cross validation. The data set is separated into two sets, called the training set and the testing set. A common rule of thumb is to use 70\% of the dataset for training and 30\% for testing. Dividing the data into training and test subsets is usually done randomly, in order to guarantee that there is no systematic error in the process.
 
 - **Train Model**: Use the training set to teach the model. 
 - **Evaluate**: Test its performance on the unseen test set.
 - **Tweak and Repeat**: Based on the test set performance, make changes to the model, train it again, and keep repeating this loop.
 
-By evaluating the model on the test set, which it hasn't seen during training, we get a clearer picture of how the model performs on new, unseen data. The idea is to select the model version that gives the best performance on the test set.
+By evaluating the model on the test set, which it hasn't seen during training, we get a clearer picture of how the model performs on new, unseen data. The idea is to select the model version that gives the best performance on the test set. However, its evaluation may depend heavily on which data points end up in the training set and which end up in the test set, and thus the evaluation may be significantly different depending on how the division is made.
 
 ## The Role of Validation Sets
 
@@ -81,6 +83,11 @@ The final performance metric in k-fold cross-validation is typically the average
 \[ E = \frac{1}{k} \sum_{i=1}^{k} E_i \]
 
 By taking the average error across the folds, we ensure that the model's performance is not overly influenced by any single partition of the data.
+
+
+### Is all of this necessary?
+
+This sounds like a lot of work, so you might wonder if it is necessary to divide your data this way. But it is crucial to measure the performance of a classifier on an independent test set. Every classifier looks for patterns in the training data, i.e. correlations between the features and the class. Some of the patterns discovered may be spurious, i.e. they are valid in the training data due to randomness in how the training data was selected, but they are not valid, or not as strong, in the whole dataset. A classifier that relies on these spurious patterns will have higher accuracy on the training examples than it will on the rest of the data. Only accuracy measured on an independent test set is a fair estimate of accuracy on the the entire data. The phenomenon of relying on patterns that are strong only in the training data is called overfitting. 
 
 ## Conclusion
 

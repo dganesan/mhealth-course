@@ -17,7 +17,7 @@ description: "Activity Recognition"
 {:toc}
 ---
 
-### Visualizing Common Activities 
+## Visualizing Common Activities 
 
 Let us consider six activities: walking, jogging, ascending stairs, descending stairs, sitting, and standing. We selected these activities because they are performed regularly by many people in their daily routines. The activities also involve motions that often occur for substantial time periods, thus making them easier to recognize. Furthermore, most of these activities involve repetitive motions and hopefully this should also make the activities easier to recognize.
 
