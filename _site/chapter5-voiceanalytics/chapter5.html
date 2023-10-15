@@ -1,0 +1,32 @@
+<h2 class="no_toc" id="voice-based-health-analytics">Voice-based Health Analytics</h2>
+
+<h2 class="no_toc text-delta" id="table-of-contents">Table of Contents</h2>
+
+<ol id="markdown-toc">
+  <li><a href="#chapter-5-voice-based-health-analytics" id="markdown-toc-chapter-5-voice-based-health-analytics">Chapter 5: Voice-based Health Analytics</a>    <ol>
+      <li><a href="#part-1--what-are-some-of-the-useful-features-we-can-extract-from-voice-notes-slides" id="markdown-toc-part-1--what-are-some-of-the-useful-features-we-can-extract-from-voice-notes-slides">Part 1:  What are some of the useful features we can extract from voice? [notes] [slides]</a></li>
+      <li><a href="#part-2-what-health-states-can-be-classified-with-audio-biomarkers-notes-slides" id="markdown-toc-part-2-what-health-states-can-be-classified-with-audio-biomarkers-notes-slides">Part 2: What health states can be classified with audio biomarkers? [notes] [slides]</a></li>
+      <li><a href="#notebook-1-determining-gender-from-speech-html-ipynb" id="markdown-toc-notebook-1-determining-gender-from-speech-html-ipynb">Notebook 1: Determining Gender from Speech [html] [ipynb]</a></li>
+    </ol>
+  </li>
+</ol>
+<hr />
+
+<h2 id="chapter-5-voice-based-health-analytics">Chapter 5: Voice-based Health Analytics</h2>
+
+<iframe width="320" height="240" src="https://www.youtube.com/embed/oL5PbFeFMyY" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen=""></iframe>
+
+<iframe width="320" height="240" src="https://www.youtube.com/embed/IliokKSNuXQ" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen=""></iframe>
+
+<p>Voice is an extremely useful and important part of health analytics, and an amazing amount of information can be gleaned from recorded audio from a simple microphone. As microphones become more powerful and more ubiquitous, the possibility that computing systems will be able to monitor vocal biomarkers and extract changes in health patterns has exciting possibilities for understanding ourselves and in anticipating problems.</p>
+
+<h4 id="part-1--what-are-some-of-the-useful-features-we-can-extract-from-voice-notes-slides">Part 1:  What are some of the useful features we can extract from voice? [<a href="ch5-audiofeatures.html">notes</a>] [<a href="https://drive.google.com/file/d/0Bw0KEeNzOgzFRm13c3NqREdxTUU/view?usp=sharing&amp;resourcekey=0-m5VIqT4c3JBhd4kykBkIPA">slides</a>]</h4>
+
+<p>We will start with a discussion of useful speech features. In particular, we focus on MFCC features which are closest to human perception of voice including how we perceive frequency and volume. We also discuss other features that can be combined with MFCC to understand emotional content of speech.</p>
+
+<h4 id="part-2-what-health-states-can-be-classified-with-audio-biomarkers-notes-slides">Part 2: What health states can be classified with audio biomarkers? [<a href="ch5-audioclassification.html">notes</a>] [<a href="https://drive.google.com/file/d/0Bw0KEeNzOgzFRm13c3NqREdxTUU/view?usp=sharing&amp;resourcekey=0-m5VIqT4c3JBhd4kykBkIPA">slides</a>]</h4>
+
+<p>We then look at some interesting ways in which voice processing can be used for obtaining measures of health. There are many ways in which audio biomarkers may be used – for example, should a person undergo further screening for depression or other mental health issues? are the changes in vocal patterns indicative of worsening neurological disease? what is the mood of an individual? is a person stressed? and so on. In this chapter, we will look at some interesting ways in which voice processing can be used for obtaining measures of health.</p>
+
+<h4 id="notebook-1-determining-gender-from-speech-html-ipynb">Notebook 1: Determining Gender from Speech [<a href="Chapter5-GenderClassification-Voice.html">html</a>] [<a href="Chapter5-GenderClassification-Voice.ipynb">ipynb</a>]</h4>
+<p>This notebook tries to identify a voice as male or female, based upon acoustic properties of the voice and speech. The dataset consists of 3,168 recorded voice samples, collected from male and female speakers. The voice samples are pre-processed by analyzing frequency range of 0hz-280hz (human vocal range).</p>

@@ -1,0 +1,127 @@
+<h2 class="no_toc" id="human-activity-recognition">Human Activity Recognition</h2>
+
+<h2 class="no_toc text-delta" id="table-of-contents">Table of Contents</h2>
+
+<ol id="markdown-toc">
+  <li><a href="#time-domain-features" id="markdown-toc-time-domain-features">Time Domain Features</a>    <ol>
+      <li><a href="#key-features" id="markdown-toc-key-features">Key Features:</a></li>
+      <li><a href="#mean" id="markdown-toc-mean">Mean</a></li>
+      <li><a href="#median" id="markdown-toc-median">Median</a></li>
+      <li><a href="#variance--standard-deviation" id="markdown-toc-variance--standard-deviation">Variance &amp; Standard Deviation</a></li>
+      <li><a href="#min-max--range" id="markdown-toc-min-max--range">Min, Max, &amp; Range</a></li>
+      <li><a href="#zero-crossings" id="markdown-toc-zero-crossings">Zero-Crossings</a></li>
+      <li><a href="#other-features" id="markdown-toc-other-features">Other Features</a></li>
+      <li><a href="#features-from-gyroscopes-and-magnetometers" id="markdown-toc-features-from-gyroscopes-and-magnetometers">Features from Gyroscopes and Magnetometers</a>        <ol>
+          <li><a href="#gyroscope" id="markdown-toc-gyroscope">Gyroscope</a></li>
+          <li><a href="#magnetometer" id="markdown-toc-magnetometer">Magnetometer</a></li>
+          <li><a href="#combining-features" id="markdown-toc-combining-features">Combining Features</a></li>
+        </ol>
+      </li>
+      <li><a href="#observations-and-insights" id="markdown-toc-observations-and-insights">Observations and Insights</a></li>
+    </ol>
+  </li>
+</ol>
+<hr />
+
+<h2 id="time-domain-features">Time Domain Features</h2>
+
+<p>Time-domain features represent statistical measures derived from a sequence of samples within a specific window, such as 100 samples. These features serve as essential building blocks for discerning patterns and categorizing different activities based on accelerometer data.</p>
+
+<h4 id="key-features">Key Features:</h4>
+<ul>
+  <li><em>Mean</em></li>
+  <li><em>Median</em></li>
+  <li><em>Variance</em></li>
+  <li><em>Standard deviation</em></li>
+  <li><em>Min</em></li>
+  <li><em>Max</em></li>
+  <li><em>Range</em></li>
+  <li><em>Zero-crossings</em></li>
+  <li><em>Angle</em></li>
+  <li><em>Angular velocity</em></li>
+</ul>
+
+<p>Let’s delve deeper into some of these accelerometer-based time-domain features:</p>
+
+<h4 id="mean">Mean</h4>
+
+<ul>
+  <li><strong>Definition</strong>: The average of acceleration values over a window.</li>
+  <li><strong>Utility</strong>: Helps in differentiating activities based on their overall acceleration magnitude.</li>
+  <li><strong>Examples</strong>: Clearly distinguishes between standing (which typically has a near-zero mean) and more dynamic activities like walking or running which exhibit higher means.</li>
+  <li><strong>Confounders</strong>: Might blur the distinction between sitting and standing since both can portray similar mean values.</li>
+</ul>
+
+<h4 id="median">Median</h4>
+
+<ul>
+  <li><strong>Definition</strong>: The middle value once acceleration values are arranged in order.</li>
+  <li><strong>Utility</strong>: Provides a more robust measure in the presence of outliers compared to the mean.</li>
+  <li><strong>Examples</strong>: Helps differentiate between regular walking and sudden jolts during walking which might be seen as outliers.</li>
+</ul>
+
+<h4 id="variance--standard-deviation">Variance &amp; Standard Deviation</h4>
+
+<ul>
+  <li><strong>Definition</strong>: Variance indicates the dispersion of numbers from the mean. The standard deviation is essentially the square root of variance.</li>
+  <li><strong>Utility</strong>: Enables differentiation of activities based on variability.</li>
+  <li><strong>Examples</strong>: Running, for instance, might exhibit a higher variance than walking. Additionally, walking upstairs can reflect a distinct variance pattern in contrast to flat surface walking.</li>
+  <li><strong>Confounders</strong>: There might be overlapping variance values for activities that are somewhat similar.</li>
+</ul>
+
+<h4 id="min-max--range">Min, Max, &amp; Range</h4>
+
+<ul>
+  <li><strong>Definition</strong>: Represents the minimum and maximum acceleration values within a window. The range is the differential between these values.</li>
+  <li><strong>Utility</strong>: Recognizes the extreme limits of motion.</li>
+  <li><strong>Examples</strong>: Activities like jumping can display a higher range than walking due to the drastic up-and-down motions involved.</li>
+</ul>
+
+<h4 id="zero-crossings">Zero-Crossings</h4>
+
+<ul>
+  <li><strong>Definition</strong>: Counts the instances when the signal transits through a zero value.</li>
+  <li><strong>Utility</strong>: Particularly beneficial for repetitive or cyclical motions.</li>
+  <li><strong>Examples</strong>: Activities such as walking or running may manifest periodic zero-crossings, attributed to the consistent foot-strike patterns.</li>
+  <li><strong>Confounders</strong>: Excessive noise within data can give rise to a higher count of zero-crossings.</li>
+</ul>
+
+<h4 id="other-features">Other Features</h4>
+
+<p><strong>Cross-Correlation</strong> - Measures the similarity between two signals relative to the delay imposed on one of them. For instance, comparing acceleration in the X-axis with that in the Y-axis.</p>
+
+<p><strong>Number of Peaks and Troughs</strong> - Presents data on the repetitiveness and intensity of specific activities. Activities with a higher frequency like jogging will likely register more peaks within a specific window than walking.</p>
+
+<p><strong>Slope of Zero Crossing</strong> - Indicates the rate of value change during a zero crossing. This can be pivotal in distinguishing between slow-paced and rapid movements.</p>
+
+<h3 id="features-from-gyroscopes-and-magnetometers">Features from Gyroscopes and Magnetometers</h3>
+
+<p>Although the primary emphasis has been on accelerometers, other sensors like gyroscopes and magnetometers are equally valuable. Gyroscopes record rotational movements, while magnetometers detect magnetic field intensity.</p>
+
+<h5 id="gyroscope">Gyroscope</h5>
+
+<p><strong>Angle &amp; Angular Velocity</strong>: Provides insights into the rotation speed of an object. Activities involving turning or spinning will generally indicate higher values.</p>
+
+<ul>
+  <li><strong>Definition</strong>: Angle denotes orientation inferred from accelerometer and gyroscope data integration. Angular velocity measures the change rate of this angle.</li>
+  <li><strong>Utility</strong>: Offers insights into orientation and its variations.</li>
+  <li><strong>Examples</strong>: Different body postures like standing and sitting might reflect varying orientations. Movements such as turning or twisting can be effectively captured using angular velocity.</li>
+</ul>
+
+<h5 id="magnetometer">Magnetometer</h5>
+
+<ul>
+  <li><strong>Magnetic Field Strength</strong>: Presents orientation data in relation to the Earth’s magnetic field.</li>
+  <li><strong>Utility</strong>: Can assist in determining the direction an individual is moving or facing.</li>
+</ul>
+
+<h4 id="combining-features">Combining Features</h4>
+
+<p>Leveraging a single feature may not always be sufficient in differentiating activities, especially when there’s an overlap. However, amalgamating multiple features can create a multi-dimensional realm, making activity categorization more precise and definitive. For instance, using just the mean and variance might not clearly differentiate between ascending and descending stairs, but their combination could provide a sharper distinction.</p>
+
+<h3 id="observations-and-insights">Observations and Insights</h3>
+
+<p>Referring to <em>Figure 1 and 2</em>, it’s evident why specific features are invaluable. Activities such as sitting and standing portray a minimal standard deviation, indicating minimal activity. Conversely, other scenarios exhibit high standard deviation. This makes the standard deviation feature instrumental in differentiating these scenarios. To discern between sitting and standing, the mean feature can be a potential solution.</p>
+
+<p>While some time-domain features might seem less intuitive, they often have practical applications. For instance, considering the pedometer case study, a dynamic threshold was used to track each time the signal transitioned from above to below this threshold with a pronounced slope. This is akin to a threshold (or zero-axis) crossing. Thus, tallying the number of such transits within a specific time frame emerges as another beneficial feature.</p>
+

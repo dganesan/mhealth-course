@@ -4,11 +4,16 @@
   <li><a href="#frequency-domain-filtering" id="markdown-toc-frequency-domain-filtering">Frequency-domain Filtering</a>    <ol>
       <li><a href="#how-frequency-domain-filtering-works" id="markdown-toc-how-frequency-domain-filtering-works">How frequency domain filtering works</a></li>
       <li><a href="#types-of-frequency-domain-filters" id="markdown-toc-types-of-frequency-domain-filters">Types of Frequency-domain Filters</a></li>
-      <li><a href="#ecg-noise-removal" id="markdown-toc-ecg-noise-removal">ECG Noise Removal</a></li>
+      <li><a href="#example-ecg-noise-removal" id="markdown-toc-example-ecg-noise-removal">Example: ECG Noise Removal</a></li>
+      <li><a href="#implementing-frequency-domain-filters-in-python" id="markdown-toc-implementing-frequency-domain-filters-in-python">Implementing Frequency-domain Filters in Python</a>        <ol>
+          <li><a href="#understanding-the-parameters-and-the-role-of-the-sampling-rate" id="markdown-toc-understanding-the-parameters-and-the-role-of-the-sampling-rate">Understanding the parameters and the role of the sampling rate</a></li>
+          <li><a href="#why-the-need-for-the-sampling-rate-in-filter-design" id="markdown-toc-why-the-need-for-the-sampling-rate-in-filter-design">Why the need for the sampling rate in filter design?</a></li>
+          <li><a href="#summarizing-the-provided-code" id="markdown-toc-summarizing-the-provided-code">Summarizing the provided code</a></li>
+        </ol>
+      </li>
+      <li><a href="#example-notebook-frequency-domain-noise-removal-html-ipynb" id="markdown-toc-example-notebook-frequency-domain-noise-removal-html-ipynb">Example Notebook: Frequency Domain Noise Removal [html] [ipynb]</a></li>
     </ol>
   </li>
-  <li><a href="#conclusion" id="markdown-toc-conclusion">Conclusion</a></li>
-  <li><a href="#references" id="markdown-toc-references">References</a></li>
 </ol>
 <hr />
 
@@ -22,7 +27,7 @@
 
 <p><img src="images/image16.png" alt="drawing" width="500" /></p>
 
-<p><em>Figure 10:  What happens if we add a number of sine waves together, with some weights for each wave? We end up with a complicated waveform that is the summation of the individual waves.</em></p>
+<p><em>Figure 1:  What happens if we add a number of sine waves together, with some weights for each wave? We end up with a complicated waveform that is the summation of the individual waves.</em></p>
 
 <p>What does all of this have to do with smoothing signals? A whole lot as it turns out. The main idea is that noise in these waveforms are often concentrated in some frequencies, and not in others. For example, take the case of the accelerometer walking data in Figure 1. The rate at which you walk is typically one or two steps a second; even if you run, the step rate is a few steps a second. So the frequency of interest is only a few Hz.  Similarly, in the case of ECG, the useful frequencies of the electrical signals in the heart are between 0.5 - 150 Hz. In both cases, the frequencies of interest are limited to a relatively small range.</p>
 
@@ -32,9 +37,9 @@
 
 <p><img src="images/image6.png" alt="drawing" width="600" /></p>
 
-<p><em>Figure 11: Types of frequency-domain filters</em></p>
+<p><em>Figure 2: Types of frequency-domain filters</em></p>
 
-<p>Figure 11 shows four types of frequency-domain filters that are commonly used in practice:</p>
+<p>Figure 2 shows four types of frequency-domain filters that are commonly used in practice:</p>
 
 <ul>
   <li><strong>Low-pass filter</strong>: A low-pass filter passes signals with frequency lower than a certain cutoff frequency and attenuates (i.e. reduces the effect of) signals that are higher than the cutoff frequency. An example where a low-pass filter is used is to remove baseline variations in an ECG signal</li>
@@ -45,13 +50,13 @@
 
 <p>In practice, one has to be careful about how to use the above filters. In many practical situations, removing frequencies abruptly causes unwanted artifacts in the signal. For example, some of you might have seen a ringing sound when you listen to percussion instruments in a concert. This topic is more involved and you can learn these in more advanced classes.</p>
 
-<h3 id="ecg-noise-removal">ECG Noise Removal</h3>
+<h3 id="example-ecg-noise-removal">Example: ECG Noise Removal</h3>
 
 <p>A classic example of how these frequency domain filters are used for noise removal is in the case of ECG filtering, so let us discuss how this works. Figure 8 shows an example of the raw ECG data and the filtered ECG data that we would like to extract from it. There are three sources of noise in the ECG data shown in this picture:</p>
 
 <p><img src="images/image3.png" alt="drawing" width="600" /></p>
 
-<p><em>Figure 8: (top) ECG signal with baseline wander, powerline interference, and other high-frequency noise, (bottom) filtered ECG signal.</em></p>
+<p><em>Figure 3: (top) ECG signal with baseline wander, powerline interference, and other high-frequency noise, (bottom) filtered ECG signal.</em></p>
 
 <p><strong>Baseline Wander</strong>: Baseline wander is a low-frequency component present in the ECG system which causes the signal to “wander” off from the actual ECG waveform. This is due to offset voltages in the electrodes, due to periodic breathing, and due to body movement. This noise can cause problems in the analysis of the ECG waveform. As you can see in Figure 8, baseline wander is a slowly oscillating waveform, with frequency much lower than the ECG signal that we are interested in. So, intuitively, it can be removed by using a high-pass filter with an appropriately chosen cutoff to remove the baseline wander while letting through the ECG waveform of interest.</p>
 
@@ -59,7 +64,7 @@
 
 <p><img src="images/image9.png" alt="drawing" width="600" /></p>
 
-<p><em>Figure 9: (red) ECG signal without powerline noise, and (blue) ECG signal with powerline noise.</em></p>
+<p><em>Figure 4: (red) ECG signal without powerline noise, and (blue) ECG signal with powerline noise.</em></p>
 
 <p><strong>High frequency Noise</strong>: Various other electronic equipment in the vicinity of the ECG sensor including pacemakers, mobile phones, and other electronics can interfere with the ECG signal. These sources of noise are high frequency, and need to be removed by an appropriately selected low-pass filter.</p>
 
@@ -67,23 +72,91 @@
 
 <p><img src="images/image11.png" alt="drawing" width="600" /></p>
 
-<p><em>Figure 10: ECG filtering pipeline comprising several frequency-domain filters to cutoff low frequency baseline wander, high frequency RF noise and narrow frequency powerline noise.</em></p>
+<p><em>Figure 5: ECG filtering pipeline comprising several frequency-domain filters to cutoff low frequency baseline wander, high frequency RF noise and narrow frequency powerline noise.</em></p>
 
-<h2 id="conclusion">Conclusion</h2>
+<h3 id="implementing-frequency-domain-filters-in-python">Implementing Frequency-domain Filters in Python</h3>
 
-<p>I hope that this chapter gave you a glimpse of how to remove noise from raw sensor data and extract clean signals for further processing. While the filtering methods described are not comprehensive, you should be able to handle the vast majority of noise observed in sensor signals using these techniques. I would like to highlight two take-away messages from this section. The first is that effective noise removal is the foundation for any analytics that you wish to perform with sensor data. In practice, it is often important that you try to identify the source and type of noise in the signal, since that will allow you to remove the noise more effectively. The second take-away is that any method that you use for removing noise can come with some unwanted artifacts that you may have to deal with in later stages of analysis. So, make sure that you know the advantages and disadvantages of the filtering approaches that you are using before you start using them in your data processing.</p>
+<p>To perform frequency domain filtering on signals, we often use the combination of a design function (to design the filter) and a filtering function to apply it on our data. One common package used for this purpose in Python is <code class="language-plaintext highlighter-rouge">scipy.signal</code>.</p>
 
-<h1 id="references">References</h1>
+<p>In the provided code, the <code class="language-plaintext highlighter-rouge">butter</code> function from <code class="language-plaintext highlighter-rouge">scipy.signal</code> is used to design a Butterworth filter, which is a type of IIR (Infinite Impulse Response) filter. The <code class="language-plaintext highlighter-rouge">lfilter</code> function then applies this filter to a dataset.</p>
 
-<p>[1] <a href="http://justinvoss.com/2011/11/07/smoothing-data-with-low-pass-filters/">Smoothing data with low pass filters</a><br />
-[2] <a href="http://phrogz.net/js/framerate-independent-low-pass-filter.html">Frame-rate independent low pass filter</a><br />
-[3] <a href="http://www.youtube.com/watch?v=TeKk3DjN_gs">Matlab Arduino Tutorial: Filtering noise from acceleration data</a><br />
-[4] <a href="http://www.analog.com/en/content/scientist_engineers_guide/fca.html">The Scientist and Engineer’s Guide to Signal Processing</a><br />
-[5] <a href="https://www.ceremade.dauphine.fr/~peyre/numerical-tour/">A numerical tour of signal processing</a><br />
-[6] <span style="text-decoration:underline;">Physical activity sensor data</span><br />
-[7] <a href="http://www.sensorsmag.com/sensors/acceleration-vibration/noise-measurement-8166">Acceleration/Vibration Noise Measurement</a><br />
-[8] <a href="http://philstech.blogspot.com/2012/04/quadcopter-accelerometer-data-filtering.html">Quadcopter: Accelerometer Data Filtering</a><br />
-[9] <a href="http://joachimbehar.comuv.com/ECG_tuto_1.php">ECG Digital Filtering</a><br />
-[10] <a href="http://www.eetimes.com/document.asp?doc_id=1278571">Techniques for accurate ECG signal processing</a><br />
-[11] <a href="http://kionixfs.kionix.com/en/document/AN012%20Accelerometer%20Errors.pdf">Kionix - Accelerometer Errors</a></p>
+<p>Let’s dive deeper:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">SAMPLING_RATE</span> <span class="o">=</span> <span class="mi">1000</span> <span class="c1"># Hz 
+</span>
+<span class="c1"># calculate the Nyquist frequency
+</span><span class="n">nyq</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">SAMPLING_RATE</span>
+
+<span class="c1"># Create filters 
+</span><span class="n">b_high</span><span class="p">,</span> <span class="n">a_high</span> <span class="o">=</span> <span class="n">butter</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">130</span><span class="o">/</span><span class="n">nyq</span><span class="p">,</span> <span class="n">btype</span><span class="o">=</span><span class="s">'lowpass'</span><span class="p">)</span> <span class="c1"># Low pass &lt; 130 Hz
+</span><span class="n">b_low</span><span class="p">,</span> <span class="n">a_low</span> <span class="o">=</span> <span class="n">butter</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">20</span><span class="o">/</span><span class="n">nyq</span><span class="p">,</span> <span class="n">btype</span><span class="o">=</span><span class="s">'highpass'</span><span class="p">)</span> <span class="c1"># High pass &gt; 40 Hz 
+</span><span class="n">b_notch</span><span class="p">,</span> <span class="n">a_notch</span> <span class="o">=</span> <span class="n">butter</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="p">[</span><span class="mi">59</span><span class="o">/</span><span class="n">nyq</span><span class="p">,</span> <span class="mi">61</span><span class="o">/</span><span class="n">nyq</span><span class="p">],</span> <span class="n">btype</span><span class="o">=</span><span class="s">'bandstop'</span><span class="p">)</span> <span class="c1"># Notch at 60 Hz
+</span>
+<span class="c1"># Apply filters 
+</span><span class="n">df</span><span class="p">[</span><span class="s">'HighPass1'</span><span class="p">]</span> <span class="o">=</span> <span class="n">lfilter</span><span class="p">(</span><span class="n">b_high</span><span class="p">,</span> <span class="n">a_high</span><span class="p">,</span> <span class="n">df</span><span class="p">.</span><span class="n">Noisy1</span><span class="p">)</span>
+<span class="n">df</span><span class="p">[</span><span class="s">'LowPass2'</span><span class="p">]</span> <span class="o">=</span> <span class="n">lfilter</span><span class="p">(</span><span class="n">b_low</span><span class="p">,</span> <span class="n">a_low</span><span class="p">,</span> <span class="n">df</span><span class="p">.</span><span class="n">Noisy2</span><span class="p">)</span>
+<span class="n">df</span><span class="p">[</span><span class="s">'Notch3'</span><span class="p">]</span> <span class="o">=</span> <span class="n">lfilter</span><span class="p">(</span><span class="n">b_notch</span><span class="p">,</span> <span class="n">a_notch</span><span class="p">,</span> <span class="n">df</span><span class="p">.</span><span class="n">Noisy3</span><span class="p">)</span>
+</code></pre></div></div>
+
+<h4 id="understanding-the-parameters-and-the-role-of-the-sampling-rate">Understanding the parameters and the role of the sampling rate</h4>
+
+<ol>
+  <li>
+    <p><strong>SAMPLING_RATE</strong>: This represents how many data points are recorded per second. In digital signal processing, the Nyquist theorem states that a continuous signal can be completely described by its samples and fully reconstructed if it is sampled at a rate at least twice the signal’s highest frequency.</p>
+  </li>
+  <li>
+    <p><strong>butter function</strong>: <code class="language-plaintext highlighter-rouge">butter(N, Wn, btype='low', analog=False, output='ba', fs=None)</code> is used to design an Nth order Butterworth filter. The function returns two arrays - <code class="language-plaintext highlighter-rouge">b</code> (numerator) and <code class="language-plaintext highlighter-rouge">a</code> (denominator) which can be used to construct the transfer function of the filter.</p>
+
+    <ul>
+      <li><code class="language-plaintext highlighter-rouge">N</code>: The order of the filter.</li>
+      <li><code class="language-plaintext highlighter-rouge">Wn</code>: This is the critical frequency or frequencies. This parameter is normalized between 0 and 1, where 1 corresponds to the Nyquist frequency, half of the sampling rate. This is the reason for dividing by <code class="language-plaintext highlighter-rouge">SAMPLING_RATE/2</code> when specifying the cutoff.</li>
+      <li><code class="language-plaintext highlighter-rouge">btype</code>: Can be ‘lowpass’, ‘highpass’, ‘bandpass’, or ‘bandstop’, to determine the type of filter.</li>
+      <li><code class="language-plaintext highlighter-rouge">output</code>: Specifies the type of output: numerator/denominator (<code class="language-plaintext highlighter-rouge">'ba'</code>).</li>
+    </ul>
+  </li>
+  <li>
+    <p><strong>lfilter function</strong>: <code class="language-plaintext highlighter-rouge">lfilter(b, a, x)</code> is used to apply the filter designed by <code class="language-plaintext highlighter-rouge">butter</code> to a signal <code class="language-plaintext highlighter-rouge">x</code>.</p>
+    <ul>
+      <li><code class="language-plaintext highlighter-rouge">b</code>: The numerator polynomial coefficients of the IIR filter.</li>
+      <li><code class="language-plaintext highlighter-rouge">a</code>: The denominator polynomial coefficients of the IIR filter.</li>
+      <li><code class="language-plaintext highlighter-rouge">x</code>: The signal you want to filter.</li>
+    </ul>
+  </li>
+</ol>
+
+<h4 id="why-the-need-for-the-sampling-rate-in-filter-design">Why the need for the sampling rate in filter design?</h4>
+
+<p>When designing a digital filter, frequencies are normalized to the Nyquist rate. So, the specification of cutoff or center frequencies in Hz often needs to be converted to a normalized form. This is why the sampling rate is crucial; it provides a context to convert between absolute frequency (in Hz) and normalized frequency.</p>
+
+<h4 id="summarizing-the-provided-code">Summarizing the provided code</h4>
+
+<ul>
+  <li>A <strong>low-pass filter</strong> is designed that allows frequencies less than 130Hz.</li>
+  <li>A <strong>high-pass filter</strong> is designed that allows frequencies greater than 20Hz.</li>
+  <li>A <strong>notch filter</strong> (or band-stop filter) is designed to attenuate frequencies between 59Hz and 61Hz, which would be useful to remove noise or interference at 60Hz.</li>
+</ul>
+
+<p>Each filter is then applied to different noisy datasets using the <code class="language-plaintext highlighter-rouge">lfilter</code> function.</p>
+
+<p>In conclusion, frequency domain filtering is a powerful technique for signal processing, and understanding the role of sampling rates, filter design, and filter application is critical to effectively leveraging this method.</p>
+
+<h3 id="example-notebook-frequency-domain-noise-removal-html-ipynb">Example Notebook: Frequency Domain Noise Removal [<a href="notebooks/Chapter1-FreqDomainNoiseRemoval.html">html</a>] [<a href="notebooks/Chapter1-FreqDomainNoiseRemoval.ipynb">ipynb</a>]</h3>
+<p>This notebook shows a few examples of time-series signals and how different frequency-domain noise removal methods (low-pass, high-pass, and notch filter) work on this data.</p>
+
+<!---
+# References
+
+[1] [Smoothing data with low pass filters](http://justinvoss.com/2011/11/07/smoothing-data-with-low-pass-filters/)\
+[2] [Frame-rate independent low pass filter](http://phrogz.net/js/framerate-independent-low-pass-filter.html)\
+[3] [Matlab Arduino Tutorial: Filtering noise from acceleration data](http://www.youtube.com/watch?v=TeKk3DjN_gs)\
+[4] [The Scientist and Engineer’s Guide to Signal Processing](http://www.analog.com/en/content/scientist_engineers_guide/fca.html)\
+[5] [A numerical tour of signal processing](https://www.ceremade.dauphine.fr/~peyre/numerical-tour/)\
+[6] <span style="text-decoration:underline;">Physical activity sensor data</span>\
+[7] [Acceleration/Vibration Noise Measurement](http://www.sensorsmag.com/sensors/acceleration-vibration/noise-measurement-8166)\
+[8] [Quadcopter: Accelerometer Data Filtering](http://philstech.blogspot.com/2012/04/quadcopter-accelerometer-data-filtering.html)\
+[9] [ECG Digital Filtering](http://joachimbehar.comuv.com/ECG_tuto_1.php)\
+[10] [Techniques for accurate ECG signal processing](http://www.eetimes.com/document.asp?doc_id=1278571)\
+[11] [Kionix - Accelerometer Errors](http://kionixfs.kionix.com/en/document/AN012%20Accelerometer%20Errors.pdf)
+
+--->
 

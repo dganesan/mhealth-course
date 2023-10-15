@@ -1,10 +1,20 @@
 remote_theme: pmarsceill/just-the-docs
 # Build settings
 markdown: kramdown
+# use_math: true
 usemathjax: true
+
+defaults:
+  -
+    values:
+      usemathjax: true
+# usemathjax: true
 
 title: mHealth Analytics 
 description: A learning resource for understanding mobile sensor data analytics
+
+gems:
+  - jekyll-inline-svg
 
 # Turn on incremental building to reduce overall build time (still in beta)
 # See: https://jekyllrb.com/docs/configuration/incremental-regeneration/
