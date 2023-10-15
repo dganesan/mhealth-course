@@ -4,12 +4,6 @@ markdown: kramdown
 # use_math: true
 usemathjax: true
 
-defaults:
-  -
-    values:
-      usemathjax: true
-# usemathjax: true
-
 title: mHealth Analytics 
 description: A learning resource for understanding mobile sensor data analytics
 

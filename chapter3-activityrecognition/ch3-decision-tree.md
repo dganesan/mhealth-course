@@ -37,15 +37,16 @@ Perhaps a simpler approach to understand how a decision tree works is to view it
 
 We now understand how a decision tree works but how do we build the decision tree in the first place. The primary challenge in the construction of a decision tree is deciding on which attributes to split and in what order. One of the popular algorithms to handle this is C4.5, which uses entropy as a metric to determine the best split.
 
-#### **Entropy**
+#### Entropy
 
-Entropy, derived from information theory, measures the level of uncertainty or randomness. In the context of decision trees, it quantifies the randomness or impurity in a label set. The formula for entropy for a binary classification (for simplicity) is given as:
+Entropy, derived from information theory, measures the level of uncertainty or randomness. In the context of decision trees, it quantifies the randomness or impurity in a label set. The 
+ for entropy for a binary classification (for simplicity) is given as:
 
-\[ \text{Entropy}(S) = -p_+ \log_2(p_+) - p_- \log_2(p_-) \]
+$ \text{Entropy}(S) = -p_+ \log_2(p_+) - p_- \log_2(p_-) $
 
 Where:
-- \( p_+ \) is the proportion of positive examples in \( S \)
-- \( p_- \) is the proportion of negative examples in \( S \)
+- $ p_+ $ is the proportion of positive examples in $ S $
+- $ p_- $ is the proportion of negative examples in $ S $
 
 If the sample is completely homogeneous (either entirely positive or entirely negative), the entropy is 0. If the sample is an equally divided mixture of positive and negative examples, the entropy is 1 (maximum).
 
@@ -55,29 +56,29 @@ Absolutely! The concept of entropy can be extended naturally to multiclass class
 
 For binary classification, the entropy formula looks at the proportions of positive and negative examples. When you have multiple classes, the formula is simply expanded to account for all these classes.
 
-Given \( C \) as the set of all classes, for a multiclass problem, entropy \( S \) is defined as:
+Given $ C $ as the set of all classes, for a multiclass problem, entropy $ S $ is defined as:
 
-\[ \text{Entropy}(S) = - \sum_{c \in C} p_c \log_2(p_c) \]
+$ \text{Entropy}(S) = - \sum_{c \in C} p_c \log_2(p_c) $
 
 Where:
-- \( p_c \) is the proportion of samples belonging to class \( c \) in \( S \).
+- $ p_c $ is the proportion of samples belonging to class $ c $ in $ S $.
 
-For a sample that is completely homogeneous with respect to a class (i.e., all members of the sample belong to that class), the entropy is 0, just like the binary case. The maximum value of entropy depends on the number of classes. For instance, if there are 3 classes, and each class is equally represented in the sample, the entropy is \(- \frac{1}{3} \log_2(\frac{1}{3}) \times 3 = \log_2(3) \approx 1.58\). As you can see, the more classes, the higher the maximum entropy.
+For a sample that is completely homogeneous with respect to a class (i.e., all members of the sample belong to that class), the entropy is 0, just like the binary case. The maximum value of entropy depends on the number of classes. For instance, if there are 3 classes, and each class is equally represented in the sample, the entropy is $- \frac{1}{3} \log_2(\frac{1}{3}) \times 3 = \log_2(3) \approx 1.58$. As you can see, the more classes, the higher the maximum entropy.
 
-#### **Information Gain**
+#### Information Gain
 
 To determine which attribute should be selected as the decision node, we use a metric called Information Gain. It calculates the effectiveness of an attribute in classifying the training data. The attribute with the highest information gain is chosen as the decision node at a particular level.
 
 The formula to compute Information Gain is:
 
-\[ \text{Information Gain}(S, A) = \text{Entropy}(S) - \sum_{v \in \text{Values}(A)} \frac{|S_v|}{|S|} \text{Entropy}(S_v) \]
+$\text{Information Gain}(S, A) = \text{Entropy}(S)  - \sum_{v \in \text{Values}(A)} \frac{\|S_v\|}{\|S\|} \text{Entropy}(S_v) $
 
 Where:
-- \( S \) is the set of examples
-- \( A \) is an attribute
-- \( S_v \) is the subset of \( S \) for which attribute \( A \) has value \( v \)
+- $ S $ is the set of examples
+- $ A $ is an attribute
+- $ S_v $ is the subset of $ S $ for which attribute $ A $ has value $ v $
 
-#### **Building the Tree: C4.5 Algorithm**
+#### Building the Tree: C4.5 Algorithm
 
 **Pseudocode:**
 
@@ -142,11 +143,11 @@ Our target variable is:
 ### Initial Entropy Calculation:
 
 From the table:
-- $`p_{\text{Low}} = \frac{6}{13}`$
-- $p_{\text{High}} = \frac{7}{13}$
+- $p_{\text{Low}} = \frac{6}{13}$
+- $ p_{\text{High}} = \frac{7}{13} $
 
-Thus, the entropy for this set \( S \) is:
-\[ \text{Entropy}(S) = -\frac{6}{13} \log_2(\frac{6}{13}) - \frac{7}{13} \log_2(\frac{7}{13}) \approx 1\]
+Thus, the entropy for this set $ S $ is:
+$ \text{Entropy}(S) = -\frac{6}{13} \log_2(\frac{6}{13}) - \frac{7}{13} \log_2(\frac{7}{13}) \approx 1$
 
 ### Information Gain Calculation:
 
@@ -156,25 +157,25 @@ Thus, the entropy for this set \( S \) is:
     - Total: 5
     - High Risk: 1
     - Low Risk: 4
-    - \[ \text{Entropy} = -\frac{1}{5} \log_2(\frac{1}{5}) - \frac{4}{5} \log_2(\frac{4}{5}) \] \[ \approx 0.72 \]
+    - $ \text{Entropy} = -\frac{1}{5} \log_2(\frac{1}{5}) - \frac{4}{5} \log_2(\frac{4}{5}) $ $ \approx 0.72 $
 
 2. **Age 40-55:** 
     - Total: 4
     - High Risk: 3
     - Low Risk: 1
-    - \[ \text{Entropy} = -\frac{3}{4} \log_2(\frac{3}{4}) - \frac{1}{4} \log_2(\frac{1}{4}) \approx 0.81\]
+    - $ \text{Entropy} = -\frac{3}{4} \log_2(\frac{3}{4}) - \frac{1}{4} \log_2(\frac{1}{4}) \approx 0.81$
     
 3. **Age >55:** 
     - Total: 4
     - High Risk: 3
     - Low Risk: 1
-    - \[ \text{Entropy} \approx 0.81 \text{(same as above)}\]
+    - $ \text{Entropy} \approx 0.81 \text{(same as above)}$
 
 Let us compute the weighted entropies and then the information gain for the Age attribute in the next step.
 
-\[ \text{Weighted Entropy for Age}  = \frac{5}{13} \times 0.72 + \frac{4}{13} \times 0.81 + \frac{4}{13} \times 0.81 \approx 0.78\]
+$ \text{Weighted Entropy for Age}  = \frac{5}{13} \times 0.72 + \frac{4}{13} \times 0.81 + \frac{4}{13} \times 0.81 \approx 0.78$
 
-\[ \text{Information Gain for Age} = \text{Initial Entropy} - \text{Weighted Entropy for Age} \approx 1 - 0.78 \approx 0.22\]
+$ \text{Information Gain for Age} = \text{Initial Entropy} - \text{Weighted Entropy for Age} \approx 1 - 0.78 \approx 0.22$
 
 #### For Smoker:
 
@@ -182,17 +183,17 @@ Let us compute the weighted entropies and then the information gain for the Age 
     - Total: 6
     - High Risk: 5
     - Low Risk: 1
-    - \[ \text{Entropy} = -\frac{5}{6} \log_2(\frac{5}{6}) - \frac{1}{6} \log_2(\frac{1}{6}) \approx 0.65 \]
+    - $ \text{Entropy} = -\frac{5}{6} \log_2(\frac{5}{6}) - \frac{1}{6} \log_2(\frac{1}{6}) \approx 0.65 $
     
 2. **Smoker = No:** 
     - Total: 7
     - High Risk: 2
     - Low Risk: 5
-    - \[ \text{Entropy} = -\frac{2}{7} \log_2(\frac{2}{7}) - \frac{5}{7} \log_2(\frac{5}{7}) \approx 0.86 \]
+    - $\text{Entropy} = -\frac{2}{7} \log_2(\frac{2}{7}) - \frac{5}{7} \log_2(\frac{5}{7}) \approx 0.86$
 
-\[ \text{Weighted Entropy for Smoker}  \approx \frac{6}{13} \times 0.65 + \frac{7}{13} \times 0.86 \approx 0.76 \]
+$ \text{Weighted Entropy for Smoker}  \approx \frac{6}{13} \times 0.65 + \frac{7}{13} \times 0.86 \approx 0.76 $
 
-\[ \text{Information Gain for Smoker} = \text{Initial Entropy} - \text{Weighted Entropy for Smoker} \approx 1 - 0.76 \approx 0.24  \]
+$ \text{Information Gain for Smoker} = \text{Initial Entropy} - \text{Weighted Entropy for Smoker} \approx 1 - 0.76 \approx 0.24  $
 
 #### For Exercise:
 
@@ -200,17 +201,17 @@ Let us compute the weighted entropies and then the information gain for the Age 
     - Total: 6
     - High Risk: 2
     - Low Risk: 4
-    - \[ \text{Entropy} = -\frac{4}{6} \log_2(\frac{4}{6}) - \frac{2}{6} \log_2(\frac{2}{6}) = 0.92 \]
+    - $ \text{Entropy} = -\frac{4}{6} \log_2(\frac{4}{6}) - \frac{2}{6} \log_2(\frac{2}{6}) = 0.92 $
     
 2. **Exercise = Rarely:** 
     - Total: 7
     - High Risk: 5
     - Low Risk: 2
-    - \[ \text{Entropy} = -\frac{2}{7} \log_2(\frac{2}{7}) - \frac{5}{7} \log_2(\frac{5}{7}) = 0.86} \]
+    - $ \text{Entropy} = -\frac{2}{7} \log_2(\frac{2}{7}) - \frac{5}{7} \log_2(\frac{5}{7}) = 0.86 $
 
-\[ \text{Weighted Entropy for Exercise} = \frac{6}{13} \times 0.92 + \frac{7}{13} \times 0.86 \approx 0.89 \]
+$ \text{Weighted Entropy for Exercise} = \frac{6}{13} \times 0.92 + \frac{7}{13} \times 0.86 \approx 0.89 $
 
-\[ \text{Information Gain for Exercise} = \text{Initial Entropy} - \text{Weighted Entropy for Exercise} \approx 1 - 0.89 \approx 0.11 \]
+$ \text{Information Gain for Exercise} = \text{Initial Entropy} - \text{Weighted Entropy for Exercise} \approx 1 - 0.89 \approx 0.11 $
 
 Given the information gains:
 
@@ -235,10 +236,10 @@ For the second-level decision, let's take the subset of data for one of the age 
 
 From the subset, the probabilities are:
 
-\[ p_{\text{High}} = \frac{5}{6} = 0.83 \]
-\[ p_{\text{Low}} = \frac{1}{6} = 0.17 \]
+- $ p_{\text{High}} = \frac{5}{6} = 0.83 $
+- $ p_{\text{Low}} = \frac{1}{6} = 0.17 $
 
-Thus, the entropy for this subset \( S \) is: \[-\frac{5}{6} \log_2(\frac{5}{6}) - \frac{1}{6} \log_2(\frac{1}{6}) \] \[ \approx 0.65 \]
+Thus, the entropy for this subset $ S $ is: $-\frac{5}{6} \log_2(\frac{5}{6}) - \frac{1}{6} \log_2(\frac{1}{6}) $ $ \approx 0.65 $
 
 #### For Age:
 
@@ -246,23 +247,23 @@ Thus, the entropy for this subset \( S \) is: \[-\frac{5}{6} \log_2(\frac{5}{6})
     - Total: 2
     - High Risk: 1
     - Low Risk: 1
-    - \[ \text{Entropy} = -\frac{1}{2} \log_2(\frac{1}{2}) - \frac{1}{2} \log_2(\frac{1}{2}) = 1 \]
+    - $ \text{Entropy} = -\frac{1}{2} \log_2(\frac{1}{2}) - \frac{1}{2} \log_2(\frac{1}{2}) = 1 $
 
 2. **Age 40-55:** 
     - Total: 2
     - High Risk: 2
     - Low Risk: 0
-    - \[ \text{Entropy} = 0\]
+    - $ \text{Entropy} = 0$
     
 3. **Age >55:** 
     - Total: 2
     - High Risk: 2
     - Low Risk: 0
-    - \[ \text{Entropy} = 0 \]
+    - $ \text{Entropy} = 0 $
 
-\[ \text{Weighted Entropy for Age}  = \frac{2}{6} \times 1 + \frac{2}{6} \times 0 + \frac{2}{6} \times 0 \approx 0.33\]
+$ \text{Weighted Entropy for Age}  = \frac{2}{6} \times 1 + \frac{2}{6} \times 0 + \frac{2}{6} \times 0 \approx 0.33$
 
-\[ \text{Information Gain for Age} = \text{Initial Entropy} - \text{Weighted Entropy for Age} \approx 0.65 - 0.33 \approx 0.32\]
+$ \text{Information Gain for Age} = \text{Initial Entropy} - \text{Weighted Entropy for Age} \approx 0.65 - 0.33 \approx 0.32$
 
 ### Weighted Entropy and Information Gain for Exercise:
 
@@ -270,16 +271,16 @@ Thus, the entropy for this subset \( S \) is: \[-\frac{5}{6} \log_2(\frac{5}{6})
     - Total: 3
     - High Risk: 2
     - Low Risk: 1
-    - \[ \text{Entropy} = -\frac{2}{3} \log_2(\frac{2}{3}) - \frac{1}{3} \log_2(\frac{1}{3}) = 0.92} \]
+    - $ \text{Entropy} = -\frac{2}{3} \log_2(\frac{2}{3}) - \frac{1}{3} \log_2(\frac{1}{3}) = 0.92 $
     
 2. **Exercise = Rarely:** 
     - Total: 3
     - High Risk: 3
     - Low Risk: 0
-    - \[ \text{Entropy} = 0 \]
+    - $ \text{Entropy} = 0 $
 
-\[ \text{Weighted Entropy for Exercise} = \frac{3}{6} \times 0.92 + \frac{3}{6} \times 0 = 0.46 \]
-\[ \text{Information Gain for Smoker} = 0.65 - 0.46 = 0.19 \]
+$ \text{Weighted Entropy for Exercise} = \frac{3}{6} \times 0.92 + \frac{3}{6} \times 0 = 0.46 $
+$ \text{Information Gain for Smoker} = 0.65 - 0.46 = 0.19 $
 
 Given the information gains for the "Age > 55" group:
 
@@ -303,10 +304,10 @@ Given the information gains for the "Age > 55" group:
 
 From the subset, the probabilities are:
 
-\[ p_{\text{High}} = \frac{2}{7} = 0.29 \]
-\[ p_{\text{Low}} = \frac{5}{7} = 0.71 \]
+- $ p_{\text{High}} = \frac{2}{7} = 0.29 $
+- $ p_{\text{Low}} = \frac{5}{7} = 0.71 $
 
-Thus, the entropy for this subset \( S \) is: \[-\frac{2}{7} \log_2(\frac{2}{7}) - \frac{5}{7} \log_2(\frac{5}{7}) \] \[ \approx 0.86 \]
+Thus, the entropy for this subset $ S $ is: $-\frac{2}{7} \log_2(\frac{2}{7}) - \frac{5}{7} \log_2(\frac{5}{7}) $ $ \approx 0.86 $
 
 #### For Age:
 
@@ -314,23 +315,23 @@ Thus, the entropy for this subset \( S \) is: \[-\frac{2}{7} \log_2(\frac{2}{7})
     - Total: 3
     - High Risk: 0
     - Low Risk: 3
-    - \[ \text{Entropy} = 0 \]
+    - $ \text{Entropy} = 0 $
 
 2. **Age 40-55:** 
     - Total: 2
     - High Risk: 1
     - Low Risk: 1
-    - \[ \text{Entropy} = 1} \]
+    - $\text{Entropy} = 1$
     
 3. **Age >55:** 
     - Total: 2
     - High Risk: 1
     - Low Risk: 1
-    - \[ \text{Entropy} = 1 \]
+    - $\text{Entropy} = 1$
 
-\[ \text{Weighted Entropy for Age}  = \frac{3}{7} \times 0 + \frac{2}{7} \times 1 + \frac{2}{7} \times 1 \approx 0.57\]
+$ \text{Weighted Entropy for Age}  = \frac{3}{7} \times 0 + \frac{2}{7} \times 1 + \frac{2}{7} \times 1 \approx 0.57$
 
-\[ \text{Information Gain for Age} = \text{Initial Entropy} - \text{Weighted Entropy for Age} \approx 0.86 - 0.57 \approx 0.29\]
+$ \text{Information Gain for Age} = \text{Initial Entropy} - \text{Weighted Entropy for Age} \approx 0.86 - 0.57 \approx 0.29$
 
 ### Weighted Entropy and Information Gain for Exercise:
 
@@ -338,16 +339,16 @@ Thus, the entropy for this subset \( S \) is: \[-\frac{2}{7} \log_2(\frac{2}{7})
     - Total: 3
     - High Risk: 0
     - Low Risk: 3
-    - \[ \text{Entropy} = 0 \]
+    - $ \text{Entropy} = 0 $
     
 2. **Exercise = Rarely:** 
     - Total: 4
     - High Risk: 2
     - Low Risk: 2
-    - \[ \text{Entropy} = 1 \]
+    - $ \text{Entropy} = 1 $
 
-\[ \text{Weighted Entropy for Exercise} = \frac{3}{7} \times 0 + \frac{3}{7} \times 1 = 0.43 \]
-\[ \text{Information Gain for Smoker} = 0.86 - 0.43 = 0.43 \]
+$ \text{Weighted Entropy for Exercise} = \frac{3}{7} \times 0 + \frac{3}{7} \times 1 = 0.43 $
+$ \text{Information Gain for Smoker} = 0.86 - 0.43 = 0.43 $
 
 Given the information gains for the "Smoker=No" group:
 

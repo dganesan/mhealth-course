@@ -1,13 +1,15 @@
-<script type="text/x-mathjax-config"> MathJax.Hub.Config({ TeX: { equationNumbers: { autoNumber: "none" } } }); </script> 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% include head_custom.html %}
+    <!-- You can add other head elements below if needed -->
+</head>
+<body>
+    <!-- Your site's header, navigation, etc. can be added here -->
 
-<script type="text/x-mathjax-config">
-MathJax.Hub.Config({
-  tex2jax: {
-	inlineMath: [['$','$'], ['\\(','\\)']],
-	displayMath: [ ['$$', '$$'] ],
-	processEscapes: true,
-	processEnvironments: true
-	}
-}); 
+    {{ content }}
 
+    <!-- Your site's footer, other scripts, etc. can be added here -->
+</body>
+</html>
 
