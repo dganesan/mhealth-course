@@ -20,9 +20,6 @@ description: "CS328"
 
 Fitness gadgets such as ​Fitbit​, ​Apple Watch,​ ​Android Wear,​ and smartphone apps such as ​RunKeeper​ and M​oves​ calculate activity patterns, calories burned each day, track sleep patterns, and compute heart rate. We will learn how to build the computational elements for developing such applications by leveraging various sensors on smartphones, including the accelerometer, camera, microphone, and GPS. This is a hands-on course where students learn by doing! 
 
-inline: $\frac{1}{2}$
-inline: $$\frac{1}{2}$$
-
 <!---
 ### Introduction
 
