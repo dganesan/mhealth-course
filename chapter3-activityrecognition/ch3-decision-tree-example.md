@@ -3,7 +3,7 @@ layout: default
 title: Cardiac Risk Prediction
 parent: Activity Recognition
 grand_parent: Mobile Sensing &amp; Analytics
-nav_order: 6
+nav_order: 7
 usemathjax: true
 description: "Activity Recognition"
 ---

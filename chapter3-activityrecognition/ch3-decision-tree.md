@@ -3,7 +3,7 @@ layout: default
 title: Decision Tree Classifier
 parent: Activity Recognition
 grand_parent: Mobile Sensing &amp; Analytics
-nav_order: 5
+nav_order: 6
 usemathjax: true
 description: "Activity Recognition"
 ---

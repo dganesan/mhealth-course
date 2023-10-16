@@ -3,7 +3,7 @@ layout: default
 title: Overcoming Overfitting
 parent: Activity Recognition
 grand_parent: Mobile Sensing &amp; Analytics
-nav_order: 7
+nav_order: 8
 usemathjax: true
 description: "Activity Recognition"
 ---
