@@ -111,3 +111,48 @@ This process allows for a decision tree that maximizes the reduction in randomne
 
 Note: While understanding the construction is crucial, in practical scenarios, libraries like `scikit-learn` offer optimized implementations of the Decision Trees that abstract away these internal details, making it easier to apply to real-world problems.
 
+### Implementing Decision Trees in Python
+
+Once we have our feature vectors prepared from raw data, we can use them to train a decision tree classifier. Decision trees are a popular algorithm because of their interpretability and ease of use.
+
+#### About the DataFrame
+Let us assume we have a pandas DataFrame `resampled_data` with the following columns: `x_mean`, `y_mean`, `z_mean`, `x_std`, `y_std`, `z_std` (and potentially other feature columns) and a `label` column which refers to the activities you are attempting to classify. Each row in this DataFrame corresponds to a resampled window of data where:
+
+- `x_mean`, `y_mean`, `z_mean`: Mean values of the X, Y, Z accelerometer readings, respectively.
+- `x_std`, `y_std`, `z_std`: Standard deviations of the X, Y, Z accelerometer readings, respectively.
+- `label`: The label or class of that particular window (e.g., 'Sitting', 'Walking').
+
+#### Implementing the Decision Tree using Scikit-learn
+
+Scikit-learn is a popular Python library for implementing machine learning algorithms. Here's how you can use it to implement a decision tree:
+
+```python
+# Import necessary libraries
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+
+# Split the data into train and test sets
+features = ['x_mean', 'y_mean', 'z_mean', 'x_std', 'y_std', 'z_std'] # Add other feature columns if needed
+X = resampled_data[features]
+y = resampled_data['label']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Create the decision tree classifier and train it
+clf = DecisionTreeClassifier(criterion='entropy', max_depth=None, random_state=42) # Using Gini impurity as the criterion
+clf.fit(X_train, y_train)
+
+# Make predictions
+y_pred = clf.predict(X_test)
+```
+
+#### Parameters of the DecisionTreeClassifier
+- `criterion`: The function to measure the quality of a split. We are using 'entropy' for the information gain.
+- `max_depth`: The maximum depth of the tree. If `None`, then nodes are expanded until all leaves are pure or until all leaves contain less than `min_samples_split` samples.
+- `random_state`: Seed used by the random number generator for reproducibility. 
+
+There are several other parameters you can set for the DecisionTreeClassifier, such as `min_samples_split`, `min_samples_leaf`, etc., which can help in regularizing the tree, preventing overfitting, or otherwise influencing the way the tree grows.
+
+After training, you can evaluate the classifier using metrics like accuracy, precision, recall, and F1-score using the true labels (`y_test`) and the predicted labels (`y_pred`).
+
+Remember to also consider regularizing your decision tree (using parameters like `max_depth` or `min_samples_leaf`) to prevent it from overfitting, especially if you have a large number of features or a small amount of training data.
+

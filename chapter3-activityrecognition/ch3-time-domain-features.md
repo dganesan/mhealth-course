@@ -97,9 +97,3 @@ Although the primary emphasis has been on accelerometers, other sensors like gyr
 
 Leveraging a single feature may not always be sufficient in differentiating activities, especially when there's an overlap. However, amalgamating multiple features can create a multi-dimensional realm, making activity categorization more precise and definitive. For instance, using just the mean and variance might not clearly differentiate between ascending and descending stairs, but their combination could provide a sharper distinction.
 
-### Observations and Insights
-
-Referring to *Figure 1 and 2*, it's evident why specific features are invaluable. Activities such as sitting and standing portray a minimal standard deviation, indicating minimal activity. Conversely, other scenarios exhibit high standard deviation. This makes the standard deviation feature instrumental in differentiating these scenarios. To discern between sitting and standing, the mean feature can be a potential solution. 
-
-While some time-domain features might seem less intuitive, they often have practical applications. For instance, considering the pedometer case study, a dynamic threshold was used to track each time the signal transitioned from above to below this threshold with a pronounced slope. This is akin to a threshold (or zero-axis) crossing. Thus, tallying the number of such transits within a specific time frame emerges as another beneficial feature.
-

@@ -28,7 +28,7 @@ Suppose our dataset contains the following attributes:
 Our target variable is:
 **Risk**: High, Low
 
-### Cardiac Risk Prediction Dataset:
+### Cardiac Risk Prediction Dataset
 
 | Age     | Smoker | Exercise   | Risk |
 |---------|--------|------------|------|
@@ -46,7 +46,7 @@ Our target variable is:
 | >55     | Yes    | Rarely     | High |
 | >55     | No     | Rarely     | High |
 
-### Initial Entropy Calculation:
+### Initial Entropy Calculation
 
 From the table:
 - $p_{\text{Low}} = \frac{6}{13}$
@@ -55,9 +55,9 @@ From the table:
 Thus, the entropy for this set $ S $ is:
 $ \text{Entropy}(S) = -\frac{6}{13} \log_2(\frac{6}{13}) - \frac{7}{13} \log_2(\frac{7}{13}) \approx 1$
 
-### Information Gain Calculation:
+### Information Gain Calculation
 
-#### For Age:
+#### For Age
 
 1. **Age <40:**
     - Total: 5
@@ -83,7 +83,7 @@ $ \text{Weighted Entropy for Age}  = \frac{5}{13} \times 0.72 + \frac{4}{13} \ti
 
 $ \text{Information Gain for Age} = \text{Initial Entropy} - \text{Weighted Entropy for Age} \approx 1 - 0.78 \approx 0.22$
 
-#### For Smoker:
+#### For Smoker
 
 1. **Smoker = Yes:** 
     - Total: 6
@@ -101,7 +101,7 @@ $ \text{Weighted Entropy for Smoker}  \approx \frac{6}{13} \times 0.65 + \frac{7
 
 $ \text{Information Gain for Smoker} = \text{Initial Entropy} - \text{Weighted Entropy for Smoker} \approx 1 - 0.76 \approx 0.24  $
 
-#### For Exercise:
+#### For Exercise
 
 1. **Exercise = Regularly:** 
     - Total: 6
@@ -129,7 +129,7 @@ The attribute **Smoker** has the highest information gain and will be the root n
 
 For the second-level decision, let's take the subset of data for one of the age groups, say "Age < 40", and repeat the computation of information gain for "Smoker" and "Exercise". We'll select the attribute with the highest information gain to split the data further. 
 
-### Dataset subset for "Smoker = Yes":
+### Dataset subset for "Smoker = Yes"
 
 | Age     | Smoker | Exercise   | Risk |
 |---------|--------|------------|------|
@@ -171,7 +171,7 @@ $ \text{Weighted Entropy for Age}  = \frac{2}{6} \times 1 + \frac{2}{6} \times 0
 
 $ \text{Information Gain for Age} = \text{Initial Entropy} - \text{Weighted Entropy for Age} \approx 0.65 - 0.33 \approx 0.32$
 
-### Weighted Entropy and Information Gain for Exercise:
+### Weighted Entropy and Information Gain for Exercise
 
 1. **Exercise = Regularly:** 
     - Total: 3
@@ -196,7 +196,7 @@ Given the information gains for the "Age > 55" group:
 "Age" has the higher Information Gain for this group, so we will choose this as the next level node for Smoker=Yes.
 
 
-### Dataset subset for "Smoker = No":
+### Dataset subset for "Smoker = No"
 
 | Age     | Smoker | Exercise   | Risk |
 |---------|--------|------------|------|
@@ -215,7 +215,7 @@ From the subset, the probabilities are:
 
 Thus, the entropy for this subset $ S $ is: $-\frac{2}{7} \log_2(\frac{2}{7}) - \frac{5}{7} \log_2(\frac{5}{7}) $ $ \approx 0.86 $
 
-#### For Age:
+#### For Age
 
 1. **Age <40:**
     - Total: 3
@@ -239,7 +239,7 @@ $ \text{Weighted Entropy for Age}  = \frac{3}{7} \times 0 + \frac{2}{7} \times 1
 
 $ \text{Information Gain for Age} = \text{Initial Entropy} - \text{Weighted Entropy for Age} \approx 0.86 - 0.57 \approx 0.29$
 
-### Weighted Entropy and Information Gain for Exercise:
+### Weighted Entropy and Information Gain for Exercise
 
 1. **Exercise = Regularly:** 
     - Total: 3
