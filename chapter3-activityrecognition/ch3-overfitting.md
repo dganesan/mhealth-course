@@ -187,5 +187,7 @@ best_score = grid_search.best_score_
 print(f"Best depth found using {k}-fold cross-validation: {best_depth}")
 print(f"Best average accuracy: {best_score:.2f}")
 ```
-
 This combined approach will give a more robust estimation of the model's performance and the optimal hyperparameters, reducing the risk of overfitting on the training data.
+
+### Notebook: Tuning Tree Depth of Decision Tree Classifier [[html](notebooks/Chapter3-Classification-DecisionTree-IrisDataset.html)] [[ipynb](Chapter3-Classification-DecisionTree-IrisDataset.ipynb)]
+This notebook describes how you can plot the cross-validation scores as you vary the tree depth of a Decision Tree Classifier, and prune the tree at an appropriate depth to avoid overfitting.
