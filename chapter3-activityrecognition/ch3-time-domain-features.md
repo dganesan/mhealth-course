@@ -97,3 +97,43 @@ Although the primary emphasis has been on accelerometers, other sensors like gyr
 
 Leveraging a single feature may not always be sufficient in differentiating activities, especially when there's an overlap. However, amalgamating multiple features can create a multi-dimensional realm, making activity categorization more precise and definitive. For instance, using just the mean and variance might not clearly differentiate between ascending and descending stairs, but their combination could provide a sharper distinction.
 
+## Implementing feature extraction in Python
+
+Lets look at how you can implement time-domain feature extraction in Python. We will look at a couple of examples where accelerometer and temperature data are split into windows of appropriate size and features are extracted from that window of data. 
+
+### The `resample` function
+
+A python function that is particularly useful for converting raw data into a feature vector is the resample function. Lets take the case of accelerometer data with three orthogonal axes: X, Y, and Z. 
+
+```python
+import pandas as pd
+
+# Assuming your data frame 'df' has a DateTime index and columns 'x', 'y', and 'z' for accelerometer readings.
+resampled_data = pd.DataFrame()
+
+for t, w in df.resample('100L'):
+    frame = {}
+    frame['time'] = t
+    frame['x_mean'] = w['x'].mean()
+    frame['y_mean'] = w['y'].mean()
+    frame['z_mean'] = w['z'].mean()
+    
+    frame['x_std'] = w['x'].std()
+    frame['y_std'] = w['y'].std()
+    frame['z_std'] = w['z'].std()
+    
+    resampled_data = resampled_data.append(frame, ignore_index=True)
+```
+
+In this code:
+
+- We resample the raw accelerometer data at 100 milliseconds intervals ('100L').
+- For each window, we compute the mean and standard deviation for the X, Y, and Z accelerometer readings.
+- We create a dictionary (frame) for each window, populate it with the computed features and the time stamp (t), and then append it to a new DataFrame (resampled_data).
+
+After executing this code, resampled_data will hold the resampled accelerometer data with features calculated for each window. Using a dictionary like this streamlines the process of iterative feature engineering and DataFrame population. The `append` method of pandas DataFrame can easily ingest dictionaries, where each key becomes a column in the DataFrame, and the corresponding value becomes the row entry for that column.
+
+## Notebook: Resampling temperature time-series [[html](notebooks/Chapter3-Resampling.html)] [[ipynb](notebooks/Chapter3-Resampling.ipynb)]
+This notebook shows an example using `resample` and applies it to a synthetic temperature data trace. The initial temperature signal is generated at 10Hz over 2 weeks. The notebook shows how this can be resampled into hourly and daily intervals and a few features extracted for each window.
+
+
