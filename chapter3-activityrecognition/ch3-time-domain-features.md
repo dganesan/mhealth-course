@@ -133,7 +133,7 @@ In this code:
 
 After executing this code, resampled_data will hold the resampled accelerometer data with features calculated for each window. Using a dictionary like this streamlines the process of iterative feature engineering and DataFrame population. The `append` method of pandas DataFrame can easily ingest dictionaries, where each key becomes a column in the DataFrame, and the corresponding value becomes the row entry for that column.
 
-## Notebook: Resampling temperature time-series [[html](notebooks/Chapter3-Resampling.html)] [[ipynb](notebooks/Chapter3-Resampling.ipynb)]
+## Notebook: Resampling temperature time-series ([html](notebooks/Chapter3-Resampling.html)) ([ipynb](notebooks/Chapter3-Resampling.ipynb))
 This notebook shows an example using `resample` and applies it to a synthetic temperature data trace. The initial temperature signal is generated at 10Hz over 2 weeks. The notebook shows how this can be resampled into hourly and daily intervals and a few features extracted for each window.
 
 
