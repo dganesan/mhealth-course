@@ -23,40 +23,40 @@ Pedometers or step counters are now popular as an everyday exercise progress mon
 
 <iframe width="320" height="240" src="https://www.youtube.com/embed/m4Jn6_aUj9s" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-### Part 1: Introduction to Step Counting [[notes](ch2-intro.html)] [[slides](https://drive.google.com/file/d/1joGfgzsmzz55cQmhGwQvQImarvfrmdbF/view?usp=drive_link)]
+### Part 1: Introduction to Step Counting ([notes](ch2-intro.html)) ([slides](https://drive.google.com/file/d/1joGfgzsmzz55cQmhGwQvQImarvfrmdbF/view?usp=drive_link))
 We start by explaining what an accelerometer on a phone or fitness band measures when you walk, and why it is convenient to work with the magnitude signal.
 
 <!---
 <iframe width="320" height="240" src="https://www.youtube.com/embed/t40WyxXuwKk" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 --->
 
-### Part 2: Sources of noise [[slides](https://drive.google.com/file/d/1joGfgzsmzz55cQmhGwQvQImarvfrmdbF/view?usp=drive_link)]
+### Part 2: Sources of noise ([slides](https://drive.google.com/file/d/1joGfgzsmzz55cQmhGwQvQImarvfrmdbF/view?usp=drive_link))
 We describe some of the real-world challenges in accurately estimating the number of steps including common sources of noise such as the device moving around, differences across people in terms of their gait patterns, and others.
 
 <!---
 <iframe width="320" height="240" src="https://www.youtube.com/embed/UExjHCCgd1g" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 --->
 
-### Part 3: Designing a Step Counter [[notes](ch2-stepcounter.html)] [[slides](https://drive.google.com/file/d/1joGfgzsmzz55cQmhGwQvQImarvfrmdbF/view?usp=drive_link)]
+### Part 3: Designing a Step Counter ([notes](ch2-stepcounter.html)) ([slides](https://drive.google.com/file/d/1joGfgzsmzz55cQmhGwQvQImarvfrmdbF/view?usp=drive_link))
 This part describes how you design a step counter and how you detect the number of steps 
 
 <!---
 <iframe width="320" height="240" src="https://www.youtube.com/embed/PYQMBEYPgoo" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 --->
 
-### Part 4: Calorie Tracking [[notes](ch2-calories.html)] [[slides](https://drive.google.com/file/d/1joGfgzsmzz55cQmhGwQvQImarvfrmdbF/view?usp=drive_link)]
+### Part 4: Calorie Tracking ([notes](ch2-calories.html)) ([slides](https://drive.google.com/file/d/1joGfgzsmzz55cQmhGwQvQImarvfrmdbF/view?usp=drive_link))
 Step counters not only tell us the number of steps but also a (rough) estimate of the number of calories burned. We now look at how we can map from steps to calories.
 
 <!---
 <iframe width="320" height="240" src="https://www.youtube.com/embed/Y7vNEf2ksB8" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 --->
 
-### Notebook: Step Counting with Find Peaks [[html](notebooks/Chapter2-StepCounting.html)] [[ipynb](notebooks/Chapter2-StepCounting.zip)]
+### Notebook: Step Counting with Find Peaks ([html](notebooks/Chapter2-StepCounting.html)) ([ipynb](notebooks/Chapter2-StepCounting.zip))
 This notebook shows a step counter using `find_peaks` and applies it to a number of sample sensor logs. The different logs correspond to different sensor placements (left pocket, right pocket, wrist), and to different walking patterns (e.g. with delays between short burst of steps). The notebook shows how tweaking the `prominence` and `width` parameters can allow you to fine-tune the performance of the step counter.
 
 <!---
 
-### Part 3: Distinguishing horizontal vs vertical movements [[slides](https://drive.google.com/file/d/1joGfgzsmzz55cQmhGwQvQImarvfrmdbF/view?usp=drive_link)]
+### Part 3: Distinguishing horizontal vs vertical movements ([slides](https://drive.google.com/file/d/1joGfgzsmzz55cQmhGwQvQImarvfrmdbF/view?usp=drive_link))
 We look at a more complex problem where we have to distinguish between horizontal braking and acceleration while driving in a vehicle versus vertical changes in acceleration due to walking. This can let us distinguish between acceleration due to steps versus due to moving in a vehicle
 
 <iframe width="320" height="240" src="https://www.youtube.com/embed/eV0htD4r4ZI" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
