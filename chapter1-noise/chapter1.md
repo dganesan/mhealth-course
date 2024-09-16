@@ -32,7 +32,7 @@ We start by explaining the difference between information and noise, and describ
 <iframe width="320" height="240" src="https://www.youtube.com/embed/Pq3ganioUzU" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 --->
 
-### Part 2: Time-series Smoothing and Filtering [[notes](ch1-timedomainfiltering.html)] [[slides](https://drive.google.com/file/d/1jo4hHP76vGtyNnOeWMaLCT0mmdynV-Nd/view?usp=drive_link)]
+### Part 2: Time-series Smoothing and Filtering ([notes](ch1-timedomainfiltering.html)) ([slides](https://drive.google.com/file/d/1jo4hHP76vGtyNnOeWMaLCT0mmdynV-Nd/view?usp=drive_link))
 Noise removal techniques can be divided into two class. The first is time-domain approaches, where the information is contained in the amplitude of a signal. For example, you may be interested in the temperature of this room, the orientation of your phone, your location and driving trajectory, and so on. All of these contain information in the time domain.
 
 <!---
