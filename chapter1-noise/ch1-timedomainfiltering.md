@@ -224,6 +224,6 @@ Remember that each method has its strengths and weaknesses, and it's essential t
 
 Because they are so simple to implement and understand, time-domain smoothing is often the first methods tried when faced with a problem. These work well in practice when noise is in the time domain but many sensor signals have frequency domain noise, so it is important not to rely too much on time domain smoothing.
 
-### Example Notebook: Time Domain Noise Removal [[html](notebooks/Chapter1-TimeDomainNoiseRemoval.html)] [[ipynb](notebooks/Chapter1-TimeDomainNoiseRemoval.ipynb)]
+### Example Notebook: Time Domain Noise Removal ([html](notebooks/Chapter1-TimeDomainNoiseRemoval.html)) ([ipynb](notebooks/Chapter1-TimeDomainNoiseRemoval.ipynb))
 This annotated notebook shows a few examples of time-series signals and how different time-domain smoothing methods (moving average, exponentially weighted moving average, and median filtering) work on this data. 
 
