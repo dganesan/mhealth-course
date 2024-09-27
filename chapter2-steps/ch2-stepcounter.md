@@ -98,6 +98,16 @@ Here, we're looking for peaks in the `accel_mag` column of our DataFrame, which 
 
 - **Width:** The `width` parameter captures the full width of a peak at its half-prominence. This becomes particularly relevant in discerning between short spikes (possibly noise or artifacts) and genuine peaks of activity, like steps. In our context, `width` can reflect the typical duration of a step, and filtering peaks based on this duration can improve accuracy.
 
+<p float="left">
+<img src="images/peaks.png" alt="drawing" width="300"/>
+<img src="images/height.png" alt="drawing" width="300"/>
+<img src="images/distance.png" alt="drawing" width="300"/>
+<img src="images/prominence.png" alt="drawing" width="300"/>
+<img src="images/weight.png" alt="drawing" width="300"/>
+</p>
+
+The figures above illustrate how each of these values can be calculated for an example trace. Note that the parameters that you provide to the `find_peaks` function is a *cut-off* value, and only the peaks that are above the cutoffs across the different parameters are chosen.
+
 ### The Role of Sampling Rate
 
 Sampling rate, denoted as the number of samples gathered each second, is a cornerstone in peak detection. Given our earlier example of a 1-2 step walking rate:
