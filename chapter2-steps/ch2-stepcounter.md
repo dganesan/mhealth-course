@@ -99,14 +99,32 @@ Here, we're looking for peaks in the `accel_mag` column of our DataFrame, which 
 - **Width:** The `width` parameter captures the full width of a peak at its half-prominence. This becomes particularly relevant in discerning between short spikes (possibly noise or artifacts) and genuine peaks of activity, like steps. In our context, `width` can reflect the typical duration of a step, and filtering peaks based on this duration can improve accuracy.
 
 <p float="left">
-<img src="images/peaks.png" alt="drawing" width="300"/>
-<img src="images/height.png" alt="drawing" width="300"/>
-<img src="images/distance.png" alt="drawing" width="300"/>
-<img src="images/prominence.png" alt="drawing" width="300"/>
-<img src="images/weight.png" alt="drawing" width="300"/>
+<img src="images/peaks.png" alt="drawing" width="100"/>
+<img src="images/height.png" alt="drawing" width="100"/>
+<img src="images/distance.png" alt="drawing" width="100"/>
+<img src="images/prominence.png" alt="drawing" width="100"/>
+<img src="images/weight.png" alt="drawing" width="100"/>
 </p>
 
 The figures above illustrate how each of these values can be calculated for an example trace. Note that the parameters that you provide to the `find_peaks` function is a *cut-off* value, and only the peaks that are above the cutoffs across the different parameters are chosen.
+
+### Example of a `find_peaks` Call:
+
+```python
+from scipy.signal import find_peaks
+
+# Using find_peaks with multiple tuning parameters
+peaks, properties = find_peaks(signal, height=1.5, prominence=1, distance=2, width=1)
+
+```
+
+In this example:
+- **height=1.5:** Only detect peaks that are taller than 1.5 units.
+- **prominence=1:** Ensure peaks are prominent enough, meaning they stand out by at least 1 unit compared to surrounding points.
+- **distance=2:** Only peaks that are at least 2 units apart are detected, avoiding detection of multiple peaks for a single step.
+- **width=1:** The width of each peak at half prominence must be at least 1 unit wide.
+
+This example demonstrates how you can use multiple parameters to fine-tune the detection of peaks in your signal.
 
 ### The Role of Sampling Rate
 
