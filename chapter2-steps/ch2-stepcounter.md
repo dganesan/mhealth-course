@@ -114,7 +114,7 @@ The figures above illustrate how each of these values can be calculated for an e
 from scipy.signal import find_peaks
 
 # Using find_peaks with multiple tuning parameters
-peaks, properties = find_peaks(signal, height=1.5, prominence=1, distance=2, width=1)
+peaks, properties = find_peaks(df['accel_mag'], height=1.5, prominence=1, distance=2, width=1)
 ```
 
 In this example:
