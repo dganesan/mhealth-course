@@ -111,7 +111,7 @@ import pandas as pd
 # Assuming your data frame 'df' has a DateTime index and columns 'x', 'y', and 'z' for accelerometer readings.
 resampled_data = pd.DataFrame()
 
-for t, w in df.resample('100L'):
+for t, w in df.resample('100ms'):
     frame = {}
     frame['time'] = t
     frame['x_mean'] = w['x'].mean()
@@ -127,7 +127,7 @@ for t, w in df.resample('100L'):
 
 In this code:
 
-- We resample the raw accelerometer data at 100 milliseconds intervals ('100L').
+- We resample the raw accelerometer data at 100 milliseconds intervals ('100ms').
 - For each window, we compute the mean and standard deviation for the X, Y, and Z accelerometer readings.
 - We create a dictionary (frame) for each window, populate it with the computed features and the time stamp (t), and then append it to a new DataFrame (resampled_data).
 

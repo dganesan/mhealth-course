@@ -59,3 +59,7 @@ Extending our focus beyond accelerometer data, gyroscope data can also offer val
 - **Change in Cycling Speeds**: Variations in cycling speed, like transitioning from a slow pedal to a rapid sprint, will exhibit different rhythmic patterns in the data. Understanding the dominant frequency in these cases helps ascertain the main cycling rhythm.
 
 Thus, frequency domain features, although somewhat more complicated than their time-domain counterparts, are instrumental in discerning activities based on their rhythmic and cyclic behavior.
+
+## Notebook: Extraction of frequency domain features from walking ([html](notebooks/Chapter3-FreqDomainFeatures.html)) ([ipynb](notebooks/Chapter3-FreqDomainFeatures.html))
+This notebook illustrates the concept of frequency domain features in the context of activity recognition using accelerometer data. It shows how two features: a) Dominant Frequency i.e. the most significant rhythmic component in the data, and b) Signal Energy i.e. measure of the overall intensity of variations in the data are extracted from synthetic data for different activities (walking, running, cycling).
+
