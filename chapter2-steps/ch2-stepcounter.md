@@ -135,5 +135,5 @@ Sampling rate, denoted as the number of samples gathered each second, is a corne
 Clearly, the optimal values for parameters, especially `distance` and `width`, will vary with the sampling rate. Thus, when adjusting these parameters for `find_peaks`, it's crucial to keep the sampling rate of your data in mind to ensure precise peak (step) detection.
 
 ## Notebook: Step Counting with Find Peaks ([html](notebooks/Chapter2-StepCounting.html)) ([ipynb](notebooks/step-counting.zip))
-This notebook shows a step counter using `find_peaks` and applies it to a number of sample sensor logs. The different logs correspond to different sensor placements (left pocket, right pocket, wrist), and to different walking patterns (e.g. with delays between short burst of steps). The notebook shows how tweaking the `prominence` and `width` parameters can allow you to fine-tune the performance of the step counter.
+This notebook shows a step counter using `find_peaks` and applies it to a number of sample sensor logs. The different logs correspond to different sensor placements (left pocket, right pocket, wrist), and to different walking patterns (e.g. with delays between short burst of steps). 
 
