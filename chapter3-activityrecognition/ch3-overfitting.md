@@ -37,27 +37,28 @@ Cross validation is an evaluation method to identify how well the classifier wil
 
 ### Train-Test Split
 
-A foundational approach to handle overfitting by cross-validation is dividing the data into a training set and a test set. This is also referred to as the **holdout method** and is the simplest kind of cross validation. The data set is separated into two sets, called the training set and the testing set. A common rule of thumb is to use 70\% of the dataset for training and 30\% for testing. Dividing the data into training and test subsets is usually done randomly, in order to guarantee that there is no systematic error in the process.
+A basic approach to avoiding overfitting is the train-test split, which is the simplest form of cross-validation. The dataset is divided into two subsets: a training set and a test set. A common rule of thumb is to allocate 70\% of the data for training and 30\% for testing. The split is typically random to ensure no systematic biases affect the division.
 
 - **Train Model**: Use the training set to teach the model. 
 - **Evaluate**: Test its performance on the unseen test set.
-- **Tweak and Repeat**: Based on the test set performance, make changes to the model, train it again, and keep repeating this loop.
 
 By evaluating the model on the test set, which it hasn't seen during training, we get a clearer picture of how the model performs on new, unseen data. The idea is to select the model version that gives the best performance on the test set. However, its evaluation may depend heavily on which data points end up in the training set and which end up in the test set, and thus the evaluation may be significantly different depending on how the division is made.
 
+Important: Do not use the test set to tweak the model! Repeatedly making changes based on test set performance leads to overfitting to the test data. Instead, you need a separate validation set for this purpose (discussed below).
+
 ## The Role of Validation Sets
 
-While the train-test methodology helps, there's still room for over-optimizing on the test set, especially when we make numerous tweaks based on test set performance. To avoid this, we introduce a third dataset called the validation set.
+While the train-test split helps avoid overfitting, it’s common to unintentionally over-optimize based on test set performance if changes are made after seeing test results. To address this, we introduce a third dataset: the validation set.
 
 - Train the model on the training set.
-- Tweak and tune the model based on performance on the validation set.
-- Only once you've finalized the model, evaluate it on the test set to get an unbiased performance metric.
+- Tune and optimize the model using the validation set.
+- Once the model is finalized, evaluate it on the test set to get an unbiased estimate of performance.
 
-Having a separate validation set allows us to make adjustments without biasing our model to the test data.
+This way, we adjust the model without biasing it towards the test set.
 
 ## K-fold Cross-Validation: Beyond Simple Splits
 
-While train-test and train-validation-test splits are fundamental to avoiding overfitting, they might not always be enough. This is where k-fold cross-validation comes into play.
+In scenarios where the dataset is small, train-validation-test splits might not be enough. This is where k-fold cross-validation is useful.
 
 ### Understanding K-fold Cross-Validation
 
