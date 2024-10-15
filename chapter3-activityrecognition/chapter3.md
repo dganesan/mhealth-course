@@ -18,7 +18,7 @@ description: "Activity Recognition"
 ---
 
 
-## Chapter 3: Activity Recognition using Inertial Sensors ([Slides](https://drive.google.com/file/d/1qfVTzDZgv0Lk49Z2MUrz-yQPi1wBF5xX/view?usp=drive_link))
+## Chapter 3: Activity Recognition using Inertial Sensors ([Slides](https://drive.google.com/file/d/11Wbi66eASTbXA_B3AOBySyMMpXX2Y50J/view?usp=sharing))
 
 Having discussed the design of a pedometer that uses an accelerometer, let us now turn to the problem of activity recognition,  a task which involves identifying the physical activity a user is performing. Activity recognition is useful because it permits us to gain useful knowledge about the habits of millions of users passively—just by having them carry cell phones in their pockets. Such techniques can have a wide range of applications, including automatic customization of the mobile device’s behavior based upon a user’s activity (e.g., sending calls directly to voicemail if a user is jogging) and generating a daily/weekly activity profile to determine if a user is performing a healthy amount of exercise.
 
