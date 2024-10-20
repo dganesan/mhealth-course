@@ -114,3 +114,7 @@ Often, the dataset used to evaluate a classifier might not have an even distribu
 When faced with imbalanced datasets, it's essential to use metrics beyond just accuracy. Precision, recall, and F1 score give a clearer picture of classifier performance.
 
 The implications of these errors can vary based on the application. In some contexts, a false positive might be more problematic than a false negative, and vice-versa.
+
+## Notebook: Sleep Stage Classifier Evaluation using Accelerometer and Heart Rate ([html](notebooks/Chapter3-ClassifierEvaluation.html)) ([ipynb](notebooks/Chapter3-ClassifierEvaluation.ipynb))
+This notebook demonstrates the evaluation of a classifier for detecting sleep stages: Wakefulness, REM (Rapid Eye Movement), and NREM (Non-Rapid Eye Movement) using synthetic data.
+
