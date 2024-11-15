@@ -1,4 +1,14 @@
-# Fall Detection Using Wearable Sensors
+---
+layout: default
+title: Fall Detection - Project Example
+parent: Activity Recognition
+grand_parent: Mobile Sensing &amp; Analytics
+nav_order: 6
+usemathjax: true
+description: "Activity Recognition"
+---
+
+# Fall Detection - Project Example
 {: .no_toc }
 
 ## Table of Contents
