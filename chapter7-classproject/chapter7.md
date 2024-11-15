@@ -21,13 +21,14 @@ description: "Class Project"
 
 In the assignments throughout this course, you've worked with carefully curated datasets where the hard work of data collection, cleaning, and labeling was already done for you. However, real-world machine learning projects rarely start with such polished data. This project guides you through the complete process of building a fall detection system from the ground up, introducing challenges you haven't encountered in previous assignments and showing you how to overcome them. This will be useful for you as you think through your project.
 
+## Example project
 Our goal is to create a system that can reliably distinguish between different types of human movement, with particular attention to high impact events such as potentially dangerous falls. In the context of this example, we want to look at several key questions that go beyond your previous assignments
 * **Defining the classification problem** In your assignments, the classification problem was given to you; here, we want to take a high-level problem and frame it as a classification problem.
 * **Events vs Continuous activities** So far, you have looked at continuous activities like walking and running but falls are different in that they are one-time events and not continuous which requires a different data collection and labeling pipeline.
 * **Data labeling** How you collect data and label it makes a huge difference to the performance of a classifier. As discussed above, continuous activities are very different from events; in addition, different types of events have different duration (e.g. falling vs sitting down on a chair), so all of these need to be considered carefully when labeling the data
 * **Multiple sensors** So far, you have only used features from one sensor i.e. the accelerometer. We will look at how this can easily be extended to add gyroscope features.
 
-# Processing Pipeline Overview
+## Processing Pipeline Overview
 
 <img src="images/fall-detection-pipeline.svg" alt="Fall Detection Pipeline" style="max-width: 100\%; cursor: pointer;" onclick="window.open(this.src, '_blank');">
 
