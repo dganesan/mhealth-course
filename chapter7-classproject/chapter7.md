@@ -1,13 +1,13 @@
 ---
 layout: default
-title: Class Project Example and Tips
+title: Class Project
 nav_order: 7
 parent: Mobile Sensing &amp; Analytics
 has_children: true
 usemathjax: true
 description: "Class Project"
 ---
-# Fall Detection - Project Example
+# Class Project - Example and Instructions
 {: .no_toc }
 
 ## Table of Contents
@@ -27,7 +27,7 @@ Our goal is to create a system that can reliably distinguish between different t
 * **Data labeling** How you collect data and label it makes a huge difference to the performance of a classifier. As discussed above, continuous activities are very different from events; in addition, different types of events have different duration (e.g. falling vs sitting down on a chair), so all of these need to be considered carefully when labeling the data
 * **Multiple sensors** So far, you have only used features from one sensor i.e. the accelerometer. We will look at how this can easily be extended to add gyroscope features.
 
-### Classification Categories
+## Classification Categories
 
 Defining the classification problem isn't as straightforward as it might first appear – the system needs to recognize the difference between someone accidentally falling and someone intentionally sitting down quickly, while also being able to ignore routine movements like walking or standing. To frame this as a classification problem, let us focus on classifying between three distinct classes, each representing different levels of impact and motion patterns:
 
@@ -37,7 +37,7 @@ Defining the classification problem isn't as straightforward as it might first a
 
 * **Regular Activities**: This category encompasses typical daily movements like walking, standing, or light motion. These activities serve as our baseline and help the classifier understand the difference between normal movement patterns and potential fall events.
 
-### Sensor Configuration: Accelerometer + Gyroscope
+## Sensor Configuration: Accelerometer + Gyroscope
 
 So far you have used only the accelerometer. But linear acceleration alone can be misleading for fall detection. Consider someone quickly sitting down versus falling - both show similar acceleration patterns as the body moves downward. The key difference lies in control: a controlled sitting motion involves deliberate rotation of the body, while a fall often includes uncontrolled rotational motion.
 
