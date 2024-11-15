@@ -3,7 +3,7 @@ layout: default
 title: Fall Detection - Project Example
 parent: Activity Recognition
 grand_parent: Mobile Sensing &amp; Analytics
-nav_order: 6
+nav_order: 10
 usemathjax: true
 description: "Activity Recognition"
 ---
