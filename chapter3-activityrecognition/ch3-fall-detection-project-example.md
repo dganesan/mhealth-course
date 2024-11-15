@@ -148,20 +148,18 @@ The final step concatenates features from both sensors into a single feature vec
 
 ```python
 features_df = pd.DataFrame({
-    # Accelerometer features
+    # Accelerometer features on magnitude
     'acc_mean_x': [...],
     'acc_std_x': [...],
     'acc_peak_height_x': [...],
     'acc_dom_freq_x': [...],
-    # (repeat for y and z axes)
     
-    # Gyroscope features
+    # Gyroscope features on magnitude
     'gyr_mean_x': [...],
     'gyr_std_x': [...],
     'gyr_peak_height_x': [...],
     'gyr_dom_freq_x': [...],
-    # (repeat for y and z axes)
-})
+ )
 ```
 
 **Implementation Tips**  When extending your existing accelerometer-based code to include gyroscope features, follow these two tips:
