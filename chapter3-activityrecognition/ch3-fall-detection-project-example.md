@@ -47,8 +47,6 @@ To distinguish between these movement types, we need rich sensor data that captu
 
 <img src="images/fall-detection-pipeline.svg" alt="Fall Detection Pipeline" style="max-width: 100\%; cursor: pointer;" onclick="window.open(this.src, '_blank');">
 
-![Fall Detection Pipeline](images/fall-detection-pipeline.svg)
-
 *Figure 2: Overall processing pipeline*
 
 ## Labeled Data Collection
