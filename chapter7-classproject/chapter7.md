@@ -27,9 +27,20 @@ Our goal is to create a system that can reliably distinguish between different t
 * **Data labeling** How you collect data and label it makes a huge difference to the performance of a classifier. As discussed above, continuous activities are very different from events; in addition, different types of events have different duration (e.g. falling vs sitting down on a chair), so all of these need to be considered carefully when labeling the data
 * **Multiple sensors** So far, you have only used features from one sensor i.e. the accelerometer. We will look at how this can easily be extended to add gyroscope features.
 
+# Processing Pipeline Overview
+
 <img src="images/fall-detection-pipeline.svg" alt="Fall Detection Pipeline" style="max-width: 100\%; cursor: pointer;" onclick="window.open(this.src, '_blank');">
 
 *Figure 1: Overall processing pipeline*
+
+Figure 1 shows an overview of our fall detection system. The system of several key stages that transform raw sensor data into meaningful classifications. Let's examine each major component:
+
+* **Data Collection & Organization**. The pipeline begins with data collection through SensorLogger, gathering samples across three distinct categories: impact events (falls/stumbles), impact-like events (controlled movements), and regular activities. Each category requires different collection strategies which we'll explore in depth later.
+* **Data Processing & Windowing**. Raw sensor data undergoes preprocessing and windowing - a crucial step that segments continuous data streams into analyzable chunks. The windowing strategy varies significantly between event-based activities (like falls) and continuous activities (like walking), as we'll discuss in the windowing section.
+* **Feature Engineering**. The system extracts three types of features: a) Time-domain statistical features capture basic motion characteristics, b) Peak-based features identify sudden changes and impacts, and c) Frequency-domain features reveal periodic patterns in movement. We'll examine how these features work together to distinguish different types of motion in the feature extraction section.
+* **Classification**. The final stage uses a decision tree classifier to categorize movements into our three classes. This classifier learns patterns from our engineered features to distinguish between genuine falls, similar-looking controlled movements, and regular activities. We'll evaluate its performance using confusion matrices and example cases later in this chapter.
+
+The following sections will dive deep into each component, explaining key decisions and implementation details that make this pipeline effective for fall detection.
 
 <details markdown="block">
 <summary>How to define the classification problem?</summary>
