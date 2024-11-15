@@ -21,11 +21,15 @@ description: "Activity Recognition"
 
 In the assignments throughout this course, you've worked with carefully curated datasets where the hard work of data collection, cleaning, and labeling was already done for you. However, real-world machine learning projects rarely start with such polished data. This project guides you through the complete process of building a fall detection system from the ground up, introducing challenges you haven't encountered in previous assignments and showing you how to overcome them. This will be useful for you as you think through your project.
 
-Our goal is to create a system that can reliably distinguish between different types of human movement, with particular attention to high impact events such as potentially dangerous falls. This isn't as straightforward as it might first appear – the system needs to recognize the difference between someone accidentally falling and someone intentionally sitting down quickly, while also being able to ignore routine movements like walking or standing. To accomplish this, we'll expand beyond the single-sensor approach used in your assignments to leverage both accelerometer and gyroscope data.
+Our goal is to create a system that can reliably distinguish between different types of human movement, with particular attention to high impact events such as potentially dangerous falls. In the context of this example, we want to look at several key questions that go beyond your previous assignments
+* **Defining the classification problem** In your assignments, the classification problem was given to you; here, we want to take a high-level problem and frame it as a classification problem.
+* **Events vs Continuous activities** So far, you have looked at continuous activities like walking and running but falls are different in that they are one-time events and not continuous which requires a different data collection and labeling pipeline.
+* **Data labeling** How you collect data and label it makes a huge difference to the performance of a classifier. As discussed above, continuous activities are very different from events; in addition, different types of events have different duration (e.g. falling vs sitting down on a chair), so all of these need to be considered carefully when labeling the data
+* **Multiple sensors** So far, you have only used features from one sensor i.e. the accelerometer. We will look at how this can easily be extended to add gyroscope features.
 
 ### Classification Categories
 
-Our system focuses on three distinct movement categories, each representing different levels of impact and motion patterns:
+Defining the classification problem isn't as straightforward as it might first appear – the system needs to recognize the difference between someone accidentally falling and someone intentionally sitting down quickly, while also being able to ignore routine movements like walking or standing. To frame this as a classification problem, let us focus on classifying between three distinct classes, each representing different levels of impact and motion patterns:
 
 * **Impact Events**: These are sudden, high-intensity movements characterized by rapid acceleration changes. This category includes hard falls, stumbles, and trips where the body experiences unexpected motion changes. These events typically show distinctive spike patterns in sensor data, making them particularly interesting for detection.
 
@@ -35,7 +39,7 @@ Our system focuses on three distinct movement categories, each representing diff
 
 ### Sensor Configuration
 
-To distinguish between these movement types, we need rich sensor data that captures both linear and rotational motion, so lets use both the accelerometer and gyroscope. 
+To distinguish between these movement types, we will probably need a richer set of sensors than just the accelerometer, so lets use both the accelerometer and gyroscope. 
 
 * **Accelerometer Data**: Provides linear acceleration measurements across three axes, capturing the intensity and direction of movement. This sensor is particularly sensitive to sudden changes in motion, making it ideal for detecting impact events.
 
