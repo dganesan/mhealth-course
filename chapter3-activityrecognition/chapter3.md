@@ -49,3 +49,5 @@ Overfitting is a prevalent phenomenon in machine learning where a model learns t
 #### Part 9: Evaluating Classifier Performance ([notes](ch3-classifier-performance.html))
 We look at how to evaluate classifier performance using a confusion matrix, and metrics such as accuracy, precision, recall, and f-measure.
 
+#### Part 10: Project Example: Fall detection ([notes](ch3-fall-detection-project-example.html))
+We look at an end-to-end example that will be useful for developing your course project and thinking through the steps involved.
