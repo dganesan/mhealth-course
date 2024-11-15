@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Fall Detection - Project Example
+title: Class Project Example and Tips
 parent: Activity Recognition
 grand_parent: Mobile Sensing &amp; Analytics
 nav_order: 10
@@ -17,7 +17,7 @@ description: "Activity Recognition"
 1. TOC
 {:toc}
 
-## Project Overview
+## What is different about the class project?
 
 In the assignments throughout this course, you've worked with carefully curated datasets where the hard work of data collection, cleaning, and labeling was already done for you. However, real-world machine learning projects rarely start with such polished data. This project guides you through the complete process of building a fall detection system from the ground up, introducing challenges you haven't encountered in previous assignments and showing you how to overcome them. This will be useful for you as you think through your project.
 
@@ -37,13 +37,21 @@ Defining the classification problem isn't as straightforward as it might first a
 
 * **Regular Activities**: This category encompasses typical daily movements like walking, standing, or light motion. These activities serve as our baseline and help the classifier understand the difference between normal movement patterns and potential fall events.
 
-### Sensor Configuration
+### Sensor Configuration: Accelerometer + Gyroscope
 
-To distinguish between these movement types, we will probably need a richer set of sensors than just the accelerometer, so lets use both the accelerometer and gyroscope. 
+So far you have used only the accelerometer. But linear acceleration alone can be misleading for fall detection. Consider someone quickly sitting down versus falling - both show similar acceleration patterns as the body moves downward. The key difference lies in control: a controlled sitting motion involves deliberate rotation of the body, while a fall often includes uncontrolled rotational motion.
 
-* **Accelerometer Data**: Provides linear acceleration measurements across three axes, capturing the intensity and direction of movement. This sensor is particularly sensitive to sudden changes in motion, making it ideal for detecting impact events.
+The accelerometer captures the intensity of motion but misses crucial orientation changes. A forward fall, for instance, shows high forward acceleration but also includes body rotation that only the gyroscope can detect. This rotational data helps distinguish between:
+1. A forward fall (high acceleration + rapid uncontrolled rotation)
+2. Quickly bending down (high acceleration + controlled rotation)
+3. Fainting (high acceleration + minimal initial rotation followed by sudden change)
 
-* **Gyroscope Data**: Measures rotational velocity, offering insights into how the device (and by extension, the body) orients itself during different movements. This data is crucial for distinguishing between similar movements that have different rotational components.
+Real-world examples to illustrate this:
+- Tripping shows a characteristic pattern: initial rotation (detected by gyroscope) followed by impact (detected by accelerometer)
+- Sports activities like jumping can show high acceleration but controlled rotation
+- Getting into bed might show similar acceleration to a fall but very different rotational patterns
+
+Without gyroscope data, false positives would be common in daily activities that involve quick movements. The combination of both sensors provides a more complete picture of body motion, significantly improving classification accuracy between actual falls and fall-like activities.
 
 ![Example Sensor Signals](images/fall-signals-example.png)
 
@@ -169,4 +177,40 @@ features_df = pd.DataFrame({
 **Implementation Tips**  When extending your existing accelerometer-based code to include gyroscope features, follow these two tips:
 * **Naming Convention**: Use clear prefixes ('acc_' and 'gyr_') to distinguish features from different sensors. This makes your code more maintainable and helps when analyzing feature importance later.
 * **Feature Selection**: Not every feature needs to be calculated for both sensors. Some features might be more meaningful for one sensor than the other. As you develop your system, you can analyze feature importance to determine which combinations work best for your specific classification task.
+
+# Project Submission Guidelines 
+
+## Performance Analysis Requirements
+
+**Classification Results Documentation**
+Your project must include a thorough analysis of your classifier's performance. Start with a confusion matrix that clearly shows how well your system distinguishes between different activities or events. Beyond just the numbers, you need to tell the story of your classifier's behavior through visualization. Select representative examples that demonstrate both successful classifications and failure cases - these examples should help explain why your classifier works well in some scenarios and struggles in others. If your project does not involve classification but involves counting or other problem, define your performance metric appropriately. For example, when counting, you can report accuracy and false positives/negatives.
+
+**Feature Engineering Deep Dive**
+It would also be good if your submission has a comprehensive analysis of your feature set's effectiveness. Calculate and visualize feature importance scores for all features in your system. Then, conduct experiments with different feature subsets: use only your top three features, separate time-domain and frequency-domain features, and compare these against your complete feature set. This analysis should reveal which features are truly driving your classifier's performance and whether you've struck the right balance in your feature engineering.
+
+## Project Development Guidelines
+
+**Data Collection Standards**
+Your project must be grounded in real-world data that you collect yourself using SensorLogger or an equivalent application. While you may supplement this with existing datasets, your own data collection is mandatory. This requirement ensures you understand the practical challenges of data collection and the nuances of your chosen problem. Teams making substantial data contributions to other projects will receive credit for this activity, as this promotes collaboration and creates a richer dataset for everyone.
+
+**Analysis Requirements**
+Your analysis must demonstrate clear application of the tools and techniques covered in class while extending beyond basic assignment work. While we would prefer that you come up with a different scenario/problem, if you do end up working on a problem that involves mostly the same sensor/features/code as your assignments, then you should extend your assignment in new ways. This extension could come through a combination of new feature engineering (e.g. try other features that you did not use in the assignment), new sensor combinations (e.g. your assignment only used accelerometer, try with accelerometer and gyroscope now), or deeper analysis of classification results (e.g. visualizing results). Your project should show sophistication in how you approach the problem even if you are building on the assignment(s).
+
+## Project Proposal Requirements
+
+In your project proposal, briefly outline the following aspects.
+
+**Application Concept and Sensors**
+Begin your proposal with a clear description of your application and its goals. Detail which sensors you plan to use and why they're appropriate for your problem. Remember that sensor choice should be driven by what you're trying to detect or classify, not just by what's available.
+
+**Data Analysis Strategy**
+Outline your planned analysis approach, including initial thoughts on feature engineering and classification methods. What makes your problem interesting from an analysis perspective? What challenges do you anticipate in distinguishing between different activities or events? How will you address these challenges?
+
+**Data Collection Plan**
+Develop a concrete plan for data collection that includes your target sample size, how you'll divide data into windows, and your labeling strategy. Consider practical aspects like where you'll collect data, how many participants you'll need, and how you'll ensure data quality. A well-thought-out data collection plan is crucial for project success.
+
+**Evaluation Framework**
+Describe how you'll measure success in your project. What metrics will you use beyond basic accuracy? How will you validate your results? Include both quantitative metrics and qualitative assessments in your evaluation plan.
+
+The project proposal should demonstrate that you've thought through the technical challenges and have a realistic plan for completing the project.
 
