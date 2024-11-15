@@ -45,7 +45,9 @@ To distinguish between these movement types, we need rich sensor data that captu
 
 *Figure 1: Example accelerometer (left) and gyroscope (right) signals during a fall event, showing characteristic impact patterns*
 
-![Processing pipeline](images/fall-detection-pipeline.svg)
+{% include lightgallery.html src="images/fall-detection-pipeline.png" title="Complete data processing pipeline from collection to classification" %}
+
+![Fall Detection Pipeline](images/fall-detection-pipeline.svg)
 
 *Figure 2: Overall processing pipeline*
 
