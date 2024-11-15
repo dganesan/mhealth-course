@@ -17,7 +17,7 @@ description: "Class Project"
 {:toc}
 ---
 
-## What is different about the class project?
+# Class Project: Example and Expectations
 
 In the assignments throughout this course, you've worked with carefully curated datasets where the hard work of data collection, cleaning, and labeling was already done for you. However, real-world machine learning projects rarely start with such polished data. This project guides you through the complete process of building a fall detection system from the ground up, introducing challenges you haven't encountered in previous assignments and showing you how to overcome them. This will be useful for you as you think through your project.
 
@@ -67,7 +67,8 @@ Without gyroscope data, false positives would be common in daily activities that
 *Figure 2: Example accelerometer (left) and gyroscope (right) signals during a fall event, showing characteristic impact patterns*
 </details>
 
-
+<details markdown="block">
+<summary>How to collect and label your data?</summary>
 ## Labeled Data Collection
 
 One of the key challenges you will face is deciding how to collect and label your data. For this, you will need to first understand the difference between discrete events and continuous activities:
@@ -115,6 +116,10 @@ Remember that safety comes first, especially when recording fall data. Use prote
 
 This structured approach to data collection sets the foundation for everything that follows. Clean, well-organized data makes the subsequent processing and classification tasks much more manageable. In the next section, we'll explore how to take this raw data and transform it into windows suitable for feature extraction.
 
+</details>
+
+<details markdown="block">
+<summary>How to select window sizes for events and continuous activities?</summary>
 ## Window Selection Strategies
 
 Once we've collected our raw sensor data, we face a new challenge: how do we divide this data into meaningful segments for analysis? The answer varies depending on what type of movement we're examining. Figure 4 illustrates how we can handle types of activities.
@@ -128,7 +133,10 @@ Once we've collected our raw sensor data, we face a new challenge: how do we div
 * **Regular Activities**: Walking, standing, and other regular activities require a fundamentally different approach. Without natural start and end points, we impose structure through systematic sampling. One solution is to sliding windows - 5-second segments that overlap by 50\%; you can also try non-overlapping windows. We usually prefer overlapping windows for two reasons. First, it ensures we don't miss important transitions that might occur at window boundaries. Second, it provides our classifier with multiple perspectives on the same movement, improving its ability to recognize patterns. The 5-second duration captures enough cycles of repetitive movements (like walking) to establish clear patterns while remaining short enough to detect activity changes promptly.
 
 In the next section, we'll explore how to extract meaningful features from these windows, leveraging both accelerometer and gyroscope data to capture the full complexity of human movement.
+</details>
 
+<details markdown="block">
+<summary>How to extract features from multiple sensors?</summary>
 ## Feature Extraction from Multiple Sensors
 
 With our data properly windowed, we now face the challenge of extracting meaningful features that capture the essence of different movements. While previous assignments focused solely on accelerometer data, our fall detection system leverages both accelerometer and gyroscope signals. This dual-sensor approach provides a richer understanding of movement patterns, as illustrated in Figure 5.
@@ -185,6 +193,10 @@ features_df = pd.DataFrame({
 * **Naming Convention**: Use clear prefixes ('acc_' and 'gyr_') to distinguish features from different sensors. This makes your code more maintainable and helps when analyzing feature importance later.
 * **Feature Selection**: Not every feature needs to be calculated for both sensors. Some features might be more meaningful for one sensor than the other. As you develop your system, you can analyze feature importance to determine which combinations work best for your specific classification task.
 
+</details>
+
+<details markdown="block">
+<summary>Project submission guidelines</summary>
 # Project Submission Guidelines 
 
 ## Performance Analysis Requirements
@@ -220,4 +232,5 @@ Develop a concrete plan for data collection that includes your target sample siz
 Describe how you'll measure success in your project. What metrics will you use beyond basic accuracy? How will you validate your results? Include both quantitative metrics and qualitative assessments in your evaluation plan.
 
 The project proposal should demonstrate that you've thought through the technical challenges and have a realistic plan for completing the project.
+</details>
 
