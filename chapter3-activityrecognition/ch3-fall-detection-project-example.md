@@ -108,14 +108,6 @@ With our data properly windowed, we now face the challenge of extracting meaning
 
 *Figure 5: Feature extraction pipeline showing parallel processing of accelerometer and gyroscope data*
 
-## Feature Extraction from Multiple Sensors
-
-When working with both accelerometer and gyroscope data, we extend our feature extraction approach to capture the unique characteristics of both sensors. Figure 5 illustrates how we process data from both sensors to create a comprehensive feature vector that captures both linear acceleration and rotational motion patterns. After segmenting our data into appropriate windows, we process accelerometer and gyroscope data streams using the same pipeline. Each sensor provides three-dimensional data (X, Y, Z axes), and we extract the same set of features from each dimension. This parallel approach ensures we capture both the linear and rotational aspects of each movement, providing our classifier with a richer understanding of the activity dynamics.
-
-![Feature Extraction Pipeline](images/feature-extraction-pipeline.svg)
-
-*Figure 5: Feature extraction pipeline showing parallel processing of accelerometer and gyroscope data*
-
 ### Time Domain Features
 
 For both sensors, we begin with basic statistical measures that capture the central tendency and variability of the signal. From each axis of both the accelerometer and gyroscope, we compute:
