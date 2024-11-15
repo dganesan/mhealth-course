@@ -65,7 +65,7 @@ As shown in Figure 3, we have two main approaches to collecting our fall data.
 
 ### Recommended Strategy for Students
 
-Given these considerations, we strongly recommend that students use the individual recording method for falls and impact-like events. Yes, it takes more time. Yes, you'll handle more files. But the benefits outweigh these inconveniences. The quality control alone makes it worthwhile - nothing is more frustrating than discovering problems in your data after you've completed all your recordings.
+Given these considerations, we recommend that students use the individual recording method for falls and impact-like events. Yes, it takes more time. Yes, you'll handle more files. But the benefits outweigh these inconveniences. The quality control alone makes it worthwhile - nothing is more frustrating than discovering problems in your data after you've completed all your recordings.
 
 Moreover, this method provides valuable learning opportunities. Each recording becomes a mini-experiment where you can observe the sensor patterns immediately and develop an intuition for what constitutes a "good" recording. This understanding becomes invaluable when you move on to feature extraction and classification.
 
@@ -82,7 +82,7 @@ For falls and impact-like events, establish a consistent recording protocol:
 
 For continuous activities, the process is simpler:
 1. Start recording
-2. Perform the activity naturally for 2-3 minutes
+2. Perform the activity naturally for say 5 minutes
 3. Stop recording
 
 Remember that safety comes first, especially when recording fall data. Use protective mats, ensure you have enough space, and consider having a spotter present. It's better to take extra time and stay safe than to rush and risk injury.
@@ -91,39 +91,17 @@ This structured approach to data collection sets the foundation for everything t
 
 ## Window Selection Strategies
 
-Once we've collected our raw sensor data, we face a new challenge: how do we divide this data into meaningful segments for analysis? The answer varies depending on what type of movement we're examining. Figure 4 illustrates our comprehensive approach to handling different types of activities.
+Once we've collected our raw sensor data, we face a new challenge: how do we divide this data into meaningful segments for analysis? The answer varies depending on what type of movement we're examining. Figure 4 illustrates how we can handle types of activities.
 
 ![Window Selection Strategies](images/window-selection-strategies.png)
 
 *Figure 4: Windowing strategies for different activity types, showing how raw sensor data is processed into feature vectors*
 
-### High-Impact Events: Capturing the Critical Moment
+* **High-Impact Events**: When dealing with falls and other high-impact events, these events pivot around a crucial moment - the impact - and the window needs to capture not just this moment but the motion leading up to and following it. So you can pick a 5-second window centered on the impact point (±2.5 seconds) to provide a good view of the event. 
+* **Impact-Like Events**: Impact-like events such as controlled sitting or deliberate drops might have temporal patterns that are different from that of fall events. Someone carefully lowering themselves to the ground might take twice as long as someone falling, yet both actions need to be correctly classified. So, for each such event, you need to pick a window that is appropriate for its natural duration.
+* **Regular Activities**: Walking, standing, and other regular activities require a fundamentally different approach. Without natural start and end points, we impose structure through systematic sampling. One solution is to sliding windows - 5-second segments that overlap by 50\%; you can also try non-overlapping windows. We usually prefer overlapping windows for two reasons. First, it ensures we don't miss important transitions that might occur at window boundaries. Second, it provides our classifier with multiple perspectives on the same movement, improving its ability to recognize patterns. The 5-second duration captures enough cycles of repetitive movements (like walking) to establish clear patterns while remaining short enough to detect activity changes promptly.
 
-When dealing with falls and other high-impact events, timing is everything. These events pivot around a crucial moment - the impact - and our challenge is to capture not just this moment but the motion leading up to and following it. Through extensive testing, we've found that a 5-second window centered on the impact point (±2.5 seconds) provides the optimal view of the event.
-
-This window size isn't arbitrary. The pre-impact portion captures the initial loss of balance or stumble, crucial information that helps distinguish between intentional and unintentional movements. The post-impact portion reveals how the person responds to the fall - whether they immediately try to recover (as often happens in a trip) or remain still (more common in serious falls). These behavioral signatures prove invaluable for classification.
-
-### Impact-Like Events: Embracing Variability
-
-Impact-like events such as controlled sitting or deliberate drops present a unique challenge. While they share some characteristics with falls, they follow a different temporal pattern. Someone carefully lowering themselves to the ground might take twice as long as someone falling, yet both actions need to be correctly classified.
-
-Rather than forcing these varied movements into fixed-width windows, we adapt to their natural duration. By processing the entire event from start to finish, we preserve the controlled nature of these movements. This approach captures the full arc of the motion - from the initial preparation through the controlled descent to the final positioning. The trade-off is that our windows vary in length, but this variability itself becomes a useful feature for classification.
-
-### Regular Activities: Finding Patterns in Continuity
-
-Walking, standing, and other regular activities require a fundamentally different approach. Without natural start and end points, we impose structure through systematic sampling. Our solution uses sliding windows - 5-second segments that overlap by 50\%. Think of it as taking a series of snapshots, each sharing half its frame with the next.
-
-This overlap serves two crucial purposes. First, it ensures we don't miss important transitions that might occur at window boundaries. Second, it provides our classifier with multiple perspectives on the same movement, improving its ability to recognize patterns. The 5-second duration captures enough cycles of repetitive movements (like walking) to establish clear patterns while remaining short enough to detect activity changes promptly.
-
-### Unifying Diverse Windows
-
-Despite these different windowing strategies, our goal is to feed consistent, comparable data to our classifier. Each window, regardless of its source or size, must generate the same set of features. For fixed-width windows from falls and sliding windows from regular activities, this is straightforward. For variable-length windows from impact-like events, we ensure our feature extraction methods account for the time dimension, often by normalizing temporal features.
-
-This unified approach allows our classifier to learn the distinctive patterns of each activity type while handling the inherent differences in how these activities unfold over time. The key is maintaining this consistency without losing the unique temporal characteristics that help distinguish between different types of movement.
-
-### From Windows to Features
-
-These carefully selected windows form the foundation for our feature extraction process. Each window becomes a row in our feature table, labeled with its activity type and ready for the next stage of processing. The success of our classification system depends heavily on these windowing decisions - too short, and we miss crucial context; too long, and we blur the distinctive characteristics of different movements.
+Despite these different windowing strategies, our goal is to feed consistent, comparable data to our classifier. Each window, regardless of its source or size, must generate the same set of features. For fixed-width windows from falls and sliding windows from regular activities, this is straightforward. This unified approach allows our classifier to learn the distinctive patterns of each activity type while handling the inherent differences in how these activities unfold over time. The key is maintaining this consistency without losing the unique temporal characteristics that help distinguish between different types of movement.
 
 In the next section, we'll explore how to extract meaningful features from these windows, leveraging both accelerometer and gyroscope data to capture the full complexity of human movement.
 
@@ -135,6 +113,73 @@ With our data properly windowed, we now face the challenge of extracting meaning
 
 *Figure 5: Feature extraction pipeline showing parallel processing of accelerometer and gyroscope data*
 
+## Feature Extraction from Multiple Sensors
+
+When working with both accelerometer and gyroscope data, we extend our feature extraction approach to capture the unique characteristics of both sensors. Figure 5 illustrates how we process data from both sensors to create a comprehensive feature vector that captures both linear acceleration and rotational motion patterns. After segmenting our data into appropriate windows, we process accelerometer and gyroscope data streams using the same pipeline. Each sensor provides three-dimensional data (X, Y, Z axes), and we extract the same set of features from each dimension. This parallel approach ensures we capture both the linear and rotational aspects of each movement, providing our classifier with a richer understanding of the activity dynamics.
+
+![Feature Extraction Pipeline](images/feature-extraction-pipeline.svg)
+
+*Figure 5: Feature extraction pipeline showing parallel processing of accelerometer and gyroscope data*
+
+### Time Domain Features
+
+For both sensors, we begin with basic statistical measures that capture the central tendency and variability of the signal. From each axis of both the accelerometer and gyroscope, we compute:
+- Mean values that represent average motion intensity
+- Standard deviation indicating motion variability
+- Maximum and minimum values showing movement extremes
+- Root Mean Square (RMS) capturing the signal's overall energy
+
+### Peak Characteristics
+
+Peak analysis becomes particularly interesting when comparing accelerometer and gyroscope data. In a fall event, we typically see:
+- Sharp acceleration peaks indicating sudden impacts
+- Corresponding rotational velocity peaks showing body orientation changes
+- Peak width and prominence that help distinguish controlled versus uncontrolled movements
+
+The relationship between these peaks often helps distinguish between similar activities – for instance, a fall versus a controlled sitting motion might show similar acceleration patterns but very different rotational velocity signatures.
+
+### Frequency Domain Analysis
+
+Transforming both sensor streams into the frequency domain reveals different aspects of the movement:
+- Accelerometer frequency features capture repetitive linear motions
+- Gyroscope frequency features identify rotational patterns
+- Dominant frequencies often differ between sensors for the same activity
+
+### Creating the Combined Feature Vector
+
+The final step concatenates features from both sensors into a single feature vector. In your pandas DataFrame, each row represents one window of activity, with columns clearly labeled by both sensor type and feature:
+
+```python
+features_df = pd.DataFrame({
+    # Accelerometer features
+    'acc_mean_x': [...],
+    'acc_std_x': [...],
+    'acc_peak_height_x': [...],
+    'acc_dom_freq_x': [...],
+    # (repeat for y and z axes)
+    
+    # Gyroscope features
+    'gyr_mean_x': [...],
+    'gyr_std_x': [...],
+    'gyr_peak_height_x': [...],
+    'gyr_dom_freq_x': [...],
+    # (repeat for y and z axes)
+})
+```
+
+### Implementation Tips
+
+When extending your existing accelerometer-based code to include gyroscope features:
+
+1. **Naming Convention**: Use clear prefixes ('acc_' and 'gyr_') to distinguish features from different sensors. This makes your code more maintainable and helps when analyzing feature importance later.
+
+2. **Signal Processing**: While the feature extraction functions are the same, remember that accelerometer and gyroscope signals have different units and typical value ranges. Consider normalizing each sensor's data separately before feature extraction.
+
+3. **Feature Selection**: Not every feature needs to be calculated for both sensors. Some features might be more meaningful for one sensor than the other. As you develop your system, you can analyze feature importance to determine which combinations work best for your specific classification task.
+
+4. **Processing Efficiency**: Since the same functions are applied to both sensor streams, consider structuring your code to avoid duplication. A general feature extraction function that can be applied to either sensor type can make your code more efficient and easier to maintain.
+
+This comprehensive approach to feature extraction ensures your classification system can leverage both linear and rotational motion information, typically resulting in more robust activity recognition compared to single-sensor approaches.
 ### Parallel Processing: Two Perspectives on Movement
 
 Think of accelerometer and gyroscope data as two complementary views of the same movement. The accelerometer tells us about linear motion - how quickly something speeds up, slows down, or changes direction. The gyroscope reveals rotational motion - how the body turns and tilts during movement. Together, they paint a complete picture that neither sensor could provide alone.
