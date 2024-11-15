@@ -100,7 +100,7 @@ This structured approach to data collection sets the foundation for everything t
 
 Once we've collected our raw sensor data, we face a new challenge: how do we divide this data into meaningful segments for analysis? The answer varies depending on what type of movement we're examining. Figure 4 illustrates how we can handle types of activities.
 
-![Window Selection Strategies](images/window-selection-strategies.png)
+![Window Selection Strategies](images/window-selection-strategies.svg)
 
 *Figure 4: Windowing strategies for different activity types, showing how raw sensor data is processed into feature vectors*
 
