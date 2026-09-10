@@ -16,24 +16,24 @@
     --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.4; padding-block: 18px 28px; padding-inline: 16px; -webkit-font-smoothing: antialiased; }
-  .stage { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
-  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.4; padding-block: 10px 10px; padding-inline: 14px; -webkit-font-smoothing: antialiased; }
+  .stage { max-width: 1880px; margin: 0 auto; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; height: calc(100vh - 20px); }
+  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 16px 30px 8px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 6px; min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none; }
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
-  .head h1 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
+  .head h1 { margin: 0; font-size: clamp(20px, 2.2vw, 28px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
   .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
   .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
   .code .p { color: var(--ma); font-weight: 700; }
-  .chart-wrap { position: relative; min-height: 0; }
-  svg.chart { display: block; width: 100%; height: auto; max-height: calc(100vh - 360px); overflow: visible; }
+  .chart-wrap { position: relative; min-height: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
+  svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
   .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
   .foot .ctr { font-family: var(--mono); }
-  .bar { display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center; padding:14px 18px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
+  .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
   .group { display:flex; align-items:center; gap:8px; }
   .group label { font-size:13px; font-weight:700; color:var(--ink); }
   .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
@@ -63,6 +63,9 @@
   .curve { fill: none; stroke: var(--ink); stroke-width: 2; }
   .ptitle { font-family: var(--sans); font-size: 13px; font-weight: 700; fill: var(--ink); }
   @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
+  .hint { display:none !important; }
+  button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
+  button.primary.tb { min-width:52px; }
 </style>
 
 <div class="stage">
@@ -84,10 +87,10 @@
 
   <div class="bar">
     <div class="group">
-      <button id="prev" title="Previous (←)">‹ Prev</button>
-      <button id="play" class="primary" title="Play / pause (space)">Play</button>
-      <button id="next" title="Next (→)">Next ›</button>
-      <button id="restart" title="Restart this step (r)">Restart</button>
+      <button id="prev" class="tb" title="Previous step (←)">⏮</button>
+      <button id="play" class="primary tb" title="Play / pause (space)">▶</button>
+      <button id="next" class="tb" title="Next step (→)">⏭</button>
+      <button id="restart" class="tb" title="Restart this step (r)">↺</button>
       <button id="reset" title="Reset all dials to defaults">Reset dials</button>
     </div>
     <div class="group">
@@ -355,8 +358,8 @@
     if (cursorDone()) { finish(); return; }
     render(); raf = requestAnimationFrame(tick);
   }
-  function startPlay() { if (cursorDone()) return; playing = true; lastT = performance.now(); $('play').textContent = 'Pause'; raf = requestAnimationFrame(tick); }
-  function stopPlay() { playing = false; cancelAnimationFrame(raf); $('play').textContent = 'Play'; }
+  function startPlay() { if (cursorDone()) return; playing = true; lastT = performance.now(); $('play').textContent = '⏸'; raf = requestAnimationFrame(tick); }
+  function stopPlay() { playing = false; cancelAnimationFrame(raf); $('play').textContent = '▶'; }
   function next() { if (!cursorDone()) { finish(); return; } if (step < steps.length - 1) enterStep(step + 1); }
   function prev() { if (step > 0) enterStep(step - 1, true); }
   function restart() { enterStep(step); }
