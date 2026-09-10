@@ -57,8 +57,8 @@
   .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
   .dlabel { font-family: var(--mono); font-size: 13px; font-weight: 700; }
   .big { font-family: var(--mono); font-size: 16px; font-weight: 700; }
-  .plabel { font-family: var(--sans); font-size: 13px; fill: var(--ink-2); }
-  .formula { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
+  .plabel { font-family: var(--sans); font-size: 15px; fill: var(--ink-2); }
+  .formula { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
   @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
   .hint { display:none !important; }
@@ -250,7 +250,7 @@
   }
   function legendRow(parent, xr, y, items) {
     const padX = 10, gap = 16, h = 24;
-    const widths = items.map(it => 26 + it.n.length * 7.2);
+    const widths = items.map(it => 26 + it.n.length * 10.5);
     const wdt = widths.reduce((a, b) => a + b, 0) + gap * (items.length - 1) + 2 * padX;
     const x = xr - wdt;
     el('rect', { x, y, width: wdt, height: h, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, parent);

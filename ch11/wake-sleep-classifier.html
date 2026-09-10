@@ -52,7 +52,7 @@
   .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .mono { font-family: var(--mono); }
   .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
-  .ann { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
+  .ann { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
   .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
   @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
@@ -114,8 +114,9 @@
   const code2stage = v => v === 0 ? 'W' : (v === 1 || v === 2) ? 'L' : v === 3 ? 'D' : v === 5 ? 'R' : null;
   // legend: items [{c, n, dash?, box?}] drawn on a white rounded rect at (x, y)
   function legend(parent, x, y, items) {
-    const rowH = 18, padX = 10, padY = 8;
-    const wdt = 12 + Math.max(...items.map(i => i.n.length)) * 7.2 + 2 * padX + 22;
+    const rowH = 24, padX = 10, padY = 8;
+    const wdt = 12 + Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX + 22;
+    x = Math.min(x, W - wdt - 6);
     el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, parent);
     items.forEach((it, j) => {
       const yy = y + padY + j * rowH + 6;
@@ -272,20 +273,20 @@
       el('rect', { x: SX0, y: y0, width: SX1 - SX0, height: y1 - y0, fill: '#f4f4f4', stroke: 'var(--rule)' }, chart);
       txt(chart, SX0, y0 - 6, name, { class: 'axis-title' });
     });
-    txt(chart, SX0, SY.err[0] - 4, 'disagreements', { class: 'axis-title', 'font-size': 11 });
+    txt(chart, SX0, SY.err[0] - 4, 'disagreements', { class: 'axis-title', 'font-size': 15 });
     for (let hh = 0; hh <= NH / 120; hh += 1) { const x = xh(hh * 120); el('line', { x1: x, x2: x, y1: SY.err[1] + 2, y2: SY.err[1] + 6, stroke: 'var(--ink-2)' }, axis); txt(axis, x, SY.err[1] + 20, hh, { 'text-anchor': 'middle' }); }
     el('line', { x1: SX0, x2: SX1, y1: SY.err[1] + 2, y2: SY.err[1] + 2 }, axis);
     txt(chart, SX1, SY.err[1] + 38, 'hours from start of labeled recording', { class: 'axis-title', 'text-anchor': 'end' });
     G.strips = el('g', {}, chart); G.cur = el('g', {}, chart); G.cm = el('g', {}, chart);
     legend(el('g', {}, chart), SX0, SY.err[1] + 56, [{ c: 'var(--sleep)', n: 'Sleep', box: true, op: 0.85 }, { c: STAGE.W.c, n: 'Wake', box: true, op: 0.9 }, { c: 'var(--ink)', n: 'prediction ≠ PSG', box: true }]);
-    txt(chart, SX0 + 190, SY.err[1] + 76, `train: subjects ${TRAIN.join(', ')}   ·   test: subject ${HS}`, { class: 'ann', 'font-size': 12, fill: 'var(--ink-2)' });
-    txt(chart, SX0 + 190, SY.err[1] + 96, 'features: MAD, max, std, 95th pct, activity count, 10-min rolling MAD and count', { class: 'ann', 'font-size': 12, fill: 'var(--ink-2)' });
+    txt(chart, SX0 + 190, SY.err[1] + 76, `train: subjects ${TRAIN.join(', ')}   ·   test: subject ${HS}`, { class: 'ann', 'font-size': 15, fill: 'var(--ink-2)' });
+    txt(chart, SX0 + 190, SY.err[1] + 96, 'features: MAD, max, std, 95th pct, activity count, 10-min rolling MAD and count', { class: 'ann', 'font-size': 15, fill: 'var(--ink-2)' });
     // matrix frame
     const { x, y, cell } = CM;
-    txt(chart, x + cell, y - 30, 'Predicted label', { class: 'axis-title', 'text-anchor': 'middle', 'font-size': 13 });
-    ['Wake', 'Sleep'].forEach((n, j) => txt(chart, x + cell * (j + 0.5), y - 10, n, { class: 'axis-title', 'text-anchor': 'middle', 'font-size': 13 }));
-    ['Wake', 'Sleep'].forEach((n, i) => txt(chart, x - 8, y + cell * (i + 0.5) + 4, n, { class: 'axis-title', 'text-anchor': 'end', 'font-size': 13 }));
-    txt(chart, x - 62, y + cell, 'Actual', { class: 'axis-title', 'text-anchor': 'middle', 'font-size': 13, transform: `rotate(-90 ${x - 62} ${y + cell})` });
+    txt(chart, x + cell, y - 30, 'Predicted label', { class: 'axis-title', 'text-anchor': 'middle', 'font-size': 15 });
+    ['Wake', 'Sleep'].forEach((n, j) => txt(chart, x + cell * (j + 0.5), y - 10, n, { class: 'axis-title', 'text-anchor': 'middle', 'font-size': 15 }));
+    ['Wake', 'Sleep'].forEach((n, i) => txt(chart, x - 8, y + cell * (i + 0.5) + 4, n, { class: 'axis-title', 'text-anchor': 'end', 'font-size': 15 }));
+    txt(chart, x - 62, y + cell, 'Actual', { class: 'axis-title', 'text-anchor': 'middle', 'font-size': 15, transform: `rotate(-90 ${x - 62} ${y + cell})` });
     G.hover = el('g', {}, chart);
   }
   function renderPred(cursor) {
@@ -314,11 +315,11 @@
       const rowSum = cm[i][0] + cm[i][1], frac = rowSum ? cm[i][j] / rowSum : 0;
       el('rect', { x: x + j * cell, y: y + i * cell, width: cell, height: cell, fill: 'var(--ma)', opacity: 0.08 + 0.85 * frac, stroke: '#fff' }, G.cm);
       txt(G.cm, x + (j + 0.5) * cell, y + (i + 0.5) * cell - 2, cm[i][j], { class: 'mono', 'font-size': 26, 'font-weight': 700, 'text-anchor': 'middle', fill: frac > 0.5 ? '#fff' : 'var(--ink)' });
-      txt(G.cm, x + (j + 0.5) * cell, y + (i + 0.5) * cell + 20, rowSum ? `(${(100 * frac).toFixed(1)}%)` : '', { class: 'mono', 'font-size': 13, 'text-anchor': 'middle', fill: frac > 0.5 ? '#fff' : 'var(--ink)' });
+      txt(G.cm, x + (j + 0.5) * cell, y + (i + 0.5) * cell + 20, rowSum ? `(${(100 * frac).toFixed(1)}%)` : '', { class: 'mono', 'font-size': 15, 'text-anchor': 'middle', fill: frac > 0.5 ? '#fff' : 'var(--ink)' });
     }
     const tot = cm[0][0] + cm[0][1] + cm[1][0] + cm[1][1];
     const rows = [['sleep sensitivity', cm[1][0] + cm[1][1] ? (100 * cm[1][1] / (cm[1][0] + cm[1][1])).toFixed(1) + ' %' : '–', 'var(--sleep)'], ['wake sensitivity', cm[0][0] + cm[0][1] ? (100 * cm[0][0] / (cm[0][0] + cm[0][1])).toFixed(1) + ' %' : '–', STAGE.W.c], ['accuracy', tot ? (100 * (cm[0][0] + cm[1][1]) / tot).toFixed(1) + ' %' : '–', 'var(--ink)']];
-    rows.forEach((r, k) => { const yy = y + 2 * cell + 40 + k * 30; txt(G.cm, x, yy, r[0], { class: 'axis-title', 'font-size': 13 }); txt(G.cm, x + 2 * cell, yy, r[1], { class: 'mono', 'font-size': 20, 'font-weight': 700, fill: r[2], 'text-anchor': 'end' }); el('line', { x1: x, x2: x + 2 * cell, y1: yy + 8, y2: yy + 8, stroke: 'var(--grid)' }, G.cm); });
+    rows.forEach((r, k) => { const yy = y + 2 * cell + 40 + k * 30; txt(G.cm, x, yy, r[0], { class: 'axis-title', 'font-size': 15 }); txt(G.cm, x + 2 * cell, yy, r[1], { class: 'mono', 'font-size': 20, 'font-weight': 700, fill: r[2], 'text-anchor': 'end' }); el('line', { x1: x, x2: x + 2 * cell, y1: yy + 8, y2: yy + 8, stroke: 'var(--grid)' }, G.cm); });
   }
 
   function render(cursor) { if (mode === 'pred') renderPred(cursor); else renderHist(cursor); }

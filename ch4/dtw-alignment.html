@@ -55,7 +55,7 @@
   .cell-val { font-family: var(--mono); font-size: 14px; text-anchor: middle; pointer-events: none; }
   .dlabel { font-family: var(--mono); font-size: 13px; font-weight: 700; }
   .big { font-family: var(--mono); font-size: 17px; font-weight: 700; }
-  .formula { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
+  .formula { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
   .align { stroke: #999; stroke-width: 0.9; }
   @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
   .hint { display:none !important; }
@@ -372,14 +372,14 @@
   }
   // legend items packed into as many right-aligned rows as needed (rows stack upward from y)
   function legendRows(parent, xr, y, maxW, items) {
-    const padX = 10, gap = 14, rows = [[]], widths = items.map(it => 26 + it.n.length * 6.6);
+    const padX = 10, gap = 14, rows = [[]], widths = items.map(it => 26 + it.n.length * 10.5);
     let cur = 2 * padX;
     items.forEach((it, j) => { const add = widths[j] + (rows[rows.length - 1].length ? gap : 0); if (cur + add > maxW && rows[rows.length - 1].length) { rows.push([]); cur = 2 * padX; } cur += add; rows[rows.length - 1].push(j); });
     rows.forEach((row, k) => legendRow(parent, xr, y - 26 * (rows.length - 1 - k), row.map(j => items[j])));
   }
   function legendRow(parent, xr, y, items) {
     const padX = 10, gap = 14, h = 24;
-    const widths = items.map(it => 26 + it.n.length * 6.6);
+    const widths = items.map(it => 26 + it.n.length * 10.5);
     const wdt = widths.reduce((a, b) => a + b, 0) + gap * (items.length - 1) + 2 * padX;
     const x = xr - wdt;
     el('rect', { x, y, width: wdt, height: h, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, parent);

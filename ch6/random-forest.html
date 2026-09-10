@@ -48,7 +48,7 @@
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
   .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
   .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
-  .mono { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
+  .mono { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
   .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
   .pt { stroke: #fff; stroke-width: 1.2; }
   .split { stroke: #222; stroke-width: 1.2; fill: none; }
@@ -271,16 +271,16 @@ const TEST = [[9.429,3.051,0],[9.603,2.104,0],[9.644,1.394,0],[9.507,1.669,0],[9
     return g;
   }
   function drawLegend(parent, items, x, y) {
-    const rowH = 18, padX = 10, padY = 8;
+    const rowH = 24, padX = 10, padY = 8;
     const g = el('g', {}, parent);
-    const wdt = 12 + Math.max(...items.map(i => i.n.length)) * 7.2 + 2 * padX + 22;
+    const wdt = 12 + Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX + 22;
     el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
     items.forEach((it, j) => {
       const yy = y + padY + j * rowH + 6;
       if (it.kind === 'dot') el('circle', { cx: x + padX + 9, cy: yy, r: 4.5, fill: it.c, stroke: '#fff', 'stroke-width': 1.2 }, g);
       else if (it.kind === 'hollow') el('circle', { cx: x + padX + 9, cy: yy, r: 4, fill: '#fff', stroke: it.c, 'stroke-width': 1.2 }, g);
       else if (it.kind === 'ring') el('circle', { cx: x + padX + 9, cy: yy, r: 5.5, fill: 'none', stroke: it.c, 'stroke-width': 2 }, g);
-      else if (it.kind === 'star') text(x + padX + 9, yy + 5, '★', { 'text-anchor': 'middle', 'font-size': 14, fill: it.c }, g);
+      else if (it.kind === 'star') text(x + padX + 9, yy + 5, '★', { 'text-anchor': 'middle', 'font-size': 15, fill: it.c }, g);
       else if (it.kind === 'tint') el('rect', { x: x + padX, y: yy - 6, width: 18, height: 12, fill: it.c, rx: 2 }, g);
       else el('line', { x1: x + padX, x2: x + padX + 18, y1: yy, y2: yy, stroke: it.c, 'stroke-width': it.dash ? 1.5 : 2.5, 'stroke-dasharray': it.dash ? '5 4' : 'none' }, g);
       text(x + padX + 26, yy + 4, it.n, { class: 'axis-title', fill: 'var(--ink)' }, g);
@@ -406,10 +406,10 @@ const TEST = [[9.429,3.051,0],[9.603,2.104,0],[9.644,1.394,0],[9.507,1.669,0],[9
         const nd = tree.order[k];
         const y = 196 + (k - from) * 20;
         const tried = nd.tried.map(j => FEAT[j].split(' ')[0]).join(', ');
-        text(RX, y, `#${String(k + 1).padStart(2)}  depth ${nd.depth}  {${tried}}${nd.tried.length === 1 ? '      ' : ''}  →  ${FEAT[nd.feat]} ≤ ${nd.thr.toFixed(2)}`, { class: 'mono', 'font-size': 12.5, style: 'white-space:pre', fill: k === upto - 1 ? '#222' : '#666' }, root);
+        text(RX, y, `#${String(k + 1).padStart(2)}  depth ${nd.depth}  {${tried}}${nd.tried.length === 1 ? '      ' : ''}  →  ${FEAT[nd.feat]} ≤ ${nd.thr.toFixed(2)}`, { class: 'mono', 'font-size': 15, style: 'white-space:pre', fill: k === upto - 1 ? '#222' : '#666' }, root);
       }
       const usedCount = [0, 0]; tree.order.slice(0, upto).forEach(nd => usedCount[nd.feat]++);
-      [`splits ${upto} of ${tree.order.length}   ·   used mean a_y ${usedCount[0]}×, std a_y ${usedCount[1]}×`].forEach((s, k) => text(RX, 500 + k * 22, s, { class: 'mono', 'font-size': 13 }, root));
+      [`splits ${upto} of ${tree.order.length}   ·   used mean a_y ${usedCount[0]}×, std a_y ${usedCount[1]}×`].forEach((s, k) => text(RX, 500 + k * 22, s, { class: 'mono', 'font-size': 15 }, root));
       const pred = x => predictTree(tree, x, upto);
       G.hover = { P, predict: x => ({ single: pred(x) }) };
     } else if (id === 'grow') {
@@ -440,7 +440,7 @@ const TEST = [[9.429,3.051,0],[9.603,2.104,0],[9.644,1.394,0],[9.507,1.669,0],[9
       el('circle', { cx: ax(b), cy: ay(M.mean[b - 1]), r: 4, fill: '#2a78d6', stroke: '#fff', 'stroke-width': 1.5 }, root);
       drawLegend(root, [{ c: '#eb6834', n: 'training accuracy, mean', dash: true }, { c: '#2a78d6', n: 'test accuracy, mean ± 1 std' }, { c: '#8fb5e6', n: 'test accuracy, one seed' }], AP.x - 30, AP.y + AP.h + 46);
       const cur = M.curves[M.seed - 1];
-      [`trees voting        ${b}`, `test (this seed)    ${pct(cur.accTe[b - 1])}`, `test (mean ± std)   ${pct(M.mean[b - 1])} ± ${(M.sd[b - 1] * 100).toFixed(1)}`, `training (mean)     ${pct(M.meanTr[b - 1])}`].forEach((s, k) => text(RX, 500 + k * 22, s, { class: 'mono', 'font-size': 14, style: 'white-space:pre' }, root));
+      [`trees voting        ${b}`, `test (this seed)    ${pct(cur.accTe[b - 1])}`, `test (mean ± std)   ${pct(M.mean[b - 1])} ± ${(M.sd[b - 1] * 100).toFixed(1)}`, `training (mean)     ${pct(M.meanTr[b - 1])}`].forEach((s, k) => text(RX, 500 + k * 22, s, { class: 'mono', 'font-size': 15, style: 'white-space:pre' }, root));
       G.hover = { P, predict: x => ({ votes: voteCounts(M.trees, x, b) }) };
     } else if (id === 'vote') {
       const N = M.N, b = Math.min(frame, N), qi = DIALS.q.get() - 1, xq = XT[qi], yq = YT[qi];
@@ -467,7 +467,7 @@ const TEST = [[9.429,3.051,0],[9.603,2.104,0],[9.644,1.394,0],[9.507,1.669,0],[9
         el('rect', { x: RX + 90, y, width: bw, height: 20, fill: '#f4f4f4', rx: 2 }, root);
         el('rect', { x: RX + 90, y, width: bw * votes[k] / maxV, height: 20, fill: c.color, rx: 2 }, root);
         text(RX + 84, y + 15, c.name, { class: 'axis-title', 'text-anchor': 'end', fill: 'var(--ink)' }, root);
-        text(RX + 90 + bw + 8, y + 15, `× ${votes[k]}`, { class: 'mono', 'font-size': 14 }, root);
+        text(RX + 90 + bw + 8, y + 15, `× ${votes[k]}`, { class: 'mono', 'font-size': 15 }, root);
       });
       const winner = argmax(votes);
       const fy = ty + 14 + 3 * 30 + 16;

@@ -121,9 +121,9 @@
   .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
   .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
   .mono { font-family: var(--mono); }
-  .note { font-family: var(--mono); font-size: 13px; fill: var(--ink); white-space: pre; }
+  .note { font-family: var(--mono); font-size: 15px; fill: var(--ink); white-space: pre; }
   .note-big { font-family: var(--mono); font-size: 22px; font-weight: 700; white-space: pre; }
-  .callout text { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .callout text { font-family: var(--sans); font-size: 15px; fill: var(--ink-2); }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
 
   @media (max-width: 720px) {
@@ -133,7 +133,7 @@
 
   .beat { stroke-width: 3; stroke-linecap: round; }
   .arrow { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .rr-lbl { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
+  .rr-lbl { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
   .row-title { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ink); }
   .row-stat { font-family: var(--mono); font-size: 15px; font-weight: 700; white-space: pre; }
   .rr-line { fill: none; stroke: var(--ma); stroke-width: 1.5; }
@@ -545,8 +545,9 @@ function findPeaks(x, opt) {
   const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
   function legend(x, y, items) {
     const g = el('g', {}, chart);
-    const rowH = 18, padX = 10, padY = 8;
-    const wdt = Math.max(...items.map(i => i.n.length)) * 7.2 + 2 * padX + 40;
+    const rowH = 24, padX = 10, padY = 8;
+    const wdt = Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX + 40;
+    x = Math.min(x, W - wdt - 6);
     el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
     items.forEach((it, j) => {
       const yy = y + padY + j * rowH + 6;
@@ -582,7 +583,7 @@ function findPeaks(x, opt) {
     const items = [{ c: '#2a78d6', n: 'heartbeat, steady rhythm', tick: true }];
     if (d.id === 'var') items.push({ c: '#eb6834', n: 'heartbeat, variable rhythm', tick: true });
     items.push({ c: '#666', n: 'inter-beat interval RR (ms)' });
-    legend(W - PR - (Math.max(...items.map(i => i.n.length)) * 7.2 + 60), 508, items);
+    legend(W - PR - (Math.max(...items.map(i => i.n.length)) * 10.5 + 60), 508, items);
     G.diffs = el('text', { x: PL, y: 560, class: 'note', fill: 'var(--ink-2)' }, chart);
     if (d.id === 'steady') { G.rows[1].g.style.opacity = 0.35; G.rows[1].title.textContent = 'Variable rhythm — next step'; }
   }

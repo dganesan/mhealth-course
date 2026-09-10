@@ -103,7 +103,7 @@
   .group { display:flex; align-items:center; gap:8px; }
   .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
   .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
-  button, select, input[type=text] { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  button, select, input[type=text] { font:inherit; font-size: 15px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
   input[type=text] { font-family:var(--mono); cursor:text; flex:1 1 260px; min-width:200px; }
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
@@ -128,9 +128,9 @@
   .connector { stroke-width: 1; stroke-dasharray: 2 3; fill: none; }
   .out-dot { stroke: #fff; stroke-width: 2; }
   .wbar { opacity: .85; }
-  .wlabel { font-family: var(--sans); font-size: 12px; fill: var(--ink-3); }
+  .wlabel { font-family: var(--sans); font-size: 15px; fill: var(--ink-3); }
   .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
-  .callout text { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .callout text { font-family: var(--sans); font-size: 15px; fill: var(--ink-2); }
   .callout line { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 3; }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
 
@@ -600,8 +600,8 @@
     const s = steps[step].series;
     const items = [{ c: 'var(--raw)', n: 'input (noisy)' }, { c: 'var(--clean)', n: 'clean signal', dash: true }];
     KEYS(s).forEach(k => items.push({ c: SERIES[k].color, n: (k === 'ma' || k === 'med' || k === 'wm') ? `${SERIES[k].name} w=${w}` : k === 'ewma' ? `EWMA α=${alphaVal().toFixed(2)}` : SERIES[k].name }));
-    const rowH = 18, padX = 10, padY = 8;
-    const wdt = 12 + Math.max(...items.map(i => i.n.length)) * 7.2 + 2 * padX + 22;
+    const rowH = 24, padX = 10, padY = 8;
+    const wdt = 12 + Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX + 22;
     el('rect', { x: PL + 10, y: PT + 8, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, G.legend);
     items.forEach((it, j) => {
       const y = PT + 8 + padY + j * rowH + 6;

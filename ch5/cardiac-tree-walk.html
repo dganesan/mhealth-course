@@ -51,17 +51,17 @@
   .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .box { fill: #fafafa; stroke: var(--ink-3); stroke-width: 1; }
   .box.win { stroke: var(--ma); stroke-width: 2; fill: #eef4fc; }
-  .pid { font-family: var(--mono); font-size: 11px; font-weight: 700; fill: #fff; text-anchor: middle; pointer-events: none; }
-  .lab { font-family: var(--sans); font-size: 14px; fill: var(--ink); }
+  .pid { font-family: var(--mono); font-size: 15px; font-weight: 700; fill: #fff; text-anchor: middle; pointer-events: none; }
+  .lab { font-family: var(--sans); font-size: 15px; fill: var(--ink); }
   .lab.b { font-weight: 700; }
-  .lab.sub { fill: var(--ink-2); font-size: 13px; }
-  .num { font-family: var(--mono); font-size: 14px; fill: var(--ink); }
+  .lab.sub { fill: var(--ink-2); font-size: 15px; }
+  .num { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
   .formula { font-family: var(--mono); font-size: 17px; fill: var(--ink); }
   .formula.hi { fill: var(--ma); font-weight: 700; }
   .q { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ma); text-anchor: middle; }
   .branch { stroke: var(--ink-3); stroke-width: 1.2; fill: none; }
   .curve { fill: none; stroke: var(--ink); stroke-width: 2; }
-  .ptitle { font-family: var(--sans); font-size: 13px; font-weight: 700; fill: var(--ink); }
+  .ptitle { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ink); }
   @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
   .hint { display:none !important; }
   button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
@@ -188,7 +188,7 @@
           const k = n.kids[v];
           el('line', { class: 'branch', x1: n.x, y1: n.y + NH / 2, x2: k.x, y2: k.y - (k.kids ? NH : LH) / 2 }, G.edges);
           const mx = (n.x + k.x) / 2, my = (n.y + NH / 2 + k.y - (k.kids ? NH : LH) / 2) / 2;
-          txt(mx + (k.x < n.x ? -6 : k.x > n.x ? 6 : 0), my + 4, BR[v], 'lab b', { 'text-anchor': k.x < n.x ? 'end' : k.x > n.x ? 'start' : 'middle', 'font-size': 13 }, G.edges);
+          txt(mx + (k.x < n.x ? -6 : k.x > n.x ? 6 : 0), my + 4, BR[v], 'lab b', { 'text-anchor': k.x < n.x ? 'end' : k.x > n.x ? 'start' : 'middle', 'font-size': 15 }, G.edges);
         }
         el('rect', { x: n.x - NW / 2, y: n.y - NH / 2, width: NW, height: NH, rx: 17, fill: '#fff', stroke: 'var(--ma)', 'stroke-width': 1.5 }, G.nodes);
         txt(n.x, n.y + 5, ATTR[n.a].q, 'q', {}, G.nodes);
@@ -200,12 +200,12 @@
         // training patients at this leaf
         const r = 9, gap = 22, x0 = n.x - ((n.set.length - 1) * gap) / 2;
         n.set.forEach((p, i) => { const g = el('g', { 'data-id': p[0] }, G.nodes); el('circle', { cx: x0 + i * gap, cy: n.y + LH / 2 + 18, r, fill: CCOL[p[4]], stroke: '#fff', 'stroke-width': 1.5 }, g); txt(x0 + i * gap, n.y + LH / 2 + 22, p[0], 'pid', {}, g); });
-        txt(n.x, n.y + LH / 2 + 44, `${n.counts[0]} L · ${n.counts[1]} H`, 'num', { 'text-anchor': 'middle', 'font-size': 11, fill: 'var(--ink-2)' }, G.nodes);
+        txt(n.x, n.y + LH / 2 + 44, `${n.counts[0]} L · ${n.counts[1]} H`, 'num', { 'text-anchor': 'middle', 'font-size': 15, fill: 'var(--ink-2)' }, G.nodes);
       }
     })(T);
     // legend
     const items = [{ n: 'decision node (tests one feature)', stroke: 'var(--ma)', fill: '#fff' }, { n: 'Low-risk leaf', fill: CCOL.Low }, { n: 'High-risk leaf', fill: CCOL.High }, { n: 'mixed leaf (tie)', fill: CCOL['?'] }, { n: 'training patient (colour = risk)', dot: true }];
-    const rowH = 18, padX = 10, padY = 8, wdt = 28 + Math.max(...items.map(i => i.n.length)) * 7.4 + 2 * padX, x0 = W - wdt - 10, y0 = 8;
+    const rowH = 24, padX = 10, padY = 8, wdt = 28 + Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX, x0 = W - wdt - 10, y0 = 8;
     el('rect', { x: x0, y: y0, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, G.legend);
     items.forEach((it, j) => {
       const y = y0 + padY + j * rowH + 6;

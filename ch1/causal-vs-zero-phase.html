@@ -80,7 +80,7 @@
   .code .p { color: var(--blue); font-weight: 700; }
   .code .k { color: var(--ink-2); }
   .legend-box { fill: #fff; fill-opacity: .9; stroke: var(--rule); }
-  .legend-text { font-family: var(--sans); font-size: 12px; fill: var(--ink); }
+  .legend-text { font-family: var(--sans); font-size: 15px; fill: var(--ink); }
 
   .chart-wrap { position: relative; min-height: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
@@ -116,7 +116,7 @@
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
   .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
   .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
-  .panel-title { font-family: var(--sans); font-size: 12px; font-weight: 700; fill: var(--ink); }
+  .panel-title { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ink); }
   .raw-line { fill: none; stroke: var(--raw); stroke-width: 1.2; }
   .clean-line { fill: none; stroke: var(--clean); stroke-width: 1.2; stroke-dasharray: 5 4; opacity: .55; }
   .out-line { fill: none; stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
@@ -125,7 +125,7 @@
   .out-dot { stroke: #fff; stroke-width: 2; }
   .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
   .mlabel { font-family: var(--mono); font-size: 12px; font-weight: 700; }
-  .wlabel { font-family: var(--sans); font-size: 12px; fill: var(--ink-3); }
+  .wlabel { font-family: var(--sans); font-size: 15px; fill: var(--ink-3); }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
   .future-rect { fill: var(--future); }
   .mini-frame { fill: none; stroke: var(--rule); }
@@ -627,7 +627,7 @@ window.ECG_SLICE = [-0.0763,-0.0806,-0.0784,-0.0719,-0.0675,-0.0588,-0.0501,-0.0
   function drawLegend(id) {
     G.legend.innerHTML = '';
     const keys = id === 'input' ? ['input', 'clean', 'peak'] : id === 'causal' ? ['input', 'clean', 'peak', 'lf'] : ['input', 'clean', 'peak', 'lf', 'ff'];
-    const x0 = PL + 10, y0 = PT + 8, rowH = 17, w = 150;
+    const x0 = PL + 10, y0 = PT + 8, rowH = 24, w = 150;
     el('rect', { class: 'legend-box', x: x0, y: y0, width: w, height: keys.length * rowH + 8, rx: 4 }, G.legend);
     keys.forEach((k, i) => {
       const sdef = SERIES[k], yy = y0 + 12 + i * rowH;
@@ -641,7 +641,7 @@ window.ECG_SLICE = [-0.0763,-0.0806,-0.0784,-0.0719,-0.0675,-0.0588,-0.0501,-0.0
       const sdef = SERIES[k];
       const t = el('text', { x: sx, y: SY - 12, class: 'legend-text', 'text-anchor': 'end' }, G.legend);
       t.textContent = sdef.name;
-      const tw = sdef.name.length * 6.3;
+      const tw = sdef.name.length * 10.5;
       el('line', { x1: sx - tw - 22, x2: sx - tw - 6, y1: SY - 16, y2: SY - 16, stroke: sdef.color, 'stroke-width': 3, 'stroke-dasharray': sdef.dash || 'none', opacity: sdef.opacity || 1 }, G.legend);
       sx -= tw + 40;
     });

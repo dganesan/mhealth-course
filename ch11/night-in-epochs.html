@@ -49,7 +49,7 @@
   .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .mono { font-family: var(--mono); }
   .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
-  .ann { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
+  .ann { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
   .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
   @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
@@ -116,8 +116,9 @@
   const code2stage = v => v === 0 ? 'W' : (v === 1 || v === 2) ? 'L' : v === 3 ? 'D' : v === 5 ? 'R' : null;
   // legend: items [{c, n, dash?, box?}] drawn on a white rounded rect at (x, y)
   function legend(parent, x, y, items) {
-    const rowH = 18, padX = 10, padY = 8;
-    const wdt = 12 + Math.max(...items.map(i => i.n.length)) * 7.2 + 2 * padX + 22;
+    const rowH = 24, padX = 10, padY = 8;
+    const wdt = 12 + Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX + 22;
+    x = Math.min(x, W - wdt - 6);
     el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, parent);
     items.forEach((it, j) => {
       const yy = y + padY + j * rowH + 6;
@@ -274,8 +275,8 @@
       const i = upto - (K - 1) + j; if (i < 0) continue;
       const s = lab[i]; const x = x0 + j * bw;
       el('rect', { x, y: y0, width: bw - 2, height: bh, fill: s ? STAGE[s].c : '#eee', opacity: s ? 0.9 : 1, rx: 2 }, G.lower);
-      txt(G.lower, x + (bw - 2) / 2, y0 + bh / 2 + 5, s || '–', { class: 'mono', 'font-size': 13, fill: s ? '#fff' : 'var(--ink-3)', 'text-anchor': 'middle', 'font-weight': 700 });
-      if (i % 5 === 0) txt(G.lower, x + (bw - 2) / 2, y0 + bh + 16, i, { class: 'mono', 'font-size': 11, fill: 'var(--ink-2)', 'text-anchor': 'middle' });
+      txt(G.lower, x + (bw - 2) / 2, y0 + bh / 2 + 5, s || '–', { class: 'mono', 'font-size': 15, fill: s ? '#fff' : 'var(--ink-3)', 'text-anchor': 'middle', 'font-weight': 700 });
+      if (i % 5 === 0) txt(G.lower, x + (bw - 2) / 2, y0 + bh + 16, i, { class: 'mono', 'font-size': 15, fill: 'var(--ink-2)', 'text-anchor': 'middle' });
     }
     if (upto >= 0) { const xc = x0 + (K - 1) * bw + (bw - 2) / 2; el('path', { d: `M${xs(upto + 1)},${hypBottom + 40}L${xc},${y0 - 2}`, stroke: 'var(--ink-3)', 'stroke-dasharray': '2 3', fill: 'none' }, G.lower); }
     txt(G.lower, PL, y0 + bh + 44, `epochs scored so far: ${upto + 1} of ${N}   ·   ${((upto + 1) * EPOCH_MIN).toFixed(1)} min`, { class: 'ann' });
@@ -301,11 +302,11 @@
     ['W', 'L', 'D', 'R'].forEach((k, j) => {
       const lx = barX + j * 140;
       el('rect', { x: lx, y: ly - 10, width: 12, height: 12, fill: STAGE[k].c, rx: 2 }, G.lower);
-      txt(G.lower, lx + 18, ly, `${STAGE[k].n.split(' ')[0]} ${(c[k] * EPOCH_MIN).toFixed(1)} min`, { class: 'ann', 'font-size': 13 });
+      txt(G.lower, lx + 18, ly, `${STAGE[k].n.split(' ')[0]} ${(c[k] * EPOCH_MIN).toFixed(1)} min`, { class: 'ann', 'font-size': 15 });
     });
     ly += 34;
     const F = ['TST = (light + deep + REM epochs) × 0.5 min', 'efficiency = TST / time in bed', 'onset latency = epochs before the first sleep epoch × 0.5 min', 'WASO = wake epochs after sleep onset × 0.5 min'];
-    F.forEach((f, j) => txt(G.lower, barX, ly + j * 20, f, { class: 'ann', 'font-size': 12, fill: 'var(--ink-2)' }));
+    F.forEach((f, j) => txt(G.lower, barX, ly + j * 20, f, { class: 'ann', 'font-size': 15, fill: 'var(--ink-2)' }));
     // readouts on the right
     const rx = PL + barW + 80, rows = [
       ['time in bed', `${tib.toFixed(1)} min`, 'var(--ink)'],
@@ -316,7 +317,7 @@
     ];
     rows.forEach((r, j) => {
       const y = y0 + 4 + j * 34;
-      txt(G.lower, rx, y + 14, r[0], { class: 'axis-title', 'font-size': 13, fill: 'var(--ink-2)' });
+      txt(G.lower, rx, y + 14, r[0], { class: 'axis-title', 'font-size': 15, fill: 'var(--ink-2)' });
       txt(G.lower, W - PR, y + 14, r[1], { class: 'mono', 'font-size': 20, 'font-weight': 700, fill: r[2], 'text-anchor': 'end' });
       el('line', { x1: rx, x2: W - PR, y1: y + 24, y2: y + 24, stroke: 'var(--grid)' }, G.lower);
     });

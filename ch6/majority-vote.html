@@ -45,10 +45,10 @@
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
   .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
   .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
-  .mono { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
+  .mono { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
   .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
   .box { fill: #fff; stroke: var(--ink-2); stroke-width: 1.2; }
-  .box-title { font-family: var(--sans); font-size: 14px; font-weight: 700; fill: var(--ink); }
+  .box-title { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ink); }
   .arrow { stroke: var(--ink-2); stroke-width: 1.4; fill: none; }
   @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
   .hint { display:none !important; }
@@ -272,15 +272,17 @@
 
   const G = {};
   function drawLegend(items, x, y, horizontal = false) {
-    const rowH = 18, padX = 10, padY = 8;
+    const rowH = 24, padX = 10, padY = 8;
     const g = el('g', {}, chart);
     if (horizontal) {
-      let cx = x; const wdt = items.reduce((s, it) => s + it.n.length * 7.2 + 40, 0) + 2 * padX;
+      const wdt = items.reduce((s, it) => s + it.n.length * 10.5 + 40, 0) + 2 * padX;
+      x = Math.min(x, W - wdt + padX - 6); let cx = x;
       el('rect', { x: x - padX, y, width: wdt, height: rowH + 8, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
-      items.forEach(it => { if (it.txt) text(cx, y + 17, it.n, { class: 'axis-title', fill: it.c }, g); else { el('rect', { x: cx, y: y + 7, width: 14, height: 12, fill: it.c, rx: 2 }, g); text(cx + 20, y + 17, it.n, { class: 'axis-title', fill: 'var(--ink)' }, g); } cx += it.n.length * 7.2 + 40; });
+      items.forEach(it => { if (it.txt) text(cx, y + 17, it.n, { class: 'axis-title', fill: it.c }, g); else { el('rect', { x: cx, y: y + 7, width: 14, height: 12, fill: it.c, rx: 2 }, g); text(cx + 20, y + 17, it.n, { class: 'axis-title', fill: 'var(--ink)' }, g); } cx += it.n.length * 10.5 + 40; });
       return;
     }
-    const wdt = 12 + Math.max(...items.map(i => i.n.length)) * 7.2 + 2 * padX + 22;
+    const wdt = 12 + Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX + 22;
+    x = Math.min(x, W - wdt - 6);
     el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
     items.forEach((it, j) => { const yy = y + padY + j * rowH + 6; if (it.txt) text(x + padX, yy + 4, it.n, { class: 'axis-title', fill: it.c }, g); else { el('rect', { x: x + padX, y: yy - 6, width: 18, height: 12, fill: it.c, rx: 2 }, g); text(x + padX + 26, yy + 4, it.n, { class: 'axis-title', fill: 'var(--ink)' }, g); } });
   }

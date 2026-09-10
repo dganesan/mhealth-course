@@ -120,9 +120,9 @@
   .thin-line { fill: none; stroke-width: 1.3; stroke-linejoin: round; }
   .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
   .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
-  .mono { font-family: var(--mono); font-size: 12px; fill: var(--ink); }
-  .mono-2 { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
-  .note { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .mono { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
+  .mono-2 { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .note { font-family: var(--sans); font-size: 15px; fill: var(--ink-2); }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
   .cursor-line { stroke: var(--ink); stroke-width: 1; stroke-dasharray: 3 3; opacity: .7; }
 
@@ -218,8 +218,9 @@ const STREAM = [7.34,8.62,9.28,9.96,10.24,10.09,9.56,9.31,9.01,9.42,9.8,9.8,12.2
   }
   // conventional legend on a white 90 % rounded rect
   function drawLegend(parent, x, y, items) {
-    const rowH = 18, padX = 10, padY = 8;
-    const wdt = Math.max(...items.map(i => i.n.length)) * 7.2 + 2 * padX + 40;
+    const rowH = 24, padX = 10, padY = 8;
+    const wdt = Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX + 40;
+    x = Math.min(x, W - wdt - 6);
     const g = el('g', {}, parent);
     el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
     items.forEach((it, j) => {
@@ -439,7 +440,7 @@ const STREAM = [7.34,8.62,9.28,9.96,10.24,10.09,9.56,9.31,9.01,9.42,9.8,9.8,12.2
         txt(g, cx, ly + 32, `mean = ${fmt(win.mean, 1)} · ${win.label}`, { class: 'mono', 'text-anchor': 'middle', fill: win.label.endsWith('?') ? COL.red : 'var(--ink)' });
       } else if (wpx >= 34) {
         txt(g, cx, ly + 18, `${win.k}`, { class: 'dlabel', 'text-anchor': 'middle', fill: 'var(--ink)' });
-        txt(g, cx, ly + 32, fmt(win.mean, 1), { class: 'mono', 'text-anchor': 'middle', 'font-size': 11 });
+        txt(g, cx, ly + 32, fmt(win.mean, 1), { class: 'mono', 'text-anchor': 'middle', 'font-size': 15 });
       }
     });
   }

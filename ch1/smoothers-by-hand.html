@@ -36,8 +36,8 @@
   .group { display:flex; align-items:center; gap:8px; }
   .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
   .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
-  button, select, input[type=text] { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
-  input[type=text] { font-family:var(--mono); cursor:text; width:330px; padding:5px 9px; font-size:13px; }
+  button, select, input[type=text] { font:inherit; font-size: 15px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  input[type=text] { font-family:var(--mono); cursor:text; width:330px; padding:5px 9px; font-size: 15px; }
   .bar .hint { display:none; }
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
@@ -48,23 +48,23 @@
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
 
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text, .num { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
-  .lane-label { font-family: var(--sans); font-size: 13px; font-weight: 700; }
-  .lane-sub { font-family: var(--mono); font-size: 11px; fill: var(--ink-3); }
+  .axis text, .num { font-family: var(--mono); font-size: 17px; fill: var(--ink-2); }
+  .lane-label { font-family: var(--sans); font-size: 19px; font-weight: 700; }
+  .lane-sub { font-family: var(--mono); font-size: 17px; fill: var(--ink-3); }
   .grid line { stroke: var(--grid); }
   .in-line { fill: none; stroke: var(--raw); stroke-width: 1.5; }
   .in-dot { fill: var(--raw-dot); }
-  .in-num { font-family: var(--mono); font-size: 13px; fill: var(--ink); font-weight: 700; }
+  .in-num { font-family: var(--mono); font-size: 17px; fill: var(--ink); font-weight: 700; }
   .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
   .out-line { fill: none; stroke-width: 2; stroke-linejoin: round; }
   .out-dot { stroke: #fff; stroke-width: 1.5; }
-  .out-num { font-family: var(--mono); font-size: 12px; font-weight: 700; }
+  .out-num { font-family: var(--mono); font-size: 17px; font-weight: 700; }
   .ghost { fill: none; stroke: var(--raw); stroke-width: 1; opacity: .6; }
-  .work { font-family: var(--mono); font-size: 15.5px; fill: var(--ink); }
+  .work { font-family: var(--mono); font-size: 18px; fill: var(--ink); }
   .work-hi { font-weight: 700; font-size: 1.15em; }
   .work-dim { fill: var(--ink-3); }
   .cursor-line { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 3; }
-  .callout text { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .callout text { font-family: var(--sans); font-size: 17px; fill: var(--ink-2); }
   .callout line { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 3; }
   .lane-bg { fill: #fafafa; }
   .lane-active { fill: #f2f6fc; }
@@ -228,8 +228,8 @@
       const lg = el('g', {}, chart);
       const bg = el('rect', { class: 'lane-bg', x: PL - 4, y: y0 - 4, width: plotW + 8, height: LANE_H + 8, rx: 4 }, lg);
       el('line', { x1: PL, x2: PL + plotW, y1: y0 + LANE_H - 26, y2: y0 + LANE_H - 26, stroke: 'var(--rule)' }, lg);
-      el('text', { x: PL - 10, y: y0 + 14, 'text-anchor': 'end', class: 'lane-label', fill: F[k].color }, lg).textContent = F[k].name;
-      const sub = el('text', { x: PL - 10, y: y0 + 30, 'text-anchor': 'end', class: 'lane-sub' }, lg);
+      el('text', { x: PL - 10, y: y0 + 18, 'text-anchor': 'end', class: 'lane-label', fill: F[k].color }, lg).textContent = F[k].name;
+      const sub = el('text', { x: PL - 10, y: y0 + 38, 'text-anchor': 'end', class: 'lane-sub' }, lg);
       sub.textContent = k === 'ewma' ? `α = ${fmt(alphaVal())}` : `w = ${w}`;
       let gd = ''; X.forEach((v, i) => gd += (i ? 'L' : 'M') + xs(i) + ',' + yTop(v, y0, LANE_H - 42));
       const ghost = el('path', { class: 'ghost', d: gd }, lg);
@@ -261,8 +261,8 @@
       const e = el('tspan', {}, t); e.textContent = parts.length > 1 ? expr + ' = ' : expr;
       if (parts.length > 1) { const r = el('tspan', { class: 'work-hi', fill: F[k].color }, t); r.textContent = parts[parts.length - 1]; }
       // shrink to fit the column if the expression is long
-      const maxW = plotW - 40; const est = (t.textContent.length) * 9.3;
-      if (est > maxW) t.setAttribute('font-size', Math.max(11, 15.5 * maxW / est));
+      const maxW = plotW - 40; const est = (t.textContent.length) * 10.9;
+      if (est > maxW) t.setAttribute('font-size', Math.max(13, 18 * maxW / est));
     }
   }
   function wrapText(s, n) { const words = s.split(' '); const out = []; let cur = ''; words.forEach(wd => { if ((cur + ' ' + wd).trim().length > n && cur) { out.push(cur); cur = wd; } else cur = (cur + ' ' + wd).trim(); }); if (cur) out.push(cur); return out; }

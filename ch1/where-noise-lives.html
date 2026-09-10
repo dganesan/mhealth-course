@@ -69,7 +69,7 @@
   .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
   .axis-title, .ptitle { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .ptitle { font-weight: 700; fill: var(--ink); }
-  .annot { font-family: var(--mono); font-size: 13px; fill: var(--ink-2); }
+  .annot { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
   .sig-line { fill: none; stroke: var(--sig); stroke-width: 1.6; stroke-linejoin: round; }
   .faint { fill: none; stroke: var(--probe); stroke-width: 1.4; opacity: .55; stroke-dasharray: 4 3; }
   .probe-line { fill: none; stroke: var(--probe); stroke-width: 1.6; stroke-dasharray: 5 4; }
@@ -78,16 +78,16 @@
   .spec-noise { fill: none; stroke: var(--noise); stroke-width: 1.8; stroke-linejoin: round; }
   .band { fill: url(#hatch); }
   .band-edge { stroke: #555; stroke-width: 1; stroke-dasharray: 3 3; }
-  .band-label { font-family: var(--sans); font-size: 12px; font-weight: 700; fill: var(--noise); }
+  .band-label { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--noise); }
   .dlabel { font-family: var(--sans); font-size: 12px; font-weight: 700; }
   .legend rect.box { fill: #fff; fill-opacity: .9; stroke: var(--rule); stroke-width: 1; }
-  .legend text { font-family: var(--sans); font-size: 12px; fill: var(--ink); }
-  .callout text { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .legend text { font-family: var(--sans); font-size: 15px; fill: var(--ink); }
+  .callout text { font-family: var(--sans); font-size: 15px; fill: var(--ink-2); }
   .callout line { stroke: var(--ink-2); stroke-width: 1.2; }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
   .arrow { stroke: var(--ink-2); stroke-width: 1.6; fill: none; }
   .arrow-head { fill: var(--ink-2); }
-  .arrow-text { font-family: var(--mono); font-size: 13px; font-weight: 700; fill: var(--ink); }
+  .arrow-text { font-family: var(--mono); font-size: 15px; font-weight: 700; fill: var(--ink); }
 
   @media (max-width: 720px) {
     .slide { padding: 18px 16px 12px; min-height: 0; }
@@ -478,13 +478,13 @@
   // conventional legend: drawn once at step entry, static for the step
   function legend(parent, xRight, yTop, entries, alignRight) {
     const g = el('g', { class: 'legend' }, parent);
-    const rowH = 17, padX = 9, padY = 7, sw = 16, gap = 7;
+    const rowH = 24, padX = 9, padY = 7, sw = 16, gap = 7;
     const rows = entries.map((e, i) => {
       const y = yTop + padY + i * rowH + 9;
       const t = el('text', { x: 0, y: y + 4 }, g); t.textContent = e.name;
       return { e, y, t };
     });
-    let textW = 0; rows.forEach(r => { try { textW = Math.max(textW, r.t.getBBox().width); } catch (_) { textW = Math.max(textW, r.e.name.length * 6.4); } });
+    let textW = 0; rows.forEach(r => { try { textW = Math.max(textW, r.t.getBBox().width); } catch (_) { textW = Math.max(textW, r.e.name.length * 10.5); } });
     const boxW = padX + sw + gap + textW + padX, boxH = padY * 2 + rows.length * rowH;
     const x0 = alignRight ? xRight - boxW : xRight;
     const box = el('rect', { class: 'box', x: x0, y: yTop, width: boxW, height: boxH, rx: 4 });

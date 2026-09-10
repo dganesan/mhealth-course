@@ -49,7 +49,7 @@
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
   .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
   .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
-  .ptitle { font-family: var(--sans); font-size: 13px; font-weight: 700; fill: var(--ink); }
+  .ptitle { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ink); }
   .raw-line { fill: none; stroke: var(--raw); stroke-width: 1.5; }
   .out-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
   .thin-line { fill: none; stroke-width: 1.4; stroke-linejoin: round; }
@@ -223,8 +223,9 @@ function panel(parent, box, xd, yd, o = {}) {
 }
 function pathOf(xs, ys, upto) { let d = ''; const n = upto == null ? xs.length : upto; for (let i = 0; i < n; i++) d += (i ? 'L' : 'M') + xs[i].toFixed(1) + ',' + ys[i].toFixed(1); return d; }
 function legend(parent, x, y, items) {
-  const rowH = 18, padX = 10, padY = 8;
-  const wdt = Math.max(...items.map(i => i.n.length)) * 7.1 + 2 * padX + 30;
+  const rowH = 24, padX = 10, padY = 8;
+  const wdt = Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX + 30;
+  x = Math.min(x, W - wdt - 6);
   el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, parent);
   items.forEach((it, j) => {
     const cy = y + padY + j * rowH + 6, cx = x + padX + 9;
@@ -238,7 +239,7 @@ function legend(parent, x, y, items) {
   return wdt;
 }
 function cross(parent, x, y, s = 5, attrs = {}) { const g = el('g', Object.assign({ class: 'cross' }, attrs), parent); el('line', { x1: x - s, x2: x + s, y1: y - s, y2: y + s }, g); el('line', { x1: x - s, x2: x + s, y1: y + s, y2: y - s }, g); return g; }
-function badge(parent, x, y, s, color) { const g = el('g', {}, parent); const w = s.length * 9.4 + 18; el('rect', { x, y: y - 17, width: w, height: 24, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g); txt(g, x + 9, y, s, { class: 'badge', fill: color || 'var(--ink)' }); return g; }
+function badge(parent, x, y, s, color) { const g = el('g', {}, parent); const w = s.length * 11 + 18; el('rect', { x, y: y - 17, width: w, height: 24, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g); txt(g, x + 9, y, s, { class: 'badge', fill: color || 'var(--ink)' }); return g; }
 function tipAt(evt, html) {
   tt.innerHTML = html; tt.style.display = 'block';
   const wrap = chart.parentElement.getBoundingClientRect();
@@ -337,7 +338,7 @@ const dom = (arr, head = 0.3) => { const hi = Math.max(...arr); return [0, hi * 
 
 let G = {};
 const cursorLine = (P, t) => el('line', { x1: P.sx(t), x2: P.sx(t), y1: P.box.y, y2: P.box.y + P.box.h, stroke: 'var(--ink-2)', 'stroke-width': 1, 'stroke-dasharray': '3 3' }, P.top);
-const rbadge = (P, s, c, dy = 26) => badge(P.top, P.box.x + P.box.w - (s.length * 9.4 + 18) - 12, P.box.y + dy, s, c);
+const rbadge = (P, s, c, dy = 26) => badge(P.top, P.box.x + P.box.w - (s.length * 11 + 18) - 12, P.box.y + dy, s, c);
 function series(box, arr, upto, o) {
   const n = arr.length, T = Array.from({ length: n }, (_, i) => i / FS);
   const P = panel(chart, box, [0, o.tmax || n / FS], o.dom || dom(arr), { xlabel: 'time (seconds)', ylabel: o.ylabel, ylx: 62, ny: 4, yf: v => fmt(v, o.dec == null ? 1 : o.dec), title: o.title });

@@ -44,11 +44,11 @@
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
   .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
   .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
-  .ptitle { font-family: var(--sans); font-size: 14px; font-weight: 700; fill: var(--ink); }
-  .mono { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
+  .ptitle { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ink); }
+  .mono { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
   .big { font-family: var(--mono); font-weight: 700; }
   .trace { fill: none; stroke-width: 1.8; stroke-linejoin: round; }
-  .legend text { font-family: var(--sans); font-size: 12px; fill: var(--ink); }
+  .legend text { font-family: var(--sans); font-size: 15px; fill: var(--ink); }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
   @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
   .hint { display:none !important; }
@@ -163,8 +163,9 @@
   const fmt = (v, d = 3) => v.toFixed(d);
   function legend(items, x, y, parent) {
     const g = el('g', { class: 'legend' }, parent);
-    const rowH = 18, padX = 10, padY = 8;
-    const wdt = Math.max(...items.map(i => i.n.length)) * 6.9 + 2 * padX + 34;
+    const rowH = 24, padX = 10, padY = 8;
+    const wdt = Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX + 34;
+    x = Math.min(x, W - wdt - 6);
     el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
     items.forEach((it, j) => {
       const yy = y + padY + j * rowH + 6;

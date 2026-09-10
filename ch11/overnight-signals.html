@@ -49,7 +49,7 @@
   .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .mono { font-family: var(--mono); }
   .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
-  .ann { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
+  .ann { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
   .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
   @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
@@ -114,8 +114,9 @@
   const code2stage = v => v === 0 ? 'W' : (v === 1 || v === 2) ? 'L' : v === 3 ? 'D' : v === 5 ? 'R' : null;
   // legend: items [{c, n, dash?, box?}] drawn on a white rounded rect at (x, y)
   function legend(parent, x, y, items) {
-    const rowH = 18, padX = 10, padY = 8;
-    const wdt = 12 + Math.max(...items.map(i => i.n.length)) * 7.2 + 2 * padX + 22;
+    const rowH = 24, padX = 10, padY = 8;
+    const wdt = 12 + Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX + 22;
+    x = Math.min(x, W - wdt - 6);
     el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, parent);
     items.forEach((it, j) => {
       const yy = y + padY + j * rowH + 6;

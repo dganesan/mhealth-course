@@ -45,7 +45,7 @@
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
   .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
   .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
-  .mono { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
+  .mono { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
   .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
   .pt { stroke: #fff; stroke-width: 1.2; }
   .split { stroke: #222; stroke-width: 1.2; fill: none; }
@@ -250,16 +250,16 @@ const TEST = [[9.429,3.051,0],[9.603,2.104,0],[9.644,1.394,0],[9.507,1.669,0],[9
     return g;
   }
   function drawLegend(parent, items, x, y) {
-    const rowH = 18, padX = 10, padY = 8;
+    const rowH = 24, padX = 10, padY = 8;
     const g = el('g', {}, parent);
-    const wdt = 12 + Math.max(...items.map(i => i.n.length)) * 7.2 + 2 * padX + 22;
+    const wdt = 12 + Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX + 22;
     el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
     items.forEach((it, j) => {
       const yy = y + padY + j * rowH + 6;
       if (it.kind === 'dot') el('circle', { cx: x + padX + 9, cy: yy, r: 4.5, fill: it.c, stroke: '#fff', 'stroke-width': 1.2 }, g);
       else if (it.kind === 'hollow') el('circle', { cx: x + padX + 9, cy: yy, r: 4, fill: '#fff', stroke: it.c, 'stroke-width': 1.2 }, g);
       else if (it.kind === 'ring') el('circle', { cx: x + padX + 9, cy: yy, r: 5.5, fill: 'none', stroke: it.c, 'stroke-width': 2 }, g);
-      else if (it.kind === 'star') text(x + padX + 9, yy + 5, '★', { 'text-anchor': 'middle', 'font-size': 14, fill: it.c }, g);
+      else if (it.kind === 'star') text(x + padX + 9, yy + 5, '★', { 'text-anchor': 'middle', 'font-size': 15, fill: it.c }, g);
       else if (it.kind === 'tint') el('rect', { x: x + padX, y: yy - 6, width: 18, height: 12, fill: it.c, rx: 2 }, g);
       else el('line', { x1: x + padX, x2: x + padX + 18, y1: yy, y2: yy, stroke: it.c, 'stroke-width': it.dash ? 1.5 : 2.5, 'stroke-dasharray': it.dash ? '5 4' : 'none' }, g);
       text(x + padX + 26, yy + 4, it.n, { class: 'axis-title', fill: 'var(--ink)' }, g);
@@ -369,7 +369,7 @@ const TEST = [[9.429,3.051,0],[9.603,2.104,0],[9.644,1.394,0],[9.507,1.669,0],[9
     el('path', { d: `M${AP.x},${AP.y}V${AP.y + AP.h}H${AP.x + AP.w}` }, axis);
     for (let m = 0; m < n; m++) {
       const r = M.rounds[m]; const hgt = r.alpha / maxA * (AP.h - 10);
-      if (m < upto) { el('rect', { x: AP.x + m * bw + 4, y: AP.y + AP.h - hgt, width: bw - 8, height: hgt, fill: '#4a3aa7', opacity: 0.85 }, root); text(AP.x + m * bw + bw / 2, AP.y + AP.h - hgt - 4, r.alpha.toFixed(2), { class: 'mono', 'text-anchor': 'middle', 'font-size': 11 }, root); }
+      if (m < upto) { el('rect', { x: AP.x + m * bw + 4, y: AP.y + AP.h - hgt, width: bw - 8, height: hgt, fill: '#4a3aa7', opacity: 0.85 }, root); text(AP.x + m * bw + bw / 2, AP.y + AP.h - hgt - 4, r.alpha.toFixed(2), { class: 'mono', 'text-anchor': 'middle', 'font-size': 15 }, root); }
       text(AP.x + m * bw + bw / 2, AP.y + AP.h + 16, m + 1, { 'text-anchor': 'middle' }, axis);
     }
     text(AP.x + AP.w / 2, AP.y + AP.h + 36, 'model', { class: 'axis-title', 'text-anchor': 'middle' }, root);
@@ -396,7 +396,7 @@ const TEST = [[9.429,3.051,0],[9.603,2.104,0],[9.644,1.394,0],[9.507,1.669,0],[9
       const rows = [`model ${m + 1}:  splits ${upto} of ${nS}`, `training accuracy  ${pct(accuracy(pred, X, Y))}`];
       if (done) { rows.push(`misclassified      ${wrongCount} of ${NTR}`, `weighted error     ${pct(rd.err)}`, `model weight       ${rd.alpha.toFixed(2)}`); }
       if (m === 1 && done) { const fixed = M.rounds[0].wrong.filter((b, i) => b && !rd.wrong[i]).length, newly = rd.wrong.filter((b, i) => b && !M.rounds[0].wrong[i]).length; rows.push(``, `model 1 mistakes fixed   ${fixed}`, `new mistakes             ${newly}`); }
-      rows.forEach((s, k) => text(RX, 300 + k * 24, s, { class: 'mono', 'font-size': 14, style: 'white-space:pre' }, root));
+      rows.forEach((s, k) => text(RX, 300 + k * 24, s, { class: 'mono', 'font-size': 15, style: 'white-space:pre' }, root));
       G.hover = { P, predict: x => ({ single: pred(x) }) };
     } else if (id === 'rew') {
       const rd = M.rounds[0], t = Math.min(1, frame / REW);
@@ -410,7 +410,7 @@ const TEST = [[9.429,3.051,0],[9.603,2.104,0],[9.644,1.394,0],[9.507,1.669,0],[9
       weightsPanel(root, 1);
       const wrongCount = rd.wrong.filter(Boolean).length, up = rd.wAfter[rd.wrong.indexOf(true)] || 0, down = rd.wAfter[rd.wrong.indexOf(false)] || 0;
       const share = rd.wrong.reduce((a, b, i) => a + (b ? wi[i] : 0), 0);
-      [`weight of a misclassified window  ${(wi[rd.wrong.indexOf(true)] * NTR).toFixed(2)}×`, `weight of a correct window        ${(wi[rd.wrong.indexOf(false)] * NTR).toFixed(2)}×`, ``, `${wrongCount} misclassified windows now hold`, `${pct(share)} of the total weight`].forEach((s, k) => text(RX, 300 + k * 24, s, { class: 'mono', 'font-size': 14, style: 'white-space:pre' }, root));
+      [`weight of a misclassified window  ${(wi[rd.wrong.indexOf(true)] * NTR).toFixed(2)}×`, `weight of a correct window        ${(wi[rd.wrong.indexOf(false)] * NTR).toFixed(2)}×`, ``, `${wrongCount} misclassified windows now hold`, `${pct(share)} of the total weight`].forEach((s, k) => text(RX, 300 + k * 24, s, { class: 'mono', 'font-size': 15, style: 'white-space:pre' }, root));
       G.hover = { P, predict: x => ({ single: predictTree(rd.tree, x) }) };
     } else if (id === 'sum') {
       const n = RR(), r = Math.max(1, Math.min(frame, n));
@@ -431,7 +431,7 @@ const TEST = [[9.429,3.051,0],[9.603,2.104,0],[9.644,1.394,0],[9.507,1.669,0],[9
       const line = (arr, color, dash) => { let d = ''; for (let k = 0; k < r; k++) d += (k ? 'L' : 'M') + ax(k + 1).toFixed(1) + ',' + ay(arr[k]).toFixed(1); el('path', { d, fill: 'none', stroke: color, 'stroke-width': 2.2, 'stroke-dasharray': dash ? '5 4' : 'none', 'stroke-linejoin': 'round' }, root); el('circle', { cx: ax(r), cy: ay(arr[r - 1]), r: 4, fill: color, stroke: '#fff', 'stroke-width': 1.5 }, root); };
       line(M.accTr, '#eb6834', true); line(M.accTe, '#2a78d6', false);
       drawLegend(root, [{ c: '#eb6834', n: 'training accuracy', dash: true }, { c: '#2a78d6', n: 'test accuracy' }], AP.x + 6, AP.y + 6);
-      [`models in the sum  ${r}`, `training ${pct(M.accTr[r - 1])}   test ${pct(M.accTe[r - 1])}`].forEach((s, k) => text(RX, 550 + k * 24, s, { class: 'mono', 'font-size': 14, style: 'white-space:pre' }, root));
+      [`models in the sum  ${r}`, `training ${pct(M.accTr[r - 1])}   test ${pct(M.accTe[r - 1])}`].forEach((s, k) => text(RX, 550 + k * 24, s, { class: 'mono', 'font-size': 15, style: 'white-space:pre' }, root));
       if (M.rounds.length < DIALS.R.get()) text(RX, 600, `sequence stops after ${M.rounds.length} models (next model no better than chance)`, { class: 'axis-title' }, root);
       G.hover = { P, predict: x => ({ scores: ensScores(M.rounds, x, r) }) };
     }

@@ -76,11 +76,11 @@
   .hint kbd { font-family: var(--mono); background: #fff; border: 1px solid var(--rule); border-radius: 3px; padding: 0 5px; font-size: 11px; }
 
   .grid line { stroke: var(--grid); stroke-width: 1; }
-  .ptitle { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .ptitle { font-family: var(--sans); font-size: 15px; fill: var(--ink-2); }
   .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-3); }
   .dlabel { font-family: var(--sans); font-size: 12px; font-weight: 700; }
-  .slabel { font-family: var(--sans); font-size: 11px; fill: var(--ink-2); }
-  .mono { font-family: var(--mono); font-size: 12px; fill: var(--ink); }
+  .slabel { font-family: var(--sans); font-size: 15px; fill: var(--ink-2); }
+  .mono { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
 
   @media (max-width: 720px) {
@@ -521,8 +521,9 @@
 
   // conventional legend: white rounded box, swatch + name in ink, static for the step
   function legend(x, y, items, anchor = 'start') {
-    const rowH = 17, padX = 10, padY = 7;
-    const w = padX * 2 + 30 + Math.max(...items.map(it => it.name.length)) * 6.6;
+    const rowH = 24, padX = 10, padY = 7;
+    const w = padX * 2 + 30 + Math.max(...items.map(it => it.name.length)) * 10.5;
+    x = Math.min(x, W - w - 6);
     const h = padY * 2 + items.length * rowH;
     const x0 = anchor === 'end' ? x - w : x;
     let s = `<g class="legend"><rect x="${x0}" y="${y}" width="${w.toFixed(0)}" height="${h}" rx="4" fill="#fff" fill-opacity=".9" stroke="var(--rule)"/>`;
@@ -668,7 +669,7 @@
       svg += drawTime(inp, [{ y: output(d, c.input, c.mode), color: c.mode === 'causal' ? 'var(--violet)' : 'var(--sig)', name: c.mode === 'causal' ? 'filtered output (causal)' : 'filtered output (zero-phase)', animated: true }], st.anim === 'sweep' ? prog : null);
     }
     svg += `<g id="hover"></g>`;
-    chart.innerHTML = `<style>.ax{font-family:var(--mono);font-size:11px;fill:var(--ink-2)}</style>` + svg;
+    chart.innerHTML = `<style>.ax{font-family:var(--mono);font-size: 15px;fill:var(--ink-2)}</style>` + svg;
     $('title').innerHTML = esc(st.title) + `<span class="tag">${esc(st.tag(c))}</span>`;
     const code = st.code ? st.code(c) : '';
     $('code').hidden = !code; $('code').innerHTML = code;

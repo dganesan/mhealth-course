@@ -121,9 +121,9 @@
   .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
   .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
   .mono { font-family: var(--mono); }
-  .note { font-family: var(--mono); font-size: 13px; fill: var(--ink); white-space: pre; }
+  .note { font-family: var(--mono); font-size: 15px; fill: var(--ink); white-space: pre; }
   .note-big { font-family: var(--mono); font-size: 22px; font-weight: 700; white-space: pre; }
-  .callout text { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .callout text { font-family: var(--sans); font-size: 15px; fill: var(--ink-2); }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
 
   @media (max-width: 720px) {
@@ -577,8 +577,9 @@ function findPeaks(x, opt) {
   }
   function legend(x, y, items) {
     const g = el('g', {}, chart);
-    const rowH = 18, padX = 10, padY = 8;
-    const wdt = Math.max(...items.map(i => i.n.length)) * 7.2 + 2 * padX + 40;
+    const rowH = 24, padX = 10, padY = 8;
+    const wdt = Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX + 40;
+    x = Math.min(x, W - wdt - 6);
     el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
     items.forEach((it, j) => {
       const yy = y + padY + j * rowH + 6;
@@ -602,7 +603,7 @@ function findPeaks(x, opt) {
     G.pk = el('g', {}, chart);
     const itemsA = [{ c: '#2a78d6', n: 'wrist PPG, band-pass 0.5–4 Hz' }, { c: '#eb6834', n: flagged ? 'detected peak, counted' : 'detected peak', dot: true }];
     if (flagged) itemsA.push({ c: '#eb6834', n: 'detected peak, rejected (motion)', dot: true, hollow: true }, { c: 'rgba(235,104,52,.10)', n: 'motion window (accelerometer above threshold)', box: true });
-    legend(W - PR - 8 - (Math.max(...itemsA.map(i => i.n.length)) * 7.2 + 60), PA.y0 + 8, itemsA);
+    legend(W - PR - 8 - (Math.max(...itemsA.map(i => i.n.length)) * 10.5 + 60), PA.y0 + 8, itemsA);
     G.big = el('text', { x: PL + 12, y: PA.y0 + 24, class: 'note-big big-red' }, chart);
     // accelerometer panel
     panelAxes(PB, ysB, 0, aHi, aHi > 20 ? 10 : 5, 'accelerometer |a − median|', !PC);

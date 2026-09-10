@@ -51,17 +51,17 @@
   .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .box { fill: #fafafa; stroke: var(--ink-3); stroke-width: 1; }
   .box.win { stroke: var(--ma); stroke-width: 2; fill: #eef4fc; }
-  .pid { font-family: var(--mono); font-size: 11px; font-weight: 700; fill: #fff; text-anchor: middle; pointer-events: none; }
-  .lab { font-family: var(--sans); font-size: 14px; fill: var(--ink); }
+  .pid { font-family: var(--mono); font-size: 15px; font-weight: 700; fill: #fff; text-anchor: middle; pointer-events: none; }
+  .lab { font-family: var(--sans); font-size: 15px; fill: var(--ink); }
   .lab.b { font-weight: 700; }
-  .lab.sub { fill: var(--ink-2); font-size: 13px; }
-  .num { font-family: var(--mono); font-size: 14px; fill: var(--ink); }
+  .lab.sub { fill: var(--ink-2); font-size: 15px; }
+  .num { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
   .formula { font-family: var(--mono); font-size: 17px; fill: var(--ink); }
   .formula.hi { fill: var(--ma); font-weight: 700; }
   .q { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ma); text-anchor: middle; }
   .branch { stroke: var(--ink-3); stroke-width: 1.2; fill: none; }
   .curve { fill: none; stroke: var(--ink); stroke-width: 2; }
-  .ptitle { font-family: var(--sans); font-size: 13px; font-weight: 700; fill: var(--ink); }
+  .ptitle { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ink); }
   @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
   .hint { display:none !important; }
   button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
@@ -255,9 +255,9 @@
     drawLegend();
   }
   function drawLegend() {
-    const rowH = 18, padX = 10, padY = 8;
+    const rowH = 24, padX = 10, padY = 8;
     const items = CLS.map((c, k) => ({ c: CCOL[k], n: `${c} (${show === 'train' ? 'training' : 'test'} window)` })).concat(CLS.map((c, k) => ({ c: CCOL[k], n: `${c} region`, rect: true })));
-    const wdt = 12 + Math.max(...items.map(i => i.n.length)) * 6.6 + 2 * padX + 22, x0 = SX1 - wdt - 8, y0 = SY0 + 8;
+    const wdt = 12 + Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX + 22, x0 = SX1 - wdt - 8, y0 = SY0 + 8;
     el('rect', { x: x0, y: y0, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, G.legend);
     items.forEach((it, j) => {
       const y = y0 + padY + j * rowH + 6;
@@ -269,7 +269,7 @@
     const it2 = [];
     if (ser.includes('train')) it2.push({ c: '#eb6834', n: 'training accuracy (150 windows)', dash: true });
     if (ser.includes('test')) it2.push({ c: '#2a78d6', n: 'test accuracy (571 held-out windows)' });
-    const w2 = 12 + Math.max(...it2.map(i => i.n.length)) * 6.6 + 2 * padX + 22, x1 = AX1 - w2 - 8, y1 = AY1 - (it2.length * rowH + 2 * padY - 4) - 8;
+    const w2 = 12 + Math.max(...it2.map(i => i.n.length)) * 10.5 + 2 * padX + 22, x1 = AX1 - w2 - 8, y1 = AY1 - (it2.length * rowH + 2 * padY - 4) - 8;
     el('rect', { x: x1, y: y1, width: w2, height: it2.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, G.legend);
     it2.forEach((it, j) => {
       const y = y1 + padY + j * rowH + 6;
@@ -286,7 +286,7 @@
     setCode();
     G.regions.innerHTML = ''; G.curves.innerHTML = '';
     leavesAt(tree, dep).forEach(l => { const b = l.box; el('rect', { x: xs(b[0]), y: ys(b[3]), width: xs(b[1]) - xs(b[0]), height: ys(b[2]) - ys(b[3]), fill: CCOL[l.cls], opacity: .25 }, G.regions); });
-    txt(SX0 + 8, SY1 - 10, `max_depth = ${dep} · ${acc[dep].leaves} ${acc[dep].leaves === 1 ? 'leaf' : 'leaves'}`, 'num', { 'font-size': 14, 'font-weight': 700 }, G.regions);
+    txt(SX0 + 8, SY1 - 10, `max_depth = ${dep} · ${acc[dep].leaves} ${acc[dep].leaves === 1 ? 'leaf' : 'leaves'}`, 'num', { 'font-size': 15, 'font-weight': 700 }, G.regions);
     // shaded gap
     if (d.kind === 'gap') {
       let p = ''; for (let k = 1; k <= DMAX; k++) p += (k === 1 ? 'M' : 'L') + ax(k).toFixed(1) + ',' + ay(acc[k].train).toFixed(1);
@@ -309,7 +309,7 @@
     if (d.kind === 'gap') {
       const b = bestTestDepth();
       txt(ax(b) + 10, ay(acc[b].test) + 30, `best test depth = ${b}`, 'lab b', {}, G.curves);
-      txt(ax(DMAX) - 6, ay((acc[DMAX].train + acc[DMAX].test) / 2) + 4, `gap ${(acc[DMAX].train - acc[DMAX].test).toFixed(2)}`, 'num', { 'text-anchor': 'end', 'font-size': 13, fill: '#eb6834', 'font-weight': 700 }, G.curves);
+      txt(ax(DMAX) - 6, ay((acc[DMAX].train + acc[DMAX].test) / 2) + 4, `gap ${(acc[DMAX].train - acc[DMAX].test).toFixed(2)}`, 'num', { 'text-anchor': 'end', 'font-size': 15, fill: '#eb6834', 'font-weight': 700 }, G.curves);
     }
     const constr = (minLeaf > 1 || minSplit > 2) ? ` · min_samples_leaf = ${minLeaf} · min_samples_split = ${minSplit}` : '';
     $('title').innerHTML = d.title + `<span class="tag">max_depth = ${dep}${constr}</span>`;

@@ -44,10 +44,10 @@
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
   .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
   .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
-  .ptitle { font-family: var(--sans); font-size: 13px; font-weight: 700; fill: var(--ink); }
+  .ptitle { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ink); }
   .wave { fill: none; stroke: #333; stroke-width: 1.2; }
   .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
-  .mono { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
+  .mono { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
   .big { font-family: var(--mono); font-size: 20px; font-weight: 700; }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
   @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
@@ -203,8 +203,9 @@
   let hoverFn = null;
 
   function legend(g, xL, yT, items) {
-    const rowH = 18, padX = 10, padY = 8;
-    const wdt = Math.max(...items.map(i => i.n.length)) * 7.2 + 2 * padX + 34;
+    const rowH = 24, padX = 10, padY = 8;
+    const wdt = Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX + 34;
+    xL = Math.min(xL, W - wdt - 6);
     el('rect', { x: xL, y: yT, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
     items.forEach((it, j) => {
       const y = yT + padY + j * rowH + 6;

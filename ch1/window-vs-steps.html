@@ -88,23 +88,23 @@
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
   .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
   .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
-  .formula { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
+  .formula { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
   .raw-line { fill: none; stroke: var(--raw); stroke-width: 1.3; }
   .out-line { fill: none; stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; }
   .pk-x { stroke-width: 2; stroke-linecap: round; }
   .pk-o { fill: none; stroke-width: 2; }
   .ripple { stroke: #fff; stroke-width: 1.2; }
   .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
-  .ann text { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .ann text { font-family: var(--sans); font-size: 15px; fill: var(--ink-2); }
   .ann line, .ann path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
   .wbar { fill: var(--ma); opacity: .8; }
-  .wbar-lbl { font-family: var(--mono); font-size: 11px; fill: var(--ink-2); }
+  .wbar-lbl { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
   .curve { fill: none; stroke: var(--ma); stroke-width: 2; }
   .cdot { fill: var(--ma); stroke: #fff; stroke-width: 1.5; }
   .truth { stroke: var(--lp); stroke-width: 1.5; stroke-dasharray: 5 4; }
   .good-band { fill: rgba(27,175,122,.10); }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
-  .legend text { font-family: var(--sans); font-size: 12px; fill: var(--ink); }
+  .legend text { font-family: var(--sans); font-size: 15px; fill: var(--ink); }
   .legend .bg { fill: #fff; opacity: .9; stroke: var(--rule); }
   .cursor-w { stroke: var(--ink); stroke-width: 1; }
 
@@ -635,7 +635,7 @@
     g.innerHTML = '';
     if (!items.length) return;
     const gap = 18, sw = 16, pad = 8;
-    const widths = items.map(it => sw + 6 + it.name.length * 6.4);
+    const widths = items.map(it => sw + 6 + it.name.length * 10.5);
     const total = widths.reduce((a, b) => a + b, 0) + gap * (items.length - 1) + pad * 2;
     let x0 = anchorRight ? x - total : x;
     el('rect', { class: 'bg', x: x0, y: y - 11, width: total, height: 22, rx: 4 }, g);

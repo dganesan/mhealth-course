@@ -51,17 +51,17 @@
   .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .box { fill: #fafafa; stroke: var(--ink-3); stroke-width: 1; }
   .box.win { stroke: var(--ma); stroke-width: 2; fill: #eef4fc; }
-  .pid { font-family: var(--mono); font-size: 11px; font-weight: 700; fill: #fff; text-anchor: middle; pointer-events: none; }
-  .lab { font-family: var(--sans); font-size: 14px; fill: var(--ink); }
+  .pid { font-family: var(--mono); font-size: 15px; font-weight: 700; fill: #fff; text-anchor: middle; pointer-events: none; }
+  .lab { font-family: var(--sans); font-size: 15px; fill: var(--ink); }
   .lab.b { font-weight: 700; }
-  .lab.sub { fill: var(--ink-2); font-size: 13px; }
-  .num { font-family: var(--mono); font-size: 14px; fill: var(--ink); }
+  .lab.sub { fill: var(--ink-2); font-size: 15px; }
+  .num { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
   .formula { font-family: var(--mono); font-size: 17px; fill: var(--ink); }
   .formula.hi { fill: var(--ma); font-weight: 700; }
   .q { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ma); text-anchor: middle; }
   .branch { stroke: var(--ink-3); stroke-width: 1.2; fill: none; }
   .curve { fill: none; stroke: var(--ink); stroke-width: 2; }
-  .ptitle { font-family: var(--sans); font-size: 13px; font-weight: 700; fill: var(--ink); }
+  .ptitle { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ink); }
   @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
   .hint { display:none !important; }
   button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
@@ -253,7 +253,7 @@
       ['mean', 'std'].forEach(f => FEAT[f].six.forEach(t => {
         if (f === 'mean') el('line', { x1: xm(t), x2: xm(t), y1: SY0, y2: SY1, stroke: '#444', 'stroke-dasharray': '4 4', opacity: .6 }, G.back);
         else el('line', { x1: SX0, x2: SX1, y1: ys(t), y2: ys(t), stroke: '#444', 'stroke-dasharray': '4 4', opacity: .6 }, G.back);
-        txt(f === 'mean' ? xm(t) + 4 : SX1 - 4, f === 'mean' ? SY0 + 14 : ys(t) - 4, `${FEAT[f].name} ≤ ${t}`, 'num', { 'font-size': 11, fill: 'var(--ink-2)', 'text-anchor': f === 'mean' ? 'start' : 'end' }, G.back);
+        txt(f === 'mean' ? xm(t) + 4 : SX1 - 4, f === 'mean' ? SY0 + 14 : ys(t) - 4, `${FEAT[f].name} ≤ ${t}`, 'num', { 'font-size': 15, fill: 'var(--ink-2)', 'text-anchor': f === 'mean' ? 'start' : 'end' }, G.back);
       }));
     }
     if (d.kind === 'scan') drawGainAxes(d);
@@ -271,17 +271,17 @@
     txt((GX0 + GX1) / 2, GY1 + 40, `threshold t on ${F.name}`, 'axis-title', { 'text-anchor': 'middle' }, G.back);
     txt(0, 0, `information gain of "${F.name} ≤ t"`, 'axis-title', { 'text-anchor': 'middle', transform: `translate(${GX0 - 70}, ${(GY0 + GY1) / 2}) rotate(-90)` }, G.back);
     el('line', { x1: GX0, x2: GX1, y1: G.gy(hmax), y2: G.gy(hmax), stroke: 'var(--ink-3)', 'stroke-dasharray': '2 3' }, G.back);
-    txt(GX1 - 4, G.gy(hmax) + 15, `${SYM()}(S) = ${f3(hmax)}  (largest possible gain)`, 'num', { 'font-size': 11, fill: 'var(--ink-2)', 'text-anchor': 'end' }, G.back);
+    txt(GX1 - 4, G.gy(hmax) + 15, `${SYM()}(S) = ${f3(hmax)}  (largest possible gain)`, 'num', { 'font-size': 15, fill: 'var(--ink-2)', 'text-anchor': 'end' }, G.back);
   }
   function drawLegend() {
     G.legend.innerHTML = '';
     const d = steps[step];
-    const rowH = 18, padX = 10, padY = 8;
+    const rowH = 24, padX = 10, padY = 8;
     const items = CLS.map((c, k) => ({ c: CCOL[k], n: c }));
     if (d.kind === 'data') items.push({ c: '#444', n: 'candidate threshold', dash: true });
     if (d.kind === 'scan') { items.push({ c: 'var(--ink)', n: 'threshold line', line: true }); items.push({ c: '#444', n: 'on the "≤ t" side', ring: true }); }
     if (d.kind === 'tree') CLS.forEach((c, k) => items.push({ c: CCOL[k], n: `${c} region`, fillRect: true }));
-    const wdt = 12 + Math.max(...items.map(i => i.n.length)) * 7 + 2 * padX + 22;
+    const wdt = 12 + Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX + 22;
     const x0 = SX1 - wdt - 8, y0 = SY1 - (items.length * rowH + 2 * padY - 4) - 8;
     el('rect', { x: x0, y: y0, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, G.legend);
     items.forEach((it, j) => {
@@ -312,7 +312,7 @@
       const g = el('g', { 'data-id': d[0] }, G.pts);
       if (active && ringFn && ringFn(d)) el('circle', { cx: x, cy: y, r: 11, fill: 'none', stroke: '#444', 'stroke-width': 2 }, g);
       el('circle', { cx: x, cy: y, r: 7, fill: CCOL[d[3]], stroke: '#fff', 'stroke-width': 1.5, opacity: active ? 1 : 0.22 }, g);
-      txt(x + 10, y - 8, d[0], 'num', { 'font-size': 11, fill: active ? 'var(--ink-2)' : 'var(--ink-3)' }, g);
+      txt(x + 10, y - 8, d[0], 'num', { 'font-size': 15, fill: active ? 'var(--ink-2)' : 'var(--ink-3)' }, g);
     });
   }
 
@@ -344,13 +344,13 @@
                                   : (r.hL === 0 ? { x: SX0, y: SY0, w: xm(rs.t) - SX0, h: SY1 - SY0 } : { x: xm(rs.t), y: SY0, w: SX1 - xm(rs.t), h: SY1 - SY0 });
       el('rect', { x: rect.x, y: rect.y, width: rect.w, height: rect.h, fill: CCOL[pk], opacity: .18 }, G.regions);
       txt(rect.x + 8, rect.y + rect.h - 8, `pure leaf: ${CLS[pk]} (n=${pure.length}), ${SYM()} = 0`, 'lab b', { fill: CCOL[pk] }, G.regions);
-      txt(rs.f === 'std' ? SX0 + 8 : xm(rs.t) + 6, rs.f === 'std' ? ys(rs.t) - 6 : SY1 - 8, `root: ${F === FEAT[rs.f] ? '' : ''}${FEAT[rs.f].name} ≤ ${rs.t}`, 'num', { 'font-size': 12, fill: '#444' }, G.regions);
+      txt(rs.f === 'std' ? SX0 + 8 : xm(rs.t) + 6, rs.f === 'std' ? ys(rs.t) - 6 : SY1 - 8, `root: ${F === FEAT[rs.f] ? '' : ''}${FEAT[rs.f].name} ≤ ${rs.t}`, 'num', { 'font-size': 15, fill: '#444' }, G.regions);
     }
     // threshold line
     const ringFn = dd => dd[F.col] <= t;
     drawPoints(d.set, ringFn);
-    if (feat === 'std') { el('line', { x1: SX0, x2: SX1, y1: ys(t), y2: ys(t), stroke: 'var(--ink)', 'stroke-width': 2 }, G.dyn); txt(SX0 + 8, ys(t) - 7, `${F.name} ≤ ${t.toFixed(2)}`, 'num', { 'font-size': 13, 'font-weight': 700 }, G.dyn); }
-    else { el('line', { x1: xm(t), x2: xm(t), y1: SY0, y2: SY1, stroke: 'var(--ink)', 'stroke-width': 2 }, G.dyn); txt(xm(t) + 6, SY0 + 16, `${F.name} ≤ ${t.toFixed(2)}`, 'num', { 'font-size': 13, 'font-weight': 700 }, G.dyn); }
+    if (feat === 'std') { el('line', { x1: SX0, x2: SX1, y1: ys(t), y2: ys(t), stroke: 'var(--ink)', 'stroke-width': 2 }, G.dyn); txt(SX0 + 8, ys(t) - 7, `${F.name} ≤ ${t.toFixed(2)}`, 'num', { 'font-size': 15, 'font-weight': 700 }, G.dyn); }
+    else { el('line', { x1: xm(t), x2: xm(t), y1: SY0, y2: SY1, stroke: 'var(--ink)', 'stroke-width': 2 }, G.dyn); txt(xm(t) + 6, SY0 + 16, `${F.name} ≤ ${t.toFixed(2)}`, 'num', { 'font-size': 15, 'font-weight': 700 }, G.dyn); }
     // live split numbers under the scatter
     const s = splitAt(d.set, feat, t), S = SYM();
     const cts = ct => `${ct[0]} W · ${ct[1]} U · ${ct[2]} R`;
@@ -373,7 +373,7 @@
       if (tc > t + 1e-9) { el('line', { x1: G.gx(tc), x2: G.gx(tc), y1: GY1 - 6, y2: GY1 + 6, stroke: 'var(--ma)', 'stroke-width': 1.5 }, G.right); return; }
       const gv = splitAt(d.set, feat, tc).gain;
       el('circle', { cx: G.gx(tc), cy: G.gy(gv), r: 6, fill: 'var(--ma)', stroke: '#fff', 'stroke-width': 1.5 }, G.right);
-      txt(G.gx(tc), G.gy(gv) - 12, `${tc}: ${f3(gv)}`, 'num', { 'font-size': 12, 'text-anchor': 'middle', fill: 'var(--ma)' }, G.right);
+      txt(G.gx(tc), G.gy(gv) - 12, `${tc}: ${f3(gv)}`, 'num', { 'font-size': 15, 'text-anchor': 'middle', fill: 'var(--ma)' }, G.right);
       if (!best || gv > best.g + 1e-9) best = { t: tc, g: gv };
     });
     if (c >= d.frames && best) {
@@ -416,16 +416,16 @@
         const kk = nd.leaf ? nd.cls : nd.ct.indexOf(Math.max(...nd.ct)), pure = nd.h === 0;
         el('rect', { x: x - NW / 2, y, width: NW, height: NH, rx: 6, fill: pure ? CCOL[kk] : '#fff', 'fill-opacity': pure ? .18 : 1, stroke: pure ? CCOL[kk] : 'var(--ink-3)', 'stroke-width': 1.5 }, G.right);
         txt(x, y + 19, pure ? `${CLS[kk]}` : 'not yet split', 'lab b', { 'text-anchor': 'middle', fill: pure ? CCOL[kk] : 'var(--ink-2)' }, G.right);
-        txt(x, y + 37, `n = ${nd.n}  (${nd.ct.join(' · ')})`, 'num', { 'text-anchor': 'middle', 'font-size': 12 }, G.right);
+        txt(x, y + 37, `n = ${nd.n}  (${nd.ct.join(' · ')})`, 'num', { 'text-anchor': 'middle', 'font-size': 15 }, G.right);
         return;
       }
       el('rect', { x: x - NW / 2, y, width: NW, height: NH, rx: 6, fill: '#fff', stroke: 'var(--ma)', 'stroke-width': 1.5 }, G.right);
       txt(x, y + 19, `${FEAT[nd.split.f].name} ≤ ${nd.split.t} ?`, 'q', {}, G.right);
-      txt(x, y + 37, `n = ${nd.n}  (${nd.ct.join(' · ')})   gain ${f3(nd.split.gain)}`, 'num', { 'text-anchor': 'middle', 'font-size': 11 }, G.right);
+      txt(x, y + 37, `n = ${nd.n}  (${nd.ct.join(' · ')})   gain ${f3(nd.split.gain)}`, 'num', { 'text-anchor': 'middle', 'font-size': 15 }, G.right);
       const cy = y + NH + 60, xl = x - span / 2, xr = x + span / 2;
       el('line', { class: 'branch', x1: x, y1: y + NH, x2: xl, y2: cy }, G.right); el('line', { class: 'branch', x1: x, y1: y + NH, x2: xr, y2: cy }, G.right);
-      txt((x + xl) / 2 - 8, (y + NH + cy) / 2, 'Yes', 'lab b', { 'text-anchor': 'end', 'font-size': 12 }, G.right);
-      txt((x + xr) / 2 + 8, (y + NH + cy) / 2, 'No', 'lab b', { 'font-size': 12 }, G.right);
+      txt((x + xl) / 2 - 8, (y + NH + cy) / 2, 'Yes', 'lab b', { 'text-anchor': 'end', 'font-size': 15 }, G.right);
+      txt((x + xr) / 2 + 8, (y + NH + cy) / 2, 'No', 'lab b', { 'font-size': 15 }, G.right);
       node(nd.kids[0], xl, cy, span / 2, depth + 1); node(nd.kids[1], xr, cy, span / 2, depth + 1);
     }
     node(d.tree, (GX0 + GX1) / 2, GY0 + 10, (GX1 - GX0) / 2, 0);

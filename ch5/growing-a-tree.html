@@ -51,18 +51,18 @@
   .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .box { fill: #fafafa; stroke: var(--ink-3); stroke-width: 1; }
   .box.win { stroke: var(--ma); stroke-width: 2; fill: #eef4fc; }
-  .pid { font-family: var(--mono); font-size: 11px; font-weight: 700; fill: #fff; text-anchor: middle; pointer-events: none; }
-  .lab { font-family: var(--sans); font-size: 14px; fill: var(--ink); }
+  .pid { font-family: var(--mono); font-size: 15px; font-weight: 700; fill: #fff; text-anchor: middle; pointer-events: none; }
+  .lab { font-family: var(--sans); font-size: 15px; fill: var(--ink); }
   .lab.b { font-weight: 700; }
-  .lab.sub { fill: var(--ink-2); font-size: 13px; }
-  .num { font-family: var(--mono); font-size: 14px; fill: var(--ink); }
+  .lab.sub { fill: var(--ink-2); font-size: 15px; }
+  .num { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
   .formula { font-family: var(--mono); font-size: 17px; fill: var(--ink); }
   .formula.hi { fill: var(--ma); font-weight: 700; }
   .q { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ma); text-anchor: middle; }
   .branch { stroke: var(--ink-3); stroke-width: 1.2; fill: none; }
   .node-new { stroke: var(--ma); stroke-width: 3; }
   .curve { fill: none; stroke: var(--ink); stroke-width: 2; }
-  .ptitle { font-family: var(--sans); font-size: 13px; font-weight: 700; fill: var(--ink); }
+  .ptitle { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ink); }
   @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
   .hint { display:none !important; }
   button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
@@ -235,7 +235,7 @@
     txt(0, 0, 'std of a_y', 'axis-title', { 'text-anchor': 'middle', transform: `translate(${SX0 - 56}, ${(SY0 + SY1) / 2}) rotate(-90)` }, G.back);
     TRAIN.forEach((d, i) => { el('circle', { cx: xs(d[0]), cy: ys(d[1]), r: 4.5, fill: CCOL[d[2]], stroke: '#fff', 'stroke-width': 1, 'data-i': i }, G.pts); });
     // legend
-    const rowH = 18, padX = 10, padY = 8, items = CLS.map((c, k) => ({ c: CCOL[k], n: `${c} (window)` })).concat(CLS.map((c, k) => ({ c: CCOL[k], n: `${c} region`, rect: true })), [{ c: '#444', n: 'split boundary', line: true }]);
+    const rowH = 24, padX = 10, padY = 8, items = CLS.map((c, k) => ({ c: CCOL[k], n: `${c} (window)` })).concat(CLS.map((c, k) => ({ c: CCOL[k], n: `${c} region`, rect: true })), [{ c: '#444', n: 'split boundary', line: true }]);
     const wdt = 172, x0 = SX1 - wdt - 8, y0 = SY0 + 8;
     el('rect', { x: x0, y: y0, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, G.legend);
     items.forEach((it, j) => {
@@ -268,7 +268,7 @@
     if (newest) {
       const s = newest.split, b = newest.box;
       const lx = s.f === 0 ? xs(s.t) + 6 : xs(b[0]) + 6, ly = s.f === 0 ? ys(b[3]) + 16 : ys(s.t) - 6;
-      txt(lx, ly, `${s.f === 0 ? 'mean' : 'std'} ≤ ${s.t.toFixed(2)}`, 'num', { 'font-size': 13, 'font-weight': 700, fill: 'var(--ma)' }, G.lines);
+      txt(lx, ly, `${s.f === 0 ? 'mean' : 'std'} ≤ ${s.t.toFixed(2)}`, 'num', { 'font-size': 15, 'font-weight': 700, fill: 'var(--ma)' }, G.lines);
     }
     drawTree(shown, newest);
     $('title').innerHTML = steps[step].title + `<span class="tag">${tagText(shown)}</span>`;
@@ -298,13 +298,13 @@
       el('rect', { x: x - w / 2, y, width: w, height: NH, rx: 4, fill: isLeaf ? CCOL[n.cls] : '#fff', 'fill-opacity': isLeaf ? (pure ? .55 : .22) : 1, stroke: isNew ? 'var(--ma)' : isLeaf ? CCOL[n.cls] : 'var(--ink-3)', 'stroke-width': isNew ? 3 : 1.2 }, G.tree);
       if (big) {
         if (isLeaf) { txt(x, y + 18, CLS[n.cls], 'lab b', { 'text-anchor': 'middle', 'font-size': w < 80 ? 11 : 13 }, G.tree); txt(x, y + 35, w < 80 ? `n=${n.n}` : `n=${n.n} (${n.ct.join('·')})`, 'num', { 'text-anchor': 'middle', 'font-size': w < 80 ? 10 : 11 }, G.tree); }
-        else { txt(x, y + 18, `${n.split.f === 0 ? 'mean' : 'std'} ≤ ${n.split.t.toFixed(2)}`, 'q', { 'font-size': w < 100 ? 11 : 14 }, G.tree); txt(x, y + 35, w < 100 ? `n=${n.n}` : `n=${n.n} (${n.ct.join('·')})`, 'num', { 'text-anchor': 'middle', 'font-size': 11 }, G.tree); }
+        else { txt(x, y + 18, `${n.split.f === 0 ? 'mean' : 'std'} ≤ ${n.split.t.toFixed(2)}`, 'q', { 'font-size': w < 100 ? 11 : 14 }, G.tree); txt(x, y + 35, w < 100 ? `n=${n.n}` : `n=${n.n} (${n.ct.join('·')})`, 'num', { 'text-anchor': 'middle', 'font-size': 15 }, G.tree); }
       } else if (mid) {
-        txt(x, y + 17, isLeaf ? `n=${n.n}` : `${n.split.f === 0 ? 'm' : 's'}≤${n.split.t.toFixed(1)}`, 'num', { 'text-anchor': 'middle', 'font-size': 10, fill: isLeaf ? 'var(--ink)' : 'var(--ma)' }, G.tree);
+        txt(x, y + 17, isLeaf ? `n=${n.n}` : `${n.split.f === 0 ? 'm' : 's'}≤${n.split.t.toFixed(1)}`, 'num', { 'text-anchor': 'middle', 'font-size': 15, fill: isLeaf ? 'var(--ink)' : 'var(--ma)' }, G.tree);
       }
       if (!isLeaf) { draw(n.kids[0], n); draw(n.kids[1], n); }
     })(tree, null);
-    txt(TX0, TY1 + 26, `${leaves.length} ${leaves.length === 1 ? 'leaf' : 'leaves'} · depth ${dep} · ${leaves.filter(l => l.imp === 0).length} pure`, 'num', { 'font-size': 13 }, G.tree);
+    txt(TX0, TY1 + 26, `${leaves.length} ${leaves.length === 1 ? 'leaf' : 'leaves'} · depth ${dep} · ${leaves.filter(l => l.imp === 0).length} pure`, 'num', { 'font-size': 15 }, G.tree);
   }
 
   // ------------------------------------------------------------ hover

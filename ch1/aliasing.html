@@ -90,10 +90,10 @@
   .stem { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 3; opacity: .7; }
   .sdot { fill: var(--ink); stroke: #fff; stroke-width: 1.5; }
   .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linejoin: round; }
-  .slabel { font-family: var(--sans); font-size: 12px; fill: var(--ink-3); }
-  .formula { font-family: var(--mono); font-size: 14px; fill: var(--ink); }
+  .slabel { font-family: var(--sans); font-size: 15px; fill: var(--ink-3); }
+  .formula { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
   .legend-box { fill: #fff; fill-opacity: .9; stroke: var(--rule); }
-  .legend-text { font-family: var(--sans); font-size: 13px; fill: var(--ink); }
+  .legend-text { font-family: var(--sans); font-size: 15px; fill: var(--ink); }
   .verdict { font-family: var(--sans); font-size: 17px; font-weight: 700; paint-order: stroke; stroke: #fff; stroke-width: 4px; stroke-linejoin: round; }
   .formula .dim { fill: var(--ink-3); }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
@@ -315,7 +315,7 @@
     G.legend.innerHTML = '';
     if (items.length < 2) return;
     const rowH = 20, padX = 12, padY = 9, sw = 18, gap = 8;
-    const textW = Math.max(...items.map(o => o.text.length)) * 6.8;
+    const textW = Math.max(...items.map(o => o.text.length)) * 10.5;
     const bw = padX * 2 + sw + gap + textW, bh = padY * 2 + items.length * rowH - 6;
     const x0 = PL + 10, y0 = PT + 8;
     el('rect', { class: 'legend-box', x: x0, y: y0, width: bw, height: bh, rx: 4 }, G.legend);

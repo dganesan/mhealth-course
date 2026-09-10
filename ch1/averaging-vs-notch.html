@@ -74,16 +74,16 @@
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
   .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
-  .ptitle { font-family: var(--sans); font-size: 13px; fill: var(--ink); font-weight: 700; }
+  .ptitle { font-family: var(--sans); font-size: 15px; fill: var(--ink); font-weight: 700; }
   .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .raw-line { fill: none; stroke: var(--raw); stroke-width: 1.5; }
   .clean-line { fill: none; stroke: var(--clean); stroke-width: 1.4; stroke-dasharray: 5 4; opacity: .75; }
   .out-line { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
   .dot { stroke: #fff; stroke-width: 1.4; }
   .legend rect.bg { fill: #fff; fill-opacity: .9; stroke: var(--rule); }
-  .legend text { font-family: var(--sans); font-size: 12.5px; fill: var(--ink); }
+  .legend text { font-family: var(--sans); font-size: 15px; fill: var(--ink); }
   .legend line { stroke-width: 3; }
-  .anno { font-family: var(--mono); font-size: 12.5px; fill: var(--ink); }
+  .anno { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
   .anno.muted { fill: var(--ink-3); }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
 
@@ -483,7 +483,7 @@
   // conventional legend, drawn at step entry, static for the step
   function drawLegend(g, P, items) {
     g.innerHTML = '';
-    const x = P.x0 + 12, y = P.y0 + 10, rowH = 18, wBox = 230, hBox = 10 + items.length * rowH;
+    const x = P.x0 + 12, y = P.y0 + 10, rowH = 24, wBox = 230, hBox = 10 + items.length * rowH;
     el('rect', { class: 'bg', x, y, width: wBox, height: hBox, rx: 4 }, g);
     items.forEach((it, i) => {
       const cy = y + 14 + i * rowH;

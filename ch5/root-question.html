@@ -51,17 +51,17 @@
   .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .box { fill: #fafafa; stroke: var(--ink-3); stroke-width: 1; }
   .box.win { stroke: var(--ma); stroke-width: 2; fill: #eef4fc; }
-  .pid { font-family: var(--mono); font-size: 11px; font-weight: 700; fill: #fff; text-anchor: middle; pointer-events: none; }
-  .lab { font-family: var(--sans); font-size: 14px; fill: var(--ink); }
+  .pid { font-family: var(--mono); font-size: 15px; font-weight: 700; fill: #fff; text-anchor: middle; pointer-events: none; }
+  .lab { font-family: var(--sans); font-size: 15px; fill: var(--ink); }
   .lab.b { font-weight: 700; }
-  .lab.sub { fill: var(--ink-2); font-size: 13px; }
-  .num { font-family: var(--mono); font-size: 14px; fill: var(--ink); }
+  .lab.sub { fill: var(--ink-2); font-size: 15px; }
+  .num { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
   .formula { font-family: var(--mono); font-size: 17px; fill: var(--ink); }
   .formula.hi { fill: var(--ma); font-weight: 700; }
   .q { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ma); text-anchor: middle; }
   .branch { stroke: var(--ink-3); stroke-width: 1.2; fill: none; }
   .curve { fill: none; stroke: var(--ink); stroke-width: 2; }
-  .ptitle { font-family: var(--sans); font-size: 13px; font-weight: 700; fill: var(--ink); }
+  .ptitle { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ink); }
   @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
   .hint { display:none !important; }
   button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
@@ -236,7 +236,7 @@
   function drawLegend() {
     G.legend.innerHTML = '';
     const items = [{ c: CCOL.Low, n: 'Low risk' }, { c: CCOL.High, n: 'High risk' }];
-    const rowH = 18, padX = 10, padY = 8, x0 = LX1 - 118, y0 = 6;
+    const rowH = 24, padX = 10, padY = 8, x0 = LX1 - 118, y0 = 6;
     el('rect', { x: x0, y: y0, width: 118, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, G.legend);
     items.forEach((it, j) => {
       const y = y0 + padY + j * rowH + 6;
@@ -269,7 +269,7 @@
     for (let i = 0; i <= 100; i++) { const p = i / 100; dpath += (i ? 'L' : 'M') + px(p).toFixed(1) + ',' + py(impP(p)).toFixed(1); }
     el('path', { class: 'curve', d: dpath }, G.back);
     const f = crit === 'entropy' ? 'H(p) = −p log₂p − (1−p) log₂(1−p)' : 'G(p) = 1 − p² − (1−p)²';
-    txt((CX0 + CX1) / 2, CY1 + 66, f, 'num', { 'text-anchor': 'middle', 'font-size': 13 }, G.back);
+    txt((CX0 + CX1) / 2, CY1 + 66, f, 'num', { 'text-anchor': 'middle', 'font-size': 15 }, G.back);
   }
 
   function drawGainAxes(d) {
@@ -280,7 +280,7 @@
     const nt = 5; for (let i = 0; i <= nt; i++) { const v = gm * i / nt; el('line', { x1: G.gx(v), x2: G.gx(v), y1: CY0, y2: CY1 }, g); txt(G.gx(v), CY1 + 18, v.toFixed(2), '', { 'text-anchor': 'middle' }, a); }
     el('path', { d: `M${CX0},${CY0}V${CY1}H${CX1}` }, a);
     txt((CX0 + CX1) / 2, CY1 + 40, 'information gain', 'axis-title', { 'text-anchor': 'middle' }, G.back);
-    txt(CX0, CY0 - 18, `Gain(S, A) = ${SYM()}(S) − Σ |S_v|/|S| · ${SYM()}(S_v)`, 'num', { 'font-size': 13 }, G.back);
+    txt(CX0, CY0 - 18, `Gain(S, A) = ${SYM()}(S) − Σ |S_v|/|S| · ${SYM()}(S_v)`, 'num', { 'font-size': 15 }, G.back);
   }
 
   // slot geometry
@@ -376,7 +376,7 @@
       if (m) {
         const p = kidCounts[j][1] / m;
         el('circle', { cx: px(p), cy: py(h), r: 6.5, fill: '#fff', stroke: '#444', 'stroke-width': 2 }, G.curve);
-        txt(px(p) + (p > 0.75 ? -11 : 11), py(h) - 12, kd.v, 'lab', { 'text-anchor': p > 0.75 ? 'end' : 'start', 'font-size': 13 }, G.curve);
+        txt(px(p) + (p > 0.75 ? -11 : 11), py(h) - 12, kd.v, 'lab', { 'text-anchor': p > 0.75 ? 'end' : 'start', 'font-size': 15 }, G.curve);
       }
     });
     // parent marker
@@ -406,11 +406,11 @@
       cand.kids.forEach((kd, j) => {
         const bx = cx0 + j * (bw + g2);
         el('line', { class: 'branch', x1: qx, y1: qy + 14, x2: bx + bw / 2, y2: by }, G.dyn);
-        txt(bx + bw / 2, by - 6, kd.v, 'lab', { 'text-anchor': 'middle', 'font-size': 12, 'font-weight': 700 }, G.dyn);
+        txt(bx + bw / 2, by - 6, kd.v, 'lab', { 'text-anchor': 'middle', 'font-size': 15, 'font-weight': 700 }, G.dyn);
         el('rect', { class: 'box' + (isBest ? ' win' : ''), x: bx, y: by, width: bw, height: bh, rx: 5 }, G.dyn);
         boxSlots(bx, by, bw, bh, kd.set.length, r).forEach((s, i) => dot(s.x, s.y, kd.set[i], G.dots, r));
-        txt(bx + bw / 2, by + bh + 18, `${kd.ct[0]}L · ${kd.ct[1]}H`, 'num', { 'text-anchor': 'middle', 'font-size': 12 }, G.dyn);
-        txt(bx + bw / 2, by + bh + 36, `${SYM()}=${f2(kd.h)}`, 'num', { 'text-anchor': 'middle', 'font-size': 12 }, G.dyn);
+        txt(bx + bw / 2, by + bh + 18, `${kd.ct[0]}L · ${kd.ct[1]}H`, 'num', { 'text-anchor': 'middle', 'font-size': 15 }, G.dyn);
+        txt(bx + bw / 2, by + bh + 36, `${SYM()}=${f2(kd.h)}`, 'num', { 'text-anchor': 'middle', 'font-size': 15 }, G.dyn);
       });
       if (ci < shown) {
         txt(qx, 402, `avg child ${SYM()} = ${f2(cand.avg)}`, 'num', { 'text-anchor': 'middle' }, G.dyn);

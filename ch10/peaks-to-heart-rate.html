@@ -121,9 +121,9 @@
   .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
   .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
   .mono { font-family: var(--mono); }
-  .note { font-family: var(--mono); font-size: 13px; fill: var(--ink); white-space: pre; }
+  .note { font-family: var(--mono); font-size: 15px; fill: var(--ink); white-space: pre; }
   .note-big { font-family: var(--mono); font-size: 22px; font-weight: 700; white-space: pre; }
-  .callout text { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .callout text { font-family: var(--sans); font-size: 15px; fill: var(--ink-2); }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
 
   @media (max-width: 720px) {
@@ -134,8 +134,8 @@
   .pk { stroke: #fff; stroke-width: 1.5; }
   .rej { fill: none; stroke: var(--ink-3); stroke-width: 1.2; }
   .ibi { stroke: var(--ewma); stroke-width: 1.2; fill: none; }
-  .bpm { font-family: var(--mono); font-size: 13px; font-weight: 700; fill: var(--ewma); }
-  .dt { font-family: var(--mono); font-size: 11px; fill: var(--ink-2); }
+  .bpm { font-family: var(--mono); font-size: 15px; font-weight: 700; fill: var(--ewma); }
+  .dt { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
   .hr-line { fill: none; stroke: var(--ma); stroke-width: 1.5; }
   .med-line { stroke: var(--clean); stroke-width: 1.5; stroke-dasharray: 6 4; }
   .hint { display:none !important; }
@@ -577,8 +577,9 @@ function findPeaks(x, opt) {
   }
   function legend(x, y, items) {
     const g = el('g', {}, chart);
-    const rowH = 18, padX = 10, padY = 8;
-    const wdt = Math.max(...items.map(i => i.n.length)) * 7.2 + 2 * padX + 40;
+    const rowH = 24, padX = 10, padY = 8;
+    const wdt = Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX + 40;
+    x = Math.min(x, W - wdt - 6);
     el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
     items.forEach((it, j) => {
       const yy = y + padY + j * rowH + 6;
