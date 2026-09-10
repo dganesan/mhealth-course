@@ -28,7 +28,7 @@
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
-  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
   .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
   .group { display:flex; align-items:center; gap:8px; }
@@ -43,8 +43,8 @@
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .ptitle { font-family: var(--sans); font-size: 13px; font-weight: 700; fill: var(--ink); }
   .wave { fill: none; stroke: #333; stroke-width: 1; }
   .wave-fill { fill: #444; stroke: none; }
@@ -69,7 +69,7 @@
       <p id="subtitle"></p>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 680" role="img" aria-label="Waveform, frame spectrum and spectrogram"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1500 680" role="img" aria-label="Waveform, frame spectrum and spectrogram"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -198,7 +198,7 @@
   }
 
   // ------------------------------------------------------------ layout helpers
-  const W = 1200, H = 680, PL = 70, PR = 90;
+  const W = 1500, H = 680, PL = 82, PR = 90;
   const PW = W - PL - PR;
   const svgNS = 'http://www.w3.org/2000/svg';
   const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
@@ -229,6 +229,8 @@
     return d;
   }
   function axisBox(g, x0, y0, x1, y1) { el('path', { d: `M${x0},${y0}V${y1}H${x1}`, class: 'axis' }, g); }
+  // vertical y-axis title, centred on the axis, left of the tick labels
+  function yTitle(g, y0, y1, label) { el('text', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${PL - 62},${(y0 + y1) / 2}) rotate(-90)` }, g).textContent = label; }
   function wavePanel(g, y0, y1, uptoSample, label) {
     const gg = el('g', {}, g);
     const grid = el('g', { class: 'grid' }, gg), axis = el('g', { class: 'axis' }, gg);
@@ -236,7 +238,7 @@
     [-1, 0, 1].forEach(v => { const y = (y0 + y1) / 2 - v * (y1 - y0) / 2; el('line', { x1: PL, x2: PL + PW, y1: y, y2: y }, grid); el('text', { x: PL - 8, y: y + 4, 'text-anchor': 'end' }, axis).textContent = v; });
     el('path', { d: `M${PL},${y0}V${y1}H${PL + PW}` }, axis);
     el('text', { x: PL + PW + 20, y: y1 + 16, class: 'axis-title' }, gg).textContent = 'time (s)';
-    el('text', { x: PL - 8, y: y0 - 8, class: 'axis-title', 'text-anchor': 'end' }, gg).textContent = 'amplitude';
+    yTitle(gg, y0, y1, 'amplitude');
     el('text', { x: PL, y: y0 - 8, class: 'ptitle' }, gg).textContent = label;
     el('path', { class: 'wave-fill', d: wavePath(y0, y1, uptoSample) }, gg);
     return gg;
@@ -246,7 +248,7 @@
     const fy = f => y1 - (f / S.fmax) * (y1 - y0);
     for (let f = 0; f <= 8000; f += 2000) { el('line', { x1: PL, x2: PL + PW, y1: fy(f), y2: fy(f) }, grid); el('text', { x: PL - 8, y: fy(f) + 4, 'text-anchor': 'end' }, axis).textContent = f; }
     el('path', { d: `M${PL},${y0}V${y1}H${PL + PW}` }, axis);
-    el('text', { x: PL - 8, y: y0 - 8, class: 'axis-title', 'text-anchor': 'end' }, g).textContent = 'frequency (Hz)';
+    yTitle(g, y0, y1, 'frequency (Hz)');
     el('text', { x: PL, y: y0 - 8, class: 'ptitle' }, g).textContent = label;
     return fy;
   }
@@ -280,7 +282,7 @@
     [-mx, 0, mx].forEach(v => { el('line', { x1: PL, x2: PL + PW, y1: yy(v), y2: yy(v) }, grid); el('text', { x: PL - 8, y: yy(v) + 4, 'text-anchor': 'end' }, axis).textContent = v.toFixed(1); });
     el('path', { d: `M${PL},${y0}V${y1}H${PL + PW}` }, axis);
     el('text', { x: PL + PW / 2, y: y1 + 32, class: 'axis-title', 'text-anchor': 'middle' }, g).textContent = 'time in frame (ms)';
-    el('text', { x: PL - 8, y: y0 - 8, class: 'axis-title', 'text-anchor': 'end' }, g).textContent = 'amplitude';
+    yTitle(g, y0, y1, 'amplitude');
     el('text', { x: PL, y: y0 - 8, class: 'ptitle' }, g).textContent = `frame ${t + 1}: ${w} samples starting at ${(T0 + s0 / FS).toFixed(3)} s`;
     let d = ''; for (let i = 0; i < w; i++) d += (i ? 'L' : 'M') + xx(i).toFixed(1) + ',' + yy(x[s0 + i]).toFixed(1);
     el('path', { class: 'wave', d, stroke: 'var(--ma)', 'stroke-width': 1.2 }, g);
@@ -294,7 +296,7 @@
     [0, -20, -40, -60, -80].forEach(v => { el('line', { x1: PL, x2: PL + pw, y1: dy(v), y2: dy(v) }, grid); el('text', { x: PL - 8, y: dy(v) + 4, 'text-anchor': 'end' }, axis).textContent = v; });
     el('path', { d: `M${PL},${y0}V${y1}H${PL + pw}` }, axis);
     el('text', { x: PL + pw / 2, y: y1 + 32, class: 'axis-title', 'text-anchor': 'middle' }, g).textContent = 'frequency (Hz)';
-    el('text', { x: PL - 8, y: y0 - 8, class: 'axis-title', 'text-anchor': 'end' }, g).textContent = 'magnitude (dB)';
+    yTitle(g, y0, y1, 'magnitude (dB)');
     el('text', { x: PL, y: y0 - 8, class: 'ptitle' }, g).textContent = `spectrum of frame ${t + 1}  (${(T0 + t * S.hopN / FS).toFixed(3)} s)`;
     let d = ''; for (let k = 0; k < S.nb; k++) d += (k ? 'L' : 'M') + fx(k * S.fmax / (S.nb - 1)).toFixed(1) + ',' + dy(S.db[t * S.nb + k]).toFixed(1);
     el('path', { class: 'spec-line', d }, g);
@@ -304,7 +306,7 @@
       el('image', { x: sx, y: y0, width: sw, height: y1 - y0, href: columnURL(t), preserveAspectRatio: 'none' }, g);
       el('rect', { x: sx, y: y0, width: sw, height: y1 - y0, fill: 'none', stroke: 'var(--ink-2)' }, g);
       el('text', { x: sx + sw / 2, y: y0 - 8, class: 'axis-title', 'text-anchor': 'middle' }, g).textContent = 'as a column';
-      el('text', { x: sx + sw / 2, y: y1 + 16, class: 'axis-title', 'text-anchor': 'middle' }, g).textContent = '0–8 kHz';
+      el('text', { x: sx + sw / 2, y: y1 + 34, class: 'axis-title', 'text-anchor': 'middle' }, g).textContent = '0–8 kHz';
       el('path', { d: `M${PL + pw + 4},${(y0 + y1) / 2}H${sx - 4}`, stroke: 'var(--ink-2)', 'marker-end': 'url(#arr)', fill: 'none' }, g);
     }
   }

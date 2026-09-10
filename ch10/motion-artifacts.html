@@ -93,10 +93,7 @@
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
 
-  .foot {
-    display: flex; justify-content: space-between; align-items: baseline;
-    font-size: 12px; color: var(--ink-3); padding-top: 4px;
-  }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
 
   /* ---------- control bar ---------- */
@@ -115,8 +112,8 @@
   /* ---------- svg parts ---------- */
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .raw-line { fill: none; stroke: var(--raw-dot); stroke-width: 1.5; }
   .out-line { fill: none; stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
   .zero-line { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 3; }
@@ -155,7 +152,7 @@
       <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 660" role="img" aria-label="Wrist PPG with motion artifacts and accelerometer"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1450 660" role="img" aria-label="Wrist PPG with motion artifacts and accelerometer"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -531,8 +528,8 @@ function findPeaks(x, opt) {
   ];
 
   // ------------------------------------------------------------ layout
-  const W = 1200;
-  const PL = 78, PR = 30;
+  const W = 1450;
+  const PL = 84, PR = 34;
   let PA, PB, PC;
   let yLo = -120, yHi = 140, aHi = 30, hrLo = 40, hrHi = 200;
   const xs = t => PL + t / DUR * (W - PL - PR);
@@ -575,7 +572,7 @@ function findPeaks(x, opt) {
       el('text', { x: PL - 10, y: ys(v) + 4, 'text-anchor': 'end' }, axis).textContent = v;
     }
     el('path', { d: `M${PL},${p.y0}V${p.y1}H${W - PR}` }, axis);
-    el('text', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${PL - 52},${(p.y0 + p.y1) / 2}) rotate(-90)` }, chart).textContent = label;
+    el('text', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${PL - 64},${(p.y0 + p.y1) / 2}) rotate(-90)` }, chart).textContent = label;
     if (withTime) el('text', { x: (PL + W - PR) / 2, y: p.y1 + 36, class: 'axis-title', 'text-anchor': 'middle' }, chart).textContent = 'time (seconds)';
   }
   function legend(x, y, items) {

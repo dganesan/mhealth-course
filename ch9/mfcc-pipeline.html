@@ -27,7 +27,7 @@
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
-  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
   .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
   .group { display:flex; align-items:center; gap:8px; }
@@ -42,8 +42,8 @@
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .ptitle { font-family: var(--sans); font-size: 13px; font-weight: 700; fill: var(--ink); }
   .wave { fill: none; stroke: #333; stroke-width: 1; }
   .spec-line { fill: none; stroke: var(--ma); stroke-width: 1.4; stroke-linejoin: round; }
@@ -64,7 +64,7 @@
       <p id="subtitle"></p>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 680" role="img" aria-label="MFCC pipeline stages"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1500 680" role="img" aria-label="MFCC pipeline stages"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -185,7 +185,7 @@
   }
 
   // ------------------------------------------------------------ svg helpers
-  const W = 1200, H = 680, PL = 80, PR = 60, PW = W - PL - PR;
+  const W = 1500, H = 680, PL = 84, PR = 60, PW = W - PL - PR;
   const svgNS = 'http://www.w3.org/2000/svg';
   const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
   const $ = id => document.getElementById(id);
@@ -210,7 +210,7 @@
     el('path', { d: `M${x0},${y0}V${y1}H${x1}`, fill: 'none', stroke: 'var(--ink-2)' }, g);
     if (title) el('text', { x: x0, y: y0 - 10, class: 'ptitle' }, g).textContent = title;
     if (xlab) el('text', { x: (x0 + x1) / 2, y: y1 + 34, class: 'axis-title', 'text-anchor': 'middle' }, g).textContent = xlab;
-    if (ylab) el('text', { x: x0 - 8, y: y0 - 10, class: 'axis-title', 'text-anchor': 'end' }, g).textContent = ylab;
+    if (ylab) el('text', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${x0 - 64},${(y0 + y1) / 2}) rotate(-90)` }, g).textContent = ylab;
   }
   const fmt = (v, d = 2) => (Math.round(v * 10 ** d) / 10 ** d).toFixed(d);
 
@@ -271,7 +271,7 @@
       const v = vals[j]; const on = j === opts.active;
       const faded = opts.fadeFrom != null && j >= opts.fadeFrom;
       el('rect', { x: x0 + j * bw + gap / 2, y: Math.min(yy(v), yy(0)), width: bw - gap, height: Math.abs(yy(v) - yy(0)), fill: faded ? '#c8c8c8' : (opts.color || 'var(--ma)'), opacity: on ? 1 : .85, stroke: on ? '#222' : 'none', 'stroke-width': on ? 1.5 : 0 }, g);
-      if (opts.labels && !faded) el('text', { x: x0 + (j + 0.5) * bw, y: v >= 0 ? yy(v) - 5 : yy(v) + 13, class: 'axis-title', 'text-anchor': 'middle', fill: 'var(--ink)' }, g).textContent = fmt(v, opts.labels);
+      if (opts.labels && !faded) el('text', { x: x0 + (j + 0.5) * bw, y: v >= 0 ? yy(v) - 5 : Math.min(yy(v) + 13, y1 - 5), class: 'axis-title', 'text-anchor': 'middle', fill: 'var(--ink)' }, g).textContent = fmt(v, opts.labels);
     }
     return { yy, bw };
   }
@@ -285,7 +285,7 @@
     frame(g, x0, y0, x1, y1, 'the Mel scale', 'linear frequency (Hz)', 'perceived frequency (Mels)');
     let d = ''; for (let f = 0; f <= 8000; f += 20) d += (f ? 'L' : 'M') + xx(f).toFixed(1) + ',' + yy(melHTK(f)).toFixed(1);
     el('path', { class: 'spec-line', d, 'stroke-width': 2.2 }, g);
-    [100, 500, 1000, 2000, 4000, 8000].forEach(f => { const m = melHTK(f); el('line', { x1: xx(f), x2: xx(f), y1: yy(m), y2: y1, stroke: '#bbb', 'stroke-dasharray': '2 3' }, g); el('line', { x1: x0, x2: xx(f), y1: yy(m), y2: yy(m), stroke: '#bbb', 'stroke-dasharray': '2 3' }, g); el('circle', { cx: xx(f), cy: yy(m), r: 3.5, fill: 'var(--ma)' }, g); el('text', { x: xx(f) + 6, y: yy(m) + 14, class: 'axis-title' }, g).textContent = `${f} Hz → ${Math.round(m)} mel`; });
+    [100, 500, 1000, 2000, 4000, 8000].forEach(f => { const m = melHTK(f); el('line', { x1: xx(f), x2: xx(f), y1: yy(m), y2: y1, stroke: '#bbb', 'stroke-dasharray': '2 3' }, g); el('line', { x1: x0, x2: xx(f), y1: yy(m), y2: yy(m), stroke: '#bbb', 'stroke-dasharray': '2 3' }, g); el('circle', { cx: xx(f), cy: yy(m), r: 3.5, fill: 'var(--ma)' }, g); el('text', { x: f >= 8000 ? xx(f) - 8 : xx(f) + 6, y: yy(m) + (f >= 8000 ? 24 : 14), class: 'axis-title', 'text-anchor': f >= 8000 ? 'end' : 'start' }, g).textContent = `${f} Hz → ${Math.round(m)} mel`; });
     // the sliding 100-Hz step
     const f0 = 100 + idx * 100, f1 = f0 + 100, m0 = melHTK(f0), m1 = melHTK(f1);
     const c = '#eb6834';
@@ -309,7 +309,7 @@
   function clipPanels(g, upto) {
     const nk = Math.min(nKeep, 13);
     // top: clip waveform with sliding window
-    const x0 = PL, x1 = PL + 700, y0 = 40, y1 = 170;
+    const x0 = PL, x1 = PL + Math.round(PW * 0.66), y0 = 40, y1 = 170;
     const grid = el('g', { class: 'grid' }, g), axis = el('g', { class: 'axis' }, g);
     const xx = t => x0 + (t / CLIP_DUR) * (x1 - x0), yy = v => (y0 + y1) / 2 - v * (y1 - y0) / 2;
     for (let t = 0; t <= 3.5; t += 0.5) { el('line', { x1: xx(t), x2: xx(t), y1: y0, y2: y1 }, grid); el('text', { x: xx(t), y: y1 + 18, 'text-anchor': 'middle' }, axis).textContent = t.toFixed(1); }
@@ -341,11 +341,11 @@
     el('rect', { x: x0, y: hy0, width: x1 - x0, height: hy1 - hy0, fill: 'none', stroke: 'var(--rule)' }, g);
     el('line', { x1: xx(t * HOP_S + WIN_S / 2), x2: xx(t * HOP_S + WIN_S / 2), y1: hy0, y2: hy1, stroke: 'var(--ma)', 'stroke-width': 1.5 }, g);
     el('text', { x: x0, y: hy1 + 50, class: 'mono' }, g).textContent = `mean_i = (1/T) Σ_t c_i[t]      std_i = sqrt( (1/T) Σ_t (c_i[t] − mean_i)² )      T = ${t + 1}`;
-    legend(g, x0 + 8, hy0 - 60 + 8, [{ c: 'rgb(42,120,214)', n: 'low', box: true }, { c: 'rgb(235,104,52)', n: 'high (coefficient 0 on its own scale)', box: true }]);
+    legend(g, x1 - 330, hy0 - 52, [{ c: 'rgb(42,120,214)', n: 'low', box: true }, { c: 'rgb(235,104,52)', n: 'high (coefficient 0 on its own scale)', box: true }]);
     // right: running mean and std bars for the first nk coefficients
     const T = t + 1; const mean = new Array(13).fill(0), sd = new Array(13).fill(0);
     for (let i = 0; i < 13; i++) { let s = 0; for (let c = 0; c < T; c++) s += MFCC_SEQ[c][i]; mean[i] = s / T; let q = 0; for (let c = 0; c < T; c++) q += (MFCC_SEQ[c][i] - mean[i]) ** 2; sd[i] = Math.sqrt(q / T); }
-    const bx0 = PL + 790, bx1 = W - 40;
+    const bx0 = x1 + 90, bx1 = W - 40;
     barPanel(g, bx0, 40, bx1, 240, mean.slice(0, nk), nk, { title: `mean of each coefficient (${nk})`, xlab: 'MFCC index', ylab: 'mean', lo: -30, hi: 20, color: 'var(--ewma)', labels: 0 });
     barPanel(g, bx0, 300, bx1, 500, sd.slice(0, nk), nk, { title: `standard deviation of each (${nk})`, xlab: 'MFCC index', ylab: 'std', lo: 0, hi: 12, color: 'var(--ewma)', labels: 0 });
     el('text', { x: bx0, y: 560, class: 'mono' }, g).textContent = `clip vector: ${nk} + ${nk} = ${2 * nk} numbers`;
@@ -381,7 +381,7 @@
       dctBasisPanel(chart, PL, 40, PL + PW, 280, Math.max(0, n));
       barPanel(chart, PL, 380, PL + PW, 610, Array.from(MFCC), c, { title: `MFCC coefficients: the first ${nk} are kept, the rest discarded`, xlab: 'coefficient index n', ylab: 'c_n', active: n, color: 'var(--ewma)', fadeFrom: nk, labels: 1 });
       legend(chart, PL + PW - 190, 388, [{ c: 'var(--ewma)', n: `kept (n < ${nk})`, box: true }, { c: '#c8c8c8', n: 'discarded', box: true }]);
-      if (n >= 0) el('text', { x: PL + PW - 8, y: 300, class: 'mono', 'text-anchor': 'end' }, chart).textContent = `c_${n} = ${MFCC[n].toFixed(2)}`;
+      if (n >= 0) el('text', { x: PL + PW - 8, y: 322, class: 'mono', 'text-anchor': 'end' }, chart).textContent = `c_${n} = ${MFCC[n].toFixed(2)}`;
     } else if (d.id === 'clip') {
       clipPanels(chart, c);
     }

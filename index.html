@@ -10,12 +10,12 @@
   * { box-sizing:border-box; }
   body { margin:0; background:var(--paper); color:var(--ink); font-family:var(--sans); font-size:15px; line-height:1.45; padding-block:40px 60px; padding-inline:16px; -webkit-font-smoothing:antialiased; }
   main { max-width:1200px; margin:0 auto; }
-  .eyebrow { font-family:var(--mono); font-size:12px; color:var(--ink-3); letter-spacing:.04em; }
+  .eyebrow { font-family:var(--sans); font-size:16px; color:var(--ink-2); margin: 4px 0 18px; }
   h1 { margin:6px 0 28px; font-size:clamp(24px,3.4vw,32px); font-weight:700; letter-spacing:-.01em; line-height:1.1; }
   .grid { column-width:360px; column-gap:16px; }
   .box { border:1px solid var(--rule); border-radius:6px; padding:18px 20px 16px; display:flex; flex-direction:column; gap:10px; break-inside:avoid; margin-bottom:16px; }
   .box.active { border-color:var(--ink); }
-  .num { font-family:var(--mono); font-size:12px; color:var(--ink-3); }
+  .num { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); }
   h2 { margin:0; font-size:17px; font-weight:700; line-height:1.2; }
   h3 { margin:8px 0 2px; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); }
   ul { list-style:none; margin:0; padding:0; display:grid; gap:4px; }
@@ -28,8 +28,8 @@
 </head>
 <body>
 <main>
-  <div class="eyebrow">CS328 · Mobile Health Sensing and Analytics</div>
-  <h1>Companion Visualizations</h1>
+  <h1>CS328 · Companion Visualizations</h1>
+  <div class="eyebrow">Mobile Health Sensing and Analytics</div>
 
   <div class="grid">
     <section class="box">
@@ -43,6 +43,7 @@
       </ul>
       <h3>From time to frequency</h3>
       <ul>
+        <li><a href="ch1/sum-of-sinusoids.html">Building a Signal from Sinusoids</a></li>
         <li><a href="ch1/where-noise-lives.html">Signals and Noise in Frequency</a></li>
         <li><a href="ch1/aliasing.html">Aliasing and Nyquist</a></li>
         <li><a href="ch1/averaging-vs-notch.html">Moving Average vs Band-Stop</a></li>

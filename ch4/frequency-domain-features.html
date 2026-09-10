@@ -35,7 +35,7 @@
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
-  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
   .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
   .group { display:flex; align-items:center; gap:8px; }
@@ -50,8 +50,8 @@
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .sig-line { fill: none; stroke: var(--clean); stroke-width: 1.1; stroke-linejoin: round; }
   .spec-line { fill: none; stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
   .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
@@ -73,7 +73,7 @@
       <p id="subtitle"></p>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 690" role="img" aria-label="Window, its spectrum and the dominant frequency over time"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1518 690" role="img" aria-label="Window, its spectrum and the dominant frequency over time"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -144,7 +144,7 @@
   ];
 
   // ------------------------------------------------------------ layout
-  const W = 1200, PL = 66, PR = 24;
+  const W = 1518, PL = 80, PR = 24;
   const TT = 30, TB = 200;          // magnitude trace
   const DT = 258, DB = 358;         // dominant frequency vs time
   const ST = 428, SB = 656;         // spectrum of the current window
@@ -217,7 +217,7 @@
     for (let v = 0; v <= 35; v += 10) { el('line', { x1: PL, x2: W - PR, y1: yM(v), y2: yM(v) }, grid); txt(axis, PL - 8, yM(v) + 4, v, { 'text-anchor': 'end' }); }
     for (let t = 0; t <= TOTAL_S; t += 4) { el('line', { x1: xT(t), x2: xT(t), y1: TT, y2: TB }, grid); }
     el('path', { d: `M${PL},${TT}V${TB}H${W - PR}` }, axis);
-    txt(g, PL - 30, TT - 10, '‖a‖ (m/s²)', { class: 'axis-title' });
+    txt(g, 0, 0, '‖a‖ (m/s²)', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${PL - 60}, ${(TT + TB) / 2}) rotate(-90)` });
     let p = ''; for (let i = 0; i < MAG.length; i++) p += (i ? 'L' : 'M') + xT(i / FS).toFixed(1) + ',' + yM(MAG[i]).toFixed(1);
     el('path', { class: 'sig-line', d: p }, g);
     // --- dominant frequency panel (shares the time axis)
@@ -225,7 +225,7 @@
     for (let f = 0; f <= 4; f += 1) { el('line', { x1: PL, x2: W - PR, y1: yD(f), y2: yD(f) }, grid); txt(axis, PL - 8, yD(f) + 4, f, { 'text-anchor': 'end' }); }
     for (let t = 0; t <= TOTAL_S; t += 4) { el('line', { x1: xT(t), x2: xT(t), y1: DT, y2: DB }, grid); txt(axis, xT(t), DB + 16, t, { 'text-anchor': 'middle' }); }
     el('path', { d: `M${PL},${DT}V${DB}H${W - PR}` }, axis);
-    txt(g, PL - 30, DT - 10, 'dominant frequency (Hz)', { class: 'axis-title' });
+    txt(g, 0, 0, 'dominant frequency (Hz)', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${PL - 60}, ${(DT + DB) / 2}) rotate(-90)` });
     txt(g, W - PR, DB + 32, 'time (s)', { class: 'axis-title', 'text-anchor': 'end' });
     // --- spectrum panel
     grid = el('g', { class: 'grid' }, g); axis = el('g', { class: 'axis' }, g);
@@ -234,7 +234,7 @@
     for (let v = 0; v <= sMax; v += st) { el('line', { x1: PL, x2: W - PR, y1: yS(v), y2: yS(v) }, grid); txt(axis, PL - 8, yS(v) + 4, v, { 'text-anchor': 'end' }); }
     for (let f = 0; f <= F_MAX; f += 1) { el('line', { x1: xF(f), x2: xF(f), y1: ST, y2: SB }, grid); txt(axis, xF(f), SB + 16, f, { 'text-anchor': 'middle' }); }
     el('path', { d: `M${PL},${ST}V${SB}H${W - PR}` }, axis);
-    txt(g, PL - 30, ST - 10, '|X(f)| of the window', { class: 'axis-title' });
+    txt(g, 0, 0, '|X(f)| of the window', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${PL - 60}, ${(ST + SB) / 2}) rotate(-90)` });
     txt(g, W - PR, SB + 32, 'frequency (Hz)', { class: 'axis-title', 'text-anchor': 'end' });
     el('line', { x1: PL, x2: W - PR, y1: yS(PEAK_MIN), y2: yS(PEAK_MIN), stroke: 'var(--ink-3)', 'stroke-dasharray': '4 3' }, g);
     txt(g, xF(F_MAX) - 6, yS(PEAK_MIN) - 5, `peak threshold ${PEAK_MIN}`, { class: 'formula', 'text-anchor': 'end' });
@@ -268,7 +268,7 @@
   function drawWindow(sp, color) {
     const x0 = xT(sp.start), x1 = xT(sp.start + wl);
     el('rect', { class: 'win-rect', x: x0, y: TT + 2, width: x1 - x0, height: TB - TT - 4, rx: 2 }, G.dyn);
-    const right = (x0 + x1) / 2 > W - 300;
+    const right = x1 + 240 > W - PR;   // label is ~230 px wide
     txt(G.dyn, right ? x0 - 8 : x1 + 8, TB - 12, `window ${fmt(sp.start, 1)}–${fmt(sp.start + wl, 1)} s · N = ${sp.N}`, { class: 'dlabel', fill: color, 'text-anchor': right ? 'end' : 'start' });
   }
   function drawSpectrum(sp, upto, color, showResult) {

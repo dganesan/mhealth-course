@@ -28,7 +28,7 @@
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
   .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
   .group { display:flex; align-items:center; gap:8px; }
@@ -43,8 +43,8 @@
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .mono { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
   .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
   .box { fill: #fff; stroke: var(--ink-2); stroke-width: 1.2; }
@@ -63,7 +63,7 @@
       <p id="subtitle"></p>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 620" role="img" aria-label="Ensemble voting"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1364 620" role="img" aria-label="Ensemble voting"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -121,7 +121,7 @@
   const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
   const text = (x, y, s, attrs = {}, parent) => { const t = el('text', { x, y, ...attrs }, parent); t.textContent = s; return t; };
   const chart = $('chart');
-  const W = 1200, H = 620;
+  const W = 1364, H = 620;
   function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
 
   // ------------------------------------------------------------ classes (as in the chapter's figure)
@@ -189,15 +189,15 @@
     const e = sim.ex[j];
     const cy = 330, rowGap = Math.min(110, 380 / Math.max(1, M));
     const y0 = cy - (M - 1) * rowGap / 2;
-    const inX = 150, mX = 460, vX = 820, oX = 1060;
+    const inX = 150, mX = Math.round(W * 0.38), vX = Math.round(W * 0.68), oX = W - 140;
     // input
     const g = el('g', {}, chart);
-    el('rect', { class: 'box', x: inX - 70, y: cy - 34, width: 140, height: 68, rx: 8 }, g);
+    el('rect', { class: 'box', x: inX - 100, y: cy - 34, width: 200, height: 68, rx: 8 }, g);
     text(inX, cy - 6, 'New input', { class: 'box-title', 'text-anchor': 'middle' }, g);
     text(inX, cy + 16, `example ${j + 1} · truly ${CLS[e.truth].name}`, { class: 'axis-title', 'text-anchor': 'middle' }, g);
     for (let m = 0; m < M; m++) {
       const y = y0 + m * rowGap;
-      el('path', { class: 'arrow', d: `M${inX + 72},${cy}L${mX - 82},${y}`, opacity: frame >= 0 ? 1 : 0 }, g);
+      el('path', { class: 'arrow', d: `M${inX + 102},${cy}L${mX - 82},${y}`, opacity: frame >= 0 ? 1 : 0 }, g);
       el('rect', { class: 'box', x: mX - 80, y: y - 26, width: 160, height: 52, rx: 8 }, g);
       text(mX, y + 5, `Model ${m + 1}`, { class: 'box-title', 'text-anchor': 'middle' }, g);
       if (frame >= m + 1) {
@@ -222,7 +222,7 @@
 
   function drawStream(frame) {
     const M = sim.M, ex = sim.ex, upto = Math.min(frame, N);
-    const PL = 130, PR = 400, top = 60;
+    const PL = 130, PR = 474, top = 60;
     const cw = (W - PL - PR) / N;
     const rowH = Math.min(34, 430 / (M + 3));
     const ys = { truth: top, model: m => top + rowH * 1.6 + m * rowH, maj: top + rowH * 1.6 + M * rowH + rowH * 0.7 };
@@ -266,7 +266,7 @@
     // summary line
     const mean = mErr.length ? mErr.reduce((a, b) => a + b, 0) / mErr.length : 0;
     if (upto) text(PL, bottom + 50, `mean individual error ${Math.round(mean * 100)}%   ·   majority-vote error ${Math.round(ensErr * 100)}%`, { class: 'mono', 'font-size': 15 }, g);
-    drawLegend([{ c: CLS[0].color, n: 'vote: Walking' }, { c: CLS[1].color, n: 'vote: Running' }, { c: '#222', n: '✗ wrong vote', txt: true }], W - PR + 70, bottom + 36, true);
+    drawLegend([{ c: CLS[0].color, n: 'vote: Walking' }, { c: CLS[1].color, n: 'vote: Running' }, { c: '#222', n: '✗ wrong vote', txt: true }], bx - 40, bottom + 36, true);
     G.rows = { PL, cw, N, top: ys.truth, bottom };
   }
 

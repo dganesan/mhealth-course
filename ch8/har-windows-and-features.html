@@ -27,7 +27,7 @@
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
-  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
   .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
   .group { display:flex; align-items:center; gap:8px; }
@@ -42,8 +42,8 @@
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .ptitle { font-family: var(--sans); font-size: 14px; font-weight: 700; fill: var(--ink); }
   .mono { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
   .big { font-family: var(--mono); font-weight: 700; }
@@ -63,7 +63,7 @@
       <p id="subtitle"></p>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 640" role="img" aria-label="Activity windows and features"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1400 640" role="img" aria-label="Activity windows and features"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -153,7 +153,7 @@
   function domFreq(spec) { let best = 0; spec.forEach((s, k) => { if (s.f <= 10 && s.mag > spec[best].mag) best = k; }); return spec[best].f; }
 
   // ------------------------------------------------------------ svg helpers
-  const W = 1200, H = 640;
+  const W = 1400, H = 640;
   const svgNS = 'http://www.w3.org/2000/svg';
   const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
   const txt = (x, y, s, attrs = {}, parent) => { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; };
@@ -205,16 +205,16 @@
   // ------------------------------------------------------------ drawing
   function drawTraces(p) {
     chart.innerHTML = '';
-    const cols = 3, rows = 2, gx = 90, gy = 34, pw = (W - gx - 30 - (cols - 1) * 40) / cols, ph = (H - gy - 60 - (rows - 1) * 60) / rows;
+    const cols = 3, rows = 2, gx = 84, gy = 34, colGap = 84, pw = (W - gx - 30 - (cols - 1) * colGap) / cols, ph = (H - gy - 100 - (rows - 1) * 60) / rows;
     const nNow = Math.max(1, Math.min(N, Math.round(p * N)));
     for (let a = 1; a <= 6; a++) {
       const c = (a - 1) % cols, rr = Math.floor((a - 1) / cols);
-      const x0 = gx + c * (pw + 40), y0 = gy + rr * (ph + 60);
+      const x0 = gx + c * (pw + colGap), y0 = gy + rr * (ph + 60);
       const g = el('g', {}, chart);
       const sx = i => x0 + i / (N - 1) * pw, sy = v => y0 + ph - (v - 0.5) / (1.9 - 0.5) * ph;
       frame(g, x0, y0, pw, ph, i => sx(i * SR), sy, [0, 0.5, 1, 1.5, 2, 2.5], [0.5, 1, 1.5], v => v, v => v.toFixed(1));
       txt(x0 + pw / 2, y0 + ph + 34, 'time (s)', { class: 'axis-title', 'text-anchor': 'middle' }, g);
-      txt(x0 - 44, y0 + ph / 2, '|acc| (g)', { class: 'axis-title', 'text-anchor': 'middle', transform: `rotate(-90 ${x0 - 44} ${y0 + ph / 2})` }, g);
+      txt(x0 - 58, y0 + ph / 2, '|acc| (g)', { class: 'axis-title', 'text-anchor': 'middle', transform: `rotate(-90 ${x0 - 58} ${y0 + ph / 2})` }, g);
       txt(x0, y0 - 8, ACT[a], { class: 'ptitle' }, g);
       txt(x0 + pw, y0 - 8, `subject ${EX[a].subject}`, { class: 'axis-title', 'text-anchor': 'end' }, g);
       const m = magnitude(String(a));
@@ -236,13 +236,13 @@
     const lo = Math.min(...x), hi = Math.max(...x), pad = 0.15 * (hi - lo || 1);
     const yLo = lo - pad, yHi = hi + pad;
     // left: time series
-    const x0 = 70, y0 = 30, pw = 620, ph = 400;
+    const x0 = 86, y0 = 30, pw = 700, ph = 400;
     const g = el('g', {}, chart);
     const sx = i => x0 + i / (N - 1) * pw, sy = v => y0 + ph - (v - yLo) / (yHi - yLo) * ph;
     const yt = []; const stepY = (yHi - yLo) / 5; for (let k = 0; k <= 5; k++) yt.push(yLo + k * stepY);
     frame(g, x0, y0, pw, ph, i => sx(i * SR), sy, [0, 0.5, 1, 1.5, 2, 2.5], yt, v => v, v => v.toFixed(2));
     txt(x0 + pw / 2, y0 + ph + 34, 'time (s)', { class: 'axis-title', 'text-anchor': 'middle' }, g);
-    txt(x0 - 52, y0 + ph / 2, `${chan} (${unitOf(chan)})`, { class: 'axis-title', 'text-anchor': 'middle', transform: `rotate(-90 ${x0 - 52} ${y0 + ph / 2})` }, g);
+    txt(x0 - 66, y0 + ph / 2, `${chan} (${unitOf(chan)})`, { class: 'axis-title', 'text-anchor': 'middle', transform: `rotate(-90 ${x0 - 66} ${y0 + ph / 2})` }, g);
     // std band and mean over the filled part
     el('rect', { x: sx(0), y: sy(st.mean + st.std), width: sx(nNow - 1) - sx(0), height: Math.max(0, sy(st.mean - st.std) - sy(st.mean + st.std)), fill: '#2a78d6', opacity: 0.12 }, g);
     el('line', { x1: sx(0), x2: sx(nNow - 1), y1: sy(st.mean), y2: sy(st.mean), stroke: '#2a78d6', 'stroke-width': 2, 'stroke-dasharray': '6 3' }, g);
@@ -257,15 +257,15 @@
     legend([{ c: 'var(--ink)', n: `${chan}, samples so far` }, { c: 'var(--raw)', n: 'samples not yet in the window', dot: true }, { c: '#2a78d6', n: 'running mean', dash: true }, { c: '#2a78d6', n: 'mean ± std', box: true, op: 0.25 }, { c: '#eb6834', n: 'maximum', dot: true }, { c: '#1baf7a', n: 'minimum', dot: true }], x0 + pw - 250, y0 + 8, chart);
     // right: spectrum
     const spec = spectrum(x);
-    const sx0 = 760, sy0 = 30, spw = 400, sph = 400;
+    const sx0 = x0 + pw + 74, sy0 = 30, spw = W - 40 - (x0 + pw + 74), sph = 400;
     const g2 = el('g', {}, chart);
     const mx = Math.max(...spec.slice(1).map(s => s.mag)) || 1;
     const fx = f => sx0 + f / 25 * spw, fy = v => sy0 + sph - v / mx * sph * 0.92;
     el('rect', { x: fx(0), y: sy0, width: fx(10) - fx(0), height: sph, fill: '#2a78d6', opacity: 0.07 }, g2);
     frame(g2, sx0, sy0, spw, sph, fx, fy, [0, 5, 10, 15, 20, 25], [], v => v, v => v);
     txt(sx0 + spw / 2, sy0 + sph + 34, 'frequency (Hz)', { class: 'axis-title', 'text-anchor': 'middle' }, g2);
-    txt(sx0 - 14, sy0 + sph / 2, '|FFT| of the de-meaned window', { class: 'axis-title', 'text-anchor': 'middle', transform: `rotate(-90 ${sx0 - 14} ${sy0 + sph / 2})` }, g2);
-    txt(fx(5), sy0 + 16, '0–10 Hz human-motion band', { class: 'axis-title', 'text-anchor': 'middle' }, g2);
+    txt(sx0 - 24, sy0 + sph / 2, '|FFT| of the de-meaned window', { class: 'axis-title', 'text-anchor': 'middle', transform: `rotate(-90 ${sx0 - 24} ${sy0 + sph / 2})` }, g2);
+    txt(fx(0) + 8, sy0 + 16, '0–10 Hz human-motion band', { class: 'axis-title' }, g2);
     const df = domFreq(spec);
     if (specP > 0) {
       spec.forEach((s, k) => { if (k === 0) return; const hgt = (fy(0) - fy(s.mag)) * specP; el('rect', { x: fx(s.f) - 2.5, y: fy(0) - hgt, width: 5, height: hgt, fill: s.f <= 10 ? '#2a78d6' : 'var(--raw)' }, g2); });
@@ -275,19 +275,19 @@
     // feature readout row
     const ry = 508;
     const vals = [['mean', fmt(st.mean)], ['std', fmt(st.std)], ['min', fmt(st.min)], ['max', fmt(st.max)], ['dom_freq', specP >= 1 ? df.toFixed(2) + ' Hz' : '—'], ['energy', fmt(st.energy, 1)]];
-    txt(70, ry, `features of ${chan}   (n = ${nNow} of ${N} samples)`, { class: 'ptitle' }, chart);
+    txt(x0, ry, `features of ${chan}   (n = ${nNow} of ${N} samples)`, { class: 'ptitle' }, chart);
     vals.forEach(([k, v], i) => {
-      const bx = 70 + i * 188;
-      el('rect', { x: bx, y: ry + 12, width: 176, height: 62, rx: 4, fill: '#f6f7f9', stroke: 'var(--rule)' }, chart);
+      const bx = x0 + i * ((W - x0 - 40) / 6);
+      el('rect', { x: bx, y: ry + 12, width: (W - x0 - 40) / 6 - 12, height: 62, rx: 4, fill: '#f6f7f9', stroke: 'var(--rule)' }, chart);
       txt(bx + 12, ry + 32, k, { class: 'axis-title' }, chart);
       txt(bx + 12, ry + 60, v, { class: 'big', 'font-size': 20, fill: (k === 'dom_freq' && specP < 1) ? 'var(--ink-3)' : '#2a78d6' }, chart);
     });
-    txt(70, ry + 100, 'energy = Σ x²    ·    dom_freq = argmax |FFT(x − mean)| over 0–10 Hz', { class: 'mono', fill: 'var(--ink-2)' }, chart);
+    txt(x0, ry + 100, 'energy = Σ x²    ·    dom_freq = argmax |FFT(x − mean)| over 0–10 Hz', { class: 'mono', fill: 'var(--ink-2)' }, chart);
   }
 
   function drawVector(p) {
     chart.innerHTML = '';
-    const x0 = 250, y0 = 60, cw = 132, ch = 50;
+    const x0 = 250, y0 = 60, cw = (W - 250 - 60) / 6, ch = 50;
     const nCells = Math.round(p * 54);
     const g = el('g', {}, chart);
     FEATS.forEach((f, j) => txt(x0 + j * cw + cw / 2, y0 - 12, f, { class: 'ptitle', 'text-anchor': 'middle' }, g));

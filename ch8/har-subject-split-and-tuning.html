@@ -27,7 +27,7 @@
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
-  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
   .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
   .group { display:flex; align-items:center; gap:8px; }
@@ -42,8 +42,8 @@
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .ptitle { font-family: var(--sans); font-size: 14px; font-weight: 700; fill: var(--ink); }
   .mono { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
   .big { font-family: var(--mono); font-weight: 700; }
@@ -61,7 +61,7 @@
       <p id="subtitle"></p>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 640" role="img" aria-label="Pipeline evaluation"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1400 640" role="img" aria-label="Pipeline evaluation"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -113,7 +113,7 @@
   const sd = a => { const m = mean(a); return Math.sqrt(mean(a.map(v => (v - m) ** 2))); };
 
   // ------------------------------------------------------------ svg helpers
-  const W = 1200, H = 640;
+  const W = 1400, H = 640;
   const svgNS = 'http://www.w3.org/2000/svg';
   const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
   const txt = (x, y, s, attrs = {}, parent) => { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; };
@@ -192,7 +192,7 @@
     txt(rx + 20, ry + 68, `${trainDone.length} subjects · ${trW} windows`, { class: 'big', 'font-size': 24, fill: '#2a78d6' }, g);
     txt(rx + 20, ry + 104, 'test', { class: 'axis-title' }, g);
     txt(rx + 20, ry + 138, `${testDone.length} subjects · ${teW} windows`, { class: 'big', 'font-size': 24, fill: '#eb6834' }, g);
-    el('rect', { x: rx + 520, y: ry, width: 560, height: 150, rx: 6, fill: '#f6f7f9', stroke: 'var(--rule)' }, g);
+    el('rect', { x: rx + 520, y: ry, width: W - rx - 520 - 60, height: 150, rx: 6, fill: '#f6f7f9', stroke: 'var(--rule)' }, g);
     txt(rx + 540, ry + 34, 'per window: 9 channels × 128 samples  →  54 features', { class: 'mono', fill: 'var(--ink-2)' }, g);
     txt(rx + 540, ry + 68, 'body_acc x,y,z · total_acc x,y,z · body_gyro x,y,z', { class: 'mono', fill: 'var(--ink-2)' }, g);
     txt(rx + 540, ry + 102, 'mean · std · min · max · dom_freq · energy', { class: 'mono', fill: 'var(--ink-2)' }, g);
@@ -205,7 +205,7 @@
     const g = el('g', {}, chart);
     const trainSubs = ALL.filter(s => !s.test);
     const sw = SWEEP[di];
-    const x0 = 120, y0 = 30, rowH = 74, stripW = 700;
+    const x0 = 120, y0 = 30, rowH = 74, stripW = W - x0 - 400;
     txt(x0, y0 - 8, '21 training subjects (block width ∝ windows)', { class: 'axis-title' }, g);
     txt(x0 + stripW + 40, y0 - 8, 'this fold', { class: 'axis-title' }, g);
     for (let k = 0; k < 5; k++) {
@@ -224,24 +224,24 @@
     }
     const yb = y0 + 5 * rowH + 20;
     const done = p >= 1;
-    el('rect', { x: x0, y: yb, width: 1040, height: 96, rx: 6, fill: '#f6f7f9', stroke: 'var(--rule)' }, g);
+    el('rect', { x: x0, y: yb, width: W - x0 - 60, height: 96, rx: 6, fill: '#f6f7f9', stroke: 'var(--rule)' }, g);
     txt(x0 + 20, yb + 30, `max_depth = ${depthLabel()}`, { class: 'ptitle' }, g);
     txt(x0 + 20, yb + 68, done ? `mean CV accuracy = ${mean(sw.cv).toFixed(3)} ± ${sd(sw.cv).toFixed(3)}    ·    mean training accuracy = ${mean(sw.train).toFixed(3)}` : 'mean CV accuracy = … (over the 5 validation folds)', { class: 'big', 'font-size': 20, fill: done ? 'var(--ink)' : 'var(--ink-3)' }, g);
-    txt(x0 + 700, yb + 30, 'a subject is never in both the training and the validation part of a fold', { class: 'axis-title' }, g);
+    txt(x0 + 720, yb + 30, 'a subject is never in both the training and the validation part of a fold', { class: 'axis-title' }, g);
     legend([{ c: '#2a78d6', n: 'training subjects of the fold', box: true }, { c: '#4a3aa7', n: 'validation subjects of the fold', box: true }], W - 300, H - 60, chart);
   }
 
   function drawSweep(p) {
     chart.innerHTML = '';
     const g = el('g', {}, chart);
-    const PL = 90, PR = 40, PT = 30, PB = 70, pw = W - PL - PR, ph = H - PT - PB;
+    const PL = 84, PR = 40, PT = 30, PB = 70, pw = W - PL - PR, ph = H - PT - PB;
     const sx = i => PL + (i + 0.5) / SWEEP.length * pw, sy = v => PT + ph - (v - 0.5) / (1.02 - 0.5) * ph;
     const grid = el('g', { class: 'grid' }, g), ax = el('g', { class: 'axis' }, g);
     for (let v = 0.5; v <= 1.001; v += 0.1) { el('line', { x1: PL, x2: W - PR, y1: sy(v), y2: sy(v) }, grid); txt(PL - 8, sy(v) + 4, v.toFixed(1), { 'text-anchor': 'end' }, ax); }
     SWEEP.forEach((s, i) => { el('line', { x1: sx(i), x2: sx(i), y1: PT, y2: PT + ph }, grid); txt(sx(i), PT + ph + 18, DEPTHS[i], { 'text-anchor': 'middle' }, ax); });
     el('path', { d: `M${PL},${PT}V${PT + ph}H${W - PR}` }, ax);
     txt(PL + pw / 2, PT + ph + 44, 'max_depth', { class: 'axis-title', 'text-anchor': 'middle' }, g);
-    txt(PL - 50, PT + ph / 2, 'accuracy', { class: 'axis-title', 'text-anchor': 'middle', transform: `rotate(-90 ${PL - 50} ${PT + ph / 2})` }, g);
+    txt(PL - 62, PT + ph / 2, 'accuracy', { class: 'axis-title', 'text-anchor': 'middle', transform: `rotate(-90 ${PL - 62} ${PT + ph / 2})` }, g);
     const nPts = Math.max(1, Math.min(SWEEP.length, Math.floor(p * SWEEP.length) + 1));
     const frac = clamp01(p * SWEEP.length - (nPts - 1));
     const cvm = SWEEP.map(s => mean(s.cv)), cvs = SWEEP.map(s => sd(s.cv)), trm = SWEEP.map(s => mean(s.train));
@@ -297,7 +297,7 @@
       txt(x0 + i * cell + cell / 2, y0 + 6 * cell + 16, n, { class: 'axis-title', 'text-anchor': 'middle' }, g);
     });
     txt(x0 + 3 * cell, y0 + 6 * cell + 36, 'predicted activity', { class: 'axis-title', 'text-anchor': 'middle' }, g);
-    txt(x0 - 84, y0 + 3 * cell, 'actual activity', { class: 'axis-title', 'text-anchor': 'middle', transform: `rotate(-90 ${x0 - 84} ${y0 + 3 * cell})` }, g);
+    txt(x0 - 104, y0 + 3 * cell, 'actual activity', { class: 'axis-title', 'text-anchor': 'middle', transform: `rotate(-90 ${x0 - 104} ${y0 + 3 * cell})` }, g);
   }
 
   function drawTest(p) {
@@ -313,19 +313,19 @@
       const n = TEST[s], done = Math.max(0, Math.min(n, nWin - offset));
       const y = 50 + k * 46;
       txt(60, y + 18, `subject ${s}`, { class: 'mono' }, g);
-      el('rect', { x: 170, y: y + 4, width: 220, height: 20, fill: '#eeeeee', rx: 3 }, g);
-      el('rect', { x: 170, y: y + 4, width: 220 * done / n, height: 20, fill: '#eb6834', rx: 3 }, g);
-      txt(400, y + 18, `${done} / ${n}`, { class: 'mono', fill: 'var(--ink-2)' }, g);
+      el('rect', { x: 170, y: y + 4, width: 300, height: 20, fill: '#eeeeee', rx: 3 }, g);
+      el('rect', { x: 170, y: y + 4, width: 300 * done / n, height: 20, fill: '#eb6834', rx: 3 }, g);
+      txt(480, y + 18, `${done} / ${n}`, { class: 'mono', fill: 'var(--ink-2)' }, g);
       offset += n;
     });
     const by = 50 + subs.length * 46 + 14;
-    el('rect', { x: 60, y: by, width: 400, height: 90, rx: 6, fill: '#f6f7f9', stroke: 'var(--rule)' }, g);
+    el('rect', { x: 60, y: by, width: 480, height: 90, rx: 6, fill: '#f6f7f9', stroke: 'var(--rule)' }, g);
     txt(80, by + 30, `windows classified: ${nWin} of ${T.y.length}`, { class: 'mono', fill: 'var(--ink-2)' }, g);
     txt(80, by + 70, nWin ? `accuracy so far  ${(100 * correct / nWin).toFixed(1)}%` : 'accuracy so far  —', { class: 'big', 'font-size': 24, fill: p >= 1 ? 'var(--ink)' : '#2a78d6' }, g);
     // right: matrix
-    drawMatrix(g, cm, 640, 40, 76);
+    drawMatrix(g, cm, W - 6 * 84 - 96, 40, 84);
     // colour key
-    const kx = 640, ky = 40 + 6 * 76 + 52;
+    const kx = W - 6 * 84 - 96, ky = 40 + 6 * 84 + 52;
     for (let i = 0; i < 40; i++) el('rect', { x: kx + i * 4, y: ky, width: 4, height: 12, fill: blues(i / 39) }, chart);
     txt(kx + 172, ky + 11, 'fraction of the actual class (row)', { class: 'axis-title' }, chart);
     legend([{ c: '#eb6834', n: 'windows classified so far', box: true }, { c: '#eeeeee', n: 'windows still to classify', box: true }], 60, H - 62, chart);
@@ -335,7 +335,7 @@
     chart.innerHTML = '';
     const g = el('g', {}, chart);
     const { cm } = confusionUpTo(T.y.length);
-    const x0 = 250, y0 = 40, cell = 80;
+    const x0 = 320, y0 = 40, cell = 84;
     drawMatrix(g, cm, x0, y0, cell);
     const blocks = [
       { r: [0, 3], c: '#eb6834', name: 'walking family', err: cm[0][1] + cm[0][2] + cm[1][0] + cm[1][2] + cm[2][0] + cm[2][1] },

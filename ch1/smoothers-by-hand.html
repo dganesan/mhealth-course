@@ -30,7 +30,7 @@
   .code .k { color: var(--ink-2); }
   .chart-wrap { position: relative; min-height: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
-  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
   .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
   .group { display:flex; align-items:center; gap:8px; }
@@ -48,7 +48,7 @@
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
 
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text, .num { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
+  .axis text, .num { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
   .lane-label { font-family: var(--sans); font-size: 13px; font-weight: 700; }
   .lane-sub { font-family: var(--mono); font-size: 11px; fill: var(--ink-3); }
   .grid line { stroke: var(--grid); }
@@ -80,7 +80,7 @@
       <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 640" role="img" aria-label="Input sequence and four filter outputs computed by hand"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1560 640" role="img" aria-label="Input sequence and four filter outputs computed by hand"></svg>
     </div>
     <div class="foot">
       <span>CS328 &nbsp;·&nbsp; Sensor Data Smoothing and Filtering</span>
@@ -190,9 +190,9 @@
   }
 
   // ---------------- layout
-  const W = 1200, H = 640;
-  const PL = 130, PR = 420, PT = 26;
-  const TOP_H = 186, LANE_H = 112, LANE_GAP = 10;
+  const W = 1560, H = 640;
+  const PL = 190, PR = 40, PT = 26;
+  const TOP_H = 166, LANE_H = 124, LANE_GAP = 10;
   const plotW = W - PL - PR;
   const xs = i => PL + (i + 0.5) * (plotW / X.length);
   let yLo = 0, yHi = 20;
@@ -226,12 +226,12 @@
     ORDER.forEach((k, j) => {
       const y0 = PT + TOP_H + 34 + j * (LANE_H + LANE_GAP);
       const lg = el('g', {}, chart);
-      const bg = el('rect', { class: 'lane-bg', x: PL - 4, y: y0 - 4, width: plotW + 8 + PR - 20, height: LANE_H + 8, rx: 4 }, lg);
-      el('line', { x1: PL, x2: PL + plotW, y1: y0 + LANE_H - 14, y2: y0 + LANE_H - 14, stroke: 'var(--rule)' }, lg);
+      const bg = el('rect', { class: 'lane-bg', x: PL - 4, y: y0 - 4, width: plotW + 8, height: LANE_H + 8, rx: 4 }, lg);
+      el('line', { x1: PL, x2: PL + plotW, y1: y0 + LANE_H - 26, y2: y0 + LANE_H - 26, stroke: 'var(--rule)' }, lg);
       el('text', { x: PL - 10, y: y0 + 14, 'text-anchor': 'end', class: 'lane-label', fill: F[k].color }, lg).textContent = F[k].name;
       const sub = el('text', { x: PL - 10, y: y0 + 30, 'text-anchor': 'end', class: 'lane-sub' }, lg);
       sub.textContent = k === 'ewma' ? `α = ${fmt(alphaVal())}` : `w = ${w}`;
-      let gd = ''; X.forEach((v, i) => gd += (i ? 'L' : 'M') + xs(i) + ',' + yTop(v, y0, LANE_H - 30));
+      let gd = ''; X.forEach((v, i) => gd += (i ? 'L' : 'M') + xs(i) + ',' + yTop(v, y0, LANE_H - 42));
       const ghost = el('path', { class: 'ghost', d: gd }, lg);
       const outG = el('g', {}, lg);
       const workG = el('g', {}, lg);
@@ -243,7 +243,7 @@
   function drawLane(k, upto, active) {
     const L = G.lanes[k]; L.outG.innerHTML = ''; L.workG.innerHTML = '';
     L.bg.setAttribute('class', active ? 'lane-active' : 'lane-bg');
-    const y = v => yTop(v, L.y0, LANE_H - 30);
+    const y = v => yTop(v, L.y0, LANE_H - 42);
     if (upto < 0) { L.ghost.style.opacity = .35; return; }
     L.ghost.style.opacity = .6;
     let d = ''; for (let i = 0; i <= upto; i++) d += (i ? 'L' : 'M') + xs(i) + ',' + y(OUT[k][i]);
@@ -257,11 +257,11 @@
       const res = F[k].calc(upto, OUT[k]);
       const parts = res.work.split(' = ');
       const expr = parts.slice(0, -1).join(' = ');
-      const t = el('text', { class: 'work', x: PL + plotW + 18, y: L.y0 + LANE_H / 2 + 2 }, L.workG);
+      const t = el('text', { class: 'work', x: PL + plotW - 6, y: L.y0 + LANE_H - 6, 'text-anchor': 'end' }, L.workG);
       const e = el('tspan', {}, t); e.textContent = parts.length > 1 ? expr + ' = ' : expr;
       if (parts.length > 1) { const r = el('tspan', { class: 'work-hi', fill: F[k].color }, t); r.textContent = parts[parts.length - 1]; }
       // shrink to fit the column if the expression is long
-      const maxW = PR - 36; const est = (t.textContent.length) * 9.3;
+      const maxW = plotW - 40; const est = (t.textContent.length) * 9.3;
       if (est > maxW) t.setAttribute('font-size', Math.max(11, 15.5 * maxW / est));
     }
   }
@@ -300,8 +300,8 @@
     if (peak !== glitch) mk(peak, 'peak');
     // "read down a column" table in the right-hand column
     const cols = [[peak, 'peak'], [glitch, 'glitch']].filter(c => c[0] >= 0);
-    let y = PT + TOP_H + 34;
-    const x0 = PL + plotW + 16;
+    let y = PT + 6;
+    const x0 = PL + plotW - 300;
     cols.forEach(([i, label]) => {
       const g = el('g', {}, G.callouts);
       el('text', { x: x0, y: y + 8, class: 'num' }, g).textContent = `${label}  ·  i = ${i}  ·  xᵢ = ${fmt(X[i])}`;

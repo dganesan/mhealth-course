@@ -31,7 +31,7 @@
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
   .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
   .group { display:flex; align-items:center; gap:8px; }
@@ -47,8 +47,8 @@
   svg text { white-space: pre; }
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .box { fill: #fafafa; stroke: var(--ink-3); stroke-width: 1; }
   .box.win { stroke: var(--ma); stroke-width: 2; fill: #eef4fc; }
   .pid { font-family: var(--mono); font-size: 11px; font-weight: 700; fill: #fff; text-anchor: middle; pointer-events: none; }
@@ -76,7 +76,7 @@
       <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 560" role="img" aria-label="Decision regions at the current depth and accuracy versus max_depth"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1232 560" role="img" aria-label="Decision regions at the current depth and accuracy versus max_depth"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -223,8 +223,9 @@
   const svgNS = 'http://www.w3.org/2000/svg';
   const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
   const txt = (x, y, s, cls, attrs = {}, parent) => { const t = el('text', Object.assign({ x, y, class: cls }, attrs), parent); t.textContent = s; return t; };
-  const SX0 = 60, SX1 = 540, SY0 = 36, SY1 = 476;
-  const AX0 = 640, AX1 = 1170, AY0 = 36, AY1 = 476;
+  const W = 1232, PL = 76, PR = 32, GAP = 110;        // left pad (vertical y title), right pad, gap between panels
+  const SX0 = PL, SX1 = PL + Math.round((W - PL - PR - GAP) * 0.475), SY0 = 36, SY1 = 476;
+  const AX0 = SX1 + GAP, AX1 = W - PR, AY0 = 36, AY1 = 476;
   const xs = v => SX0 + (v - BOX[0]) / (BOX[1] - BOX[0]) * (SX1 - SX0);
   const ys = v => SY1 - (v - BOX[2]) / (BOX[3] - BOX[2]) * (SY1 - SY0);
   const ax = d => AX0 + (d - 0.5) / (DMAX) * (AX1 - AX0);
@@ -240,14 +241,14 @@
     for (let v = 1; v <= BOX[3] + 1e-9; v += 1) { el('line', { x1: SX0, x2: SX1, y1: ys(v), y2: ys(v) }, g); txt(SX0 - 8, ys(v) + 4, v.toFixed(0), '', { 'text-anchor': 'end' }, a); }
     el('path', { d: `M${SX0},${SY0}V${SY1}H${SX1}` }, a);
     txt((SX0 + SX1) / 2, SY1 + 40, 'mean of a_y  (2-second windows)', 'axis-title', { 'text-anchor': 'middle' }, G.back);
-    txt(SX0 - 40, SY0 - 12, 'std of a_y', 'axis-title', {}, G.back);
+    txt(0, 0, 'std of a_y', 'axis-title', { 'text-anchor': 'middle', transform: `translate(${SX0 - 56}, ${(SY0 + SY1) / 2}) rotate(-90)` }, G.back);
     // accuracy axes
     g = el('g', { class: 'grid' }, G.back); a = el('g', { class: 'axis' }, G.back);
     for (let d = 1; d <= DMAX; d++) { el('line', { x1: ax(d), x2: ax(d), y1: AY0, y2: AY1 }, g); if (d % 2 === 1) txt(ax(d), AY1 + 18, d, '', { 'text-anchor': 'middle' }, a); }
     for (let v = ALO; v <= 1 + 1e-9; v += 0.1) { el('line', { x1: AX0, x2: AX1, y1: ay(v), y2: ay(v) }, g); txt(AX0 - 8, ay(v) + 4, v.toFixed(1), '', { 'text-anchor': 'end' }, a); }
     el('path', { d: `M${AX0},${AY0}V${AY1}H${AX1}` }, a);
     txt((AX0 + AX1) / 2, AY1 + 40, 'max_depth', 'axis-title', { 'text-anchor': 'middle' }, G.back);
-    txt(AX0 - 40, AY0 - 12, 'accuracy', 'axis-title', {}, G.back);
+    txt(0, 0, 'accuracy', 'axis-title', { 'text-anchor': 'middle', transform: `translate(${AX0 - 62}, ${(AY0 + AY1) / 2}) rotate(-90)` }, G.back);
     // points
     const P = show === 'train' ? TRAIN : TEST;
     P.forEach((d, i) => el('circle', { cx: xs(d[0]), cy: ys(d[1]), r: show === 'train' ? 4.5 : 3, fill: CCOL[d[2]], stroke: '#fff', 'stroke-width': show === 'train' ? 1 : 0.6, opacity: show === 'train' ? 1 : 0.85, 'data-i': i }, G.pts));

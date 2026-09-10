@@ -30,7 +30,7 @@
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
   .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
   .group { display:flex; align-items:center; gap:8px; }
@@ -45,8 +45,8 @@
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .mono { font-family: var(--mono); }
   .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
   .ann { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
@@ -64,7 +64,7 @@
       <p id="subtitle"></p>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 600" role="img" aria-label="Hypnogram and sleep metrics"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1320 600" role="img" aria-label="Hypnogram and sleep metrics"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -177,7 +177,7 @@
   let subject = '1066528', lab = [], N = 0;
   function loadSubject() { lab = DATA.labels[subject].map(code2stage); N = lab.length; }
   const chart = $('chart');
-  const W = 1200, H = 600, PL = 92, PR = 30, PT = 28, HYP_H = 290;
+  const W = 1320, H = 600, PL = 92, PR = 30, PT = 28, HYP_H = 290;
   const hypBottom = PT + HYP_H;
   const xs = i => PL + (i / N) * (W - PL - PR);
   const LEVELS = { W: 0, R: 1, L: 2, D: 3 };
@@ -288,7 +288,7 @@
     const y0 = hypBottom + 62;
     const tib = c.scored * EPOCH_MIN, tst = (c.L + c.D + c.R) * EPOCH_MIN;
     // stacked bar
-    const barW = 560, barX = PL, barH = 26;
+    const barW = Math.round((W - PL - PR) * 0.52), barX = PL, barH = 26;
     txt(G.lower, barX, y0 - 10, 'time in each stage (stacked, minutes)', { class: 'axis-title' });
     el('rect', { x: barX, y: y0, width: barW, height: barH, fill: '#f4f4f4', stroke: 'var(--rule)' }, G.lower);
     const total = N * EPOCH_MIN; let x = barX;
@@ -307,7 +307,7 @@
     const F = ['TST = (light + deep + REM epochs) × 0.5 min', 'efficiency = TST / time in bed', 'onset latency = epochs before the first sleep epoch × 0.5 min', 'WASO = wake epochs after sleep onset × 0.5 min'];
     F.forEach((f, j) => txt(G.lower, barX, ly + j * 20, f, { class: 'ann', 'font-size': 12, fill: 'var(--ink-2)' }));
     // readouts on the right
-    const rx = PL + 640, rows = [
+    const rx = PL + barW + 80, rows = [
       ['time in bed', `${tib.toFixed(1)} min`, 'var(--ink)'],
       ['total sleep time (TST)', `${tst.toFixed(1)} min`, 'var(--sleep)'],
       ['sleep efficiency', tib > 0 ? `${(100 * tst / tib).toFixed(1)} %` : '–', 'var(--sleep)'],

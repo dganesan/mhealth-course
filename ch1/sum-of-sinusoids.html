@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Building a Signal from Sinusoids</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff; --ink: #222222; --ink-2: #666666; --ink-3: #9a9a9a; --rule: #dcdcdc; --grid: #ececec;
+    --raw: #8f8f8f; --ma: #2a78d6; --med: #1baf7a; --wm: #4a3aa7; --ewma: #eb6834;
+    --c0: #2a78d6; --c1: #1baf7a; --c2: #eb6834; --c3: #4a3aa7; --c4: #c9a400;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.4; padding-block: 10px 10px; padding-inline: 14px; -webkit-font-smoothing: antialiased; }
+  .stage { max-width: 1880px; margin: 0 auto; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; height: calc(100vh - 20px); }
+  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 16px 30px 8px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 6px; min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none; }
+  .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
+  .head h1 { margin: 0; font-size: clamp(20px, 2.2vw, 28px); font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .chart-wrap { position: relative; min-height: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
+  svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
+  .foot .ctr { font-family: var(--mono); }
+  .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
+  .group { display:flex; align-items:center; gap:8px; }
+  .group label { font-size:13px; font-weight:700; color:var(--ink); }
+  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:3ch; }
+  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  button:hover, select:hover { border-color:var(--ink); }
+  button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
+  button:focus-visible, select:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
+  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
+  button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
+  button.primary.tb { min-width:52px; }
+  .grid line { stroke: var(--grid); stroke-width: 1; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
+  .lane-lab { font-family: var(--mono); font-size: 15px; font-weight: 700; }
+  .lane-sub { font-family: var(--sans); font-size: 13px; fill: var(--ink-2); }
+  .plus { font-family: var(--sans); font-size: 34px; font-weight: 700; fill: var(--ink-3); }
+  .plus.on { fill: var(--ink); }
+  .trace { fill: none; stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; }
+  .faint { fill: none; stroke: var(--raw); stroke-width: 1.4; opacity: .55; }
+  .stem { stroke-width: 4; stroke-linecap: round; }
+  .ptitle { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ink); }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  @media (prefers-reduced-motion: reduce) { .fade { transition: none !important; } }
+</style>
+
+<div class="stage">
+  <section class="slide" id="slide" tabindex="0" aria-live="polite">
+    <div class="head">
+      <h1 id="title"></h1>
+      <p id="subtitle"></p>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 1320 600" role="img" aria-label="Sinusoids stacked above their sum, and the spectrum of the sum"></svg>
+      <div class="tt" id="tt"></div>
+    </div>
+    <div class="foot">
+      <span>CS328 &nbsp;·&nbsp; Sensor Data Smoothing and Filtering</span>
+      <span class="ctr" id="counter"></span>
+    </div>
+  </section>
+
+  <div class="bar">
+    <div class="group">
+      <button id="prev" class="tb" title="Previous step (←)">⏮</button>
+      <button id="play" class="primary tb" title="Play / pause (space)">▶</button>
+      <button id="next" class="tb" title="Next step (→)">⏭</button>
+      <button id="restart" class="tb" title="Restart this step (r)">↺</button>
+      <button id="reset" title="Reset dials to this step's presets">Reset dials</button>
+    </div>
+    <div class="group">
+      <label for="example">Example</label>
+      <select id="example">
+        <option value="walk" selected>walking-like</option>
+        <option value="random">random</option>
+      </select>
+      <button id="shuffle" title="Draw a new random set of sinusoids">New random</button>
+    </div>
+    <div class="group">
+      <label for="k">Sinusoids</label>
+      <input type="range" id="k" min="2" max="5" step="1" value="4">
+      <span class="val" id="kVal">4</span>
+    </div>
+    <div class="group">
+      <label for="speed">Speed</label>
+      <select id="speed">
+        <option value="0.25">very slow</option>
+        <option value="0.5">slow</option>
+        <option value="1" selected>normal</option>
+        <option value="2">fast</option>
+        <option value="0">instant</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const svgNS = 'http://www.w3.org/2000/svg';
+const $ = id => document.getElementById(id);
+const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+const txt = (parent, x, y, s, attrs = {}) => { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; };
+const fmt = (v, d = 2) => (Math.round(v * Math.pow(10, d)) / Math.pow(10, d)).toFixed(d);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const chart = $('chart');
+const COL = ['var(--c0)', 'var(--c1)', 'var(--c2)', 'var(--c3)', 'var(--c4)'];
+
+// ------------------------------------------------------------ signal
+const FS = 100, DUR = 4, N = FS * DUR, T = Array.from({ length: N }, (_, i) => i / FS);
+let seed = 7;
+function rng() { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }
+function walkComponents(K) {
+  // gravity plus a step cadence and its harmonics, like an accelerometer magnitude while walking
+  const base = [{ f: 0, A: 9.8, ph: 0, name: 'gravity (0 Hz)' }, { f: 1.8, A: 2.0, ph: 0.4 }, { f: 3.6, A: 0.9, ph: 1.9 }, { f: 5.4, A: 0.45, ph: 0.8 }, { f: 7.2, A: 0.25, ph: 2.6 }];
+  return base.slice(0, K);
+}
+function randomComponents(K) {
+  const out = [];
+  for (let k = 0; k < K; k++) {
+    const f = Math.round((0.5 + rng() * 5.5) * 10) / 10;
+    out.push({ f, A: Math.round((0.4 + rng() * 1.4) * 10) / 10, ph: rng() * 2 * Math.PI });
+  }
+  return out.sort((a, b) => a.f - b.f);
+}
+let COMP = [], SUM = [];
+function build() {
+  const K = dial('k');
+  COMP = dial('example') === 'walk' ? walkComponents(K) : randomComponents(K);
+  COMP.forEach(c => { c.y = T.map(t => c.A * Math.cos(2 * Math.PI * c.f * t + c.ph)); });
+  SUM = T.map((_, i) => COMP.reduce((s, c) => s + c.y[i], 0));
+}
+const partialSum = m => T.map((_, i) => COMP.slice(0, m).reduce((s, c) => s + c.y[i], 0));
+
+// ------------------------------------------------------------ dials (persist unless the user touched them)
+const dials = {}, dirty = {};
+function defDial(id, o) {
+  dials[id] = o; dirty[id] = false;
+  const inp = $(id), ev = inp.tagName === 'SELECT' ? 'change' : 'input';
+  inp.addEventListener(ev, e => { e.stopPropagation(); dirty[id] = true; showDial(id); onDial(id); });
+  inp.addEventListener('click', e => e.stopPropagation());
+  showDial(id);
+}
+function dial(id) { const v = $(id).value; return dials[id].parse ? dials[id].parse(v) : v; }
+function showDial(id) { const o = dials[id]; if (o.val) $(o.val).textContent = o.fmt ? o.fmt(dial(id)) : $(id).value; }
+function applyPresets(p, force = false) { for (const id in p || {}) if (force || !dirty[id]) { $(id).value = p[id]; showDial(id); } }
+defDial('k', { val: 'kVal', parse: parseInt });
+defDial('example', {});
+
+// ------------------------------------------------------------ layout
+const W = 1320, H = 600;
+const LX = 200, LW = 690;                 // stacked lanes (left)
+const SX = 960, SW = 320;                 // spectrum (right)
+const FMAX = 8;
+function laneBoxes(K) {
+  const top = 14, gap = 12, sumH = 150, bottom = 30;
+  const laneH = (H - top - bottom - sumH - gap * K) / K;
+  const lanes = [];
+  for (let k = 0; k < K; k++) lanes.push({ x: LX, y: top + k * (laneH + gap), w: LW, h: laneH });
+  return { lanes, sum: { x: LX, y: top + K * (laneH + gap), w: LW, h: sumH } };
+}
+const xs = t => LX + t / DUR * LW;
+function yScale(box, lo, hi) { return v => box.y + box.h - (v - lo) / (hi - lo) * box.h; }
+function pathOf(ys, sy, upto) { let d = ''; const n = upto == null ? N : upto; for (let i = 0; i < n; i++) d += (i ? 'L' : 'M') + xs(T[i]).toFixed(1) + ',' + sy(ys[i]).toFixed(1); return d; }
+
+function drawLane(box, comp, k, upto, opts = {}) {
+  const g = el('g', {}, chart);
+  const amp = Math.max(0.5, comp.A * 1.15);
+  const lo = comp.f === 0 ? comp.A - amp : -amp, hi = comp.f === 0 ? comp.A + amp : amp;
+  const sy = yScale(box, lo, hi);
+  el('line', { x1: box.x, x2: box.x + box.w, y1: sy(comp.f === 0 ? comp.A : 0), y2: sy(comp.f === 0 ? comp.A : 0), class: 'grid' }, el('g', { class: 'grid' }, g));
+  el('path', { d: `M${box.x},${box.y}V${box.y + box.h}`, class: 'axis' }, el('g', { class: 'axis' }, g));
+  const lab = comp.name || `${fmt(comp.f, 1)} Hz`;
+  txt(g, box.x - 12, box.y + box.h / 2 - 4, lab, { class: 'lane-lab', fill: COL[k], 'text-anchor': 'end' });
+  txt(g, box.x - 12, box.y + box.h / 2 + 15, `A = ${fmt(comp.A, 1)}`, { class: 'lane-sub', 'text-anchor': 'end' });
+  if (opts.faint) el('path', { d: pathOf(comp.y, sy), class: 'faint' }, g);
+  el('path', { d: pathOf(comp.y, sy, upto), class: 'trace', stroke: COL[k], opacity: opts.dim ? .35 : 1 }, g);
+  return g;
+}
+function drawSum(box, ys, upto, opts = {}) {
+  const g = el('g', {}, chart);
+  const lo = Math.min(...SUM), hi = Math.max(...SUM), pad = 0.1 * (hi - lo || 1);
+  const sy = yScale(box, lo - pad, hi + pad);
+  const gr = el('g', { class: 'grid' }, g);
+  const ticks = niceTicks(lo - pad, hi + pad, 4);
+  const ax = el('g', { class: 'axis' }, g);
+  ticks.forEach(v => { el('line', { x1: box.x, x2: box.x + box.w, y1: sy(v), y2: sy(v) }, gr); txt(ax, box.x - 10, sy(v) + 5, fmt(v, 1), { 'text-anchor': 'end' }); });
+  el('path', { d: `M${box.x},${box.y}V${box.y + box.h}H${box.x + box.w}` }, ax);
+  for (let t = 0; t <= DUR; t++) { el('line', { x1: xs(t), x2: xs(t), y1: box.y, y2: box.y + box.h }, gr); txt(ax, xs(t), box.y + box.h + 20, t, { 'text-anchor': 'middle' }); }
+  txt(g, box.x + box.w, box.y + box.h + 20, 'time (s)', { class: 'axis-title', 'text-anchor': 'end', dx: -40 });
+  txt(g, box.x - 66, box.y + box.h / 2 - 4, opts.label || 'sum', { class: 'lane-lab', fill: 'var(--ink)', 'text-anchor': 'end' });
+  if (opts.sub) txt(g, box.x - 66, box.y + box.h / 2 + 15, opts.sub, { class: 'lane-sub', 'text-anchor': 'end' });
+  const cid = 'clip' + Math.random().toString(36).slice(2, 8);
+  el('rect', { x: box.x, y: box.y - 2, width: box.w, height: box.h + 4 }, el('clipPath', { id: cid }, g));
+  const cg = el('g', { 'clip-path': `url(#${cid})` }, g);
+  if (opts.prev) el('path', { d: pathOf(opts.prev, sy), class: 'faint' }, cg);
+  el('path', { d: pathOf(ys, sy, upto), class: 'trace', stroke: 'var(--ink)', 'stroke-width': 2.6 }, cg);
+  return g;
+}
+function drawPlus(boxAbove, boxBelow, k, on, sign = '+') {
+  const y = (boxAbove.y + boxAbove.h + boxBelow.y) / 2 + 12;
+  txt(chart, LX - 64, y, sign, { class: 'plus' + (on ? ' on' : ''), 'text-anchor': 'middle' });
+}
+function drawSpectrum(m, opts = {}) {
+  const box = { x: SX, y: 60, w: SW, h: 400 };
+  const g = el('g', {}, chart);
+  const amax = Math.max(1, ...COMP.map(c => c.A)) * 1.15;
+  const sy = yScale(box, 0, amax), sx = f => box.x + f / FMAX * box.w;
+  const gr = el('g', { class: 'grid' }, g), ax = el('g', { class: 'axis' }, g);
+  niceTicks(0, amax, 4).forEach(v => { el('line', { x1: box.x, x2: box.x + box.w, y1: sy(v), y2: sy(v) }, gr); txt(ax, box.x - 10, sy(v) + 5, fmt(v, 1), { 'text-anchor': 'end' }); });
+  for (let f = 0; f <= FMAX; f += 2) { el('line', { x1: sx(f), x2: sx(f), y1: box.y, y2: box.y + box.h }, gr); txt(ax, sx(f), box.y + box.h + 20, f, { 'text-anchor': 'middle' }); }
+  el('path', { d: `M${box.x},${box.y}V${box.y + box.h}H${box.x + box.w}` }, ax);
+  txt(g, box.x + box.w / 2, box.y + box.h + 44, 'frequency (Hz)', { class: 'axis-title', 'text-anchor': 'middle' });
+  const yt = txt(g, 0, 0, 'amplitude', { class: 'axis-title', 'text-anchor': 'middle' }); yt.setAttribute('transform', `translate(${box.x - 52},${box.y + box.h / 2}) rotate(-90)`);
+  txt(g, box.x, box.y - 22, 'spectrum of the sum', { class: 'ptitle' });
+  COMP.forEach((c, k) => {
+    const on = k < m;
+    el('line', { x1: sx(c.f), x2: sx(c.f), y1: sy(0), y2: sy(on ? c.A : 0), class: 'stem', stroke: COL[k] }, g);
+    if (on) { el('circle', { cx: sx(c.f), cy: sy(c.A), r: 6, fill: COL[k], stroke: '#fff', 'stroke-width': 1.5 }, g); }
+    else el('circle', { cx: sx(c.f), cy: sy(0), r: 4, fill: 'none', stroke: COL[k], 'stroke-width': 1.5, opacity: .6 }, g);
+  });
+  return g;
+}
+function niceTicks(lo, hi, n = 5) {
+  const span = hi - lo, raw = span / n, p = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * p).find(s => span / s <= n + 1) || p * 10;
+  const out = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(Math.round(v * 1000) / 1000); return out;
+}
+
+// ------------------------------------------------------------ steps
+let G = {};
+const STEPS = [
+  {
+    title: 'Pure sinusoids', dur: 6,
+    tag: () => `${COMP.length} sinusoids · ${COMP.map(c => fmt(c.f, 1) + ' Hz').join(' · ')}`,
+    subtitle: 'Each row is one sinusoid with its own frequency, amplitude and phase.',
+    presets: {},
+    setup() {}, draw(p) {
+      chart.innerHTML = '';
+      const { lanes, sum } = laneBoxes(COMP.length);
+      const per = 1 / COMP.length;
+      COMP.forEach((c, k) => { const q = clamp((p - k * per) / per, 0, 1); drawLane(lanes[k], c, k, Math.max(2, Math.round(q * N)), { faint: true }); });
+      for (let k = 0; k + 1 < lanes.length; k++) drawPlus(lanes[k], lanes[k + 1], k, false);
+      drawPlus(lanes[lanes.length - 1], sum, 0, false, '=');
+      drawSum(sum, SUM, 0, { label: 'sum', sub: 'not added yet' });
+      drawSpectrum(0);
+    }
+  },
+  {
+    title: 'Adding the sinusoids one at a time', dur: 10,
+    tag: () => `${COMP.length} sinusoids → one signal`,
+    subtitle: 'The sum at the bottom grows as each sinusoid is added to it.',
+    presets: {},
+    setup() {}, draw(p) {
+      chart.innerHTML = '';
+      const K = COMP.length, { lanes, sum } = laneBoxes(K);
+      const per = 1 / K, m = Math.min(K, Math.floor(p * K)), q = clamp((p - m * per) / per, 0, 1);
+      COMP.forEach((c, k) => drawLane(lanes[k], c, k, N, { dim: k > m }));
+      for (let k = 0; k + 1 < lanes.length; k++) drawPlus(lanes[k], lanes[k + 1], k, k + 1 <= m, '+');
+      drawPlus(lanes[K - 1], sum, 0, m >= K, '=');
+      const done = m >= K;
+      const ys = done ? SUM : partialSum(m + 1), prev = done || m === 0 ? null : partialSum(m);
+      drawSum(sum, ys, done ? N : Math.max(2, Math.round(q * N)), { label: done ? 'sum' : `sum of ${m + 1}`, sub: done ? `${K} sinusoids` : `adding ${fmt(COMP[m].f, 1)} Hz`, prev });
+      drawSpectrum(done ? K : m + (q >= 1 ? 1 : 0));
+    }
+  },
+  {
+    title: 'A walking-like signal', dur: 10,
+    tag: () => `${COMP.length} sinusoids · cadence ${COMP[1] ? fmt(COMP[1].f, 1) : '–'} Hz`,
+    subtitle: 'Gravity plus a step cadence and its harmonics adds up to a signal like the accelerometer magnitude.',
+    presets: { example: 'walk', k: 4 },
+    setup() {}, draw(p) { STEPS[1].draw(p); }
+  }
+];
+
+// ------------------------------------------------------------ step machine
+let step = 0, progress = 0, playing = false, raf = 0, lastT = 0;
+const speedMult = () => parseFloat($('speed').value);
+function cur() { return STEPS[step]; }
+function updateHead() {
+  const d = cur();
+  $('title').innerHTML = d.title + (d.tag ? `<span class="tag">${d.tag()}</span>` : '');
+  $('subtitle').textContent = d.subtitle;
+  $('counter').textContent = `${step + 1} / ${STEPS.length}`;
+}
+function enterStep(k, completed = false) {
+  step = clamp(k, 0, STEPS.length - 1); stopPlay();
+  applyPresets(cur().presets);
+  build();
+  try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {}
+  progress = 0; cur().setup();
+  if (!cur().dur || completed || speedMult() === 0) { progress = 1; cur().draw(1); updateHead(); }
+  else { cur().draw(0); updateHead(); startPlay(); }
+}
+function redraw() { build(); cur().setup(); cur().draw(progress); updateHead(); }
+function onDial() { redraw(); }
+function tick(t) {
+  if (!playing) return;
+  const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+  progress = Math.min(1, progress + dt * speedMult() / cur().dur);
+  cur().draw(progress); updateHead();
+  if (progress >= 1) { stopPlay(); return; }
+  raf = requestAnimationFrame(tick);
+}
+function startPlay() { if (progress >= 1 || !cur().dur) return; playing = true; lastT = performance.now(); $('play').textContent = '⏸'; raf = requestAnimationFrame(tick); }
+function stopPlay() { playing = false; cancelAnimationFrame(raf); $('play').textContent = '▶'; }
+function finish() { stopPlay(); progress = 1; cur().draw(1); updateHead(); }
+function next() { if (progress < 1) { finish(); return; } if (step < STEPS.length - 1) enterStep(step + 1); }
+function prev() { if (step > 0) enterStep(step - 1, true); }
+function restart() { enterStep(step); }
+function wire() {
+  $('next').addEventListener('click', e => { e.stopPropagation(); next(); });
+  $('prev').addEventListener('click', e => { e.stopPropagation(); prev(); });
+  $('restart').addEventListener('click', e => { e.stopPropagation(); restart(); });
+  $('reset').addEventListener('click', e => { e.stopPropagation(); for (const id in dirty) dirty[id] = false; applyPresets(cur().presets, true); restart(); });
+  $('play').addEventListener('click', e => { e.stopPropagation(); if (playing) stopPlay(); else if (progress >= 1) restart(); else startPlay(); });
+  $('shuffle').addEventListener('click', e => { e.stopPropagation(); seed = (Date.now() & 0xffff) + 1; $('example').value = 'random'; dirty['example'] = true; restart(); });
+  $('speed').addEventListener('click', e => e.stopPropagation());
+  $('speed').addEventListener('change', e => { e.stopPropagation(); if (speedMult() === 0) finish(); });
+  $('slide').addEventListener('click', () => next());
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+    if (e.key === 'ArrowRight') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+    else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
+    else if (e.key === 'r') { restart(); }
+  });
+  const h = parseInt((location.hash || '').replace('#', ''), 10);
+  enterStep(isNaN(h) ? 0 : h - 1);
+}
+// hover: show the value of every sinusoid and the sum at the cursor time
+chart.addEventListener('mousemove', evt => {
+  const r = chart.getBoundingClientRect(), x = (evt.clientX - r.left) / r.width * W;
+  if (x < LX || x > LX + LW || !COMP.length) { $('tt').style.display = 'none'; return; }
+  const i = clamp(Math.round((x - LX) / LW * (N - 1)), 0, N - 1);
+  let html = `<div>t = ${fmt(T[i], 2)} s</div>`;
+  COMP.forEach((c, k) => html += `<div style="color:${COL[k].replace('var(--c', '').replace(')', '') ? '' : ''}">${fmt(c.f, 1)} Hz: ${fmt(c.y[i], 2)}</div>`);
+  html += `<div><b>sum: ${fmt(SUM[i], 2)}</b></div>`;
+  const tt = $('tt'); tt.innerHTML = html; tt.style.display = 'block';
+  tt.style.left = (evt.clientX - r.left + 14) + 'px'; tt.style.top = (evt.clientY - r.top - 10) + 'px';
+});
+chart.addEventListener('mouseleave', () => { $('tt').style.display = 'none'; });
+wire();
+})();
+</script>
+</body>
+</html>

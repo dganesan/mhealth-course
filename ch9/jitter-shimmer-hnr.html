@@ -27,7 +27,7 @@
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
-  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
   .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
   .group { display:flex; align-items:center; gap:8px; }
@@ -42,8 +42,8 @@
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .ptitle { font-family: var(--sans); font-size: 13px; font-weight: 700; fill: var(--ink); }
   .wave { fill: none; stroke: #333; stroke-width: 1.2; }
   .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
@@ -63,7 +63,7 @@
       <p id="subtitle"></p>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 680" role="img" aria-label="Sustained vowel cycles and voice-quality features"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1500 680" role="img" aria-label="Sustained vowel cycles and voice-quality features"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -190,7 +190,9 @@
   }
 
   // ------------------------------------------------------------ svg helpers
-  const W = 1200, PL = 80, PR = 60, PW = W - PL - PR;
+  const W = 1500, PL = 82, PR = 60, PW = W - PL - PR;
+  // vertical y-axis title, centred on the axis, left of the tick labels
+  const yTitle = (g, xAxis, y0, y1, label) => el('text', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${xAxis - 62},${(y0 + y1) / 2}) rotate(-90)` }, g).textContent = label;
   const svgNS = 'http://www.w3.org/2000/svg';
   const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
   const $ = id => document.getElementById(id);
@@ -227,7 +229,7 @@
     [-1, -0.5, 0, 0.5, 1].forEach(v => { el('line', { x1: PL, x2: PL + PW, y1: yy(v), y2: yy(v) }, grid); el('text', { x: PL - 8, y: yy(v) + 4, 'text-anchor': 'end' }, axis).textContent = v; });
     el('path', { d: `M${PL},${y0}V${y1}H${PL + PW}` }, axis);
     el('text', { x: PL + PW + 8, y: y1 + 16, class: 'axis-title' }, g).textContent = 'ms';
-    el('text', { x: PL - 8, y: y0 - 8, class: 'axis-title', 'text-anchor': 'end' }, g).textContent = 'amplitude';
+    yTitle(g, PL, y0, y1, 'amplitude');
     el('text', { x: PL, y: y0 - 8, class: 'ptitle' }, g).textContent = opts.title || 'sustained vowel';
     let d = ''; for (let i = 0; i < Math.min(V.N, uptoSample); i++) d += (i ? 'L' : 'M') + xx(i).toFixed(1) + ',' + yy(V.x[i]).toFixed(1);
     if (d) el('path', { class: 'wave', d, opacity: opts.faint ? .45 : 1 }, g);
@@ -246,7 +248,7 @@
     for (let i = 0; i < n; i++) el('text', { x: xx(i), y: y1 + 16, 'text-anchor': 'middle' }, axis).textContent = i + 1;
     el('path', { d: `M${PL},${y0}V${y1}H${PL + PW}` }, axis);
     el('text', { x: PL + PW + 8, y: y1 + 16, class: 'axis-title' }, g).textContent = 'cycle i';
-    el('text', { x: PL - 8, y: y0 - 8, class: 'axis-title', 'text-anchor': 'end' }, g).textContent = opts.ylab;
+    yTitle(g, PL, y0, y1, opts.ylab);
     el('text', { x: PL, y: y0 - 8, class: 'ptitle' }, g).textContent = opts.title;
     el('line', { x1: PL, x2: PL + PW, y1: yy(mean), y2: yy(mean), stroke: '#444', 'stroke-dasharray': '5 4' }, g);
     el('text', { x: PL + PW - 6, y: yy(mean) - 6, class: 'axis-title', 'text-anchor': 'end', fill: '#444' }, g).textContent = `mean = ${fmt(mean, opts.dec)}`;
@@ -280,7 +282,7 @@
     [-1, -0.5, 0, 0.5, 1].forEach(v => { el('line', { x1: PL, x2: PL + PW, y1: yy(v), y2: yy(v) }, grid); el('text', { x: PL - 8, y: yy(v) + 4, 'text-anchor': 'end' }, axis).textContent = v; });
     el('path', { d: `M${PL},${y0}V${y1}H${PL + PW}` }, axis);
     el('text', { x: PL + PW + 8, y: y1 + 16, class: 'axis-title' }, g).textContent = 'ms';
-    el('text', { x: PL - 8, y: y0 - 8, class: 'axis-title', 'text-anchor': 'end' }, g).textContent = 'amplitude';
+    yTitle(g, PL, y0, y1, 'amplitude');
     el('text', { x: PL, y: y0 - 8, class: 'ptitle' }, g).textContent = 'what is left after subtracting the average cycle (noise part)';
     let eh = 0; for (let j = 0; j < V.L; j++) eh += V.template[j] ** 2;
     let en = 0;
@@ -304,7 +306,7 @@
     for (let h = 5; h <= 35; h += 5) { el('line', { x1: x0, x2: x1, y1: yy(h), y2: yy(h) }, grid); el('text', { x: x0 - 8, y: yy(h) + 4, 'text-anchor': 'end' }, axis).textContent = h; }
     el('path', { d: `M${x0},${y0}V${y1}H${x1}` }, axis);
     el('text', { x: (x0 + x1) / 2, y: y1 + 36, class: 'axis-title', 'text-anchor': 'middle' }, g).textContent = 'jitter (%), cycle-to-cycle pitch variation — log scale';
-    el('text', { x: x0 - 8, y: y0 - 10, class: 'axis-title', 'text-anchor': 'end' }, g).textContent = 'HNR (dB)';
+    yTitle(g, x0, y0, y1, 'HNR (dB)');
     el('text', { x: x0, y: y0 - 10, class: 'ptitle' }, g).textContent = 'UCI Parkinson’s voice dataset: 195 sustained-vowel recordings';
     const ns = Math.min(NSUBJ, upto);
     let nh = 0, np = 0;

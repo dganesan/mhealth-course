@@ -58,7 +58,7 @@
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
 
-  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 6px; border-top: 1px solid var(--rule); }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
 
   /* ---------- control bar ---------- */
@@ -81,8 +81,8 @@
   /* ---------- svg parts ---------- */
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .true-line { fill: none; stroke: var(--blue); stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
   .true-line.faded { stroke: var(--raw); stroke-width: 1.5; }
   .alias-line { fill: none; stroke: var(--red); stroke-width: 2.4; stroke-dasharray: 7 5; stroke-linejoin: round; stroke-linecap: round; }
@@ -115,7 +115,7 @@
       <p id="subtitle"></p>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 560" role="img" aria-label="A tone, its samples, and the sinusoid fitted through the samples"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1232 560" role="img" aria-label="A tone, its samples, and the sinusoid fitted through the samples"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -177,8 +177,8 @@
   const kHz = v => (v / 1000).toFixed(1) + ' kHz';
 
   // ------------------------------------------------------------ layout
-  const W = 1200, H = 560;
-  const PL = 56, PR = 170, PT = 24;
+  const W = 1232, H = 560;
+  const PL = 84, PR = 150, PT = 24;
   const PLOT_H = 450; const plotBottom = PT + PLOT_H;          // 474
   const FORMULA_Y = 540;
   const xs = tms => PL + (tms / T_MS) * (W - PL - PR);
@@ -270,7 +270,7 @@
     }
     el('path', { d: `M${PL},${PT}V${plotBottom}H${W - PR}` }, axis);
     el('text', { x: W - PR + 26, y: plotBottom + 18, class: 'axis-title' }, chart).textContent = 'time (ms)';
-    el('text', { x: PL - 10, y: PT - 6, class: 'axis-title', 'text-anchor': 'end' }, chart).textContent = 'amplitude';
+    el('text', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${PL - 58}, ${PT + PLOT_H / 2}) rotate(-90)` }, chart).textContent = 'amplitude';
 
     G.curves = el('g', {}, chart);
     G.samples = el('g', {}, chart);

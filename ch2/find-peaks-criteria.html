@@ -32,7 +32,7 @@
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
   .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
   .group { display:flex; align-items:center; gap:8px; }
@@ -47,8 +47,8 @@
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .ptitle { font-family: var(--sans); font-size: 13px; font-weight: 700; fill: var(--ink); }
   .raw-line { fill: none; stroke: var(--raw); stroke-width: 1.5; }
   .out-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
@@ -76,7 +76,7 @@
       <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 640" role="img" aria-label="The Four find_peaks Criteria"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1400 640" role="img" aria-label="The Four find_peaks Criteria"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -222,8 +222,8 @@ function panel(parent, box, xd, yd, o = {}) {
   xt.forEach(v => { el('line', { x1: sx(v), x2: sx(v), y1: y, y2: y + h }, grid); txt(axis, sx(v), y + h + 17, o.xf ? o.xf(v) : v, { 'text-anchor': 'middle' }); });
   yt.forEach(v => { el('line', { x1: x, x2: x + w, y1: sy(v), y2: sy(v) }, grid); txt(axis, x - 8, sy(v) + 4, o.yf ? o.yf(v) : v, { 'text-anchor': 'end' }); });
   el('path', { d: `M${x},${y}V${y + h}H${x + w}` }, axis);
-  if (o.xlabel) txt(parent, x + w, y + h + 34, o.xlabel, { class: 'axis-title', 'text-anchor': 'end' });
-  if (o.ylabel) { const t = txt(parent, 0, 0, o.ylabel, { class: 'axis-title', 'text-anchor': 'middle' }); t.setAttribute('transform', `translate(${x - (o.ylx || 46)},${y + h / 2}) rotate(-90)`); }
+  if (o.xlabel) txt(parent, x + w, y + h + 38, o.xlabel, { class: 'axis-title', 'text-anchor': 'end' });
+  if (o.ylabel) { const t = txt(parent, 0, 0, o.ylabel, { class: 'axis-title', 'text-anchor': 'middle' }); t.setAttribute('transform', `translate(${x - (o.ylx || 62)},${y + h / 2}) rotate(-90)`); }
   if (o.title) txt(parent, x, y - 8, o.title, { class: 'ptitle' });
   const id = 'clip' + Math.random().toString(36).slice(2, 8);
   const cp = el('clipPath', { id }, parent); el('rect', { x, y: y - 2, width: w, height: h + 4 }, cp);
@@ -333,7 +333,8 @@ function wire() {
 
 // ------------------------------------------------------------ data: the chapter's walking-like signal, 600 samples at 100 Hz
 const N = Y.length, FS = 100, T = Array.from({ length: N }, (_, i) => i / FS);
-const BOX = { x: 70, y: 22, w: 1080, h: 540 }, YD = [-1.9, 2.7];
+const W = 1400, H = 640;
+const BOX = { x: 84, y: 22, w: W - 84 - 36, h: 540 }, YD = [-1.9, 2.7];
 const ALL = findPeaks(Y).all;               // every local maximum with prominence, bases and width
 const M = ALL.length;
 const dSamp = () => Math.round(dial('dist') * FS), wSamp = () => Math.round(dial('width') * FS);

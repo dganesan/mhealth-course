@@ -27,7 +27,7 @@
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
-  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
   .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
   .group { display:flex; align-items:center; gap:8px; }
@@ -42,8 +42,8 @@
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .ptitle { font-family: var(--sans); font-size: 13px; font-weight: 700; fill: var(--ink); }
   .wave-fill { fill: #8f8f8f; stroke: none; }
   .win-rect { fill: rgba(42,120,214,.15); stroke: var(--ma); stroke-width: 1.5; }
@@ -65,7 +65,7 @@
       <p id="subtitle"></p>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 680" role="img" aria-label="Waveform with pitch and intensity contours"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1500 680" role="img" aria-label="Waveform with pitch and intensity contours"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -142,7 +142,9 @@
   }
 
   // ------------------------------------------------------------ svg helpers
-  const W = 1200, PL = 80, PR = 70, PW = W - PL - PR;
+  const W = 1500, PL = 82, PR = 70, PW = W - PL - PR;
+  // vertical y-axis title, centred on the axis, left of the tick labels
+  const yTitle = (g, y0, y1, label, x = PL - 62, extra = {}) => el('text', Object.assign({ class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${x},${(y0 + y1) / 2}) rotate(-90)` }, extra), g).textContent = label;
   const svgNS = 'http://www.w3.org/2000/svg';
   const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
   const $ = id => document.getElementById(id);
@@ -175,7 +177,7 @@
     const mid = (y0 + y1) / 2, amp = (y1 - y0) / 2;
     [-1, 0, 1].forEach(v => { el('line', { x1: PL, x2: PL + PW, y1: mid - v * amp, y2: mid - v * amp }, grid); el('text', { x: PL - 8, y: mid - v * amp + 4, 'text-anchor': 'end' }, axis).textContent = v; });
     el('path', { d: `M${PL},${y0}V${y1}H${PL + PW}` }, axis);
-    el('text', { x: PL - 8, y: y0 - 8, class: 'axis-title', 'text-anchor': 'end' }, g).textContent = 'amplitude';
+    yTitle(g, y0, y1, 'amplitude');
     el('text', { x: PL, y: y0 - 8, class: 'ptitle' }, g).textContent = title;
     // min/max envelope per pixel column
     const x0 = tx(c.t0), x1 = tx(c.t0 + c.x.length / FS); const cols = Math.floor(x1 - x0); const per = c.x.length / cols;
@@ -196,7 +198,7 @@
     const ticks = kind === 'pitch' ? [100, 200, 300] : [-40, -30, -20, -10, 0];
     ticks.forEach(v => { el('line', { x1: PL, x2: PL + PW, y1: yy(v), y2: yy(v) }, grid); el('text', { x: PL - 8, y: yy(v) + 4, 'text-anchor': 'end' }, axis).textContent = v; });
     el('path', { d: `M${PL},${y0}V${y1}H${PL + PW}` }, axis);
-    el('text', { x: PL - 8, y: y0 - 8, class: 'axis-title', 'text-anchor': 'end' }, g).textContent = kind === 'pitch' ? 'F₀ (Hz)' : 'intensity (dB)';
+    yTitle(g, y0, y1, kind === 'pitch' ? 'F₀ (Hz)' : (y1 - y0 < 100 ? 'dB' : 'intensity (dB)'));
     el('text', { x: PL, y: y0 - 8, class: 'ptitle' }, g).textContent = kind === 'pitch' ? 'pitch contour' : 'intensity contour';
     const vals = kind === 'pitch' ? c.f0 : c.rmsDb;
     let d = '', pen = false;
@@ -279,7 +281,7 @@
         const yy = v => wy1 - (v - 60) / (350 - 60) * (wy1 - wy0);
         const axis = el('g', { class: 'axis' }, g);
         [100, 200, 300].forEach(v => { el('line', { x1: PL + PW, x2: PL + PW + 4, y1: yy(v), y2: yy(v) }, axis); el('text', { x: PL + PW + 8, y: yy(v) + 4, fill: 'var(--ma)' }, axis).textContent = v; });
-        el('text', { x: PL + PW + 8, y: wy0 - 8, class: 'axis-title', fill: 'var(--ma)' }, g).textContent = 'F₀ (Hz)';
+        yTitle(g, wy0, wy1, 'F₀ (Hz)', PL + PW + 56, { fill: 'var(--ma)' });
         let dd = '', pen = false; for (let j = 0; j < up; j++) { const v = c.f0[j]; if (v == null) { pen = false; continue; } dd += (pen ? 'L' : 'M') + tx(c.times[j]).toFixed(1) + ',' + yy(v).toFixed(1); pen = true; }
         if (dd) el('path', { class: 'pitch-line', d: dd }, g);
         if (up > 0 && up < c.T && c.f0[k] != null) el('circle', { cx: tx(c.times[k]), cy: yy(c.f0[k]), r: 5, fill: 'var(--ma)', stroke: '#fff', 'stroke-width': 1.5 }, g);

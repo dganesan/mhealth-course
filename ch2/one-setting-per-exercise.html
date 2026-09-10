@@ -32,7 +32,7 @@
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
   .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
   .group { display:flex; align-items:center; gap:8px; }
@@ -47,8 +47,8 @@
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .ptitle { font-family: var(--sans); font-size: 13px; font-weight: 700; fill: var(--ink); }
   .raw-line { fill: none; stroke: var(--raw); stroke-width: 1.5; }
   .out-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
@@ -76,7 +76,7 @@
       <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 640" role="img" aria-label="One Peak Spacing per Exercise"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1400 640" role="img" aria-label="One Peak Spacing per Exercise"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -212,8 +212,8 @@ function panel(parent, box, xd, yd, o = {}) {
   xt.forEach(v => { el('line', { x1: sx(v), x2: sx(v), y1: y, y2: y + h }, grid); txt(axis, sx(v), y + h + 17, o.xf ? o.xf(v) : v, { 'text-anchor': 'middle' }); });
   yt.forEach(v => { el('line', { x1: x, x2: x + w, y1: sy(v), y2: sy(v) }, grid); txt(axis, x - 8, sy(v) + 4, o.yf ? o.yf(v) : v, { 'text-anchor': 'end' }); });
   el('path', { d: `M${x},${y}V${y + h}H${x + w}` }, axis);
-  if (o.xlabel) txt(parent, x + w, y + h + 34, o.xlabel, { class: 'axis-title', 'text-anchor': 'end' });
-  if (o.ylabel) { const t = txt(parent, 0, 0, o.ylabel, { class: 'axis-title', 'text-anchor': 'middle' }); t.setAttribute('transform', `translate(${x - (o.ylx || 46)},${y + h / 2}) rotate(-90)`); }
+  if (o.xlabel) txt(parent, x + w, y + h + 38, o.xlabel, { class: 'axis-title', 'text-anchor': 'end' });
+  if (o.ylabel) { const t = txt(parent, 0, 0, o.ylabel, { class: 'axis-title', 'text-anchor': 'middle' }); t.setAttribute('transform', `translate(${x - (o.ylx || 62)},${y + h / 2}) rotate(-90)`); }
   if (o.title) txt(parent, x, y - 8, o.title, { class: 'ptitle' });
   const id = 'clip' + Math.random().toString(36).slice(2, 8);
   const cp = el('clipPath', { id }, parent); el('rect', { x, y: y - 2, width: w, height: h + 4 }, cp);
@@ -324,8 +324,10 @@ function wire() {
 // ------------------------------------------------------------ data: RecoFit gyroscope magnitudes, 50 Hz. lat: lateral raise (9 reps), jj: jumping jacks (25 reps), ind: three participants' lateral raises
 const FS = 50;
 const pct95 = arr => { const s = arr.slice().sort((a, b) => a - b); const q = 0.95 * (s.length - 1), lo = Math.floor(q); return s[lo] + (s[Math.min(lo + 1, s.length - 1)] - s[lo]) * (q - lo); };
-const SINGLE = { x: 70, y: 22, w: 1080, h: 540 }, TOP = { x: 70, y: 22, w: 1080, h: 238 }, BOT = { x: 70, y: 338, w: 1080, h: 240 };
-const COLS = [0, 1, 2].map(k => ({ x: 70 + k * 370, y: 40, w: 340, h: 500 }));
+const W = 1400, H = 640, PL = 84, PR = 36, PW = W - PL - PR;
+const SINGLE = { x: PL, y: 22, w: PW, h: 540 }, TOP = { x: PL, y: 22, w: PW, h: 238 }, BOT = { x: PL, y: 338, w: PW, h: 240 };
+const CGAP = 30, CW = (PW - 2 * CGAP) / 3;
+const COLS = [0, 1, 2].map(k => ({ x: PL + k * (CW + CGAP), y: 40, w: CW, h: 500 }));
 defDial('dist', { val: 'distVal', parse: parseFloat, fmt: v => v.toFixed(2) + ' s' });
 defDial('prom', { val: 'promVal', parse: parseFloat, fmt: v => v.toFixed(2) });
 const cache = {};
@@ -342,7 +344,7 @@ const cursorLine = (P, t) => el('line', { x1: P.sx(t), x2: P.sx(t), y1: P.box.y,
 const rbadge = (P, s, c, dy = 26) => badge(P.top, P.box.x + P.box.w - (s.length * 9.4 + 18) - 12, P.box.y + dy, s, c);
 function setPanel(box, set, p, dSec, prom, o = {}) {
   const n = set.g.length, T = Array.from({ length: n }, (_, i) => i / FS), i = Math.round(p * (n - 1));
-  const P = panel(chart, box, [0, n / FS], [0, Math.max(...set.g) * 1.32], { xlabel: 'time (seconds)', ylabel: o.ylabel === undefined ? 'angular velocity |ω| (rad/s)' : o.ylabel, ylx: 46, ny: 4, nx: o.nx || 8, yf: v => fmt(v, 0), title: o.title });
+  const P = panel(chart, box, [0, n / FS], [0, Math.max(...set.g) * 1.32], { xlabel: 'time (seconds)', ylabel: o.ylabel === undefined ? 'angular velocity |ω| (rad/s)' : o.ylabel, ylx: 62, ny: 4, nx: o.nx || 8, yf: v => fmt(v, 0), title: o.title });
   el('path', { class: 'out-line', d: pathOf(T.map(P.sx), set.g.map(P.sy)), stroke: C.violet, 'stroke-width': 1.4 }, P.g);
   const ks = detect(set, dSec, prom).filter(k => k <= i);
   ks.forEach(k => el('circle', { cx: P.sx(T[k]), cy: P.sy(set.g[k]), r: 6.5, class: 'kept' }, P.top));

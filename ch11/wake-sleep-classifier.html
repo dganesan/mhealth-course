@@ -33,7 +33,7 @@
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
   .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
   .group { display:flex; align-items:center; gap:8px; }
@@ -48,8 +48,8 @@
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .mono { font-family: var(--mono); }
   .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
   .ann { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
@@ -68,7 +68,7 @@
       <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 620" role="img" aria-label="Wake/sleep feature distributions and held-out predictions"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1360 620" role="img" aria-label="Wake/sleep feature distributions and held-out predictions"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -125,7 +125,18 @@
     });
     return wdt;
   }
+  // vertical y-axis title: one <text> rotated -90 deg, centred on yMid; a title longer than the panel wraps at ', ' into extra tspans stacked to the left
+  function ytitle(parent, xBase, yMid, s, maxH, attrs = {}) {
+    const fs = attrs['font-size'] || 15, est = t => t.length * fs * 0.47, lineH = fs + 2;
+    const lines = [];
+    if (!maxH || est(s) <= maxH * 1.15) lines.push(s);
+    else { let cur = ''; s.split(', ').forEach(p => { const c = cur ? cur + ', ' + p : p; if (cur && est(c) > maxH * 1.15) { lines.push(cur); cur = p; } else cur = c; }); lines.push(cur); }
+    const t = el('text', Object.assign({ class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${xBase - (lines.length - 1) * lineH},${yMid}) rotate(-90)` }, attrs), parent);
+    lines.forEach((l, i) => { const ts = el('tspan', { x: 0, dy: i ? lineH : 0 }, t); ts.textContent = l; });
+    return t;
+  }
   function makeEngine(cfg) {
+
     const dirty = {}; let step = 0, cursor = -1, playing = false, raf = 0, lastT = 0, acc = 0, speed = +cfg.speedDefault;
     const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
     let steps = cfg.steps();
@@ -183,7 +194,7 @@
   const TRAIN = SUBS.filter(s => s !== HS);
 
   const chart = $('chart');
-  const W = 1200, H = 620, PL = 70, PR = 30, PT = 22;
+  const W = 1360, H = 620, PL = 84, PR = 30, PT = 22;
   // histogram geometry
   const LO = -5, HI = Math.log10(0.5), NBIN = 49, BW = (HI - LO) / NBIN;
   const XLO = -4, XHI = HI;
@@ -215,7 +226,7 @@
       for (let m = 1; m < 10; m++) { const lv = p + Math.log10(m); if (lv > XHI) break; const x = xl(lv); el('line', { x1: x, x2: x, y1: m === 1 ? HR.y0 : HR.y1 - 4, y2: HR.y1, stroke: m === 1 ? undefined : 'var(--ink-3)' }, m === 1 ? grid : axis); if (m === 1) txt(axis, x, HR.y1 + 18, ['0.0001', '0.001', '0.01', '0.1', '1'][p + 4], { 'text-anchor': 'middle' }); }
     }
     el('path', { d: `M${PL},${HR.y0}V${HR.y1}H${W - PR}` }, axis);
-    txt(chart, PL - 56, HR.y0 - 6, 'number of epochs (log axis)', { class: 'axis-title' });
+    ytitle(chart, PL - 62, (HR.y0 + HR.y1) / 2, 'number of epochs (log axis)', HR.y1 - HR.y0);
     txt(chart, W - PR, HR.y1 + 36, mode === 'mad' ? 'Mean Amplitude Deviation per epoch (g, log axis)' : `rolling-mean MAD over ${rollMin} min (g, log axis)`, { class: 'axis-title', 'text-anchor': 'end' });
     G.bars = el('g', {}, chart);
     G.cur = el('g', {}, chart);
@@ -251,9 +262,9 @@
   }
 
   // ---------------- step 3: strips + confusion matrix
-  const SX0 = PL, SX1 = 800, SY = { psg: [PT + 40, PT + 150], pred: [PT + 190, PT + 300], err: [PT + 316, PT + 336] };
+  const CM = { x: W - PR - 2 * 120 - 20, y: PT + 60, cell: 120 };
+  const SX0 = PL, SX1 = CM.x - 110, SY = { psg: [PT + 40, PT + 150], pred: [PT + 190, PT + 300], err: [PT + 316, PT + 336] };
   const xh = i => SX0 + (i / NH) * (SX1 - SX0);
-  const CM = { x: 910, y: PT + 60, cell: 120 };
   function enterPred() {
     const axis = el('g', { class: 'axis' }, chart), grid = el('g', { class: 'grid' }, chart);
     [['psg', 'PSG ground truth'], ['pred', 'random forest prediction']].forEach(([k, name]) => {

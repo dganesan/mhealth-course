@@ -35,7 +35,7 @@
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
-  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
   .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
   .group { display:flex; align-items:center; gap:8px; }
@@ -50,8 +50,8 @@
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .cell-val { font-family: var(--mono); font-size: 14px; text-anchor: middle; pointer-events: none; }
   .dlabel { font-family: var(--mono); font-size: 13px; font-weight: 700; }
   .big { font-family: var(--mono); font-size: 17px; font-weight: 700; }
@@ -71,7 +71,7 @@
       <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 640" role="img" aria-label="Two signals, their alignment and the DTW cost matrix"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1400 640" role="img" aria-label="Two signals, their alignment and the DTW cost matrix"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -165,9 +165,10 @@
   const PRESET = { plateau: 3 };
 
   // ------------------------------------------------------------ layout
-  const W = 1200, H = 640;
-  const L = { x0: 70, x1: 560, y0: 78, y1: 596 };      // signals panel
-  const R = { x0: 660, x1: 1176, y0: 78, y1: 596 };    // matrix panel
+  const W = 1400, H = 640;
+  const PL = 64, PR = 30, GAP = 90;                    // left pad (vertical y title), right pad, gap between panels
+  const L = { x0: PL, x1: PL + Math.round((W - PL - PR - GAP) * 0.47), y0: 78, y1: 596 };   // signals panel
+  const R = { x0: PL + Math.round((W - PL - PR - GAP) * 0.47) + GAP, x1: W - PR, y0: 78, y1: 596 };   // matrix panel
   const svgNS = 'http://www.w3.org/2000/svg';
   const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
   const txt = (parent, x, y, s, attrs = {}) => { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; };
@@ -231,7 +232,7 @@
     } else {
       for (let t = 0; t <= nmax / ROW_FS; t += 0.5) { const x = geo.xs(t * ROW_FS); el('line', { x1: x, x2: x, y1: L.y1 - 40, y2: L.y1 - 35 }, axis); txt(axis, x, L.y1 - 20, fmt(t, 1), { 'text-anchor': 'middle' }); }
       txt(g, L.x1, L.y1 - 4, 'time within stroke window (s)', { class: 'axis-title', 'text-anchor': 'end' });
-      txt(g, L.x0 - 22, (L.y0 + L.y1) / 2, 'right-arm angular velocity magnitude (rad/s, offset)', { class: 'axis-title', 'text-anchor': 'middle', transform: `rotate(-90 ${L.x0 - 22} ${(L.y0 + L.y1) / 2})` });
+      txt(g, 0, 0, 'right-arm angular velocity magnitude (rad/s, offset)', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${L.x0 - 30}, ${(L.y0 + L.y1) / 2}) rotate(-90)` });
     }
     // traces
     const pa = A.map((v, i) => (i ? 'L' : 'M') + geo.xs(i).toFixed(1) + ',' + geo.yA(i).toFixed(1)).join('');
@@ -255,7 +256,7 @@
     for (let j = 0; j < res.m; j += tj) txt(ax, geo.cx(j) - (isToy ? 0 : cs / 2), my1 + 16, j, { 'text-anchor': 'middle' });
     for (let i = 0; i < res.n; i += ti) txt(ax, mx0 - 8, geo.cy(i) + (isToy ? 4 : cs / 2 + 4), i, { 'text-anchor': 'end' });
     txt(g, mx0 + res.m * cs, my1 + 32, 'signal B index j', { class: 'axis-title', 'text-anchor': 'end' });
-    txt(g, mx0 - 30, my1 - res.n * cs - 10, 'signal A index i', { class: 'axis-title' });
+    txt(g, 0, 0, 'signal A index i', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${mx0 - 58}, ${my1 - res.n * cs / 2}) rotate(-90)` });
     G.cellRects = [];
     for (let i = 0; i < res.n; i++) { G.cellRects.push([]); for (let j = 0; j < res.m; j++) G.cellRects[i].push(el('rect', { x: mx0 + j * cs, y: my1 - (i + 1) * cs, width: cs, height: cs, fill: '#fff', stroke: isToy ? 'var(--grid)' : 'none', 'stroke-width': 1 }, G.cells)); }
     G.hit = el('rect', { x: mx0, y: my1 - res.n * cs, width: res.m * cs, height: res.n * cs, fill: 'transparent' }, chart);

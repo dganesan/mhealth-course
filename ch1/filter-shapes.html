@@ -57,7 +57,7 @@
   }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 6px; border-top: 1px solid var(--rule); }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
 
   .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px;
@@ -77,7 +77,7 @@
 
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .ptitle { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 11px; fill: var(--ink-3); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-3); }
   .dlabel { font-family: var(--sans); font-size: 12px; font-weight: 700; }
   .slabel { font-family: var(--sans); font-size: 11px; fill: var(--ink-2); }
   .mono { font-family: var(--mono); font-size: 12px; fill: var(--ink); }
@@ -101,7 +101,7 @@
       <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 700" role="img" aria-label="Frequency response, spectrum and time-domain result of a Butterworth filter"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1540 700" role="img" aria-label="Frequency response, spectrum and time-domain result of a Butterworth filter"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -508,10 +508,10 @@
   ];
 
   // ------------------------------------------------------------ layout
-  const W = 1200, H = 700;
-  const R = { x0: 56, x1: 560, y0: 34, y1: 290 };
-  const S = { x0: 660, x1: 1150, y0: 34, y1: 290 };
-  const TP = { x0: 56, x1: 1080, y0: 385, y1: 660 };
+  const W = 1540, H = 700;
+  const R = { x0: 84, x1: 744, y0: 34, y1: 290 };
+  const S = { x0: 844, x1: W - 30, y0: 34, y1: 290 };
+  const TP = { x0: 84, x1: W - 30, y0: 385, y1: 660 };
   const fx = (p, f) => p.x0 + (f / 500) * (p.x1 - p.x0);
   const gy = g => R.y1 - g * (R.y1 - R.y0) / 1.1;
   const fmt = (v, d = 2) => (Math.round(v * 10 ** d) / 10 ** d).toFixed(d);
@@ -555,6 +555,7 @@
     for (let f = 0; f <= 500; f += 100) s += `<line x1="${fx(R, f)}" x2="${fx(R, f)}" y1="${R.y0}" y2="${R.y1}" stroke="var(--grid)"/><text class="ax" x="${fx(R, f)}" y="${R.y1 + 16}" text-anchor="middle">${f}</text>`;
     s += `<path d="M${R.x0},${R.y0}V${R.y1}H${R.x1}" fill="none" stroke="var(--ink-2)"/>`;
     s += `<text class="axis-title" x="${R.x1}" y="${R.y1 + 30}" text-anchor="end">frequency (Hz)</text>`;
+    s += `<text class="axis-title" text-anchor="middle" transform="translate(${R.x0 - 58}, ${(R.y0 + R.y1) / 2}) rotate(-90)">gain</text>`;
     const cuts = isBand(ftype) ? [lo, hi] : [c1];
     cuts.forEach(c => { s += `<line x1="${fx(R, c)}" x2="${fx(R, c)}" y1="${R.y0}" y2="${R.y1}" stroke="var(--ink-2)" stroke-dasharray="3 3"/>`; });
     const cy = R.y0 + 46;
@@ -580,6 +581,7 @@
     [0, 0.5].forEach(fr => { const v = fr * ymax; s += `<line x1="${S.x0}" x2="${S.x1}" y1="${sy(v)}" y2="${sy(v)}" stroke="var(--grid)"/><text class="ax" x="${S.x0 - 8}" y="${sy(v) + 4}" text-anchor="end">${fmt(v, 1)}</text>`; });
     s += `<path d="M${S.x0},${S.y0}V${S.y1}H${S.x1}" fill="none" stroke="var(--ink-2)"/>`;
     s += `<text class="axis-title" x="${S.x1}" y="${S.y1 + 30}" text-anchor="end">frequency (Hz)</text>`;
+    s += `<text class="axis-title" text-anchor="middle" transform="translate(${S.x0 - 58}, ${(S.y0 + S.y1) / 2}) rotate(-90)">amplitude</text>`;
     const pre = []; for (let k = 0; k < f.length && f[k] <= 500; k++) pre.push([fx(S, f[k]), sy(mag[k])]);
     s += `<path d="${path(pre)}" fill="none" stroke="var(--raw)" stroke-width="1.2"/>`;
     const isSig = fq => Math.abs(fq - 50) < 3 || Math.abs(fq - 120) < 3;
@@ -635,6 +637,7 @@
     yt.forEach(v => { s += `<line x1="${TP.x0}" x2="${TP.x1}" y1="${ty(v)}" y2="${ty(v)}" stroke="var(--grid)"/><text class="ax" x="${TP.x0 - 8}" y="${ty(v) + 4}" text-anchor="end">${fmt(v, 1)}</text>`; });
     s += `<path d="M${TP.x0},${TP.y0}V${TP.y1}H${TP.x1}" fill="none" stroke="var(--ink-2)"/>`;
     s += `<text class="axis-title" x="${TP.x1}" y="${TP.y1 + 30}" text-anchor="end">time (s)</text>`;
+    s += `<text class="axis-title" text-anchor="middle" transform="translate(${TP.x0 - 58}, ${(TP.y0 + TP.y1) / 2}) rotate(-90)">amplitude</text>`;
     const seg = (arr, a, b) => { const p = []; for (let i = a; i <= b; i++) p.push([tx(T[i]), ty(arr[i])]); return path(p); };
     s += `<path d="${seg(inp.x, i0, i1)}" fill="none" stroke="var(--raw)" stroke-width="1.3"/>`;
     s += `<path d="${seg(inp.target, i0, i1)}" fill="none" stroke="var(--clean)" stroke-width="1.4" stroke-dasharray="5 4" opacity=".7"/>`;

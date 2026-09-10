@@ -27,7 +27,7 @@
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
-  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
   .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
   .group { display:flex; align-items:center; gap:8px; }
@@ -42,8 +42,8 @@
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .ptitle { font-family: var(--sans); font-size: 14px; font-weight: 700; fill: var(--ink); }
   .mono { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
   .big { font-family: var(--mono); font-weight: 700; }
@@ -61,7 +61,7 @@
       <p id="subtitle"></p>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 640" role="img" aria-label="Exercise recognition results"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1400 640" role="img" aria-label="Exercise recognition results"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -140,7 +140,7 @@
   const PCM = DATA.pairs_cm;
 
   // ------------------------------------------------------------ svg helpers
-  const W = 1200, H = 640;
+  const W = 1400, H = 640;
   const svgNS = 'http://www.w3.org/2000/svg';
   const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
   const txt = (x, y, s, attrs = {}, parent) => { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; };
@@ -190,14 +190,14 @@
   // ------------------------------------------------------------ drawing
   function drawStreams(p) {
     chart.innerHTML = '';
-    const PL = 90, PR = 40, PT = 40, PB = 80;
+    const PL = 84, PR = 40, PT = 40, PB = 80;
     const pw = W - PL - PR, ph = H - PT - PB;
     const sy = v => PT + ph - v / 100 * ph;
     const g = el('g', {}, chart);
     const grid = el('g', { class: 'grid' }, g), ax = el('g', { class: 'axis' }, g);
     for (let v = 0; v <= 100; v += 20) { el('line', { x1: PL, x2: W - PR, y1: sy(v), y2: sy(v) }, grid); txt(PL - 8, sy(v) + 4, v, { 'text-anchor': 'end' }, ax); }
     el('path', { d: `M${PL},${PT}V${PT + ph}H${W - PR}` }, ax);
-    txt(PL - 56, PT + ph / 2, 'accuracy (%)', { class: 'axis-title', transform: `rotate(-90 ${PL - 56} ${PT + ph / 2})`, 'text-anchor': 'middle' }, g);
+    txt(PL - 62, PT + ph / 2, 'accuracy (%)', { class: 'axis-title', transform: `rotate(-90 ${PL - 62} ${PT + ph / 2})`, 'text-anchor': 'middle' }, g);
     const gw = pw / FAM.length, bw = 56, gap = 10;
     FAM.forEach((f, i) => {
       const cx = PL + gw * (i + 0.5);
@@ -232,7 +232,7 @@
 
   function drawDir(p) {
     chart.innerHTML = '';
-    const cell = 84, y0 = 140, gap = 190, x0 = (W - (2 * 3 * cell + gap)) / 2 + 30;
+    const cell = 110, y0 = 140, gap = 190, x0 = (W - (2 * 3 * cell + gap)) / 2 + 30;
     DIR.forEach((d, k) => {
       const t = clamp01(p * 2 - k);
       const gx = x0 + k * (3 * cell + gap);
@@ -248,7 +248,7 @@
         if (k === 0) txt(gx - 8, y0 + i * cell + cell / 2 + 4, n, { class: 'axis-title', 'text-anchor': 'end' }, g);
       });
       txt(gx + 1.5 * cell, y0 + 3 * cell + 38, 'predicted', { class: 'axis-title', 'text-anchor': 'middle' }, g);
-      if (k === 0) txt(gx - 100, y0 + 1.5 * cell, 'true exercise', { class: 'axis-title', 'text-anchor': 'middle', transform: `rotate(-90 ${gx - 100} ${y0 + 1.5 * cell})` }, g);
+      if (k === 0) txt(gx - 112, y0 + 1.5 * cell, 'true exercise', { class: 'axis-title', 'text-anchor': 'middle', transform: `rotate(-90 ${gx - 112} ${y0 + 1.5 * cell})` }, g);
       const errs = Math.round((d.m[0][2] + d.m[2][0]) * t);
       txt(gx + 1.5 * cell, y0 + 3 * cell + 78, t > 0 ? `lateral raise ↔ crunch errors: ${errs}` : '', { class: 'mono', 'text-anchor': 'middle', fill: '#eb6834', 'font-weight': 700 }, g);
     });
@@ -263,14 +263,14 @@
 
   function drawProg(p) {
     chart.innerHTML = '';
-    const PL = 90, PR = 40, PT = 40, PB = 80;
+    const PL = 84, PR = 40, PT = 40, PB = 80;
     const pw = W - PL - PR, ph = H - PT - PB;
     const sy = v => PT + ph - v / 80 * ph;
     const g = el('g', {}, chart);
     const grid = el('g', { class: 'grid' }, g), ax = el('g', { class: 'axis' }, g);
     for (let v = 0; v <= 80; v += 10) { el('line', { x1: PL, x2: W - PR, y1: sy(v), y2: sy(v) }, grid); txt(PL - 8, sy(v) + 4, v, { 'text-anchor': 'end' }, ax); }
     el('path', { d: `M${PL},${PT}V${PT + ph}H${W - PR}` }, ax);
-    txt(PL - 56, PT + ph / 2, '39-class accuracy (%)', { class: 'axis-title', transform: `rotate(-90 ${PL - 56} ${PT + ph / 2})`, 'text-anchor': 'middle' }, g);
+    txt(PL - 62, PT + ph / 2, '39-class accuracy (%)', { class: 'axis-title', transform: `rotate(-90 ${PL - 62} ${PT + ph / 2})`, 'text-anchor': 'middle' }, g);
     const gw = pw / PROG.length, bw = 150;
     PROG.forEach((b, i) => {
       const t = clamp01(p * PROG.length - i);
@@ -290,7 +290,7 @@
 
   function drawPairs(p) {
     chart.innerHTML = '';
-    const n = PAIR_NAMES.length, cell = 40, x0 = 250, y0 = 24;
+    const n = PAIR_NAMES.length, cell = 40, x0 = 290, y0 = 24;
     const g = el('g', {}, chart);
     for (let i = 0; i < n; i++) {
       const rowSum = PCM[i].reduce((a, b) => a + b, 0);
@@ -316,7 +316,7 @@
     txt(x0 - 150, y0 + n * cell / 2, 'true exercise', { class: 'axis-title', 'text-anchor': 'middle', transform: `rotate(-90 ${x0 - 150} ${y0 + n * cell / 2})` }, g);
     txt(x0 + n * cell / 2, H - 6, 'predicted exercise', { class: 'axis-title', 'text-anchor': 'middle' }, g);
     // per-pair readout on the right
-    const rx = x0 + n * cell + 40;
+    const rx = x0 + n * cell + 60;
     txt(rx, y0 + 14, 'within-pair errors', { class: 'ptitle' }, g);
     for (let b = 0; b < 6; b++) {
       const t = clamp01(p * 6 - b);

@@ -28,7 +28,7 @@
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
   .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
   .group { display:flex; align-items:center; gap:8px; }
@@ -43,8 +43,8 @@
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .mono { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
   .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
   .pt { stroke: #fff; stroke-width: 1.2; }
@@ -63,7 +63,7 @@
       <p id="subtitle"></p>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 640" role="img" aria-label="Bootstrap samples and trees"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1400 640" role="img" aria-label="Bootstrap samples and trees"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -209,7 +209,7 @@ const TEST = [[9.429,3.051,0],[9.603,2.104,0],[9.644,1.394,0],[9.507,1.669,0],[9
   const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
   const text = (x, y, s, attrs = {}, parent) => { const t = el('text', { x, y, ...attrs }, parent); t.textContent = s; return t; };
   const chart = $('chart');
-  const W = 1200, H = 640;
+  const W = 1400, H = 640;
   const pct = v => `${(v * 100).toFixed(1)}%`;
 
   // a scatter panel with axes: returns scale functions
@@ -225,8 +225,8 @@ const TEST = [[9.429,3.051,0],[9.603,2.104,0],[9.644,1.394,0],[9.507,1.669,0],[9
     for (let v = 0; v <= 8; v += small ? 2 : 1) { el('line', { x1: P.px, x2: P.px + P.pw, y1: P.ys(v), y2: P.ys(v) }, grid); text(P.px - 8, P.ys(v) + 4, v, { 'text-anchor': 'end' }, axis); }
     el('path', { d: `M${P.px},${P.py}V${P.py + P.ph}H${P.px + P.pw}` }, axis);
     if (!opts.noTitles) {
-      text(P.px + P.pw / 2, P.py + P.ph + 34, 'mean of a_y', { class: 'axis-title', 'text-anchor': 'middle' }, parent);
-      const t = text(0, 0, 'std of a_y', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${P.px - 34},${P.py + P.ph / 2}) rotate(-90)` }, parent);
+      text(P.px + P.pw / 2, P.py + P.ph + 38, 'mean of a_y', { class: 'axis-title', 'text-anchor': 'middle' }, parent);
+      const t = text(0, 0, 'std of a_y', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${P.px - 62},${P.py + P.ph / 2}) rotate(-90)` }, parent);
     }
   }
   function drawRegions(P, parent, rects, lines, opts = {}) {
@@ -358,7 +358,7 @@ const TEST = [[9.429,3.051,0],[9.603,2.104,0],[9.644,1.394,0],[9.507,1.669,0],[9
 
   // ------------------------------------------------------------ drawing
   const G = {};
-  const MAIN = makePanel(70, 24, 690, 520);
+  const MAIN = makePanel(80, 24, 800, 520);
   const legendPts = [{ kind: 'dot', c: CLS[0].color, n: 'Walking' }, { kind: 'dot', c: CLS[1].color, n: 'Downstairs' }, { kind: 'dot', c: CLS[2].color, n: 'Upstairs' }];
 
   function draw(frame) {
@@ -368,7 +368,7 @@ const TEST = [[9.429,3.051,0],[9.603,2.104,0],[9.644,1.394,0],[9.507,1.669,0],[9
     const P = MAIN;
     const root = el('g', {}, chart);
     const layer = el('g', {}, root);
-    const RX = 830, RW = 340;
+    const RX = 960, RW = W - RX - 40;
     if (id === 'full' || id === 'boottree') {
       const tree = id === 'full' ? M.full : M.trees[0];
       const upto = frame;
@@ -394,7 +394,7 @@ const TEST = [[9.429,3.051,0],[9.603,2.104,0],[9.644,1.394,0],[9.507,1.669,0],[9
       drawLegend(root, legendPts.concat([{ kind: 'hollow', c: '#8c8c8c', n: 'not drawn (so far)' }]), P.px + 10, P.py + 10);
       // right: histogram of multiplicities
       const hist = [0, 0, 0, 0, 0]; c.forEach(v => hist[Math.min(v, 4)]++);
-      const HP = { x: RX + 40, y: 80, w: 280, h: 300 };
+      const HP = { x: RX + 50, y: 80, w: RW - 50, h: 300 };
       text(RX, 40, 'how often each window was drawn', { class: 'dlabel' }, root);
       const axis = el('g', { class: 'axis' }, root);
       for (let v = 0; v <= 150; v += 50) { const yy = HP.y + HP.h - v / 150 * HP.h; el('line', { x1: HP.x, x2: HP.x + HP.w, y1: yy, y2: yy, class: 'grid', stroke: '#ececec' }, root); text(HP.x - 8, yy + 4, v, { 'text-anchor': 'end' }, axis); }
@@ -407,7 +407,7 @@ const TEST = [[9.429,3.051,0],[9.603,2.104,0],[9.644,1.394,0],[9.507,1.669,0],[9
         if (hist[k]) text(HP.x + k * bw + bw / 2, HP.y + HP.h - hgt - 5, hist[k], { class: 'mono', 'text-anchor': 'middle', 'font-size': 12 }, root);
       });
       text(HP.x + HP.w / 2, HP.y + HP.h + 36, 'times drawn', { class: 'axis-title', 'text-anchor': 'middle' }, root);
-      text(HP.x - 34, HP.y - 14, 'windows', { class: 'axis-title' }, root);
+      text(0, 0, 'windows', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${HP.x - 62},${HP.y + HP.h / 2}) rotate(-90)` }, root);
       const uniq = c.filter(v => v > 0).length;
       [`draws     ${frame} of ${NTR}`, `distinct  ${uniq} of ${NTR}  (${Math.round(uniq / NTR * 100)}%)`, `left out  ${NTR - uniq}`].forEach((s, k) => text(RX, 440 + k * 24, s, { class: 'mono', 'font-size': 14, style: 'white-space:pre' }, root));
     } else if (id === 'agg') {
@@ -417,7 +417,7 @@ const TEST = [[9.429,3.051,0],[9.603,2.104,0],[9.644,1.394,0],[9.507,1.669,0],[9
       drawPoints(P, root, {});
       drawLegend(root, legendPts.concat([{ kind: 'tint', c: '#e6e6e6', n: 'majority-vote region' }]), P.px + 10, P.py + 10);
       // right: accuracy vs number of trees
-      const AP = { x: RX + 40, y: 80, w: 290, h: 300 };
+      const AP = { x: RX + 50, y: 80, w: RW - 50, h: 300 };
       text(RX, 40, 'accuracy of the vote of the first b trees', { class: 'dlabel' }, root);
       const axis = el('g', { class: 'axis' }, root);
       const ax = v => AP.x + (v - 1) / Math.max(1, B - 1) * AP.w, ay = v => AP.y + AP.h - (v - 0.5) / 0.5 * AP.h;
@@ -439,8 +439,8 @@ const TEST = [[9.429,3.051,0],[9.603,2.104,0],[9.644,1.394,0],[9.507,1.669,0],[9
 
   function drawThree(frame) {
     const root = el('g', {}, chart);
-    const pw = 340, ph = 250, gap = 34;
-    const panels = [makePanel(60, 40, pw, ph), makePanel(60 + pw + gap + 40, 40, pw, ph), makePanel(60, 40 + ph + 80, pw, ph)];
+    const pw = 500, ph = 240, gap = 34;
+    const panels = [makePanel(80, 40, pw, ph), makePanel(80 + pw + gap + 40, 40, pw, ph), makePanel(80, 40 + ph + 70, pw, ph)];
     let left = frame;
     const accs = [];
     for (let k = 0; k < 3; k++) {
@@ -455,18 +455,18 @@ const TEST = [[9.429,3.051,0],[9.603,2.104,0],[9.644,1.394,0],[9.507,1.669,0],[9
       const pred = x => predictTree(tree, x, upto);
       accs.push(accuracy(x => predictTree(tree, x), XT, YT));
       text(P.px + P.pw, P.py - 10, `splits ${upto}/${n} · test ${pct(accuracy(pred, XT, YT))}`, { class: 'mono', 'text-anchor': 'end', 'font-size': 12 }, root);
-      if (k === 2) { text(P.px + P.pw / 2, P.py + P.ph + 30, 'mean of a_y', { class: 'axis-title', 'text-anchor': 'middle' }, root); }
-      if (k === 0 || k === 2) text(0, 0, 'std of a_y', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${P.px - 28},${P.py + P.ph / 2}) rotate(-90)` }, root);
+      if (k === 2) { text(P.px + P.pw / 2, P.py + P.ph + 38, 'mean of a_y', { class: 'axis-title', 'text-anchor': 'middle' }, root); }
+      if (k === 0 || k === 2) text(0, 0, 'std of a_y', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${P.px - 52},${P.py + P.ph / 2}) rotate(-90)` }, root);
     }
     // fourth slot: the vote of the three
-    const P = makePanel(60 + pw + gap + 40, 40 + ph + 80, pw, ph);
+    const P = makePanel(80 + pw + gap + 40, 40 + ph + 70, pw, ph);
     const done = frame >= steps[step].frames();
     if (done) { drawRuns(P, root, voteRuns(3)); drawPoints(P, root, { r: 3.2 }); }
     drawAxes(P, root, { small: true, noTitles: true });
     text(P.px, P.py - 10, 'Majority vote of the three', { class: 'dlabel' }, root);
     if (done) text(P.px + P.pw, P.py - 10, `test ${pct(M.accTe[2])}`, { class: 'mono', 'text-anchor': 'end', 'font-size': 12 }, root);
     else text(P.px + P.pw / 2, P.py + P.ph / 2, 'waiting for the three trees', { class: 'axis-title', 'text-anchor': 'middle' }, root);
-    text(P.px + P.pw / 2, P.py + P.ph + 30, 'mean of a_y', { class: 'axis-title', 'text-anchor': 'middle' }, root);
+    text(P.px + P.pw / 2, P.py + P.ph + 38, 'mean of a_y', { class: 'axis-title', 'text-anchor': 'middle' }, root);
     drawLegend(root, legendPts.concat([{ kind: 'hollow', c: '#8c8c8c', n: 'not in this bootstrap' }, { kind: 'tint', c: '#e6e6e6', n: 'predicted region' }]), panels[1].px + panels[1].pw + 4, 40 + ph + 12);
     G.hover = { P: null, panels: panels.concat([P]), predict: (x, k) => k < 3 ? { single: predictTree(M.trees[k], x) } : { votes: voteCounts(M.trees, x, 3) } };
   }

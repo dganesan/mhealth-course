@@ -49,7 +49,7 @@
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
   .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
   .group { display:flex; align-items:center; gap:8px; }
@@ -64,8 +64,8 @@
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .out-line { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
   .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
   .mono { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
@@ -87,7 +87,7 @@
       <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 660" role="img" aria-label="Data splitting and cross-validation"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1450 660" role="img" aria-label="Data splitting and cross-validation"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -159,7 +159,7 @@
   const ORDER = shuffled(N, 328);   // one fixed random permutation for the split
 
   // ------------------------------------------------------------ svg helpers
-  const W = 1200, H = 660;
+  const W = 1450, H = 660;
   const svgNS = 'http://www.w3.org/2000/svg';
   const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
   const text = (x, y, s, attrs = {}, parent) => { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; };
@@ -257,7 +257,7 @@
   ];
 
   // ------------------------------------------------------------ window grid (steps 1-2)
-  const COLS = 73, CELL = 15, GX = 52, GY = 44;
+  const CELL = 15, GX = 52, GY = 44, COLS = Math.floor((W - GX - 40) / CELL);
   const cellX = i => GX + (i % COLS) * CELL, cellY = i => GY + Math.floor(i / COLS) * CELL;
   const gridBottom = GY + Math.ceil(N / COLS) * CELL;
 
@@ -325,7 +325,7 @@
     });
   }
 
-  const LP = { x0: 70, x1: 1120, y0: 136, y1: 580 };
+  const LP = { x0: 100, x1: W - 40, y0: 136, y1: 580 };
   const xd = d => LP.x0 + ((d - 1) / (DEPTHS - 1)) * (LP.x1 - LP.x0);
   const ACC0 = 0.3, ACC1 = 1.0;
   const ya = a => LP.y1 - ((a - ACC0) / (ACC1 - ACC0)) * (LP.y1 - LP.y0);
@@ -344,7 +344,7 @@
     }
     el('path', { d: `M${p.x0},${p.y0}V${p.y1}H${p.x1}` }, axis);
     text((p.x0 + p.x1) / 2, p.y1 + 40, 'max_depth', { class: 'axis-title', 'text-anchor': 'middle' }, parent);
-    text(p.x0 - 10, p.y0 - 20, 'accuracy', { class: 'axis-title', 'text-anchor': 'end' }, parent);
+    text(0, 0, 'accuracy', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${p.x0 - 64},${(p.y0 + p.y1) / 2}) rotate(-90)` }, parent);
     return yv;
   }
 
@@ -399,7 +399,7 @@
     legend(g, W - 240, 20, [{ c: C.train, n: 'training folds', sq: true }, { c: 'url(#hatch)', n: 'validation fold', sq: true }]);
     text(GX, 44, `the ${N} windows, shuffled, in ${K} folds of about ${cv.sizes[0]} windows`, { class: 'label' }, g);
     const top = 84, bottom = 560, rowH = Math.min(92, (bottom - top) / K), bh = Math.min(62, rowH - 10);
-    const bx = 150, bw = 720, gap = 5;
+    const bx = 150, bw = W - bx - 320, gap = 5;
     const iter = Math.min(K - 1, Math.floor(cur / 3)), phase = cur % 3, done = cur >= K * 3;
     for (let r = 0; r < K; r++) {
       if (!done && r > iter) break;
@@ -436,6 +436,7 @@
 
   // ------------------------------------------------------------ split by subject (step 5, schematic: 10 subjects × 24 windows)
   const NS = 10, NW = 24, SUBJ_ORDER = shuffled(NS * NW, 17);
+  const SPL = 120, SPX = SPL, SPC = Math.floor((W - 40 - 2 * SPL - 30) / (2 * NW));   // subject panels: label width, first panel x, cell (derived from W)
   function drawSubject(cur) {
     const K = state.K;
     const g = el('g', {}, chart);
@@ -445,10 +446,10 @@
     const f1 = Math.min(cur, nValRand);                       // random panel progress
     const f2 = Math.max(0, Math.min(cur - nValRand, nSubjVal * NW)); // subject panel progress
     const panels = [
-      { x: 60, title: `random ${K}-fold split (train_test_split / KFold)`, isVal: i => { const p = RPOS[i]; return p < f1; } },
-      { x: 690, title: `split by subject (GroupKFold, ${nSubjVal} subject${nSubjVal > 1 ? 's' : ''} held out)`, isVal: i => i < f2 },
+      { x: SPX, title: `random ${K}-fold split (train_test_split / KFold)`, isVal: i => { const p = RPOS[i]; return p < f1; } },
+      { x: SPX + NW * SPC + 30 + SPL, title: `split by subject (GroupKFold, ${nSubjVal} subject${nSubjVal > 1 ? 's' : ''} held out)`, isVal: i => i < f2 },
     ];
-    const cell = 20, top = 92, pitch = 13;
+    const cell = SPC, top = 92, pitch = 13;
     panels.forEach(p => {
       text(p.x, 72, p.title, { class: 'dlabel', fill: C.ink }, g);
       let both = 0;
@@ -466,7 +467,7 @@
       const yb = top + NS * (cell + pitch) + 14;
       text(p.x, yb + 8, `subjects with windows in both sets: ${both} of ${NS}`, { class: 'mono-big', 'font-weight': 700 }, g);
     });
-    text(60, 44, 'ten subjects, 24 windows each; dashed boxes mark one subject’s recording', { class: 'label' }, g);
+    text(SPX, 44, 'ten subjects, 24 windows each; dashed boxes mark one subject’s recording', { class: 'label' }, g);
   }
   const RPOS = []; SUBJ_ORDER.forEach((i, p) => RPOS[i] = p);
 

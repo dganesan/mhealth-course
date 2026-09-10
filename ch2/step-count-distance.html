@@ -32,7 +32,7 @@
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
   .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
   .group { display:flex; align-items:center; gap:8px; }
@@ -47,8 +47,8 @@
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .ptitle { font-family: var(--sans); font-size: 13px; font-weight: 700; fill: var(--ink); }
   .raw-line { fill: none; stroke: var(--raw); stroke-width: 1.5; }
   .out-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
@@ -76,7 +76,7 @@
       <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 640" role="img" aria-label="Step Count and the distance Parameter"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1400 640" role="img" aria-label="Step Count and the distance Parameter"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -212,8 +212,8 @@ function panel(parent, box, xd, yd, o = {}) {
   xt.forEach(v => { el('line', { x1: sx(v), x2: sx(v), y1: y, y2: y + h }, grid); txt(axis, sx(v), y + h + 17, o.xf ? o.xf(v) : v, { 'text-anchor': 'middle' }); });
   yt.forEach(v => { el('line', { x1: x, x2: x + w, y1: sy(v), y2: sy(v) }, grid); txt(axis, x - 8, sy(v) + 4, o.yf ? o.yf(v) : v, { 'text-anchor': 'end' }); });
   el('path', { d: `M${x},${y}V${y + h}H${x + w}` }, axis);
-  if (o.xlabel) txt(parent, x + w, y + h + 34, o.xlabel, { class: 'axis-title', 'text-anchor': 'end' });
-  if (o.ylabel) { const t = txt(parent, 0, 0, o.ylabel, { class: 'axis-title', 'text-anchor': 'middle' }); t.setAttribute('transform', `translate(${x - (o.ylx || 46)},${y + h / 2}) rotate(-90)`); }
+  if (o.xlabel) txt(parent, x + w, y + h + 38, o.xlabel, { class: 'axis-title', 'text-anchor': 'end' });
+  if (o.ylabel) { const t = txt(parent, 0, 0, o.ylabel, { class: 'axis-title', 'text-anchor': 'middle' }); t.setAttribute('transform', `translate(${x - (o.ylx || 62)},${y + h / 2}) rotate(-90)`); }
   if (o.title) txt(parent, x, y - 8, o.title, { class: 'ptitle' });
   const id = 'clip' + Math.random().toString(36).slice(2, 8);
   const cp = el('clipPath', { id }, parent); el('rect', { x, y: y - 2, width: w, height: h + 4 }, cp);
@@ -325,7 +325,8 @@ function wire() {
 const N = F.length, FS = 100, T = Array.from({ length: N }, (_, i) => i / FS), TMAX = N / FS;
 const SIG = Math.sqrt(F.reduce((s, v) => s + v * v, 0) / N - Math.pow(F.reduce((s, v) => s + v, 0) / N, 2));
 const TRUE = 45;
-const SINGLE = { x: 84, y: 22, w: 1066, h: 540 }, TOP = { x: 84, y: 22, w: 1066, h: 232 }, BOT = { x: 84, y: 330, w: 1066, h: 248 };
+const W = 1400, H = 640, PL = 84, PR = 36;
+const SINGLE = { x: PL, y: 22, w: W - PL - PR, h: 540 }, TOP = { x: PL, y: 22, w: W - PL - PR, h: 232 }, BOT = { x: PL, y: 330, w: W - PL - PR, h: 248 };
 const YD = [-5000, 5000];
 const DS = Array.from({ length: 30 }, (_, k) => +(0.05 * (k + 1)).toFixed(2));
 defDial('dist', { val: 'distVal', parse: parseFloat, fmt: v => v.toFixed(2) + ' s' });
@@ -336,7 +337,7 @@ function peaksAt(dSec) { const key = dSec.toFixed(2) + '|' + dial('promf'); if (
 
 let G = {};
 function tracePanel(box, upto, title) {
-  const P = panel(chart, box, [0, TMAX], YD, { xlabel: 'time (seconds)', ylabel: 'acceleration (filtered, centered)', ylx: 58, ny: 4, yf: v => v, title });
+  const P = panel(chart, box, [0, TMAX], YD, { xlabel: 'time (seconds)', ylabel: 'acceleration (filtered, centered)', ylx: 62, ny: 4, yf: v => v, title });
   el('path', { class: 'thin-line', d: pathOf(T.map(P.sx), F.map(P.sy), upto), stroke: C.blue, 'stroke-width': 1.2 }, P.g);
   return P;
 }
@@ -379,7 +380,7 @@ const STEPS = [
       G.P = tracePanel(TOP, N); legend(G.P.top, TOP.x + TOP.w - 262, TOP.y + TOP.h - 62, [{ c: C.blue, n: 'filtered magnitude (0.5–5 Hz)' }, { k: 'circle', n: 'detected steps' }]);
       const ks = peaksAt(d); ks.forEach(k => ring(G.P, k)); live.n = ks.length; live.d = d;
       rbadge(G.P, `distance ${fmt(d, 2)} s · found ${ks.length} · true ${TRUE}`, C.red);
-      const Q = panel(chart, BOT, [0, 1.55], [0, 90], { xlabel: 'distance parameter (seconds)', ylabel: 'detected step count', ylx: 58, ny: 5, xt: [0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4], xf: v => v.toFixed(1) });
+      const Q = panel(chart, BOT, [0, 1.55], [0, 90], { xlabel: 'distance parameter (seconds)', ylabel: 'detected step count', ylx: 62, ny: 5, xt: [0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4], xf: v => v.toFixed(1) });
       G.Q = Q;
       el('line', { x1: BOT.x, x2: BOT.x + BOT.w, y1: Q.sy(TRUE), y2: Q.sy(TRUE), stroke: C.red, 'stroke-width': 1.6, 'stroke-dasharray': '6 4' }, Q.g);
       const pts = DS.slice(0, kmax + 1).map(ds => ({ x: Q.sx(ds), y: Q.sy(peaksAt(ds).length) }));

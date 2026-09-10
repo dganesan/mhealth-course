@@ -72,7 +72,7 @@
   .arrow { color: var(--ink-3); font-size: 20px; line-height: 1; }
   .pipe .cap { color: var(--ink-3); font-size: 12px; margin-left: 8px; }
 
-  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
 
   .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px;
@@ -95,8 +95,8 @@
 
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 11px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .ptitle { font-family: var(--sans); font-size: 12px; font-weight: 700; fill: var(--ink-2); letter-spacing: .04em; text-transform: uppercase; }
   .lg text { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
   .ann text { font-family: var(--sans); font-size: 12px; fill: var(--noise); font-weight: 700; paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linejoin: round; }
@@ -125,7 +125,7 @@
       <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 540" role="img" aria-label="ECG time trace and spectrum"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1240 540" role="img" aria-label="ECG time trace and spectrum"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="pipe" id="pipe"></div>
@@ -527,11 +527,11 @@ window.ECG = [0,0,0,0,0,0.0044,0.0153,0.024,0.037,0.0414,0.0458,0.0501,0.0523,0.
   const txt = v => typeof v === 'function' ? v() : v;
 
   // ------------------------------------------------------------ layout
-  const W = 1200, H = 540;
-  const TL = 56, TR = 760;               // time plot x range
+  const W = 1240, H = 540;
+  const TL = 84, TR = 790;               // time plot x range
   const OV0 = 6, OV1 = 38;               // overview strip y range
   const PT = 66, PB = 470;               // plot y range (shared)
-  const SL = 846, SR = 1160;             // spectrum x range
+  const SL = 886, SR = W - 30;             // spectrum x range
   const FMAX = 250, DBLO = -90, DBHI = 5;
   const svgNS = 'http://www.w3.org/2000/svg';
   const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
@@ -606,7 +606,7 @@ window.ECG = [0,0,0,0,0,0.0044,0.0153,0.024,0.037,0.0414,0.0458,0.0501,0.0523,0.
     el('text', { x: TL - 8, y: PT - 10, class: 'ptitle', 'text-anchor': 'start' }, chart).textContent = '';
     el('text', { x: TL, y: 56, class: 'ptitle' }, chart).textContent = 'time domain';
     el('text', { x: TR, y: PB + 34, class: 'axis-title', 'text-anchor': 'end' }, chart).textContent = 'time (s)';
-    el('text', { x: TL - 44, y: PT + (PB - PT) / 2, class: 'axis-title', transform: `rotate(-90 ${TL - 44} ${PT + (PB - PT) / 2})`, 'text-anchor': 'middle' }, chart).textContent = 'amplitude (R peak = 1)';
+    el('text', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${TL - 62}, ${(PT + PB) / 2}) rotate(-90)` }, chart).textContent = 'amplitude (R peak = 1)';
     // spectrum axes
     for (let db = DBLO + 10; db <= 0; db += 20) {
       el('line', { x1: SL, x2: SR, y1: sy(db), y2: sy(db) }, grid);
@@ -619,7 +619,7 @@ window.ECG = [0,0,0,0,0,0.0044,0.0153,0.024,0.037,0.0414,0.0458,0.0501,0.0523,0.
     el('path', { d: `M${SL},${PT}V${PB}H${SR}` }, axis);
     el('text', { x: SL, y: 56, class: 'ptitle' }, chart).textContent = 'frequency domain (FFT)';
     el('text', { x: SR, y: PB + 34, class: 'axis-title', 'text-anchor': 'end' }, chart).textContent = 'frequency (Hz)';
-    el('text', { x: SL - 40, y: PT + (PB - PT) / 2, class: 'axis-title', transform: `rotate(-90 ${SL - 40} ${PT + (PB - PT) / 2})`, 'text-anchor': 'middle' }, chart).textContent = 'magnitude (dB)';
+    el('text', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${SL - 58}, ${(PT + PB) / 2}) rotate(-90)` }, chart).textContent = 'magnitude (dB)';
     // overview strip
     G.ov = el('g', {}, chart);
     el('rect', { x: TL, y: OV0, width: TR - TL, height: OV1 - OV0, fill: '#fafafa', stroke: 'var(--rule)' }, G.ov);

@@ -36,7 +36,7 @@
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
   .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
   .group { display:flex; align-items:center; gap:8px; }
@@ -51,8 +51,8 @@
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .sig-line { fill: none; stroke: var(--clean); stroke-width: 1.2; stroke-linejoin: round; }
   .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
   .dlabel { font-family: var(--mono); font-size: 13px; font-weight: 700; }
@@ -72,7 +72,7 @@
       <p id="subtitle"></p>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 640" role="img" aria-label="Sliding window and per-window features"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1400 640" role="img" aria-label="Sliding window and per-window features"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -149,7 +149,7 @@
   const PRESET = { win: 2, feat: 'std' };
 
   // ------------------------------------------------------------ layout
-  const W = 1200, H = 640, PL = 66, PR = 24;
+  const W = 1400, H = 640, PL = 80, PR = 24;
   const TT = 24, TB = 222;            // trace panel
   const FT = 302, FB = 596;           // feature panel (steps 1-4)
   const FT6 = 24;                     // feature panel top on the six-class step
@@ -235,7 +235,7 @@
     }
     el('path', { d: `M${PL},${TT}V${TB}H${W - PR}` }, axis);
     txt(g, W - PR, TB + 32, 'time (s)', { class: 'axis-title', 'text-anchor': 'end' });
-    txt(g, PL - 30, TT - 10, 'aᵧ (m/s²)', { class: 'axis-title', 'text-anchor': 'start' });
+    txt(g, 0, 0, 'aᵧ (m/s²)', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${PL - 60}, ${(TT + TB) / 2}) rotate(-90)` });
     let p = ''; for (let i = 0; i < trace.length; i++) p += (i ? 'L' : 'M') + xT(i / FS).toFixed(1) + ',' + yS(trace[i]).toFixed(1);
     el('path', { class: 'sig-line', d: p }, g);
   }
@@ -253,7 +253,7 @@
       for (let c = 0; c <= maxC; c += st) { el('line', { x1: PL, x2: W - PR, y1: yF(c), y2: yF(c) }, grid); txt(axis, PL - 8, yF(c) + 4, c, { 'text-anchor': 'end' }); }
       el('path', { d: `M${PL},${top}V${FB}H${W - PR}` }, axis);
       txt(g, W - PR, FB + 32, 'mean of aᵧ per window (m/s²)', { class: 'axis-title', 'text-anchor': 'end' });
-      txt(g, PL - 30, top - 10, 'number of windows', { class: 'axis-title', 'text-anchor': 'start' });
+      txt(g, 0, 0, 'number of windows', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${PL - 60}, ${(top + FB) / 2}) rotate(-90)` });
       txt(g, W - PR - 6, top + 16, 'mean = (1/n) Σ xᵢ', { class: 'formula', 'text-anchor': 'end' });
     } else {
       xF = v => PL + ((v - 4.5) / 5.5) * (W - PL - PR);
@@ -264,7 +264,7 @@
       for (let v = 0; v <= mx; v += st) { el('line', { x1: PL, x2: W - PR, y1: yF(v), y2: yF(v) }, grid); txt(axis, PL - 8, yF(v) + 4, v, { 'text-anchor': 'end' }); }
       el('path', { d: `M${PL},${top}V${FB}H${W - PR}` }, axis);
       txt(g, W - PR, FB + 32, 'mean of aᵧ (m/s²)', { class: 'axis-title', 'text-anchor': 'end' });
-      txt(g, PL - 30, top - 10, `${spreadName()} of aᵧ (${spreadUnit()})`, { class: 'axis-title', 'text-anchor': 'start' });
+      txt(g, 0, 0, `${spreadName()} of aᵧ (${spreadUnit()})`, { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${PL - 60}, ${(top + FB) / 2}) rotate(-90)` });
       const f = feat === 'std' ? 'std = √( (1/n) Σ (xᵢ − mean)² )' : 'var = (1/n) Σ (xᵢ − mean)²';
       txt(g, W - PR - 6, top + 16, 'mean = (1/n) Σ xᵢ', { class: 'formula', 'text-anchor': 'end' });
       txt(g, W - PR - 6, top + 32, f, { class: 'formula', 'text-anchor': 'end' });

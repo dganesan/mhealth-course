@@ -94,10 +94,7 @@
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
 
-  .foot {
-    display: flex; justify-content: space-between; align-items: baseline;
-    font-size: 12px; color: var(--ink-3); padding-top: 4px;
-  }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
 
   /* ---------- control bar ---------- */
@@ -116,8 +113,8 @@
   /* ---------- svg parts ---------- */
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .raw-line { fill: none; stroke: var(--raw); stroke-width: 1.5; }
   .out-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
   .thin-line { fill: none; stroke-width: 1.3; stroke-linejoin: round; }
@@ -151,7 +148,7 @@
       <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 660" role="img" aria-label="Sensor data flowing through the five pipeline stages"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1450 660" role="img" aria-label="Sensor data flowing through the five pipeline stages"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -218,8 +215,8 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
       txt(axis, x, o.y1 + 17, o.xFmt ? o.xFmt(v) : v, { 'text-anchor': 'middle' });
     });
     el('path', { d: `M${o.x0},${o.y0}V${o.y1}H${o.x1}` }, axis);
-    if (o.xTitle) txt(parent, o.x1, o.y1 + 34, o.xTitle, { class: 'axis-title', 'text-anchor': 'end' });
-    if (o.yTitle) txt(parent, o.x0 - 44, o.y0 - 10, o.yTitle, { class: 'axis-title', 'text-anchor': 'start' });
+    if (o.xTitle) txt(parent, o.x1, o.y1 + 38, o.xTitle, { class: 'axis-title', 'text-anchor': 'end' });
+    if (o.yTitle) { const t = txt(parent, 0, 0, o.yTitle, { class: 'axis-title', 'text-anchor': 'middle' }); t.setAttribute('transform', `translate(${o.x0 - (o.yTx || 62)},${(o.y0 + o.y1) / 2}) rotate(-90)`); }
   }
   // conventional legend on a white 90 % rounded rect
   function drawLegend(parent, x, y, items) {
@@ -393,9 +390,9 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
       const m = el('marker', { id: 'arr', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: 'auto' }, defs);
       el('path', { d: 'M0,0L10,5L0,10z', fill: COL.blue }, m);
       G.static = el('g', {}, chart); G.dyn = el('g', {}, chart); G.hover = el('g', {}, chart);
-      if (step.id === 'collect') { P = Object.assign({}, P0, { x1: 1176 }); YR = [-20, 22]; YT = [-20, -10, 0, 10, 20]; axes('m/s²'); strip(); legend(AXES.map(a => ({ c: a.c, n: a.n })).concat(labelItems())); }
-      else if (step.id === 'prep') { P = Object.assign({}, P0, { x1: 1176 }); YR = [-6, 6]; YT = [-4, -2, 0, 2, 4]; axes('|a| − mean (m/s²)'); strip(); el('path', { class: 'thin-line', d: path(RAW, N - 1), stroke: COL.raw, 'stroke-width': 1.5 }, G.static); legend([{ c: COL.raw, n: 'raw |a| − mean' }, { c: COL.blue, n: 'band-pass 0.5–5 Hz (filtfilt)' }].concat(labelItems())); }
-      else if (step.id === 'window' || step.id === 'features') { P = Object.assign({}, P0, { x1: step.id === 'window' ? 1176 : 600 }); YR = [-6, 6]; YT = [-4, -2, 0, 2, 4]; axes('filtered |a| (m/s²)'); strip(); el('path', { class: 'thin-line', d: path(FILT, N - 1), stroke: COL.blue, 'stroke-width': 1.3 }, G.static); legend([{ c: COL.blue, n: 'band-pass 0.5–5 Hz' }].concat(labelItems(), [{ c: '#8c8c8c', n: 'window', fill: true, op: .18, stroke: 'var(--ink-2)', dash: true }])); if (step.id === 'features') tableHead(TB1); }
+      if (step.id === 'collect') { P = Object.assign({}, P0, { x1: XR }); YR = [-20, 22]; YT = [-20, -10, 0, 10, 20]; axes('m/s²'); strip(); legend(AXES.map(a => ({ c: a.c, n: a.n })).concat(labelItems())); }
+      else if (step.id === 'prep') { P = Object.assign({}, P0, { x1: XR }); YR = [-6, 6]; YT = [-4, -2, 0, 2, 4]; axes('|a| − mean (m/s²)'); strip(); el('path', { class: 'thin-line', d: path(RAW, N - 1), stroke: COL.raw, 'stroke-width': 1.5 }, G.static); legend([{ c: COL.raw, n: 'raw |a| − mean' }, { c: COL.blue, n: 'band-pass 0.5–5 Hz (filtfilt)' }].concat(labelItems())); }
+      else if (step.id === 'window' || step.id === 'features') { P = Object.assign({}, P0, { x1: step.id === 'window' ? XR : 725 }); YR = [-6, 6]; YT = [-4, -2, 0, 2, 4]; axes('filtered |a| (m/s²)'); strip(); el('path', { class: 'thin-line', d: path(FILT, N - 1), stroke: COL.blue, 'stroke-width': 1.3 }, G.static); legend([{ c: COL.blue, n: 'band-pass 0.5–5 Hz' }].concat(labelItems(), [{ c: '#8c8c8c', n: 'window', fill: true, op: .18, stroke: 'var(--ink-2)', dash: true }])); if (step.id === 'features') tableHead(TB1); }
       else { tableHead(TB2); classifierBox(); labelAxis(); }
       el('rect', { x: P.x0, y: P.y0, width: P.x1 - P.x0, height: P.y1 - P.y0, fill: 'transparent' }, chart);
     },
@@ -409,11 +406,12 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
     }
   };
   let G = {}, P = {}, YR = [-6, 6], YT = [];
-  const P0 = { x0: 64, x1: 1176, y0: 150, y1: 560, yAx: 592 };
-  const TB1 = { x: 660, y: 176, w: 516, cw: [80, 130, 130, 176] }, TB2 = { x: 40, y: 176, w: 440, cw: [70, 110, 110, 150] };
+  const W = 1450, XR = W - 36;                                       // viewBox width; right edge of every plot
+  const P0 = { x0: 80, x1: XR, y0: 150, y1: 560, yAx: 592 };
+  const TB1 = { x: 790, y: 176, w: XR - 790, cw: [96, 158, 158, 212] }, TB2 = { x: 48, y: 176, w: 532, cw: [84, 133, 133, 182] };
   const HEAD = ['window', 'var', 'f_dom', 'label'];
-  const CB = { x: 545, y: 320, w: 190, h: 80 };                     // classifier box
-  const LA = { x0: 790, x1: 1176, y: 330, h: 60 };                   // output label stream
+  const CB = { x: 660, y: 320, w: 230, h: 80 };                     // classifier box
+  const LA = { x0: 955, x1: XR, y: 330, h: 60 };                   // output label stream
   const xs = t => P.x0 + (t / DUR) * (P.x1 - P.x0);
   const ys = v => P.y1 - ((v - YR[0]) / (YR[1] - YR[0])) * (P.y1 - P.y0);
   const rowH = tb => Math.min(48, (P0.yAx - tb.y - 34) / WS.length);
@@ -426,7 +424,7 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
 
   // ---- the five stage boxes across the top, as in the chapter's pipeline figure
   function drawStages(active) {
-    const bw = 172, bh = 66, gap = 34, y = 14, x0 = 24;
+    const bw = 210, bh = 66, gap = 40, y = 14, x0 = 24;
     STAGES.forEach((s, i) => {
       const x = x0 + i * (bw + gap), isA = i === active, isDone = i < active;
       const stroke = isA || isDone ? COL.blue : '#c8c8c8', ink = isA || isDone ? 'var(--ink)' : 'var(--ink-3)';
@@ -487,7 +485,7 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
     el('rect', { x: CB.x, y: CB.y, width: CB.w, height: CB.h, rx: 8, fill: COL.blue, 'fill-opacity': .12, stroke: COL.blue, 'stroke-width': 2 }, G.static);
     txt(G.static, CB.x + CB.w / 2, CB.y + 34, 'Classify', { class: 'stage-name', 'text-anchor': 'middle', fill: 'var(--ink)' });
     txt(G.static, CB.x + CB.w / 2, CB.y + 56, 'feature vector → label', { class: 'mono-2', 'text-anchor': 'middle' });
-    P = { x0: TB2.x, x1: 1176, y0: P0.y0, y1: P0.y1 };
+    P = { x0: TB2.x, x1: XR, y0: P0.y0, y1: P0.y1 };
   }
   function labelAxis() {
     const g = G.static;

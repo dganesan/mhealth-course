@@ -46,7 +46,7 @@
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; border-top: 1px solid var(--rule); }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
 
   .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px;
@@ -66,8 +66,8 @@
 
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
-  .axis-title, .ptitle { font-family: var(--sans); font-size: 13px; fill: var(--ink-2); }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title, .ptitle { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .ptitle { font-weight: 700; fill: var(--ink); }
   .annot { font-family: var(--mono); font-size: 13px; fill: var(--ink-2); }
   .sig-line { fill: none; stroke: var(--sig); stroke-width: 1.6; stroke-linejoin: round; }
@@ -106,7 +106,7 @@
       <p id="subtitle"></p>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 560" role="img" aria-label="Signal in time and its spectrum"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1260 560" role="img" aria-label="Signal in time and its spectrum"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -458,8 +458,8 @@
   ];
 
   // ------------------------------------------------------------ layout
-  const W = 1200, H = 560;
-  const L = { x0: 52, x1: 556 }, R = { x0: 664, x1: 1150 };
+  const W = 1260, H = 560;
+  const L = { x0: 84, x1: 590 }, R = { x0: 756, x1: W - 30 };
   const Y0 = 48, Y1 = 500;
   const svgNS = 'http://www.w3.org/2000/svg';
   const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
@@ -520,7 +520,7 @@
     // formula annotation, right-aligned on the time-panel title line
     el('text', { x: L.x1, y: 20, class: 'annot', 'text-anchor': 'end' }, chart).textContent = d.annot;
 
-    const ax = (L.x1 + R.x0) / 2, ay = (Y0 + Y1) / 2;
+    const ax = (L.x1 + R.x0 - 70) / 2, ay = (Y0 + Y1) / 2;   // keep the FFT arrow clear of the vertical y title
     el('path', { class: 'arrow', d: `M${ax - 36},${ay}H${ax + 28}` }, chart);
     el('path', { class: 'arrow-head', d: `M${ax + 26},${ay - 6}L${ax + 38},${ay}L${ax + 26},${ay + 6}Z` }, chart);
     el('text', { x: ax, y: ay - 14, class: 'arrow-text', 'text-anchor': 'middle' }, chart).textContent = 'FFT';
@@ -533,12 +533,13 @@
     for (let i = 0; i <= nX; i++) { const v = win * i / nX; el('line', { x1: tx(v), x2: tx(v), y1: Y0, y2: Y1 }, grid); el('text', { x: tx(v), y: Y1 + 18, 'text-anchor': 'middle' }, axis).textContent = win >= 1 ? v.toFixed(1) : v.toFixed(2); }
     el('path', { d: `M${L.x0},${Y0}V${Y1}H${L.x1}` }, axis);
     el('text', { x: L.x1, y: Y1 + 36, class: 'axis-title', 'text-anchor': 'end' }, chart).textContent = 'time (s)';
+    el('text', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${L.x0 - 58}, ${(Y0 + Y1) / 2}) rotate(-90)` }, chart).textContent = 'x(t)';
 
     [0, 0.5, 1].forEach(v => { el('line', { x1: R.x0, x2: R.x1, y1: fy(v), y2: fy(v) }, grid); el('text', { x: R.x0 - 8, y: fy(v) + 4, 'text-anchor': 'end' }, axis).textContent = v; });
     for (let f = 0; f <= 500; f += 100) { el('line', { x1: fx(f), x2: fx(f), y1: Y0, y2: Y1 }, grid); el('text', { x: fx(f), y: Y1 + 18, 'text-anchor': 'middle' }, axis).textContent = f; }
     el('path', { d: `M${R.x0},${Y0}V${Y1}H${R.x1}` }, axis);
     el('text', { x: R.x1, y: Y1 + 36, class: 'axis-title', 'text-anchor': 'end' }, chart).textContent = 'frequency (Hz)';
-    el('text', { x: R.x0 - 8, y: Y0 - 8, class: 'axis-title', 'text-anchor': 'end' }, chart).textContent = '|X(f)|';
+    el('text', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${R.x0 - 58}, ${(Y0 + Y1) / 2}) rotate(-90)` }, chart).textContent = '|X(f)|';
 
     G.band = el('g', {}, chart);
     G.time = el('g', {}, chart);

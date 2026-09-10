@@ -28,7 +28,7 @@
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
   .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
   .group { display:flex; align-items:center; gap:8px; }
@@ -43,8 +43,8 @@
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .ptitle { font-family: var(--sans); font-size: 14px; font-weight: 700; fill: var(--ink); }
   .mono { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
   .big { font-family: var(--mono); font-size: 22px; font-weight: 700; }
@@ -64,7 +64,7 @@
       <p id="subtitle"></p>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 640" role="img" aria-label="Exercise feature spaces"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1400 640" role="img" aria-label="Exercise feature spaces"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -137,7 +137,7 @@
   const APPEAR = new Array(SEQ.length); ORDER.forEach((idx, k) => APPEAR[idx] = k);
 
   // ------------------------------------------------------------ svg helpers
-  const W = 1200, H = 640;
+  const W = 1400, H = 640;
   const svgNS = 'http://www.w3.org/2000/svg';
   const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
   const txt = (x, y, s, attrs = {}, parent) => { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; };
@@ -182,7 +182,7 @@
   }
 
   // ------------------------------------------------------------ feature spaces
-  const PL = 90, PR = 40, PT = 30, PB = 70;
+  const PL = 84, PR = 40, PT = 30, PB = 70;
   const plotW = W - PL - PR, plotH = H - PT - PB;
   const SPACES = {
     T: {
@@ -247,8 +247,8 @@
       axisY(g, sy, [0, 2, 4, 6], PL, W - PR, v => v);
       const ax = axisX(g, sx, [0, 10, 20, 30, 40, 50], rw.y0, rw.y0 + ph, v => v);
       el('path', { d: `M${PL},${rw.y0}V${rw.y0 + ph}H${W - PR}` }, ax);
-      txt(W - PR + 4, rw.y0 + ph + 18, 'time (s)', { class: 'axis-title' }, g);
-      txt(PL - 60, rw.y0 + ph / 2, 'rad/s', { class: 'axis-title', transform: `rotate(-90 ${PL - 60} ${rw.y0 + ph / 2})`, 'text-anchor': 'middle' }, g);
+      txt(W - PR, rw.y0 + ph + 40, 'time (s)', { class: 'axis-title', 'text-anchor': 'end' }, g);
+      txt(PL - 62, rw.y0 + ph / 2, 'rad/s', { class: 'axis-title', transform: `rotate(-90 ${PL - 62} ${rw.y0 + ph / 2})`, 'text-anchor': 'middle' }, g);
       txt(PL, rw.y0 - 10, `${rw.name}: ${d.spr} s per repetition, ${d.reps} reps in ${d.dur} s`, { class: 'ptitle' }, g);
       // trace up to tNow
       const n = Math.min(d.x.length, Math.floor(tNow * d.fs) + 1);
@@ -274,7 +274,7 @@
     const ax = axisX(g, S.sx, S.xt, PT, PT + plotH, S.xf);
     el('path', { d: `M${PL},${PT}V${PT + plotH}H${W - PR}` }, ax);
     txt(PL + plotW / 2, PT + plotH + 44, S.xLab, { class: 'axis-title', 'text-anchor': 'middle' }, g);
-    txt(PL - 52, PT + plotH / 2, S.yLab, { class: 'axis-title', transform: `rotate(-90 ${PL - 52} ${PT + plotH / 2})`, 'text-anchor': 'middle' }, g);
+    txt(PL - 62, PT + plotH / 2, S.yLab, { class: 'axis-title', transform: `rotate(-90 ${PL - 62} ${PT + plotH / 2})`, 'text-anchor': 'middle' }, g);
     const pts = el('g', {}, chart);
     G.pts = [];
     const q = ease(p);
@@ -300,7 +300,7 @@
   function drawCM(p) {
     chart.innerHTML = '';
     const names = CLASSES.map(c => CL[c].name);
-    const pw = 240, cell = 68, gap = 42, x0 = (W - (4 * pw + 3 * gap)) / 2 + 40, y0 = 150;
+    const pw = 252, cell = 84, gap = 42, x0 = (W - (4 * pw + 3 * gap)) / 2 + 40, y0 = 150;
     CM.forEach((cm, k) => {
       const t = Math.max(0, Math.min(1, (p * 4 - k)));
       const gx = x0 + k * (pw + gap);
@@ -324,7 +324,7 @@
         if (k === 0) txt(gx - 8, y0 + i * cell + cell / 2 + 4, n, { class: 'axis-title', 'text-anchor': 'end' }, g);
       });
       txt(gx + 1.5 * cell, y0 + 3 * cell + 38, 'predicted', { class: 'axis-title', 'text-anchor': 'middle' }, g);
-      if (k === 0) txt(gx - 96, y0 + 1.5 * cell, 'true exercise', { class: 'axis-title', 'text-anchor': 'middle', transform: `rotate(-90 ${gx - 96} ${y0 + 1.5 * cell})` }, g);
+      if (k === 0) txt(gx - 112, y0 + 1.5 * cell, 'true exercise', { class: 'axis-title', 'text-anchor': 'middle', transform: `rotate(-90 ${gx - 112} ${y0 + 1.5 * cell})` }, g);
     });
     // colour key
     const kx = x0, ky = y0 + 3 * cell + 70;

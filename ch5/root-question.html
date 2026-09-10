@@ -31,7 +31,7 @@
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
   .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
   .group { display:flex; align-items:center; gap:8px; }
@@ -47,8 +47,8 @@
   svg text { white-space: pre; }
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .box { fill: #fafafa; stroke: var(--ink-3); stroke-width: 1; }
   .box.win { stroke: var(--ma); stroke-width: 2; fill: #eef4fc; }
   .pid { font-family: var(--mono); font-size: 11px; font-weight: 700; fill: #fff; text-anchor: middle; pointer-events: none; }
@@ -76,7 +76,7 @@
       <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 560" role="img" aria-label="Candidate splits of the cardiac risk data and the entropy curve"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1232 560" role="img" aria-label="Candidate splits of the cardiac risk data and the entropy curve"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -209,12 +209,13 @@
   }
 
   // ------------------------------------------------------------ layout
-  const W = 1200, H = 560;
+  const W = 1232, H = 560;
   const svgNS = 'http://www.w3.org/2000/svg';
   const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
   const txt = (x, y, s, cls, attrs = {}, parent) => { const t = el('text', Object.assign({ x, y, class: cls }, attrs), parent); t.textContent = s; return t; };
-  const LX0 = 60, LX1 = 720;           // left panel
-  const CX0 = 850, CX1 = 1160, CY0 = 90, CY1 = 380;   // curve panel
+  const PL = 60, PR = 32, GAP = 130;   // left pad, right pad, gap between the panels (holds the vertical y title)
+  const LX0 = PL, LX1 = PL + Math.round((W - PL - PR - GAP) * 0.68);           // left panel
+  const CX0 = LX1 + GAP, CX1 = W - PR, CY0 = 90, CY1 = 380;   // curve panel
   const R = 13;
   const px = p => CX0 + p * (CX1 - CX0);
   const py = v => CY1 - (v / yMax()) * (CY1 - CY0);
@@ -263,7 +264,7 @@
     el('path', { d: `M${CX0},${CY0}V${CY1}H${CX1}` }, a);
     txt(CX0, CY0 - 18, `p = fraction of High-risk patients`, 'axis-title', {}, G.back);
     txt((CX0 + CX1) / 2, CY1 + 40, 'p', 'axis-title', { 'text-anchor': 'middle' }, G.back);
-    txt(CX0 - 30, CY0 - 18, crit === 'entropy' ? 'H(p)' : 'G(p)', 'axis-title', { 'text-anchor': 'end' }, G.back);
+    txt(0, 0, crit === 'entropy' ? 'H(p)' : 'G(p)', 'axis-title', { 'text-anchor': 'middle', transform: `translate(${CX0 - 62}, ${(CY0 + CY1) / 2}) rotate(-90)` }, G.back);
     let dpath = '';
     for (let i = 0; i <= 100; i++) { const p = i / 100; dpath += (i ? 'L' : 'M') + px(p).toFixed(1) + ',' + py(impP(p)).toFixed(1); }
     el('path', { class: 'curve', d: dpath }, G.back);

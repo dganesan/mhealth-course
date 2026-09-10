@@ -30,7 +30,7 @@
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
   .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
   .group { display:flex; align-items:center; gap:8px; }
@@ -45,8 +45,8 @@
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .mono { font-family: var(--mono); }
   .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
   .ann { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
@@ -64,7 +64,7 @@
       <p id="subtitle"></p>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 640" role="img" aria-label="Overnight activity and heart rate by PSG stage"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1400 640" role="img" aria-label="Overnight activity and heart rate by PSG stage"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -125,7 +125,18 @@
     });
     return wdt;
   }
+  // vertical y-axis title: one <text> rotated -90 deg, centred on yMid; a title longer than the panel wraps at ', ' into extra tspans stacked to the left
+  function ytitle(parent, xBase, yMid, s, maxH, attrs = {}) {
+    const fs = attrs['font-size'] || 15, est = t => t.length * fs * 0.47, lineH = fs + 2;
+    const lines = [];
+    if (!maxH || est(s) <= maxH * 1.15) lines.push(s);
+    else { let cur = ''; s.split(', ').forEach(p => { const c = cur ? cur + ', ' + p : p; if (cur && est(c) > maxH * 1.15) { lines.push(cur); cur = p; } else cur = c; }); lines.push(cur); }
+    const t = el('text', Object.assign({ class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${xBase - (lines.length - 1) * lineH},${yMid}) rotate(-90)` }, attrs), parent);
+    lines.forEach((l, i) => { const ts = el('tspan', { x: 0, dy: i ? lineH : 0 }, t); ts.textContent = l; });
+    return t;
+  }
   function makeEngine(cfg) {
+
     const dirty = {}; let step = 0, cursor = -1, playing = false, raf = 0, lastT = 0, acc = 0, speed = +cfg.speedDefault;
     const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
     let steps = cfg.steps();
@@ -179,7 +190,7 @@
     hrLo = Math.floor(Math.min(...hr) / 10) * 10; hrHi = Math.ceil(Math.max(...hr) / 10) * 10;
   }
   const chart = $('chart');
-  const W = 1200, H = 640, PL = 70, PR = 30, PT = 22, PB = 46;
+  const W = 1400, H = 640, PL = 96, PR = 30, PT = 22, PB = 46;
   const xs = e => PL + ((e - E0) / (E1 - E0)) * (W - PL - PR);
   const hours = () => (E1 - E0) * 30 / 3600;
 
@@ -216,10 +227,10 @@
       if (k === 'act') {
         const stepV = actMax / 4;
         for (let v = 0; v <= actMax + 1e-9; v += stepV) { el('line', { x1: PL, x2: W - PR, y1: yAct(v), y2: yAct(v) }, grid); txt(axis, PL - 8, yAct(v) + 4, v.toFixed(3), { 'text-anchor': 'end' }); }
-        txt(chart, PL - 56, r.y0 - 12, 'activity x = | |a| − rest | (g), MAD per epoch', { class: 'axis-title' });
+        ytitle(chart, PL - 62, (r.y0 + r.y1) / 2, 'activity x = | |a| − rest | (g), MAD per epoch', r.y1 - r.y0);
       } else {
         for (let v = hrLo; v <= hrHi; v += 10) { el('line', { x1: PL, x2: W - PR, y1: yHr(v), y2: yHr(v) }, grid); txt(axis, PL - 8, yHr(v) + 4, v, { 'text-anchor': 'end' }); }
-        txt(chart, PL - 56, r.y0 - 12, 'heart rate (bpm), median per epoch', { class: 'axis-title' });
+        ytitle(chart, PL - 62, (r.y0 + r.y1) / 2, 'heart rate (bpm), median per epoch', r.y1 - r.y0);
       }
       for (let hh = 0; hh <= hours(); hh += 0.5) {
         const x = xs(E0 + hh * 120);
@@ -227,7 +238,7 @@
         if (Number.isInteger(hh)) txt(axis, x, r.y1 + 18, hh, { 'text-anchor': 'middle' });
       }
       el('path', { d: `M${PL},${r.y0}V${r.y1}H${W - PR}` }, axis);
-      txt(chart, W - PR, r.y1 + 34, 'hours from start of recording', { class: 'axis-title', 'text-anchor': 'end' });
+      txt(chart, W - PR, r.y1 + 36, 'hours from start of recording', { class: 'axis-title', 'text-anchor': 'end' });
     });
     G.lines = el('g', {}, chart);
     G.cur = el('g', {}, chart);

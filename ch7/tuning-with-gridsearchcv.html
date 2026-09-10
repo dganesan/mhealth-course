@@ -49,7 +49,7 @@
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
   .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
   .group { display:flex; align-items:center; gap:8px; }
@@ -64,8 +64,8 @@
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .out-line { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
   .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
   .mono { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
@@ -87,7 +87,7 @@
       <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 660" role="img" aria-label="Hyperparameter tuning with cross-validation"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1450 660" role="img" aria-label="Hyperparameter tuning with cross-validation"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -149,7 +149,7 @@
   const ORDER = shuffled(N, 42); const POS = []; ORDER.forEach((i, p) => POS[i] = p);
 
   // ------------------------------------------------------------ svg helpers
-  const W = 1200, H = 660;
+  const W = 1450, H = 660;
   const svgNS = 'http://www.w3.org/2000/svg';
   const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
   const text = (x, y, s, attrs = {}, parent) => { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; };
@@ -255,7 +255,7 @@
   function hatchDefs(g) { el('defs', {}, g).innerHTML = `<pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="${C.val}"/><line x1="0" y1="0" x2="0" y2="7" stroke="#fff" stroke-width="2.2"/></pattern>`; }
 
   // ------------------------------------------------------------ step 1: CV curve
-  const CP = { x0: 70, x1: 1120, y0: 120, y1: 580 };
+  const CP = { x0: 100, x1: W - 40, y0: 120, y1: 580 };
   function drawCurve(cur) {
     const K = state.K, folds = cv().folds;
     const g = el('g', {}, chart); hatchDefs(g);
@@ -264,11 +264,11 @@
     const finished = cur >= DEPTHS * per;
     const nMean = finished ? DEPTHS : dIdx + (ph === K ? 1 : 0);
     // fold strip
-    foldStrip(g, 70, 40, 520, 30, K, finished ? -1 : (ph < K ? ph : -1), finished ? `all ${K} folds scored for every depth` : `max_depth = ${dIdx + 1}: ${ph < K ? `fit on the other folds, score fold ${ph + 1}` : 'average the fold scores'}`);
+    foldStrip(g, CP.x0, 40, Math.round((CP.x1 - CP.x0) * 0.5), 30, K, finished ? -1 : (ph < K ? ph : -1), finished ? `all ${K} folds scored for every depth` : `max_depth = ${dIdx + 1}: ${ph < K ? `fit on the other folds, score fold ${ph + 1}` : 'average the fold scores'}`);
     const yv = accAxes(g, CP, 0.3, 1.0, Array.from({ length: DEPTHS }, (_, i) => i + 1));
     const xd = d => CP.x0 + ((d - 1) / (DEPTHS - 1)) * (CP.x1 - CP.x0);
     text((CP.x0 + CP.x1) / 2, CP.y1 + 40, 'max_depth', { class: 'axis-title', 'text-anchor': 'middle' }, g);
-    text(CP.x0 - 48, CP.y0 - 18, 'cross-validation accuracy', { class: 'axis-title' }, g);
+    text(0, 0, 'cross-validation accuracy', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${CP.x0 - 64},${(CP.y0 + CP.y1) / 2}) rotate(-90)` }, g);
     const items = [{ c: C.trainLight, n: 'accuracy on one validation fold', dot: true, r: 3.5 }, { c: C.train, n: `${K}-fold CV mean accuracy`, mark: true }];
     if (state.band) items.push({ c: C.train, n: '±1 std across folds', band: true });
     legend(g, CP.x1 - 270, CP.y1 - 80, items);
@@ -305,7 +305,7 @@
   }
 
   // ------------------------------------------------------------ step 2: hold out the test set
-  const COLS = 73, CELL = 15, GX = 52, GY = 44;
+  const CELL = 15, GX = 52, GY = 44, COLS = Math.floor((W - GX - 40) / CELL);
   const cellX = i => GX + (i % COLS) * CELL, cellY = i => GY + Math.floor(i / COLS) * CELL;
   const gridBottom = GY + Math.ceil(N / COLS) * CELL;
   function drawSplit(cur) {
@@ -332,7 +332,8 @@
   }
 
   // ------------------------------------------------------------ step 3: the grid
-  const GP = { x0: 250, y0: 150, cw: 150, ch: 84 };
+  const GP = { x0: 250, y0: 150, cw: Math.floor((W - 60 - 430 - 250) / 4), ch: 84 };   // 4 columns; ~430 px kept for the side readout
+  const TOP = { x: 250, w: 4 * GP.cw, tx: 250 + 4 * GP.cw + 20, tw: W - 60 - (250 + 4 * GP.cw + 20) };   // training strip / test block on top of steps 3-4
   function cellColor(m) { const t = Math.max(0, Math.min(1, (m - 0.78) / (0.97 - 0.78))); return mix('#e8f0fa', '#0b3d7a', t); }
   function mix(a, b, t) { const A = a.match(/\w\w/g).map(h => parseInt(h, 16)), B = b.match(/\w\w/g).map(h => parseInt(h, 16)); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join(''); }
   function cellBox(g, r, c, fill, stroke, sw) { return el('rect', { x: GP.x0 + c * GP.cw + 3, y: GP.y0 + r * GP.ch + 3, width: GP.cw - 6, height: GP.ch - 6, rx: 4, fill, stroke, 'stroke-width': sw }, g); }
@@ -341,15 +342,15 @@
     const g = el('g', {}, chart); hatchDefs(g);
     const per = K + 1, idx = Math.min(19, Math.floor(cur / per)), ph = cur % per, finished = cur >= 20 * per;
     const nDone = finished ? 20 : idx + (ph === K ? 1 : 0);
-    foldStrip(g, 250, 40, 600, 30, K, finished ? -1 : (ph < K ? ph : -1), `training set (${nTrain} windows) in ${K} folds`);
-    el('rect', { x: 870, y: 40, width: 250, height: 30, rx: 3, fill: C.test, stroke: C.testEdge, 'stroke-dasharray': '6 4' }, g);
-    text(995, 60, `test set · ${nTest} · locked`, { class: 'blk-text', 'text-anchor': 'middle', style: `fill:${C.ink}` }, g);
+    foldStrip(g, TOP.x, 40, TOP.w, 30, K, finished ? -1 : (ph < K ? ph : -1), `training set (${nTrain} windows) in ${K} folds`);
+    el('rect', { x: TOP.tx, y: 40, width: TOP.tw, height: 30, rx: 3, fill: C.test, stroke: C.testEdge, 'stroke-dasharray': '6 4' }, g);
+    text(TOP.tx + TOP.tw / 2, 60, `test set · ${nTest} · locked`, { class: 'blk-text', 'text-anchor': 'middle', style: `fill:${C.ink}` }, g);
     // headers
     text(GP.x0 + 2 * GP.cw, GP.y0 - 34, 'min_samples_split', { class: 'axis-title', 'text-anchor': 'middle', 'font-size': 13 }, g);
     MSS_GRID.forEach((m, c) => text(GP.x0 + (c + 0.5) * GP.cw, GP.y0 - 12, m, { class: 'mono', 'text-anchor': 'middle', 'font-weight': 700 }, g));
     text(GP.x0 - 100, GP.y0 - 12, 'max_depth', { class: 'axis-title', 'text-anchor': 'middle', 'font-size': 13 }, g);
     DEPTH_GRID.forEach((d, r) => text(GP.x0 - 100, GP.y0 + (r + 0.5) * GP.ch + 5, d, { class: 'mono', 'text-anchor': 'middle', 'font-weight': 700 }, g));
-    legend(g, W - 300, GP.y0 + 4 * GP.ch + 30, [{ c: cellColor(0.95), n: 'mean CV accuracy (darker = higher)', sq: true }, { c: '#fff', n: 'best mean so far', sq: true, edge: C.best }]);
+    legend(g, W - 340, GP.y0 + 4 * GP.ch + 30, [{ c: cellColor(0.95), n: 'mean CV accuracy (darker = higher)', sq: true }, { c: '#fff', n: 'best mean so far', sq: true, edge: C.best }]);
     let best = -1, bestM = -1;
     for (let k = 0; k < 20; k++) {
       const r = Math.floor(k / 4), c = k % 4;
@@ -391,10 +392,10 @@
     const phase = cur < 3 ? 0 : cur < 6 ? 1 : 2;   // 0 best cell, 1 refit on all training, 2 test
     // top: data roles
     const y = 40;
-    el('rect', { x: 250, y, width: 600, height: 34, rx: 3, fill: C.train, opacity: phase >= 1 ? 1 : .45, stroke: phase === 1 ? C.ink : 'none', 'stroke-width': 3 }, g);
-    text(550, y + 22, phase >= 1 ? `refit on the whole training set · ${nTrain} windows` : `training set · ${nTrain} windows`, { class: 'blk-text', 'text-anchor': 'middle' }, g);
-    el('rect', { x: 870, y, width: 250, height: 34, rx: 3, fill: C.test, stroke: phase === 2 ? C.ink : C.testEdge, 'stroke-width': phase === 2 ? 3 : 1, 'stroke-dasharray': phase === 2 ? 'none' : '6 4' }, g);
-    text(995, y + 22, phase === 2 ? `test set · scored once` : `test set · ${nTest} · locked`, { class: 'blk-text', 'text-anchor': 'middle', style: `fill:${C.ink}` }, g);
+    el('rect', { x: TOP.x, y, width: TOP.w, height: 34, rx: 3, fill: C.train, opacity: phase >= 1 ? 1 : .45, stroke: phase === 1 ? C.ink : 'none', 'stroke-width': 3 }, g);
+    text(TOP.x + TOP.w / 2, y + 22, phase >= 1 ? `refit on the whole training set · ${nTrain} windows` : `training set · ${nTrain} windows`, { class: 'blk-text', 'text-anchor': 'middle' }, g);
+    el('rect', { x: TOP.tx, y, width: TOP.tw, height: 34, rx: 3, fill: C.test, stroke: phase === 2 ? C.ink : C.testEdge, 'stroke-width': phase === 2 ? 3 : 1, 'stroke-dasharray': phase === 2 ? 'none' : '6 4' }, g);
+    text(TOP.tx + TOP.tw / 2, y + 22, phase === 2 ? `test set · scored once` : `test set · ${nTest} · locked`, { class: 'blk-text', 'text-anchor': 'middle', style: `fill:${C.ink}` }, g);
     // left: the chosen setting
     text(70, 130, 'best_estimator_', { class: 'dlabel', fill: C.ink }, g);
     text(70, 158, `DecisionTreeClassifier(max_depth=${G.best[0]}, min_samples_split=${G.best[1]})`, { class: 'mono' }, g);
@@ -405,9 +406,9 @@
       { n: 'training accuracy after refit', v: G.train_acc, c: C.trainLight, show: phase >= 1 },
       { n: 'test accuracy (scored once)', v: G.test_acc, c: C.ink, show: phase >= 2 },
     ];
-    const P = { x0: 70, x1: 1120, y0: 230, y1: 560 };
+    const P = { x0: 100, x1: W - 40, y0: 230, y1: 560 };
     const yv = accAxes(g, P, 0.3, 1.0, ['', '', '']); // grid only
-    const bw = 200, gap = 120, x0 = P.x0 + 120;
+    const bw = Math.round((P.x1 - P.x0) * 0.2), gap = Math.round((P.x1 - P.x0 - 3 * bw) / 4), x0 = P.x0 + gap;
     bars.forEach((b, i) => {
       const x = x0 + i * (bw + gap);
       text(x + bw / 2, P.y1 + 22, b.n, { class: 'axis-title', 'text-anchor': 'middle', 'font-size': 13 }, g);
@@ -415,7 +416,7 @@
       el('rect', { x, y: yv(b.v), width: bw, height: P.y1 - yv(b.v), fill: b.c, 'data-tt': `${b.n}: ${f3(b.v)}` }, g);
       text(x + bw / 2, yv(b.v) - 12, f3(b.v), { class: 'mono-big', 'text-anchor': 'middle', 'font-weight': 700 }, g);
     });
-    text(P.x0 - 48, P.y0 - 18, 'accuracy', { class: 'axis-title' }, g);
+    text(0, 0, 'accuracy', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${P.x0 - 64},${(P.y0 + P.y1) / 2}) rotate(-90)` }, g);
     if (phase === 2) text(W - 60, 182, `generalization estimate: ${(100 * G.test_acc).toFixed(1)}% on ${nTest} unseen windows`, { class: 'mono-big', 'text-anchor': 'end', 'font-weight': 700 }, g);
   }
 

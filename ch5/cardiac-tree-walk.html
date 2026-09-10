@@ -31,7 +31,7 @@
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
   .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
   .group { display:flex; align-items:center; gap:8px; }
@@ -47,8 +47,8 @@
   svg text { white-space: pre; }
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .box { fill: #fafafa; stroke: var(--ink-3); stroke-width: 1; }
   .box.win { stroke: var(--ma); stroke-width: 2; fill: #eef4fc; }
   .pid { font-family: var(--mono); font-size: 11px; font-weight: 700; fill: #fff; text-anchor: middle; pointer-events: none; }
@@ -76,7 +76,7 @@
       <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 560" role="img" aria-label="The cardiac risk decision tree with a patient walking from the root to a leaf"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1232 560" role="img" aria-label="The cardiac risk decision tree with a patient walking from the root to a leaf"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -131,7 +131,8 @@
   ];
   const CCOL = { Low: '#2a78d6', High: '#eb6834', '?': '#c9a400' };
   const ATTR = { fh: { q: 'Family history?', col: 2, name: 'family history' }, ex: { q: 'Exercise?', col: 3, name: 'exercise' }, age: { q: 'Age?', col: 1, name: 'age' } };
-  // tree from the chapter figure; positions are viewBox coordinates
+  // tree from the chapter figure; positions were laid out on a 1200-wide grid and are scaled to W below
+  const W = 1232;
   const T = { a: 'fh', x: 600, y: 48, kids: {
     Yes: { a: 'ex', x: 300, y: 158, kids: {
       Regularly: { a: 'age', x: 170, y: 268, kids: { '<40': { x: 60, y: 378 }, '40–55': { x: 170, y: 378 }, '>55': { x: 280, y: 378 } } },
@@ -145,6 +146,7 @@
     if (!n.kids) { const lo = set.filter(p => p[4] === 'Low').length, hi = set.length - lo; n.label = lo > hi ? 'Low' : hi > lo ? 'High' : '?'; n.counts = [lo, hi]; return; }
     for (const v in n.kids) annotate(n.kids[v], set.filter(p => p[ATTR[n.a].col] === v));
   })(T, P);
+  (function scaleX(n) { n.x = Math.round(n.x * W / 1200); for (const v in (n.kids || {})) scaleX(n.kids[v]); })(T);
   const BR = { '<40': '<40', '40–55': '40–55', '>55': '>55', Yes: 'Yes', No: 'No', Regularly: 'Reg.', Rarely: 'Rarely' };
 
   // ------------------------------------------------------------ state
@@ -203,7 +205,7 @@
     })(T);
     // legend
     const items = [{ n: 'decision node (tests one feature)', stroke: 'var(--ma)', fill: '#fff' }, { n: 'Low-risk leaf', fill: CCOL.Low }, { n: 'High-risk leaf', fill: CCOL.High }, { n: 'mixed leaf (tie)', fill: CCOL['?'] }, { n: 'training patient (colour = risk)', dot: true }];
-    const rowH = 18, padX = 10, padY = 8, wdt = 236, x0 = 1200 - wdt - 10, y0 = 8;
+    const rowH = 18, padX = 10, padY = 8, wdt = 28 + Math.max(...items.map(i => i.n.length)) * 7.4 + 2 * padX, x0 = W - wdt - 10, y0 = 8;
     el('rect', { x: x0, y: y0, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, G.legend);
     items.forEach((it, j) => {
       const y = y0 + padY + j * rowH + 6;

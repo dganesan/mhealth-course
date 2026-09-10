@@ -95,10 +95,7 @@
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
 
 
-  .foot {
-    display: flex; justify-content: space-between; align-items: baseline;
-    font-size: 12px; color: var(--ink-3); padding-top: 4px;
-  }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
 
   /* ---------- control bar ---------- */
@@ -119,8 +116,8 @@
   /* ---------- svg parts ---------- */
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .raw-line { fill: none; stroke: var(--raw); stroke-width: 1.5; }
   .raw-dot { fill: var(--raw-dot); }
   .clean-line { fill: none; stroke: var(--clean); stroke-width: 1.5; stroke-dasharray: 5 4; opacity: .7; }
@@ -156,7 +153,7 @@
       <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 600" role="img" aria-label="Signal and filter output"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1320 600" role="img" aria-label="Signal and filter output"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -337,8 +334,8 @@
   }
 
   // ------------------------------------------------------------ layout
-  const W = 1200, H = 600;
-  const PL = 56, PR = 130, PT = 18;
+  const W = 1320, H = 600;
+  const PL = 84, PR = 130, PT = 18;
   const PLOT_H = 450, STRIP_GAP = 28, STRIP_H = 60;
   const PB = H - PT - PLOT_H - STRIP_GAP - STRIP_H;
   const plotBottom = PT + PLOT_H;
@@ -390,6 +387,7 @@
     }
     el('path', { d: `M${PL},${PT}V${plotBottom}H${W - PR}` }, axis);
     el('text', { x: W - PR + 8, y: plotBottom + 18, class: 'axis-title' }, chart).textContent = 'sample';
+    el('text', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${PL - 58}, ${PT + PLOT_H / 2}) rotate(-90)` }, chart).textContent = 'amplitude';
     // weights strip baseline + label
     G.strip = el('g', {}, chart);
     el('line', { x1: PL, x2: W - PR, y1: stripBottom, y2: stripBottom, stroke: 'var(--rule)' }, G.strip);

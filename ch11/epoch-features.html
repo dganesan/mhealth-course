@@ -33,7 +33,7 @@
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
   .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
   .group { display:flex; align-items:center; gap:8px; }
@@ -48,8 +48,8 @@
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .mono { font-family: var(--mono); }
   .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
   .ann { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
@@ -68,7 +68,7 @@
       <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1200 660" role="img" aria-label="Per-epoch motion features"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1450 660" role="img" aria-label="Per-epoch motion features"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -141,7 +141,18 @@
     });
     return wdt;
   }
+  // vertical y-axis title: one <text> rotated -90 deg, centred on yMid; a title longer than the panel wraps at ', ' into extra tspans stacked to the left
+  function ytitle(parent, xBase, yMid, s, maxH, attrs = {}) {
+    const fs = attrs['font-size'] || 15, est = t => t.length * fs * 0.47, lineH = fs + 2;
+    const lines = [];
+    if (!maxH || est(s) <= maxH * 1.15) lines.push(s);
+    else { let cur = ''; s.split(', ').forEach(p => { const c = cur ? cur + ', ' + p : p; if (cur && est(c) > maxH * 1.15) { lines.push(cur); cur = p; } else cur = c; }); lines.push(cur); }
+    const t = el('text', Object.assign({ class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${xBase - (lines.length - 1) * lineH},${yMid}) rotate(-90)` }, attrs), parent);
+    lines.forEach((l, i) => { const ts = el('tspan', { x: 0, dy: i ? lineH : 0 }, t); ts.textContent = l; });
+    return t;
+  }
   function makeEngine(cfg) {
+
     const dirty = {}; let step = 0, cursor = -1, playing = false, raf = 0, lastT = 0, acc = 0, speed = +cfg.speedDefault;
     const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
     let steps = cfg.steps();
@@ -201,12 +212,12 @@
   function rolling() { const w = rollW(), out = []; let s = 0; for (let i = 0; i < N; i++) { s += F.mad.get(i); if (i >= w) s -= F.mad.get(i - w); out.push(s / Math.min(i + 1, w)); } return out; }
 
   const chart = $('chart');
-  const W = 1200, H = 660, PL = 70, PR = 30, PT = 22;
+  const W = 1450, H = 660, PL = 104, PR = 30, PT = 22;
   const TOP = { y0: PT, y1: PT + 210 };
   const BOT = { y0: TOP.y1 + 72, y1: H - 40 };
-  const ZX0 = W - PR - 250, ZW = 250;
+  const ZW = 280, ZX0 = W - PR - ZW;
   const xs = e => PL + ((e - E0) / (E1 - E0)) * (W - PL - PR);
-  const xsL = e => PL + ((e - E0) / (E1 - E0)) * (ZX0 - 30 - PL);   // left-hand feature panel (leaves room for the zoom)
+  const xsL = e => PL + ((e - E0) / (E1 - E0)) * (ZX0 - 40 - PL);   // left-hand feature panel (leaves room for the zoom)
   const binMax = Math.max(...D.bins2s) / 1e4;
   const topMax = Math.min(0.3, Math.ceil(binMax / 0.1) * 0.1);
   const yTop = v => TOP.y1 - (Math.min(v, topMax) / topMax) * (TOP.y1 - TOP.y0);
@@ -242,7 +253,7 @@
     }
     for (let hh = 0; hh <= (E1 - E0) / 120; hh += 1) { const x = xfun(E0 + hh * 120); el('line', { x1: x, x2: x, y1: r.y0, y2: r.y1 }, grid); txt(axis, x, r.y1 + 16, hh, { 'text-anchor': 'middle' }); }
     el('path', { d: `M${PL},${r.y0}V${r.y1}H${xr}` }, axis);
-    txt(g, PL, r.y0 - 6, `${F[k].n} per epoch (${F[k].unit})${yscale === 'log' ? ', log axis' : ''}${clipped(k)}`, { class: 'axis-title' });
+    ytitle(g, PL - 66, (r.y0 + r.y1) / 2, `${F[k].n} per epoch (${F[k].unit})${yscale === 'log' ? ', log axis' : ''}${clipped(k)}`, r.y1 - r.y0);
   }
 
   function enter(step) {
@@ -258,8 +269,8 @@
     for (let v = 0; v <= topMax + 1e-9; v += topMax / 4) { el('line', { x1: PL, x2: W - PR, y1: yTop(v), y2: yTop(v) }, grid); txt(axis, PL - 8, yTop(v) + 4, v.toFixed(2), { 'text-anchor': 'end' }); }
     for (let hh = 0; hh <= (E1 - E0) / 120; hh += 1) { const x = xs(E0 + hh * 120); el('line', { x1: x, x2: x, y1: TOP.y0, y2: TOP.y1 }, grid); txt(axis, x, TOP.y1 + 16, hh, { 'text-anchor': 'middle' }); }
     el('path', { d: `M${PL},${TOP.y0}V${TOP.y1}H${W - PR}` }, axis);
-    txt(chart, PL, TOP.y0 - 6, 'activity x = | |a| − rest | (g), max per 2 s' + (binMax > topMax ? `, axis clipped at ${topMax.toFixed(1)} g` : ''), { class: 'axis-title' });
-    txt(chart, W - PR, TOP.y1 + 32, 'hours from start of recording', { class: 'axis-title', 'text-anchor': 'end' });
+    ytitle(chart, PL - 66, (TOP.y0 + TOP.y1) / 2, 'activity x = | |a| − rest | (g), max per 2 s' + (binMax > topMax ? `, axis clipped at ${topMax.toFixed(1)} g` : ''), TOP.y1 - TOP.y0);
+    txt(chart, W - PR, TOP.y1 + 36, 'hours from start of recording', { class: 'axis-title', 'text-anchor': 'end' });
     let d = '';
     for (let i = 0; i < N; i++) for (let j = 0; j < NB; j++) { const v = D.bins2s[i * NB + j] / 1e4; d += (i || j ? 'L' : 'M') + xs(D.ei[i] + (j + 0.5) / NB).toFixed(1) + ',' + yTop(v).toFixed(1); }
     el('path', { d, fill: 'none', stroke: 'var(--raw-dot)', 'stroke-width': 0.9 }, chart);
@@ -270,7 +281,7 @@
     // bottom panels
     G.feat = el('g', {}, chart);
     G.panels = [];
-    const xr = ZX0 - 30;
+    const xr = ZX0 - 40;
     if (mode === 'mad' || mode === 'roll') {
       const r = { y0: BOT.y0, y1: BOT.y1, lo: 1e-4 }; const mx = featRange(['mad']);
       featAxes(G.feat, r, 'mad', mx, xsL, xr); G.panels.push({ k: 'mad', r, mx });
@@ -281,14 +292,14 @@
         const mx = Math.max(featRange([k]), k === 'cnt' ? 10 : 1e-3);
         const gg = el('g', {}, G.feat);
         // two columns: shift x for odd panels by splitting the left region in two
-        const colW = (xr - PL - 40) / 2, x0 = PL + (j % 2) * (colW + 40);
+        const colW = (xr - PL - 110) / 2, x0 = PL + (j % 2) * (colW + 110);
         r.xfun = e => x0 + ((e - E0) / (E1 - E0)) * colW; r.xr = x0 + colW; r.x0 = x0;
         const grid = el('g', { class: 'grid' }, gg), axis = el('g', { class: 'axis' }, gg);
         for (let q = 0; q <= 2; q++) { const v = mx * q / 2, y = yFeat(r, v, mx); el('line', { x1: x0, x2: r.xr, y1: y, y2: y }, grid); txt(axis, x0 - 6, y + 4, k === 'cnt' ? Math.round(v) : F[k].fmt(v), { 'text-anchor': 'end', 'font-size': 11 }); }
         if (yscale === 'log') { gg.querySelector('.grid').innerHTML = ''; gg.querySelector('.axis').innerHTML = ''; for (let p = Math.ceil(Math.log10(r.lo)); Math.pow(10, p) <= mx; p++) { const v = Math.pow(10, p), y = yFeat(r, v, mx); el('line', { x1: x0, x2: r.xr, y1: y, y2: y }, grid); txt(axis, x0 - 6, y + 4, k === 'cnt' ? v : v.toExponential(0), { 'text-anchor': 'end', 'font-size': 11 }); } }
         for (let hh = 0; hh <= (E1 - E0) / 120; hh += 1) { const x = r.xfun(E0 + hh * 120); txt(axis, x, r.y1 + 14, hh, { 'text-anchor': 'middle', 'font-size': 11 }); }
         el('path', { d: `M${x0},${r.y0}V${r.y1}H${r.xr}` }, axis);
-        txt(gg, x0, r.y0 - 6, `${F[k].n} (${F[k].unit})` + (k === 'cnt' ? `, x > ${thrVal().toFixed(2)} g` : '') + (yscale === 'log' ? ', log' : '') + clipped(k), { class: 'axis-title' });
+        ytitle(gg, x0 - 68, (r.y0 + r.y1) / 2, `${F[k].n} (${F[k].unit})` + (k === 'cnt' ? `, x > ${thrVal().toFixed(2)} g` : '') + (yscale === 'log' ? ', log' : '') + clipped(k), r.y1 - r.y0);
         G.panels.push({ k, r, mx, g: gg });
       });
     }
@@ -346,7 +357,7 @@
       } else {
         el('circle', { cx: xf(D.ei[cursor] + 0.5), cy: yFeat(p.r, F[p.k].get(cursor), p.mx), r: 4, fill: 'var(--ma)', stroke: '#fff', 'stroke-width': 1.5 }, G.series);
       }
-      const xr = p.r.xr || (ZX0 - 30);
+      const xr = p.r.xr || (ZX0 - 40);
       el('line', { class: 'crosshair', x1: xf(D.ei[cursor] + 0.5), x2: xf(D.ei[cursor] + 0.5), y1: p.r.y0, y2: p.r.y1 }, G.series);
     });
     // connector from window to zoom
