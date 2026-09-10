@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jitter, Shimmer and HNR</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff; --ink: #222222; --ink-2: #666666; --ink-3: #9a9a9a;
+    --rule: #dcdcdc; --grid: #ececec; --raw: #b4b4b4; --raw-dot: #8c8c8c; --clean: #444444;
+    --ma: #2a78d6; --med: #1baf7a; --wm: #4a3aa7; --ewma: #eb6834;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.4; padding-block: 18px 28px; padding-inline: 16px; -webkit-font-smoothing: antialiased; }
+  .stage { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
+  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; min-height: 560px; position: relative; outline: none; cursor: pointer; user-select: none; }
+  .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
+  .head h1 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .chart-wrap { position: relative; min-height: 0; }
+  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt .row { display: flex; gap: 10px; justify-content: space-between; }
+  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot .ctr { font-family: var(--mono); }
+  .bar { display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center; padding:14px 18px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
+  .group { display:flex; align-items:center; gap:8px; }
+  .group label { font-size:13px; font-weight:700; color:var(--ink); }
+  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
+  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  button:hover, select:hover { border-color:var(--ink); }
+  button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
+  input[type=range] { accent-color:var(--ma); width:170px; height:30px; cursor:pointer; }
+  .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
+  .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
+  .grid line { stroke: var(--grid); stroke-width: 1; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .ptitle { font-family: var(--sans); font-size: 13px; font-weight: 700; fill: var(--ink); }
+  .wave { fill: none; stroke: #333; stroke-width: 1.2; }
+  .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
+  .mono { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
+  .big { font-family: var(--mono); font-size: 20px; font-weight: 700; }
+  .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
+  @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
+</style>
+
+<div class="stage">
+  <section class="slide" id="slide" tabindex="0" aria-live="polite">
+    <div class="head">
+      <h1 id="title">A sustained vowel</h1>
+      <p id="subtitle"></p>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 1200 680" role="img" aria-label="Sustained vowel cycles and voice-quality features"></svg>
+      <div class="tt" id="tt"></div>
+    </div>
+    <div class="foot">
+      <span>CS328 &nbsp;·&nbsp; Voice-Based Health Analytics</span>
+      <span class="ctr" id="counter"></span>
+    </div>
+  </section>
+
+  <div class="bar">
+    <div class="group">
+      <button id="prev" title="Previous (←)">‹ Prev</button>
+      <button id="play" class="primary" title="Play / pause (space)">Play</button>
+      <button id="next" title="Next (→)">Next ›</button>
+      <button id="restart" title="Restart this step (r)">Restart</button>
+      <button id="reset" title="Reset all dials to defaults">Reset dials</button>
+    </div>
+    <div class="group">
+      <label for="jit">Period variation</label>
+      <input type="range" id="jit" min="0" max="3" step="0.1" value="0.5">
+      <span class="val" id="jitVal">0.5 %</span>
+    </div>
+    <div class="group">
+      <label for="shm">Amplitude variation</label>
+      <input type="range" id="shm" min="0" max="12" step="0.5" value="3">
+      <span class="val" id="shmVal">3.0 %</span>
+    </div>
+    <div class="group">
+      <label for="noise">Breath noise</label>
+      <input type="range" id="noise" min="0" max="30" step="1" value="1">
+      <span class="val" id="noiseVal">1 %</span>
+    </div>
+    <div class="group">
+      <label for="speed">Speed</label>
+      <select id="speed">
+        <option value="0.25">very slow</option>
+        <option value="0.5">slow</option>
+        <option value="1" selected>normal</option>
+        <option value="2.5">fast</option>
+        <option value="0">instant</option>
+      </select>
+    </div>
+    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ------------------------------------------------------------ UCI Parkinson's voice dataset: [subject, status (1 = Parkinson's), MDVP:Jitter(%), MDVP:Shimmer, HNR] for all 195 recordings
+  const UCI = [[1,1,0.00784,0.0437,21.03],[1,1,0.00968,0.0613,19.09],[1,1,0.0105,0.0523,20.65],[1,1,0.00997,0.0549,20.64],[1,1,0.01284,0.0643,19.65],[1,1,0.00968,0.047,21.38],[2,1,0.00333,0.0161,24.89],[2,1,0.0029,0.0157,26.89],[2,1,0.00551,0.0209,21.81],[2,1,0.00532,0.0284,21.86],[2,1,0.00505,0.0214,21.12],[2,1,0.0054,0.0275,21.41],[4,1,0.00293,0.0126,25.7],[4,1,0.0039,0.0164,24.89],[4,1,0.00294,0.0183,24.92],[4,1,0.00369,0.015,25.18],[4,1,0.00544,0.0205,22.33],[4,1,0.00718,0.0333,20.38],[5,1,0.00742,0.0552,17.28],[5,1,0.00768,0.0399,17.15],[5,1,0.0084,0.0381,17.54],[5,1,0.0048,0.0414,19.49],[5,1,0.00442,0.0435,22.47],[5,1,0.00476,0.0419,20.42],[6,1,0.00742,0.0166,23.83],[6,1,0.00633,0.0377,22.07],[6,1,0.00455,0.0197,25.91],[6,1,0.00496,0.0192,25.12],[6,1,0.0031,0.0172,25.97],[6,1,0.00502,0.0179,25.68],[7,0,0.00289,0.011,26.77],[7,0,0.00241,0.0101,30.94],[7,0,0.00212,0.0126,30.77],[7,0,0.0018,0.0095,32.68],[7,0,0.00178,0.0096,33.05],[7,0,0.00198,0.0119,31.73],[8,1,0.00411,0.0213,23.22],[8,1,0.00369,0.0185,24.95],[8,1,0.00284,0.0144,26.74],[8,1,0.00316,0.0166,26.31],[8,1,0.00298,0.0149,26.82],[8,1,0.00258,0.0146,26.45],[10,0,0.00298,0.0175,22.74],[10,0,0.00281,0.0176,23.14],[10,0,0.0021,0.0142,25.37],[10,0,0.00225,0.0149,25.03],[10,0,0.00235,0.0161,24.6],[10,0,0.00185,0.0115,26.8],[13,0,0.00524,0.0161,23.16],[13,0,0.00428,0.0168,24.97],[13,0,0.00431,0.0218,25.14],[13,0,0.00448,0.0203,25.03],[13,0,0.00436,0.023,24.69],[13,0,0.0049,0.025,25.43],[16,1,0.00761,0.0272,21.03],[16,1,0.00874,0.0321,20.77],[16,1,0.00784,0.0372,21.42],[16,1,0.00752,0.0229,22.82],[16,1,0.00788,0.0265,22.6],[16,1,0.00867,0.0323,21.66],[17,0,0.00282,0.0186,25.55],[17,0,0.00264,0.0191,26.14],[17,0,0.00266,0.0164,25.86],[17,0,0.00296,0.0164,25.96],[17,0,0.00205,0.0146,26.41],[17,0,0.00238,0.0175,24.55],[18,1,0.00817,0.032,19.56],[18,1,0.00923,0.0311,19.98],[18,1,0.01101,0.0538,20.34],[18,1,0.00762,0.0543,21.72],[18,1,0.00831,0.0348,20.26],[18,1,0.00971,0.0498,18.57],[19,1,0.00405,0.0171,25.74],[19,1,0.00533,0.0245,24.18],[19,1,0.00494,0.0244,25.44],[19,1,0.00516,0.0221,25.2],[19,1,0.005,0.04,23.37],[19,1,0.00462,0.022,25.82],[20,1,0.00608,0.032,21.88],[20,1,0.01038,0.0312,19.2],[20,1,0.00694,0.0402,19.05],[20,1,0.00702,0.0316,19.66],[20,1,0.00606,0.0243,20.54],[20,1,0.00432,0.0222,22.24],[21,1,0.00747,0.0479,13.89],[21,1,0.00406,0.0385,16.18],[21,1,0.00321,0.0376,15.92],[21,1,0.0052,0.0651,13.92],[21,1,0.00448,0.0673,14.74],[21,1,0.00709,0.0431,11.87],[21,1,0.00742,0.0664,11.74],[22,1,0.00419,0.0796,19.66],[22,1,0.00459,0.0419,18.78],[22,1,0.00382,0.0592,20.97],[22,1,0.00358,0.0372,22.22],[22,1,0.00369,0.0327,21.69],[22,1,0.00342,0.0338,22.66],[24,1,0.0128,0.0389,15.34],[24,1,0.01378,0.0469,15.43],[24,1,0.01936,0.0673,12.44],[24,1,0.03316,0.0918,8.87],[24,1,0.01551,0.0617,15.06],[24,1,0.03011,0.0942,10.49],[25,1,0.00248,0.0113,26.76],[25,1,0.00183,0.0103,28.41],[25,1,0.00257,0.0135,27.42],[25,1,0.00168,0.0106,29.75],[25,1,0.00258,0.0145,26.83],[25,1,0.00174,0.0102,29.93],[26,1,0.00766,0.0304,21.93],[26,1,0.00621,0.0229,23.24],[26,1,0.00609,0.0176,22.41],[26,1,0.00841,0.0238,21.3],[26,1,0.00534,0.0168,23.67],[26,1,0.00495,0.021,21.86],[27,1,0.00856,0.0184,23.69],[27,1,0.00476,0.0146,26.36],[27,1,0.00555,0.0173,25.69],[27,1,0.00462,0.0128,25.02],[27,1,0.00404,0.013,24.58],[27,1,0.00581,0.0201,24.74],[27,1,0.0046,0.0117,27.17],[31,1,0.00704,0.0448,18.3],[31,1,0.00842,0.025,18.78],[31,1,0.00694,0.0234,19.2],[31,1,0.00733,0.0236,18.86],[31,1,0.00544,0.0279,18.18],[31,1,0.00638,0.0286,18.33],[32,1,0.0044,0.0103,26.84],[32,1,0.0027,0.0102,26.37],[32,1,0.00492,0.0141,23.95],[32,1,0.00407,0.0152,26.02],[32,1,0.00346,0.012,23.39],[32,1,0.00331,0.0104,25.62],[33,1,0.00589,0.0493,17.06],[33,1,0.00494,0.0413,17.71],[33,1,0.00451,0.0488,19.01],[33,1,0.00502,0.0528,16.75],[33,1,0.00472,0.0564,17.37],[33,1,0.00381,0.0303,18.8],[34,1,0.00571,0.0327,18.54],[34,1,0.00757,0.0673,15.65],[34,1,0.00376,0.0353,18.7],[34,1,0.0037,0.02,18.69],[34,1,0.00254,0.0266,20.68],[34,1,0.00352,0.0254,20.37],[35,1,0.01568,0.0814,12.36],[35,1,0.01466,0.0605,14.37],[35,1,0.01719,0.0712,12.3],[35,1,0.01627,0.0717,14.99],[35,1,0.01872,0.0583,12.53],[35,1,0.03107,0.1191,8.44],[35,1,0.02714,0.0868,9.45],[37,1,0.00684,0.0253,21.52],[37,1,0.00692,0.0268,21.82],[37,1,0.00647,0.0309,22.43],[37,1,0.00727,0.0229,22.95],[37,1,0.01813,0.0491,19.07],[37,1,0.00975,0.0285,21.53],[39,1,0.00605,0.0323,19.65],[39,1,0.00581,0.0401,20.44],[39,1,0.00619,0.0327,19.39],[39,1,0.00651,0.0366,18.95],[39,1,0.00519,0.0176,21.22],[39,1,0.00907,0.0281,18.45],[42,0,0.00277,0.0245,24.08],[42,0,0.00303,0.0124,24.68],[42,0,0.00339,0.0203,21.08],[42,0,0.00803,0.0218,19.27],[42,0,0.00517,0.0202,21.02],[42,0,0.00451,0.019,21.53],[43,0,0.00355,0.0136,26.44],[43,0,0.00356,0.0148,26.55],[43,0,0.00349,0.0147,26.55],[43,0,0.00353,0.0166,25.45],[43,0,0.00332,0.015,26.0],[43,0,0.00346,0.0173,26.14],[44,1,0.00314,0.0147,24.15],[44,1,0.00309,0.0157,24.41],[44,1,0.00392,0.0145,23.68],[44,1,0.00396,0.0255,23.13],[44,1,0.00397,0.0183,22.87],[44,1,0.00336,0.0215,23.01],[49,0,0.00417,0.0191,23.08],[49,0,0.00531,0.018,22.09],[49,0,0.00314,0.0156,24.2],[49,0,0.00496,0.0166,23.96],[49,0,0.00267,0.013,25.02],[49,0,0.00327,0.0118,24.77],[50,0,0.00694,0.0257,19.37],[50,0,0.00459,0.0409,19.52],[50,0,0.00564,0.0275,19.15],[50,0,0.0136,0.0231,17.88],[50,0,0.0074,0.023,19.02],[50,0,0.00567,0.0188,21.21]];
+
+  // ------------------------------------------------------------ synthetic sustained vowel /a/ (seeded)
+  const FS = 16000, F0 = 150, NCYC = 22;
+  function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+  function gauss(r) { const u = 1 - r(), v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+  let jitPct = 0.5, shmPct = 3, noisePct = 1, speed = 1;
+  let V = null; // { x, peaks, T, A, jitter, shimmer, hnr, template, L, cycles, resid }
+  function synth() {
+    const r = rng(328);
+    const T0 = FS / F0;
+    const sT = jitPct / 112.8, sA = shmPct / 112.8;           // E|δᵢ − δᵢ₊₁| = 2σ/√π ≈ 1.128 σ for Gaussian δ
+    const N = Math.round(T0 * (NCYC + 2.5));
+    const x = new Float64Array(N);
+    // glottal pulses at jittered instants with shimmered amplitude, then vocal-tract resonances (F1 700, F2 1220, F3 2600 Hz)
+    let t = T0 * 0.6; const pulses = [];
+    while (t < N) { pulses.push([t, 1 + sA * gauss(r)]); t += T0 * (1 + sT * gauss(r)); }
+    const exc = new Float64Array(N);
+    pulses.forEach(([tp, a]) => { const i = Math.floor(tp), f = tp - i; if (i + 1 < N) { exc[i] += a * (1 - f); exc[i + 1] += a * f; } });
+    // glottal pulse shaping: two first-order low-pass stages
+    let y = exc.slice(); [0.9, 0.9].forEach(p => { let s = 0; for (let i = 0; i < N; i++) { s = (1 - p) * y[i] + p * s; y[i] = s; } });
+    [[700, 90], [1220, 110], [2600, 160]].forEach(([f, bw]) => {
+      const rr = Math.exp(-Math.PI * bw / FS), th = 2 * Math.PI * f / FS;
+      const a1 = -2 * rr * Math.cos(th), a2 = rr * rr, g = 1 - rr;
+      let y1 = 0, y2 = 0; for (let i = 0; i < N; i++) { const v = g * y[i] - a1 * y1 - a2 * y2; y2 = y1; y1 = v; y[i] = v; }
+    });
+    let mx = 0; for (let i = 0; i < N; i++) mx = Math.max(mx, Math.abs(y[i]));
+    for (let i = 0; i < N; i++) x[i] = 0.8 * y[i] / mx + 0.8 * (noisePct / 100) * gauss(r);
+    // cycle peaks: local maxima above 35 % of the max, at least 0.7·T0 apart (keep the higher)
+    const peaks = []; let gmax = 0; for (let i = 0; i < N; i++) gmax = Math.max(gmax, x[i]);
+    for (let i = 1; i < N - 1; i++) {
+      if (x[i] > x[i - 1] && x[i] >= x[i + 1] && x[i] > 0.35 * gmax) {
+        if (peaks.length && i - peaks[peaks.length - 1] < 0.7 * T0) { if (x[i] > x[peaks[peaks.length - 1]]) peaks[peaks.length - 1] = i; }
+        else peaks.push(i);
+      }
+    }
+    // per-cycle period (ms) and peak-to-peak amplitude
+    const T = [], A = [];
+    const refine = i => { const a = x[i - 1], b = x[i], c = x[i + 1]; const den = a - 2 * b + c; return i + (den === 0 ? 0 : 0.5 * (a - c) / den); }; // parabolic interpolation
+    const pk = peaks.map(refine);
+    for (let c = 0; c < peaks.length - 1; c++) {
+      T.push((pk[c + 1] - pk[c]) / FS * 1000);
+      let lo = 1e9, hi = -1e9; for (let i = peaks[c]; i < peaks[c + 1]; i++) { lo = Math.min(lo, x[i]); hi = Math.max(hi, x[i]); }
+      A.push(hi - lo);
+    }
+    const mean = a => a.reduce((s, v) => s + v, 0) / a.length;
+    const absdiff = a => { let s = 0; for (let i = 0; i < a.length - 1; i++) s += Math.abs(a[i] - a[i + 1]); return s / (a.length - 1); };
+    const jitter = 100 * absdiff(T) / mean(T), shimmer = 100 * absdiff(A) / mean(A);
+    // HNR: resample each cycle to the mean length, average into a template (the harmonic part); the residual is the noise
+    const L = Math.round(mean(T) / 1000 * FS);
+    const cycles = [];
+    for (let c = 0; c < peaks.length - 1; c++) { const a = peaks[c], b = peaks[c + 1]; const cy = new Float64Array(L); for (let j = 0; j < L; j++) { const p = a + j / L * (b - a); const i0 = Math.floor(p), f = p - i0; cy[j] = x[i0] * (1 - f) + (x[Math.min(N - 1, i0 + 1)]) * f; } cycles.push(cy); }
+    const template = new Float64Array(L); cycles.forEach(cy => { for (let j = 0; j < L; j++) template[j] += cy[j] / cycles.length; });
+    let eh = 0, en = 0; for (let j = 0; j < L; j++) eh += template[j] ** 2;
+    const resid = cycles.map(cy => { const rr = new Float64Array(L); for (let j = 0; j < L; j++) { rr[j] = cy[j] - template[j]; en += rr[j] ** 2 / cycles.length; } return rr; });
+    const hnr = 10 * Math.log10(eh / Math.max(en, 1e-12));
+    V = { x, N, peaks, T, A, jitter, shimmer, hnr, template, L, cycles, resid, T0 };
+  }
+
+  // ------------------------------------------------------------ steps
+  const NSUBJ = 31;
+  function stepDefs() {
+    const nc = V.T.length;
+    return [
+      { id: 'cycles', n: nc + 1, secs: 9, title: 'A sustained vowel: one cycle per vocal-fold vibration', tag: `synthetic /a/ · F₀ = ${F0} Hz · T₀ = ${(1000 / F0).toFixed(2)} ms · ${FS / 1000} kHz`,
+        subtitle: 'The waveform of a sustained vowel, with a dot marking the peak of each cycle.' },
+      { id: 'jitter', n: nc, secs: 9, title: 'Jitter: cycle-to-cycle variation in the pitch period', tag: `jitter = ${V.jitter.toFixed(2)} %`,
+        subtitle: 'How jitter measures the change in period from one cycle to the next.' },
+      { id: 'shimmer', n: nc, secs: 9, title: 'Shimmer: cycle-to-cycle variation in the amplitude', tag: `shimmer = ${V.shimmer.toFixed(2)} %`,
+        subtitle: 'How shimmer measures the change in amplitude from one cycle to the next.' },
+      { id: 'hnr', n: nc, secs: 9, title: 'Harmonic-to-noise ratio: periodic energy versus the rest', tag: `HNR = ${V.hnr.toFixed(1)} dB`,
+        subtitle: 'How HNR compares the energy of the periodic part of the waveform to the noise.' },
+      { id: 'uci', n: NSUBJ + 1, secs: 10, title: 'Jitter versus HNR on the UCI Parkinson’s voice dataset', tag: `195 recordings · 31 subjects · this vowel: jitter ${V.jitter.toFixed(2)} %, HNR ${V.hnr.toFixed(1)} dB`,
+        subtitle: 'The jitter and HNR of every recording in the UCI Parkinson’s voice dataset.' },
+    ];
+  }
+
+  // ------------------------------------------------------------ svg helpers
+  const W = 1200, PL = 80, PR = 60, PW = W - PL - PR;
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+  const $ = id => document.getElementById(id);
+  const chart = $('chart');
+  let steps, step = 0, cursor = 0, playing = false, raf = 0, lastT = 0, acc = 0;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const dirty = {};
+  let hoverFn = null;
+
+  function legend(g, xL, yT, items) {
+    const rowH = 18, padX = 10, padY = 8;
+    const wdt = Math.max(...items.map(i => i.n.length)) * 7.2 + 2 * padX + 34;
+    el('rect', { x: xL, y: yT, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
+    items.forEach((it, j) => {
+      const y = yT + padY + j * rowH + 6;
+      if (it.box) el('rect', { x: xL + padX, y: y - 6, width: 18, height: 12, fill: it.c, stroke: it.s || 'none' }, g);
+      else if (it.dot) el('circle', { cx: xL + padX + 9, cy: y, r: 4.5, fill: it.c }, g);
+      else if (it.tri) el('path', { d: `M${xL + padX + 9},${y - 5.5}L${xL + padX + 14.5},${y + 4.5}L${xL + padX + 3.5},${y + 4.5}Z`, fill: it.c }, g);
+      else if (it.star) el('path', { d: star(xL + padX + 9, y, 7), fill: it.c }, g);
+      else if (it.txt) el('text', { x: xL + padX + 9, y: y + 4, class: 'axis-title', 'text-anchor': 'middle', fill: it.c, 'font-weight': 700 }, g).textContent = it.txt;
+      else el('line', { x1: xL + padX, x2: xL + padX + 18, y1: y, y2: y, stroke: it.c, 'stroke-width': it.w || 2.5, 'stroke-dasharray': it.dash ? '5 4' : 'none' }, g);
+      el('text', { x: xL + padX + 26, y: y + 4, class: 'axis-title', fill: 'var(--ink)' }, g).textContent = it.n;
+    });
+  }
+  function star(cx, cy, R) { let d = ''; for (let i = 0; i < 10; i++) { const r = i % 2 ? R * 0.45 : R, a = -Math.PI / 2 + i * Math.PI / 5; d += (i ? 'L' : 'M') + (cx + r * Math.cos(a)).toFixed(1) + ',' + (cy + r * Math.sin(a)).toFixed(1); } return d + 'Z'; }
+  const fmt = (v, d = 2) => v.toFixed(d);
+
+  // waveform panel: x in ms over the whole synthetic signal
+  function wavePanel(g, y0, y1, uptoSample, opts = {}) {
+    const grid = el('g', { class: 'grid' }, g), axis = el('g', { class: 'axis' }, g);
+    const durMs = V.N / FS * 1000;
+    const xx = i => PL + (i / V.N) * PW, yy = v => (y0 + y1) / 2 - v * (y1 - y0) / 2.2;
+    for (let ms = 0; ms <= durMs; ms += 10) { el('line', { x1: xx(ms / 1000 * FS), x2: xx(ms / 1000 * FS), y1: y0, y2: y1 }, grid); el('text', { x: xx(ms / 1000 * FS), y: y1 + 16, 'text-anchor': 'middle' }, axis).textContent = ms; }
+    [-1, -0.5, 0, 0.5, 1].forEach(v => { el('line', { x1: PL, x2: PL + PW, y1: yy(v), y2: yy(v) }, grid); el('text', { x: PL - 8, y: yy(v) + 4, 'text-anchor': 'end' }, axis).textContent = v; });
+    el('path', { d: `M${PL},${y0}V${y1}H${PL + PW}` }, axis);
+    el('text', { x: PL + PW + 8, y: y1 + 16, class: 'axis-title' }, g).textContent = 'ms';
+    el('text', { x: PL - 8, y: y0 - 8, class: 'axis-title', 'text-anchor': 'end' }, g).textContent = 'amplitude';
+    el('text', { x: PL, y: y0 - 8, class: 'ptitle' }, g).textContent = opts.title || 'sustained vowel';
+    let d = ''; for (let i = 0; i < Math.min(V.N, uptoSample); i++) d += (i ? 'L' : 'M') + xx(i).toFixed(1) + ',' + yy(V.x[i]).toFixed(1);
+    if (d) el('path', { class: 'wave', d, opacity: opts.faint ? .45 : 1 }, g);
+    return { xx, yy };
+  }
+  function peakDots(g, s, upto, color) { V.peaks.slice(0, upto).forEach(p => el('circle', { cx: s.xx(p), cy: s.yy(V.x[p]), r: 4.5, fill: color || 'var(--ma)', stroke: '#fff', 'stroke-width': 1.5 }, g)); }
+  function stemPanel(g, y0, y1, vals, upto, opts) {
+    const n = vals.length;
+    const grid = el('g', { class: 'grid' }, g), axis = el('g', { class: 'axis' }, g);
+    const mean = vals.reduce((s, v) => s + v, 0) / n;
+    const spread = Math.max(opts.minSpread, ...vals.map(v => Math.abs(v - mean))) * 1.3;
+    const lo = mean - spread, hi = mean + spread;
+    const xx = i => PL + ((i + 0.5) / n) * PW, yy = v => y1 - (v - lo) / (hi - lo) * (y1 - y0);
+    const stepT = niceStep(hi - lo, 5);
+    for (let v = Math.ceil(lo / stepT) * stepT; v <= hi; v += stepT) { el('line', { x1: PL, x2: PL + PW, y1: yy(v), y2: yy(v) }, grid); el('text', { x: PL - 8, y: yy(v) + 4, 'text-anchor': 'end' }, axis).textContent = fmt(v, opts.dec); }
+    for (let i = 0; i < n; i++) el('text', { x: xx(i), y: y1 + 16, 'text-anchor': 'middle' }, axis).textContent = i + 1;
+    el('path', { d: `M${PL},${y0}V${y1}H${PL + PW}` }, axis);
+    el('text', { x: PL + PW + 8, y: y1 + 16, class: 'axis-title' }, g).textContent = 'cycle i';
+    el('text', { x: PL - 8, y: y0 - 8, class: 'axis-title', 'text-anchor': 'end' }, g).textContent = opts.ylab;
+    el('text', { x: PL, y: y0 - 8, class: 'ptitle' }, g).textContent = opts.title;
+    el('line', { x1: PL, x2: PL + PW, y1: yy(mean), y2: yy(mean), stroke: '#444', 'stroke-dasharray': '5 4' }, g);
+    el('text', { x: PL + PW - 6, y: yy(mean) - 6, class: 'axis-title', 'text-anchor': 'end', fill: '#444' }, g).textContent = `mean = ${fmt(mean, opts.dec)}`;
+    for (let i = 0; i < Math.min(n, upto); i++) {
+      el('line', { x1: xx(i), x2: xx(i), y1: yy(mean), y2: yy(vals[i]), stroke: opts.color, 'stroke-width': 2 }, g);
+      el('circle', { cx: xx(i), cy: yy(vals[i]), r: 5, fill: opts.color, stroke: '#fff', 'stroke-width': 1.5 }, g);
+      if (i > 0) { const mx = (xx(i - 1) + xx(i)) / 2; el('text', { x: mx, y: Math.min(yy(vals[i]), yy(vals[i - 1])) - 8, class: 'axis-title', 'text-anchor': 'middle', fill: 'var(--ewma)' }, g).textContent = fmt(Math.abs(vals[i] - vals[i - 1]), opts.dec); }
+    }
+    // running value of the feature
+    const k = Math.min(n, upto);
+    if (k >= 2) { let s = 0; for (let i = 0; i < k - 1; i++) s += Math.abs(vals[i] - vals[i + 1]); const val = 100 * (s / (k - 1)) / mean; el('text', { x: PL + PW - 6, y: y0 + 24, class: 'big', 'text-anchor': 'end', fill: opts.color }, g).textContent = `${opts.name} = ${val.toFixed(2)} %  (${k} cycles)`; }
+    legend(g, PL + 8, y0 + 8, [{ c: opts.color, n: `${opts.sym}ᵢ per cycle`, dot: true }, { c: '#444', n: 'mean', dash: true, w: 1.5 }, { c: 'var(--ewma)', n: `|${opts.sym}ᵢ − ${opts.sym}ᵢ₊₁| between neighbours`, txt: '0.12' }]);
+  }
+  function niceStep(span, n) { const raw = span / n, p = 10 ** Math.floor(Math.log10(raw)); return [1, 2, 2.5, 5, 10].map(m => m * p).find(m => span / m <= n) || 10 * p; }
+
+  function hnrPanels(g, upto) {
+    const s = wavePanel(g, 40, 300, V.N, { title: 'each cycle (grey) with the average cycle overlaid (green)', faint: true });
+    const nc = Math.min(V.cycles.length, upto);
+    for (let c = 0; c < nc; c++) {
+      const a = V.peaks[c], b = V.peaks[c + 1];
+      let d = ''; for (let j = 0; j < V.L; j++) d += (j ? 'L' : 'M') + s.xx(a + j / V.L * (b - a)).toFixed(1) + ',' + s.yy(V.template[j]).toFixed(1);
+      el('path', { d, fill: 'none', stroke: 'var(--med)', 'stroke-width': 2, opacity: c === nc - 1 && upto < V.cycles.length ? 1 : .8 }, g);
+    }
+    legend(g, PL + PW - 250, 46, [{ c: '#999', n: 'cycle of the waveform', w: 1.5 }, { c: 'var(--med)', n: 'average cycle (harmonic part)' }]);
+    // residual panel
+    const y0 = 380, y1 = 600;
+    const grid = el('g', { class: 'grid' }, g), axis = el('g', { class: 'axis' }, g);
+    const xx = s.xx, yy = v => (y0 + y1) / 2 - v * (y1 - y0) / 2.2;
+    const durMs = V.N / FS * 1000;
+    for (let ms = 0; ms <= durMs; ms += 10) { el('line', { x1: xx(ms / 1000 * FS), x2: xx(ms / 1000 * FS), y1: y0, y2: y1 }, grid); el('text', { x: xx(ms / 1000 * FS), y: y1 + 16, 'text-anchor': 'middle' }, axis).textContent = ms; }
+    [-1, -0.5, 0, 0.5, 1].forEach(v => { el('line', { x1: PL, x2: PL + PW, y1: yy(v), y2: yy(v) }, grid); el('text', { x: PL - 8, y: yy(v) + 4, 'text-anchor': 'end' }, axis).textContent = v; });
+    el('path', { d: `M${PL},${y0}V${y1}H${PL + PW}` }, axis);
+    el('text', { x: PL + PW + 8, y: y1 + 16, class: 'axis-title' }, g).textContent = 'ms';
+    el('text', { x: PL - 8, y: y0 - 8, class: 'axis-title', 'text-anchor': 'end' }, g).textContent = 'amplitude';
+    el('text', { x: PL, y: y0 - 8, class: 'ptitle' }, g).textContent = 'what is left after subtracting the average cycle (noise part)';
+    let eh = 0; for (let j = 0; j < V.L; j++) eh += V.template[j] ** 2;
+    let en = 0;
+    for (let c = 0; c < nc; c++) {
+      const a = V.peaks[c], b = V.peaks[c + 1];
+      let d = ''; for (let j = 0; j < V.L; j++) { d += (j ? 'L' : 'M') + xx(a + j / V.L * (b - a)).toFixed(1) + ',' + yy(V.resid[c][j]).toFixed(1); en += V.resid[c][j] ** 2; }
+      el('path', { d, fill: 'none', stroke: 'var(--ewma)', 'stroke-width': 1.4 }, g);
+    }
+    if (nc > 0) { const h = 10 * Math.log10(eh / Math.max(en / nc, 1e-12)); el('text', { x: PL + PW - 6, y: y0 + 24, class: 'big', 'text-anchor': 'end', fill: 'var(--med)' }, g).textContent = `HNR = 10·log10(E_harmonic / E_noise) = ${h.toFixed(1)} dB`; }
+    legend(g, PL + 8, y0 + 8, [{ c: 'var(--ewma)', n: 'cycle − average cycle', w: 1.5 }]);
+  }
+
+  function uciPanel(g, upto) {
+    const x0 = PL + 40, x1 = PL + PW - 40, y0 = 50, y1 = 600;
+    const grid = el('g', { class: 'grid' }, g), axis = el('g', { class: 'axis' }, g);
+    // x: jitter in percent (dataset values ×100), log scale; y: HNR dB
+    const JL = Math.log10(0.1), JH = Math.log10(4);
+    const xx = jp => x0 + (Math.log10(jp) - JL) / (JH - JL) * (x1 - x0);
+    const yy = h => y1 - (h - 5) / (35 - 5) * (y1 - y0);
+    [0.1, 0.2, 0.3, 0.5, 1, 2, 3].forEach(v => { el('line', { x1: xx(v), x2: xx(v), y1: y0, y2: y1 }, grid); el('text', { x: xx(v), y: y1 + 16, 'text-anchor': 'middle' }, axis).textContent = v + ' %'; });
+    for (let h = 5; h <= 35; h += 5) { el('line', { x1: x0, x2: x1, y1: yy(h), y2: yy(h) }, grid); el('text', { x: x0 - 8, y: yy(h) + 4, 'text-anchor': 'end' }, axis).textContent = h; }
+    el('path', { d: `M${x0},${y0}V${y1}H${x1}` }, axis);
+    el('text', { x: (x0 + x1) / 2, y: y1 + 36, class: 'axis-title', 'text-anchor': 'middle' }, g).textContent = 'jitter (%), cycle-to-cycle pitch variation — log scale';
+    el('text', { x: x0 - 8, y: y0 - 10, class: 'axis-title', 'text-anchor': 'end' }, g).textContent = 'HNR (dB)';
+    el('text', { x: x0, y: y0 - 10, class: 'ptitle' }, g).textContent = 'UCI Parkinson’s voice dataset: 195 sustained-vowel recordings';
+    const ns = Math.min(NSUBJ, upto);
+    let nh = 0, np = 0;
+    UCI.forEach(r => { const [subj, st, jit, , hnr] = r; if (subj > ns) return; const cx = xx(jit * 100), cy = yy(hnr); if (st === 0) { nh++; el('circle', { cx, cy, r: 6, fill: 'var(--ma)', 'fill-opacity': .75, stroke: '#fff', 'stroke-width': 1 }, g); } else { np++; el('path', { d: `M${cx},${cy - 7}L${cx + 6.5},${cy + 5}L${cx - 6.5},${cy + 5}Z`, fill: 'var(--ewma)', 'fill-opacity': .75, stroke: '#fff', 'stroke-width': 1 }, g); } });
+    if (upto > NSUBJ) {
+      const cx = xx(Math.max(0.1, Math.min(4, V.jitter))), cy = yy(Math.max(5, Math.min(35, V.hnr)));
+      el('path', { d: star(cx, cy, 13), fill: 'var(--wm)', stroke: '#fff', 'stroke-width': 1.5 }, g);
+      el('text', { x: cx + 16, y: cy + 5, class: 'dlabel', fill: 'var(--wm)' }, g).textContent = `synthetic vowel: ${V.jitter.toFixed(2)} %, ${V.hnr.toFixed(1)} dB`;
+    }
+    legend(g, x1 - 300, y0 + 8, [{ c: 'var(--ma)', n: `healthy (n = 48)`, dot: true }, { c: 'var(--ewma)', n: `Parkinson’s (n = 147)`, tri: true }, { c: 'var(--wm)', n: 'synthetic vowel from the previous steps', star: true }]);
+    if (ns < NSUBJ) el('text', { x: x0 + 8, y: y1 - 12, class: 'dlabel', fill: 'var(--ink-2)' }, g).textContent = `subjects 1–${ns}: ${nh} healthy + ${np} Parkinson’s recordings shown`;
+    hoverFn = (px, py) => { if (px < x0 || px > x1 || py < y0 || py > y1) return null; let best = null, bd = 1e9; UCI.forEach(r => { if (r[0] > ns) return; const d = Math.hypot(xx(r[2] * 100) - px, yy(r[4]) - py); if (d < bd) { bd = d; best = r; } }); if (!best || bd > 14) return null; return `<div class="row"><span>subject</span><b>S${String(best[0]).padStart(2, '0')}</b></div><div class="row"><span>status</span><span>${best[1] ? 'Parkinson’s' : 'healthy'}</span></div><div class="row"><span>jitter</span><span>${(best[2] * 100).toFixed(3)} %</span></div><div class="row"><span>shimmer</span><span>${(best[3] * 100).toFixed(2)} %</span></div><div class="row"><span>HNR</span><span>${best[4].toFixed(2)} dB</span></div>`; };
+  }
+
+  // ------------------------------------------------------------ render
+  function render() {
+    chart.innerHTML = ''; hoverFn = null;
+    const d = steps[step], c = Math.max(0, Math.min(d.n, cursor));
+    if (d.id === 'cycles') {
+      const upto = c >= d.n ? V.N : (c === 0 ? 2 : V.peaks[Math.min(c, V.peaks.length - 1)] + 1);
+      const s = wavePanel(chart, 60, 560, upto, { title: `synthetic sustained /a/: ${V.peaks.length} cycles` });
+      peakDots(chart, s, c >= d.n ? V.peaks.length : c, 'var(--ma)');
+      if (c > 0 && c < V.peaks.length) el('text', { x: s.xx(V.peaks[c - 1]) + 8, y: s.yy(V.x[V.peaks[c - 1]]) - 12, class: 'dlabel', fill: 'var(--ma)' }, chart).textContent = `cycle ${c}`;
+      legend(chart, PL + 8, 66, [{ c: '#333', n: 'waveform', w: 1.5 }, { c: 'var(--ma)', n: 'peak of each cycle', dot: true }]);
+      hoverFn = mkWaveHover(60, 560, s);
+    } else if (d.id === 'jitter' || d.id === 'shimmer') {
+      const isJ = d.id === 'jitter';
+      const s = wavePanel(chart, 40, 270, V.N, { title: isJ ? 'period Tᵢ between consecutive peaks' : 'peak-to-peak amplitude Aᵢ of each cycle' });
+      peakDots(chart, s, V.peaks.length, isJ ? 'var(--ma)' : '#bbb');
+      const k = Math.min(V.T.length, c);
+      for (let i = 0; i < k; i++) {
+        const a = V.peaks[i], b = V.peaks[i + 1];
+        if (isJ) {
+          const y = 52 + (i % 2) * 14;
+          el('path', { d: `M${s.xx(a)},${y}H${s.xx(b)}`, stroke: i === k - 1 ? 'var(--ma)' : '#7aa7e0', 'stroke-width': 2 }, chart);
+          el('line', { x1: s.xx(a), x2: s.xx(a), y1: y - 4, y2: y + 4, stroke: 'var(--ma)' }, chart); el('line', { x1: s.xx(b), x2: s.xx(b), y1: y - 4, y2: y + 4, stroke: 'var(--ma)' }, chart);
+          if (i === k - 1) el('text', { x: (s.xx(a) + s.xx(b)) / 2, y: y - 7, class: 'dlabel', fill: 'var(--ma)', 'text-anchor': 'middle' }, chart).textContent = `T${i + 1} = ${V.T[i].toFixed(2)} ms`;
+        } else {
+          let lo = 1e9, hi = -1e9, ilo = a, ihi = a; for (let j = a; j < b; j++) { if (V.x[j] < lo) { lo = V.x[j]; ilo = j; } if (V.x[j] > hi) { hi = V.x[j]; ihi = j; } }
+          const xm = (s.xx(a) + s.xx(b)) / 2;
+          el('path', { d: `M${xm},${s.yy(hi)}V${s.yy(lo)}`, stroke: i === k - 1 ? 'var(--med)' : '#8fd6b8', 'stroke-width': 2 }, chart);
+          el('line', { x1: xm - 5, x2: xm + 5, y1: s.yy(hi), y2: s.yy(hi), stroke: 'var(--med)', 'stroke-width': 2 }, chart); el('line', { x1: xm - 5, x2: xm + 5, y1: s.yy(lo), y2: s.yy(lo), stroke: 'var(--med)', 'stroke-width': 2 }, chart);
+          if (i === k - 1) el('text', { x: xm + 8, y: (s.yy(hi) + s.yy(lo)) / 2 + 4, class: 'dlabel', fill: 'var(--med)' }, chart).textContent = `A${i + 1} = ${V.A[i].toFixed(3)}`;
+        }
+      }
+      legend(chart, PL + PW - 250, 46, isJ ? [{ c: 'var(--ma)', n: 'peak of each cycle', dot: true }, { c: 'var(--ma)', n: 'period Tᵢ (peak to peak)', w: 2 }] : [{ c: '#bbb', n: 'peak of each cycle', dot: true }, { c: 'var(--med)', n: 'amplitude Aᵢ (peak to peak)', w: 2 }]);
+      stemPanel(chart, 360, 600, isJ ? V.T : V.A, k, isJ ? { title: 'period per cycle', ylab: 'Tᵢ (ms)', color: 'var(--ma)', dec: 2, minSpread: 0.15, name: 'jitter', sym: 'T' } : { title: 'amplitude per cycle', ylab: 'Aᵢ', color: 'var(--med)', dec: 3, minSpread: 0.03, name: 'shimmer', sym: 'A' });
+      el('text', { x: PL + PW - 6, y: 660, class: 'mono', 'text-anchor': 'end' }, chart).textContent = isJ ? 'jitter = mean|Tᵢ − Tᵢ₊₁| / mean(T) × 100 %' : 'shimmer = mean|Aᵢ − Aᵢ₊₁| / mean(A) × 100 %';
+      hoverFn = mkWaveHover(40, 270, s);
+    } else if (d.id === 'hnr') {
+      hnrPanels(chart, c);
+    } else {
+      uciPanel(chart, c);
+    }
+  }
+  function mkWaveHover(y0, y1, s) { return (px, py) => { if (px < PL || px > PL + PW || py < y0 || py > y1) return null; const i = Math.max(0, Math.min(V.N - 1, Math.round((px - PL) / PW * V.N))); return `<div class="row"><span>time</span><b>${(i / FS * 1000).toFixed(2)} ms</b></div><div class="row"><span>amplitude</span><span>${V.x[i].toFixed(3)}</span></div>`; }; }
+
+  // ------------------------------------------------------------ hover
+  const tt = $('tt');
+  function hover(evt) {
+    if (!hoverFn) { unhover(); return; }
+    const pt = chart.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+    const p = pt.matrixTransform(chart.getScreenCTM().inverse());
+    const html = hoverFn(p.x, p.y);
+    if (!html) { unhover(); return; }
+    tt.innerHTML = html; tt.style.display = 'block';
+    const wrap = chart.parentElement.getBoundingClientRect();
+    const px = evt.clientX - wrap.left, py = evt.clientY - wrap.top;
+    tt.style.left = (px + 16 + tt.offsetWidth > wrap.width ? px - tt.offsetWidth - 12 : px + 16) + 'px';
+    tt.style.top = Math.max(0, py - 10) + 'px';
+  }
+  function unhover() { tt.style.display = 'none'; }
+
+  // ------------------------------------------------------------ step control
+  function setHead() { const d = steps[step]; $('title').innerHTML = d.title + (d.tag ? `<span class="tag">${d.tag}</span>` : ''); $('subtitle').textContent = d.subtitle; $('counter').textContent = `${step + 1} / ${steps.length}`; }
+  function enterStep(k, completed = false) {
+    step = k; setHead();
+    try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {}
+    stopPlay(); cursor = 0;
+    if (completed || speed === 0 || reduceMotion) finish(); else { render(); startPlay(); }
+  }
+  function cursorDone() { return cursor >= steps[step].n; }
+  function finish() { cursor = steps[step].n; stopPlay(); render(); }
+  function tick(t) {
+    if (!playing) return;
+    const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+    const d = steps[step];
+    acc += dt * speed * d.n / d.secs;
+    while (acc >= 1 && cursor < d.n) { cursor++; acc -= 1; }
+    render();
+    if (cursor >= d.n) { finish(); return; }
+    raf = requestAnimationFrame(tick);
+  }
+  function startPlay() { if (cursorDone()) return; playing = true; lastT = performance.now(); acc = 0; $('play').textContent = 'Pause'; raf = requestAnimationFrame(tick); }
+  function stopPlay() { playing = false; cancelAnimationFrame(raf); $('play').textContent = 'Play'; }
+  function next() { if (!cursorDone()) { finish(); return; } if (step < steps.length - 1) enterStep(step + 1); }
+  function prev() { if (step > 0) enterStep(step - 1, true); }
+  function restart() { enterStep(step); }
+  function rebuild() {
+    const frac = steps ? cursor / steps[step].n : 0;
+    synth(); steps = stepDefs();
+    cursor = Math.round(frac * steps[step].n);
+    setHead(); render(); if (cursorDone()) stopPlay();
+  }
+  function applyDial(id, v) {
+    if (id === 'jit') { jitPct = v; $('jit').value = v; $('jitVal').textContent = v.toFixed(1) + ' %'; }
+    if (id === 'shm') { shmPct = v; $('shm').value = v; $('shmVal').textContent = v.toFixed(1) + ' %'; }
+    if (id === 'noise') { noisePct = v; $('noise').value = v; $('noiseVal').textContent = v + ' %'; }
+  }
+
+  // ------------------------------------------------------------ wiring
+  $('next').addEventListener('click', e => { e.stopPropagation(); next(); });
+  $('prev').addEventListener('click', e => { e.stopPropagation(); prev(); });
+  $('restart').addEventListener('click', e => { e.stopPropagation(); restart(); });
+  $('play').addEventListener('click', e => { e.stopPropagation(); if (playing) stopPlay(); else if (cursorDone()) restart(); else startPlay(); });
+  $('slide').addEventListener('click', () => next());
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
+    else if (e.key === 'r' || e.key === 'R') restart();
+  });
+  $('jit').addEventListener('input', e => { dirty.jit = true; applyDial('jit', parseFloat(e.target.value)); rebuild(); });
+  $('shm').addEventListener('input', e => { dirty.shm = true; applyDial('shm', parseFloat(e.target.value)); rebuild(); });
+  $('noise').addEventListener('input', e => { dirty.noise = true; applyDial('noise', parseInt(e.target.value, 10)); rebuild(); });
+  $('speed').addEventListener('change', e => { speed = parseFloat(e.target.value); });
+  $('reset').addEventListener('click', e => { e.stopPropagation(); dirty.jit = dirty.shm = dirty.noise = false; applyDial('jit', 0.5); applyDial('shm', 3); applyDial('noise', 1); rebuild(); restart(); });
+  chart.addEventListener('mousemove', hover);
+  chart.addEventListener('mouseleave', unhover);
+
+  const h = parseInt((location.hash || '').replace('#', ''), 10);
+  if (h >= 1 && h <= 5) step = h - 1;
+  synth(); steps = stepDefs();
+  enterStep(step);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frequency-Domain Features</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff;
+    --ink: #222222;
+    --ink-2: #666666;
+    --ink-3: #9a9a9a;
+    --rule: #dcdcdc;
+    --grid: #ececec;
+    --raw: #b4b4b4;
+    --clean: #444444;
+    --window: rgba(34, 34, 34, 0.06);
+    --window-edge: #222222;
+    --ma: #2a78d6;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.4; padding-block: 18px 28px; padding-inline: 16px; -webkit-font-smoothing: antialiased; }
+  .stage { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
+  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; min-height: 560px; position: relative; outline: none; cursor: pointer; user-select: none; }
+  .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
+  .head h1 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .chart-wrap { position: relative; min-height: 0; }
+  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt .row { display: flex; gap: 10px; justify-content: space-between; }
+  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot .ctr { font-family: var(--mono); }
+  .bar { display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center; padding:14px 18px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
+  .group { display:flex; align-items:center; gap:8px; }
+  .group label { font-size:13px; font-weight:700; color:var(--ink); }
+  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
+  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  button:hover, select:hover { border-color:var(--ink); }
+  button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
+  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
+  .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
+  .grid line { stroke: var(--grid); stroke-width: 1; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .sig-line { fill: none; stroke: var(--clean); stroke-width: 1.1; stroke-linejoin: round; }
+  .spec-line { fill: none; stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
+  .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
+  .dlabel { font-family: var(--mono); font-size: 13px; font-weight: 700; }
+  .big { font-family: var(--mono); font-size: 16px; font-weight: 700; }
+  .plabel { font-family: var(--sans); font-size: 13px; fill: var(--ink-2); }
+  .formula { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
+  .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
+  @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
+</style>
+
+<div class="stage">
+  <section class="slide" id="slide" tabindex="0" aria-live="polite">
+    <div class="head">
+      <h1 id="title"></h1>
+      <p id="subtitle"></p>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 1200 690" role="img" aria-label="Window, its spectrum and the dominant frequency over time"></svg>
+      <div class="tt" id="tt"></div>
+    </div>
+    <div class="foot">
+      <span>CS328 &nbsp;·&nbsp; Feature Extraction</span>
+      <span class="ctr" id="counter"></span>
+    </div>
+  </section>
+
+  <div class="bar">
+    <div class="group">
+      <button id="prev" title="Previous (←)">‹ Prev</button>
+      <button id="play" class="primary" title="Play / pause (space)">Play</button>
+      <button id="next" title="Next (→)">Next ›</button>
+      <button id="restart" title="Restart this step (r)">Restart</button>
+      <button id="reset" title="Reset all dials to the step presets">Reset dials</button>
+    </div>
+    <div class="group">
+      <label for="win">Window length</label>
+      <input type="range" id="win" min="1" max="5" step="1" value="5">
+      <span class="val" id="winVal">5 s</span>
+    </div>
+    <div class="group">
+      <label for="start">Window start</label>
+      <input type="range" id="start" min="0" max="19" step="0.5" value="8">
+      <span class="val" id="startVal">8.0 s</span>
+    </div>
+    <div class="group">
+      <label for="speed">Speed</label>
+      <select id="speed">
+        <option value="1.5">very slow</option>
+        <option value="3">slow</option>
+        <option value="6" selected>normal</option>
+        <option value="14">fast</option>
+        <option value="0">instant</option>
+      </select>
+    </div>
+    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ------------------------------------------------------------ data
+  // HAR-data/dataset1.csv at 50 Hz: acceleration magnitude sqrt(ax²+ay²+az²), 8 s of
+  // Sitting (from sample 1000), 8 s of Walking (from 2000), 8 s of Running (from 2500),
+  // stitched exactly as in the chapter's dominant-frequency figure.
+  const FS = 50, SEG_S = 8, TOTAL_S = 24, STEP_S = 0.5;
+  const MAG = [9.68,9.8,9.72,9.67,9.72,9.66,9.81,9.75,9.74,9.74,9.79,9.74,9.75,9.71,9.74,9.73,9.7,9.66,9.7,9.73,9.77,9.78,9.67,9.73,9.73,9.66,9.7,9.7,9.74,9.66,9.69,9.7,9.85,9.78,9.74,9.7,9.68,9.59,9.62,9.65,9.73,9.72,9.77,9.79,9.71,9.75,9.67,9.7,9.67,9.71,9.8,9.72,9.76,9.67,9.73,9.8,9.67,9.69,9.74,9.68,9.66,9.64,9.76,9.81,9.77,9.69,9.65,9.6,9.62,9.64,9.75,9.73,9.74,9.68,9.71,9.73,9.73,9.68,9.7,9.64,9.72,9.77,9.78,9.75,9.74,9.73,9.7,9.77,9.65,9.68,9.66,9.67,9.7,9.88,9.88,9.81,9.7,9.65,9.63,9.66,9.63,9.72,9.75,9.74,9.78,9.7,9.66,9.74,9.69,9.68,9.76,9.86,9.76,9.76,9.7,9.68,9.78,9.74,9.74,9.65,9.66,9.66,9.66,9.79,9.82,9.69,9.65,9.65,9.64,9.62,9.66,9.74,9.79,9.79,9.77,9.71,9.64,9.71,9.63,9.63,9.69,9.73,9.79,9.79,9.7,9.71,9.72,9.69,9.7,9.69,9.64,9.7,9.85,9.86,9.71,9.69,9.6,9.62,9.72,9.66,9.74,9.74,9.8,9.75,9.75,9.72,9.76,9.68,9.72,9.69,9.71,9.74,9.8,9.77,9.71,9.73,9.77,9.71,9.72,9.62,9.58,9.7,9.9,9.84,9.72,9.72,9.65,9.64,9.65,9.65,9.72,9.72,9.74,9.74,9.72,9.69,9.63,9.68,9.7,9.76,9.72,9.73,9.69,9.71,9.7,9.76,9.76,9.67,9.59,9.58,9.72,9.79,9.78,9.66,9.69,9.7,9.69,9.61,9.53,9.63,9.63,9.7,9.66,9.73,9.71,9.69,9.64,9.71,9.7,9.73,9.7,9.74,9.75,9.73,9.73,9.77,9.72,9.6,9.63,9.74,9.9,9.89,9.8,9.68,9.59,9.7,9.67,9.72,9.72,9.73,9.81,9.7,9.72,9.78,9.64,9.63,9.65,9.75,9.8,9.74,9.74,9.72,9.78,9.69,9.75,9.59,9.61,9.75,9.87,9.84,9.71,9.68,9.67,9.7,9.72,9.63,9.68,9.81,9.78,9.75,9.74,9.74,9.69,9.71,9.64,9.67,9.73,9.73,9.72,9.71,9.66,9.74,9.77,9.64,9.64,9.73,9.82,9.89,9.82,9.69,9.68,9.58,9.63,9.6,9.69,9.68,9.79,9.64,9.54,9.69,9.83,9.73,9.7,9.66,9.68,9.71,9.71,9.69,9.77,9.74,9.73,9.7,9.71,9.53,9.63,9.78,9.87,9.86,9.82,9.61,9.62,9.59,9.64,9.74,9.63,9.66,9.75,9.77,9.67,9.66,9.64,9.7,9.8,9.76,9.76,9.75,9.72,9.77,9.71,9.64,9.79,9.71,9.6,9.65,9.74,9.69,9.72,9.74,9.7,9.66,9.59,9.59,9.69,9.77,9.71,9.78,9.78,9.8,9.61,9.67,9.66,9.74,9.74,9.74,9.74,9.71,9.68,9.75,9.77,9.75,9.68,9.67,9.65,9.71,9.8,9.87,9.74,9.72,9.59,9.57,9.65,9.58,9.79,9.81,9.83,9.74,9.68,9.75,9.7,9.72,7.34,8.62,9.28,9.96,10.24,10.09,9.56,9.31,9.01,9.42,9.8,9.8,12.26,11.02,11.14,11.86,13.12,13.3,13.57,12.83,11.45,8.75,7.13,5.95,6.16,7.75,8.38,9.3,9.73,9.69,9.71,10.07,11.85,10.97,10.1,10.97,12.71,11.38,10.1,10.03,11.27,12.73,11.7,9.06,8.18,7.14,7.09,7.05,7.17,7.95,8.51,9.63,10.48,10.28,9.63,9.5,9.56,9.81,10.76,12.74,12.21,12.21,10.43,10.48,10.88,11.62,12.23,11.82,9.94,8.41,7.27,6.94,6.57,7.4,8.24,9.07,9.49,9.58,9.89,10.14,11.79,11.61,10.8,10.64,11.9,12.65,10.68,10.9,11.89,12.87,11.64,10.01,9.1,7.18,6.91,6.83,7.16,7.6,8.89,9.96,10.29,10.47,10.45,10.46,10.23,10.35,11.35,12.64,11.43,10.7,10.7,10.84,11.16,11.26,10.91,10.45,8.98,7.65,7.1,7.11,8.02,9.16,10.1,10.51,10.53,10.68,10.4,10.2,10.56,10.28,9.95,11.28,11.67,12.07,13.04,14.21,14.45,12.56,9.37,8.31,7.16,7.07,7.2,7.51,7.82,8.24,9.07,9.63,10.09,10.3,10.32,10.16,10.21,10.25,12.74,11.66,10.79,10.55,11.97,12.4,12.4,12.61,11.7,8.58,7.84,6.71,6.71,7.29,7.76,8.95,9.51,9.73,9.91,10.44,11.17,11.42,10.84,11.92,12.51,11.24,9.65,9.55,10.78,12.52,11.7,9.58,8.71,7.69,7.22,7.4,7.76,8.61,9.03,9.03,9.34,9.4,9.53,9.79,9.87,10.1,10.9,11.9,12.16,11.13,10.79,11.37,11.98,12.46,13.17,12.46,10.42,8.5,7.33,7.33,6.55,6.86,7.92,8.93,9.61,9.82,10.0,11.12,11.43,10.77,10.49,9.79,10.14,10.8,10.48,10.89,12.42,12.54,11.71,10.33,8.35,7.62,6.82,7.15,7.66,8.67,9.38,9.9,10.14,9.78,9.68,9.72,9.87,10.38,10.92,12.8,11.94,11.11,11.02,11.35,11.89,12.57,12.76,11.63,9.81,7.99,6.96,6.17,6.46,7.6,8.73,9.65,10.0,9.93,9.94,10.73,10.9,10.32,10.01,11.37,12.34,11.67,10.01,11.09,12.33,12.03,10.79,8.54,7.22,7.12,7.63,7.96,8.35,8.64,8.8,9.39,9.64,9.8,9.72,9.73,9.87,10.2,10.66,12.67,11.64,11.56,11.73,12.35,13.16,13.75,13.14,12.33,9.7,7.13,6.0,5.88,6.33,7.25,8.35,9.06,9.44,8.71,9.15,10.27,11.02,11.14,11.0,11.7,13.76,12.78,9.99,10.26,12.14,12.35,11.21,9.32,8.45,6.96,6.93,7.23,7.95,8.98,9.41,10.26,10.33,10.18,9.66,9.32,9.3,9.38,9.82,11.24,12.09,11.46,11.6,12.82,13.46,13.73,13.59,11.68,10.65,7.85,6.49,5.97,5.99,6.41,7.72,8.67,9.53,9.92,9.82,10.27,11.01,11.09,10.37,9.89,10.9,12.42,10.76,10.26,11.11,12.62,12.33,10.42,9.43,7.72,7.25,7.4,7.72,8.07,8.22,8.99,9.3,9.32,8.97,9.51,10.03,10.37,10.6,11.6,12.54,11.64,10.14,9.76,10.0,12.43,14.04,12.88,10.58,8.51,10.34,22.12,28.12,30.56,25.15,15.61,10.3,9.74,10.65,8.55,8.92,12.82,15.34,16.7,12.87,10.41,8.21,8.12,19.22,21.49,26.74,24.95,22.49,19.17,14.56,12.64,10.39,9.02,9.96,12.52,12.8,11.97,8.26,6.7,10.19,19.24,23.08,31.18,25.72,21.86,12.47,11.78,10.86,9.5,10.56,13.61,17.95,19.24,13.36,9.6,11.22,19.9,24.32,25.35,25.15,23.16,22.42,14.75,12.14,10.94,9.67,9.6,10.58,12.91,12.68,10.0,9.43,9.2,14.36,24.69,27.69,23.67,17.99,13.94,10.58,10.59,10.96,11.32,12.0,12.6,14.26,13.81,9.92,8.59,11.97,20.74,22.56,24.53,23.25,21.93,15.73,13.16,12.01,9.69,9.83,11.37,12.53,11.23,9.37,7.91,9.19,20.7,23.54,25.77,23.49,20.85,13.36,10.77,10.6,8.3,9.43,14.06,16.17,18.06,13.85,10.03,8.92,17.16,19.62,24.76,26.38,22.72,20.87,16.92,12.54,8.59,8.18,9.11,10.61,14.09,13.66,12.41,8.87,7.89,10.07,23.85,26.69,29.47,29.47,18.63,12.81,11.3,8.27,7.37,9.2,13.56,16.26,16.05,12.32,9.32,9.74,17.61,19.19,22.11,22.95,22.75,22.75,22.75,13.99,12.25,9.86,10.66,12.45,14.5,14.22,13.01,9.08,7.68,11.99,23.49,26.89,23.04,18.28,14.66,12.06,10.98,10.45,10.02,12.54,14.41,16.06,14.16,12.08,8.18,7.58,17.98,20.22,25.13,25.13,22.32,18.27,14.95,14.95,11.04,8.32,8.21,10.51,12.08,13.07,11.35,10.02,7.22,16.42,23.57,29.38,27.43,21.95,15.44,11.29,10.51,9.5,9.04,10.78,14.79,17.29,14.09,11.74,6.94,7.71,16.13,21.65,23.89,24.56,21.19,20.87,15.36,14.64,13.89,11.68,8.95,11.25,13.22,13.62,10.01,8.31,7.57,17.66,22.94,22.94,25.74,25.17,18.43,12.51,11.68,10.62,10.49,12.02,14.24,15.73,13.71,9.6,7.2,10.01,17.72,22.22,23.9,24.69,22.89,19.02,16.39,13.84,11.39,9.68,8.2,14.03,14.61,13.33,8.71,6.53,5.77,18.69,20.6,21.29,27.23,23.59,16.35,10.1,9.58,9.7,8.63,9.43,11.36,15.53,15.38,14.02,8.68,7.55,17.92,17.92,20.93,22.8,22.35,22.35,22.35,22.35,12.64,9.75,9.12,11.09,12.22,11.66,8.72,6.62,7.36,15.49,20.67,24.15,27.55,22.39,17.67,12.73,10.86,9.95,7.93,9.41,12.71,15.26,14.93,11.42,8.72,9.01,16.12,21.01,22.08,23.0,22.4,21.45,20.31,18.11,12.12,12.12,12.12,9.33,13.87,13.16,12.13,9.7,8.29,14.51,14.51,20.82,27.2,22.42,17.14,12.16,10.25,9.43,8.99,11.11,15.47,17.43,17.37,13.75,10.9,10.99,18.88,19.47,19.78,20.28,20.4,17.85,16.05,13.88,11.57,9.53,11.49,13.54,14.61,11.44,9.66,8.67,11.86,20.69,16.55,17.47,20.53,17.45,14.94,14.27,12.89,9.75,9.03,10.53,13.63,14.11,12.95,10.22,7.79,6.29,6.29,18.05,22.38,22.14,21.41,20.94,16.29];
+  const SEGS = [{ n: 'Sitting', c: '#2a78d6' }, { n: 'Walking', c: '#1baf7a' }, { n: 'Running', c: '#d63384' }];
+  const F_LO = 0.7, F_HI = 6, PEAK_MIN = 0.3;     // dominant-frequency search band and threshold
+  const E_LO = 0.5, E_HI = 5;                     // band for the signal-energy feature
+  const F_MAX = 8;                                // plotted frequency range
+
+  // ------------------------------------------------------------ steps
+  const STEPS = [
+    { id: 'walk', mode: 'one', preset: { win: 5, start: 8 },
+      title: 'Spectrum of a 5-second walking window',
+      subtitle: 'The FFT spectrum of a walking window and its dominant frequency.' },
+    { id: 'run', mode: 'one', preset: { win: 5, start: 16 },
+      title: 'Spectrum of a 5-second running window',
+      subtitle: 'How the dominant frequency moves higher for a running window.' },
+    { id: 'sit', mode: 'one', preset: { win: 5, start: 0 },
+      title: 'Spectrum of a 5-second sitting window',
+      subtitle: 'The spectrum of a sitting window with no dominant frequency.' },
+    { id: 'track', mode: 'track', preset: { win: 2, start: 0 },
+      title: 'Dominant frequency from a sliding window',
+      subtitle: 'How a sliding window produces a dominant frequency reading for each activity.' },
+  ];
+
+  // ------------------------------------------------------------ layout
+  const W = 1200, PL = 66, PR = 24;
+  const TT = 30, TB = 200;          // magnitude trace
+  const DT = 258, DB = 358;         // dominant frequency vs time
+  const ST = 428, SB = 656;         // spectrum of the current window
+  const xT = t => PL + (t / TOTAL_S) * (W - PL - PR);
+  const yM = v => TB - (v / 35) * (TB - TT);
+  const yD = f => DB - (f / 4.5) * (DB - DT);
+  const xF = f => PL + (f / F_MAX) * (W - PL - PR);
+  let sMax = 6;
+  const yS = v => SB - (v / sMax) * (SB - ST);
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+  const txt = (parent, x, y, s, attrs = {}) => { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; };
+  const fmt = (v, d = 2) => v.toFixed(d);
+
+  // ------------------------------------------------------------ spectrum
+  // |X(f)| = 2·|DFT(x − mean)| / N at f = k·FS/N, as compute_fft_mag in the chapter script.
+  function spectrum(start) {
+    const N = Math.round(wl * FS), s0 = Math.round(start * FS);
+    let m = 0; for (let i = 0; i < N; i++) m += MAG[s0 + i]; m /= N;
+    const bins = [];
+    for (let k = 0; k <= N / 2; k++) {
+      let re = 0, im = 0;
+      for (let n = 0; n < N; n++) { const x = MAG[s0 + n] - m, a = -2 * Math.PI * k * n / N; re += x * Math.cos(a); im += x * Math.sin(a); }
+      const f = k * FS / N; if (f > F_MAX + 1e-9) break;
+      bins.push({ f, mag: 2 * Math.sqrt(re * re + im * im) / N });
+    }
+    let peak = null;
+    bins.forEach(b => { if (b.f >= F_LO && b.f <= F_HI && (!peak || b.mag > peak.mag)) peak = b; });
+    const dom = peak && peak.mag >= PEAK_MIN ? peak.f : 0;
+    let energy = 0; bins.forEach(b => { if (b.f >= E_LO && b.f <= E_HI) energy += b.mag * b.mag; });
+    return { bins, peak, dom, energy, start, N };
+  }
+  function sweepStarts() { const r = []; for (let s = 0; s + wl <= TOTAL_S + 1e-9; s += STEP_S) r.push(s); return r; }
+
+  // ------------------------------------------------------------ state
+  const $ = id => document.getElementById(id);
+  const chart = $('chart'), tt = $('tt');
+  let wl = 5, start = 8, speed = 6;
+  const dirty = { win: false, start: false };
+  let step = 0, cursor = -1, playing = false, raf = 0, lastT = 0, acc = 0;
+  let spec = null, sweep = [], total = 0;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function prepare() {
+    const d = STEPS[step];
+    // y-scale of the spectrum panel: fixed per window length over the whole sweep so it never jumps
+    const starts = sweepStarts();
+    sweep = d.mode === 'track' ? starts.map(s => spectrum(s)) : [];
+    let mx = 0; (d.mode === 'track' ? sweep : starts.map(s => spectrum(s))).forEach(sp => sp.bins.forEach(b => { if (b.mag > mx) mx = b.mag; }));
+    sMax = Math.max(2, Math.ceil(mx * 1.1));
+    if (d.mode === 'one') { spec = spectrum(start); total = spec.bins.length; }
+    else total = sweep.length;
+  }
+
+  // ------------------------------------------------------------ drawing
+  let G = {};
+  function drawStatic() {
+    chart.innerHTML = '';
+    G.base = el('g', {}, chart);
+    G.dyn = el('g', {}, chart);
+    G.legend = el('g', {}, chart);
+    G.hover = el('g', {}, chart);
+    const g = G.base;
+    // --- trace panel
+    SEGS.forEach((s, k) => {
+      el('rect', { x: xT(k * SEG_S), y: TT, width: xT(SEG_S) - xT(0), height: TB - TT, fill: s.c, opacity: 0.09 }, g);
+      txt(g, xT(k * SEG_S + SEG_S / 2), TT + 15, s.n, { class: 'plabel', 'text-anchor': 'middle', fill: s.c, 'font-weight': 700 });
+    });
+    let grid = el('g', { class: 'grid' }, g), axis = el('g', { class: 'axis' }, g);
+    for (let v = 0; v <= 35; v += 10) { el('line', { x1: PL, x2: W - PR, y1: yM(v), y2: yM(v) }, grid); txt(axis, PL - 8, yM(v) + 4, v, { 'text-anchor': 'end' }); }
+    for (let t = 0; t <= TOTAL_S; t += 4) { el('line', { x1: xT(t), x2: xT(t), y1: TT, y2: TB }, grid); }
+    el('path', { d: `M${PL},${TT}V${TB}H${W - PR}` }, axis);
+    txt(g, PL - 30, TT - 10, '‖a‖ (m/s²)', { class: 'axis-title' });
+    let p = ''; for (let i = 0; i < MAG.length; i++) p += (i ? 'L' : 'M') + xT(i / FS).toFixed(1) + ',' + yM(MAG[i]).toFixed(1);
+    el('path', { class: 'sig-line', d: p }, g);
+    // --- dominant frequency panel (shares the time axis)
+    grid = el('g', { class: 'grid' }, g); axis = el('g', { class: 'axis' }, g);
+    for (let f = 0; f <= 4; f += 1) { el('line', { x1: PL, x2: W - PR, y1: yD(f), y2: yD(f) }, grid); txt(axis, PL - 8, yD(f) + 4, f, { 'text-anchor': 'end' }); }
+    for (let t = 0; t <= TOTAL_S; t += 4) { el('line', { x1: xT(t), x2: xT(t), y1: DT, y2: DB }, grid); txt(axis, xT(t), DB + 16, t, { 'text-anchor': 'middle' }); }
+    el('path', { d: `M${PL},${DT}V${DB}H${W - PR}` }, axis);
+    txt(g, PL - 30, DT - 10, 'dominant frequency (Hz)', { class: 'axis-title' });
+    txt(g, W - PR, DB + 32, 'time (s)', { class: 'axis-title', 'text-anchor': 'end' });
+    // --- spectrum panel
+    grid = el('g', { class: 'grid' }, g); axis = el('g', { class: 'axis' }, g);
+    el('rect', { x: xF(E_LO), y: ST, width: xF(E_HI) - xF(E_LO), height: SB - ST, fill: '#2a78d6', opacity: .07 }, g);
+    const st = sMax > 12 ? 5 : sMax > 6 ? 2 : 1;
+    for (let v = 0; v <= sMax; v += st) { el('line', { x1: PL, x2: W - PR, y1: yS(v), y2: yS(v) }, grid); txt(axis, PL - 8, yS(v) + 4, v, { 'text-anchor': 'end' }); }
+    for (let f = 0; f <= F_MAX; f += 1) { el('line', { x1: xF(f), x2: xF(f), y1: ST, y2: SB }, grid); txt(axis, xF(f), SB + 16, f, { 'text-anchor': 'middle' }); }
+    el('path', { d: `M${PL},${ST}V${SB}H${W - PR}` }, axis);
+    txt(g, PL - 30, ST - 10, '|X(f)| of the window', { class: 'axis-title' });
+    txt(g, W - PR, SB + 32, 'frequency (Hz)', { class: 'axis-title', 'text-anchor': 'end' });
+    el('line', { x1: PL, x2: W - PR, y1: yS(PEAK_MIN), y2: yS(PEAK_MIN), stroke: 'var(--ink-3)', 'stroke-dasharray': '4 3' }, g);
+    txt(g, xF(F_MAX) - 6, yS(PEAK_MIN) - 5, `peak threshold ${PEAK_MIN}`, { class: 'formula', 'text-anchor': 'end' });
+    txt(g, xF(E_LO) + 6, ST + 36, `energy band ${E_LO}–${E_HI} Hz`, { class: 'formula' });
+    txt(g, PL + 10, ST + 18, `dominant f = argmax |X(f)| over ${F_LO}–${F_HI} Hz (DC excluded)   ·   energy = Σ |X(f)|² over ${E_LO}–${E_HI} Hz   ·   Δf = 1/w = ${fmt(1 / wl, 2)} Hz`, { class: 'formula' });
+  }
+  function segAt(t) { return SEGS[Math.min(2, Math.floor(t / SEG_S))]; }
+  function drawLegend() {
+    G.legend.innerHTML = '';
+    legendRow(G.legend, W - PR, TT - 26, [{ c: 'var(--clean)', n: '‖a‖ (50 Hz)', line: true }, { c: 'var(--ink)', n: 'window', dash: true }]);
+    legendRow(G.legend, W - PR, DT - 26, [{ c: 'var(--ma)', n: 'dominant frequency per window', dot: true }]);
+    legendRow(G.legend, W - PR, ST - 26, [{ c: 'var(--ink)', n: '|X(f)| at each bin', line: true }, { c: 'var(--ink)', n: 'dominant peak', ring: true }, { c: '#2a78d6', n: 'energy band', band: true }]);
+  }
+  function legendRow(parent, xr, y, items) {
+    const padX = 10, gap = 16, h = 24;
+    const widths = items.map(it => 26 + it.n.length * 7.2);
+    const wdt = widths.reduce((a, b) => a + b, 0) + gap * (items.length - 1) + 2 * padX;
+    const x = xr - wdt;
+    el('rect', { x, y, width: wdt, height: h, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, parent);
+    let cx = x + padX; const yy = y + h / 2;
+    items.forEach((it, j) => {
+      if (it.dot) el('circle', { cx: cx + 9, cy: yy, r: 4, fill: it.c }, parent);
+      else if (it.ring) el('circle', { cx: cx + 9, cy: yy, r: 5, fill: 'none', stroke: it.c, 'stroke-width': 2 }, parent);
+      else if (it.band) el('rect', { x: cx, y: yy - 6, width: 18, height: 12, fill: it.c, opacity: .15 }, parent);
+      else el('line', { x1: cx, x2: cx + 18, y1: yy, y2: yy, stroke: it.c, 'stroke-width': it.dash ? 1.2 : 2.2, 'stroke-dasharray': it.dash ? '3 3' : 'none' }, parent);
+      txt(parent, cx + 26, yy + 4, it.n, { class: 'axis-title', fill: 'var(--ink)' });
+      cx += widths[j] + gap;
+    });
+  }
+
+  function drawWindow(sp, color) {
+    const x0 = xT(sp.start), x1 = xT(sp.start + wl);
+    el('rect', { class: 'win-rect', x: x0, y: TT + 2, width: x1 - x0, height: TB - TT - 4, rx: 2 }, G.dyn);
+    const right = (x0 + x1) / 2 > W - 300;
+    txt(G.dyn, right ? x0 - 8 : x1 + 8, TB - 12, `window ${fmt(sp.start, 1)}–${fmt(sp.start + wl, 1)} s · N = ${sp.N}`, { class: 'dlabel', fill: color, 'text-anchor': right ? 'end' : 'start' });
+  }
+  function drawSpectrum(sp, upto, color, showResult) {
+    const b = sp.bins;
+    let p = ''; for (let k = 0; k <= upto; k++) p += (k ? 'L' : 'M') + xF(b[k].f).toFixed(1) + ',' + yS(b[k].mag).toFixed(1);
+    if (upto >= 0) el('path', { class: 'spec-line', d: p, stroke: color }, G.dyn);
+    for (let k = 0; k <= upto; k++) el('circle', { cx: xF(b[k].f), cy: yS(b[k].mag), r: 3, fill: color, stroke: '#fff', 'stroke-width': 1 }, G.dyn);
+    if (upto >= 0 && upto < b.length - 1) {
+      el('circle', { cx: xF(b[upto].f), cy: yS(b[upto].mag), r: 6, fill: 'none', stroke: color, 'stroke-width': 1.5 }, G.dyn);
+      txt(G.dyn, xF(b[upto].f) + 10, yS(b[upto].mag) - 10, `f = ${fmt(b[upto].f)} Hz · |X| = ${fmt(b[upto].mag)}`, { class: 'dlabel', fill: color });
+    }
+    if (!showResult) return;
+    if (sp.dom > 0) {
+      el('circle', { cx: xF(sp.peak.f), cy: yS(sp.peak.mag), r: 9, fill: 'none', stroke: 'var(--ink)', 'stroke-width': 2 }, G.dyn);
+      txt(G.dyn, xF(sp.peak.f) + 14, yS(sp.peak.mag) + 5, `dominant ${fmt(sp.peak.f)} Hz`, { class: 'dlabel', fill: 'var(--ink)' });
+    }
+    const rx = W - PR - 10, ry = ST + 48;
+    txt(G.dyn, rx, ry, sp.dom > 0 ? `dominant frequency = ${fmt(sp.dom)} Hz` : `dominant frequency: none (peak < ${PEAK_MIN}) → 0 Hz`, { class: 'big', fill: color, 'text-anchor': 'end' });
+    txt(G.dyn, rx, ry + 22, `energy ${E_LO}–${E_HI} Hz = ${fmt(sp.energy, 1)}`, { class: 'big', fill: color, 'text-anchor': 'end' });
+  }
+  function drawDomPoint(sp, color) {
+    const tc = sp.start + wl / 2;
+    el('line', { x1: xT(tc), x2: xT(tc), y1: DT, y2: yD(sp.dom), stroke: color, 'stroke-dasharray': '2 3', opacity: .6 }, G.dyn);
+    el('circle', { cx: xT(tc), cy: yD(sp.dom), r: 5.5, fill: 'var(--ma)', stroke: '#fff', 'stroke-width': 1.5 }, G.dyn);
+    txt(G.dyn, xT(tc) + 10, yD(sp.dom) - 10, `${fmt(sp.dom)} Hz`, { class: 'dlabel', fill: 'var(--ma)' });
+  }
+
+  function render() {
+    G.dyn.innerHTML = '';
+    const d = STEPS[step];
+    if (d.mode === 'one') {
+      const color = segAt(start + wl / 2).c;
+      drawWindow(spec, color);
+      const done = cursor >= total - 1;
+      drawSpectrum(spec, cursor, color, done);
+      if (done) drawDomPoint(spec, color);
+    } else {
+      if (cursor < 0) return;
+      const sp = sweep[cursor], color = segAt(sp.start + wl / 2).c;
+      drawWindow(sp, color);
+      drawSpectrum(sp, sp.bins.length - 1, color, true);
+      let p = ''; for (let k = 0; k <= cursor; k++) p += (k ? 'L' : 'M') + xT(sweep[k].start + wl / 2).toFixed(1) + ',' + yD(sweep[k].dom).toFixed(1);
+      el('path', { d: p, fill: 'none', stroke: 'var(--ma)', 'stroke-width': 1.6 }, G.dyn);
+      for (let k = 0; k < cursor; k++) el('circle', { cx: xT(sweep[k].start + wl / 2), cy: yD(sweep[k].dom), r: 3.5, fill: 'var(--ma)' }, G.dyn);
+      drawDomPoint(sp, color);
+      // the start dial follows the sweep (not marked dirty)
+      $('start').value = sp.start; $('startVal').textContent = fmt(sp.start, 1) + ' s';
+    }
+  }
+
+  // ------------------------------------------------------------ hover
+  function hover(evt) {
+    const pt = chart.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+    const p = pt.matrixTransform(chart.getScreenCTM().inverse());
+    G.hover.innerHTML = '';
+    let html = '';
+    if (p.y >= TT && p.y <= TB) {
+      const i = Math.max(0, Math.min(MAG.length - 1, Math.round((p.x - PL) / (W - PL - PR) * MAG.length)));
+      el('line', { class: 'crosshair', x1: xT(i / FS), x2: xT(i / FS), y1: TT, y2: TB }, G.hover);
+      el('circle', { cx: xT(i / FS), cy: yM(MAG[i]), r: 4, fill: 'var(--ink-2)', stroke: '#fff', 'stroke-width': 1.5 }, G.hover);
+      html = `<div class="row"><span>t</span><b>${fmt(i / FS)} s</b></div><div class="row"><span>${segAt(i / FS).n}</span></div><div class="row"><span>‖a‖</span><span>${fmt(MAG[i])}</span></div>`;
+    } else if (p.y >= ST && p.y <= SB) {
+      const sp = STEPS[step].mode === 'one' ? spec : sweep[Math.max(0, cursor)];
+      if (!sp) { unhover(); return; }
+      const f = (p.x - PL) / (W - PL - PR) * F_MAX;
+      let best = 0; sp.bins.forEach((b, k) => { if (Math.abs(b.f - f) < Math.abs(sp.bins[best].f - f)) best = k; });
+      const b = sp.bins[best];
+      el('line', { class: 'crosshair', x1: xF(b.f), x2: xF(b.f), y1: ST, y2: SB }, G.hover);
+      html = `<div class="row"><span>f</span><b>${fmt(b.f)} Hz</b></div><div class="row"><span>|X(f)|</span><span>${fmt(b.mag)}</span></div>`;
+    } else { unhover(); return; }
+    tt.innerHTML = html; tt.style.display = 'block';
+    const wrap = chart.parentElement.getBoundingClientRect();
+    const px = evt.clientX - wrap.left, py = evt.clientY - wrap.top;
+    tt.style.left = (px + 16 + tt.offsetWidth > wrap.width ? px - tt.offsetWidth - 12 : px + 16) + 'px';
+    tt.style.top = Math.max(0, py - 10) + 'px';
+  }
+  function unhover() { tt.style.display = 'none'; G.hover.innerHTML = ''; }
+
+  // ------------------------------------------------------------ step control
+  function clampStart() { start = Math.min(start, TOTAL_S - wl); $('start').max = TOTAL_S - wl; $('start').value = start; $('startVal').textContent = fmt(start, 1) + ' s'; }
+  function applyPresets() {
+    const p = STEPS[step].preset;
+    if (!dirty.win) { wl = p.win; $('win').value = wl; $('winVal').textContent = wl + ' s'; }
+    if (!dirty.start) start = p.start;
+    clampStart();
+  }
+  function tag() { return `w = ${wl} s (N = ${wl * FS}) · Δf = ${fmt(1 / wl, 2)} Hz` + (STEPS[step].mode === 'track' ? ` · step = ${STEP_S} s` : ''); }
+  function enterStep(k, completed = false) {
+    step = k;
+    applyPresets();
+    const d = STEPS[step];
+    prepare();
+    drawStatic();
+    $('title').innerHTML = d.title + `<span class="tag">${tag()}</span>`;
+    $('subtitle').textContent = d.subtitle;
+    $('counter').textContent = `${step + 1} / ${STEPS.length}`;
+    try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {}
+    stopPlay();
+    cursor = -1;
+    drawLegend();
+    if (completed || speed === 0 || reduceMotion) finish();
+    else { render(); startPlay(); }
+  }
+  function redraw(seekTo) {
+    const frac = total ? Math.max(0, cursor) / total : 0;
+    const wasDone = cursorDone();
+    prepare(); drawStatic(); drawLegend();
+    $('title').innerHTML = STEPS[step].title + `<span class="tag">${tag()}</span>`;
+    if (seekTo !== undefined) cursor = seekTo;
+    else cursor = wasDone ? total - 1 : Math.min(total - 1, Math.round(frac * total));
+    render();
+  }
+  function cursorDone() { return cursor >= total - 1; }
+  function finish() { cursor = total - 1; stopPlay(); render(); }
+  function rate() { return speed * (STEPS[step].mode === 'one' ? 2.5 : 1); }
+  function tick(t) {
+    if (!playing) return;
+    const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+    acc += dt * rate();
+    while (acc >= 1 && cursor < total - 1) { cursor++; acc -= 1; }
+    render();
+    if (cursor >= total - 1) { finish(); return; }
+    raf = requestAnimationFrame(tick);
+  }
+  function startPlay() {
+    if (cursorDone()) return;
+    playing = true; lastT = performance.now(); acc = 0;
+    $('play').textContent = 'Pause';
+    raf = requestAnimationFrame(tick);
+  }
+  function stopPlay() { playing = false; cancelAnimationFrame(raf); $('play').textContent = 'Play'; }
+  function next() { if (!cursorDone()) { finish(); return; } if (step < STEPS.length - 1) enterStep(step + 1); }
+  function prev() { if (step > 0) enterStep(step - 1, true); }
+  function restart() { enterStep(step); }
+
+  // ------------------------------------------------------------ wiring
+  $('next').addEventListener('click', e => { e.stopPropagation(); next(); });
+  $('prev').addEventListener('click', e => { e.stopPropagation(); prev(); });
+  $('restart').addEventListener('click', e => { e.stopPropagation(); restart(); });
+  $('play').addEventListener('click', e => { e.stopPropagation(); if (playing) stopPlay(); else if (cursorDone()) restart(); else startPlay(); });
+  $('slide').addEventListener('click', () => next());
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
+    else if (e.key === 'r' || e.key === 'R') restart();
+  });
+  $('win').addEventListener('input', e => { dirty.win = true; wl = parseInt(e.target.value, 10); $('winVal').textContent = wl + ' s'; clampStart(); redraw(); });
+  $('start').addEventListener('input', e => {
+    const v = parseFloat(e.target.value);
+    if (STEPS[step].mode === 'track') { stopPlay(); redraw(Math.min(total - 1, Math.round(v / STEP_S))); return; }
+    dirty.start = true; start = v; $('startVal').textContent = fmt(start, 1) + ' s';
+    redraw(total - 1);
+  });
+  $('speed').addEventListener('change', e => { speed = parseFloat(e.target.value); });
+  $('reset').addEventListener('click', e => { e.stopPropagation(); dirty.win = false; dirty.start = false; enterStep(step); });
+  chart.addEventListener('mousemove', hover);
+  chart.addEventListener('mouseleave', unhover);
+
+  const h = parseInt((location.hash || '').replace('#', ''), 10);
+  enterStep(h >= 1 && h <= STEPS.length ? h - 1 : 0);
+})();
+</script>
+</body>
+</html>

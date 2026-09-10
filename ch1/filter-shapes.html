@@ -1,0 +1,774 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Filter Shapes</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff;
+    --ink: #222222;
+    --ink-2: #666666;
+    --ink-3: #9a9a9a;
+    --rule: #dcdcdc;
+    --grid: #ececec;
+    --raw: #b4b4b4;
+    --clean: #444444;
+    --ma: #2a78d6;
+    --sig: #2a78d6;
+    --noise: #eb6834;
+    --green: #1baf7a;
+    --violet: #4a3aa7;
+    --pass: rgba(42, 120, 214, 0.08);
+    --stop: rgba(235, 104, 52, 0.10);
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--sans); font-size: 15px; line-height: 1.4;
+    padding-block: 18px 28px; padding-inline: 16px; -webkit-font-smoothing: antialiased;
+  }
+  .stage { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
+  .slide {
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 6px;
+    padding: 26px 34px 14px; display: grid; grid-template-rows: auto 1fr auto; gap: 8px;
+    position: relative; outline: none; cursor: pointer; user-select: none;
+  }
+  .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
+  .head h1 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .chart-wrap { position: relative; min-height: 0; }
+  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  .tt {
+    position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule);
+    border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink);
+    box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2;
+  }
+  .tt .row { display: flex; gap: 10px; justify-content: space-between; }
+  .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 6px; border-top: 1px solid var(--rule); }
+  .foot .ctr { font-family: var(--mono); }
+
+  .bar { display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center; padding:14px 18px;
+         border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
+  .group { display:flex; align-items:center; gap:8px; }
+  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; white-space: nowrap; }
+  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
+  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a;
+                   border-radius:5px; padding:7px 13px; cursor:pointer; }
+  button:hover, select:hover { border-color:var(--ink); }
+  button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
+  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  input[type=checkbox] { accent-color:var(--ma); width:18px; height:18px; }
+  .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
+  .hint kbd { font-family: var(--mono); background: #fff; border: 1px solid var(--rule); border-radius: 3px; padding: 0 5px; font-size: 11px; }
+
+  .grid line { stroke: var(--grid); stroke-width: 1; }
+  .ptitle { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 11px; fill: var(--ink-3); }
+  .dlabel { font-family: var(--sans); font-size: 12px; font-weight: 700; }
+  .slabel { font-family: var(--sans); font-size: 11px; fill: var(--ink-2); }
+  .mono { font-family: var(--mono); font-size: 12px; fill: var(--ink); }
+  .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
+
+  @media (max-width: 720px) {
+    .slide { padding: 18px 16px 12px; }
+    .hint { display: none; }
+    input[type=range] { width: 140px; }
+  }
+</style>
+
+<div class="stage">
+  <section class="slide" id="slide" tabindex="0" aria-live="polite">
+    <div class="head">
+      <h1 id="title">Filter shapes</h1>
+      <p id="subtitle"></p>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 1200 700" role="img" aria-label="Frequency response, spectrum and time-domain result of a Butterworth filter"></svg>
+      <div class="tt" id="tt"></div>
+    </div>
+    <div class="foot">
+      <span>CS328 &nbsp;·&nbsp; Sensor Data Smoothing and Filtering</span>
+      <span class="ctr" id="counter"></span>
+    </div>
+  </section>
+
+  <div class="bar">
+    <div class="group">
+      <button id="prev" title="Previous (←)">‹ Prev</button>
+      <button id="play" class="primary" title="Play / pause (space)">Play</button>
+      <button id="next" title="Next (→)">Next ›</button>
+      <button id="restart" title="Restart this step (r)">Restart</button>
+      <button id="reset" title="Clear your changes and return to this step's preset values">Reset dials</button>
+    </div>
+    <div class="group" id="g-ftype">
+      <label for="ftype">Filter</label>
+      <select id="ftype">
+        <option value="lowpass">low-pass</option>
+        <option value="highpass">high-pass</option>
+        <option value="bandpass">band-pass</option>
+        <option value="bandstop">notch (band-stop)</option>
+      </select>
+    </div>
+    <div class="group" id="g-cut">
+      <label for="cut1" id="cut1-label">Cutoff</label>
+      <input type="range" id="cut1" min="2" max="480" step="1" value="100">
+      <span class="val" id="cut1-val">100 Hz</span>
+    </div>
+    <div class="group" id="g-cut2" hidden>
+      <label for="cut2">Upper cutoff</label>
+      <input type="range" id="cut2" min="4" max="495" step="1" value="150">
+      <span class="val" id="cut2-val">150 Hz</span>
+    </div>
+    <div class="group" id="g-order">
+      <label for="order">Order n</label>
+      <select id="order">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="4" selected>4</option>
+        <option value="8">8</option>
+        <option value="16">16</option>
+      </select>
+    </div>
+    <div class="group" id="g-input">
+      <label for="input">Input</label>
+      <select id="input">
+        <option value="hf">tones + HF noise</option>
+        <option value="lf">tones + drift</option>
+        <option value="hum">tones + 60 Hz powerline noise</option>
+        <option value="all">tones + all three</option>
+      </select>
+    </div>
+    <div class="group" id="g-mode">
+      <label for="mode">Apply</label>
+      <select id="mode">
+        <option value="zero">zero-phase (filtfilt)</option>
+        <option value="causal">causal (lfilter)</option>
+      </select>
+    </div>
+    <div class="group">
+      <label for="speed">Speed</label>
+      <select id="speed">
+        <option value="0.035">very slow</option>
+        <option value="0.07">slow</option>
+        <option value="0.16" selected>normal</option>
+        <option value="0.4">fast</option>
+        <option value="0">instant</option>
+      </select>
+    </div>
+    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play &nbsp; <kbd>r</kbd> restart</span>
+  </div>
+</div>
+
+<script>
+// Butterworth IIR design + filtering, mirroring scipy.signal.butter / lfilter / filtfilt.
+// Design path: analog Butterworth prototype (zpk) -> lp2lp / lp2hp / lp2bp / lp2bs -> bilinear -> SOS.
+// Usage:
+//   const sos = butter(4, 100, 1000, 'lowpass');            // cutoff Hz, fs Hz
+//   const sos = butter(4, [58, 62], 1000, 'bandstop');
+//   const y = sosfilt(sos, x);                              // causal (lfilter)
+//   const y = sosfiltfilt(sos, x);                          // zero-phase (filtfilt)
+//   const mag = sosFreqz(sos, fHz, fs);                     // |H| at one frequency
+(function (global) {
+  // ---- minimal complex arithmetic
+  const C = (re, im = 0) => ({ re, im });
+  const cadd = (a, b) => C(a.re + b.re, a.im + b.im);
+  const csub = (a, b) => C(a.re - b.re, a.im - b.im);
+  const cmul = (a, b) => C(a.re * b.re - a.im * b.im, a.re * b.im + a.im * b.re);
+  const cdiv = (a, b) => { const d = b.re * b.re + b.im * b.im; return C((a.re * b.re + a.im * b.im) / d, (a.im * b.re - a.re * b.im) / d); };
+  const csqrt = a => { const r = Math.hypot(a.re, a.im); const re = Math.sqrt(Math.max(0, (r + a.re) / 2)); const im = Math.sign(a.im || 1) * Math.sqrt(Math.max(0, (r - a.re) / 2)); return C(re, im); };
+  const cscale = (a, s) => C(a.re * s, a.im * s);
+
+  function buttap(N) { // analog prototype poles, unit cutoff
+    const p = [];
+    for (let k = 1; k <= N; k++) { const th = Math.PI * (2 * k - 1) / (2 * N); p.push(C(-Math.sin(th), Math.cos(th))); }
+    return { z: [], p, k: 1 };
+  }
+  function lp2lp(zpk, wo) { return { z: zpk.z.map(v => cscale(v, wo)), p: zpk.p.map(v => cscale(v, wo)), k: zpk.k * Math.pow(wo, zpk.p.length - zpk.z.length) }; }
+  function lp2hp(zpk, wo) {
+    const z = zpk.z.map(v => cdiv(C(wo), v)), p = zpk.p.map(v => cdiv(C(wo), v));
+    const deg = zpk.p.length - zpk.z.length;
+    for (let i = 0; i < deg; i++) z.push(C(0));
+    let num = C(1), den = C(1);
+    zpk.z.forEach(v => { num = cmul(num, cscale(v, -1)); });
+    zpk.p.forEach(v => { den = cmul(den, cscale(v, -1)); });
+    const kk = cdiv(num, den);
+    return { z, p, k: zpk.k * kk.re };
+  }
+  function lp2bp(zpk, wo, bw) {
+    const deg = zpk.p.length - zpk.z.length;
+    const tr = v => { const s = cscale(v, bw / 2); const r = csqrt(csub(cmul(s, s), C(wo * wo))); return [cadd(s, r), csub(s, r)]; };
+    const z = [], p = [];
+    zpk.z.forEach(v => z.push(...tr(v)));
+    zpk.p.forEach(v => p.push(...tr(v)));
+    for (let i = 0; i < deg; i++) z.push(C(0));
+    return { z, p, k: zpk.k * Math.pow(bw, deg) };
+  }
+  function lp2bs(zpk, wo, bw) {
+    const deg = zpk.p.length - zpk.z.length;
+    const tr = v => { const s = cdiv(C(bw / 2), v); const r = csqrt(csub(cmul(s, s), C(wo * wo))); return [cadd(s, r), csub(s, r)]; };
+    const z = [], p = [];
+    zpk.z.forEach(v => z.push(...tr(v)));
+    zpk.p.forEach(v => p.push(...tr(v)));
+    for (let i = 0; i < deg; i++) { z.push(C(0, wo)); z.push(C(0, -wo)); }
+    let num = C(1), den = C(1);
+    zpk.z.forEach(v => { num = cmul(num, cscale(v, -1)); });
+    zpk.p.forEach(v => { den = cmul(den, cscale(v, -1)); });
+    const kk = cdiv(num, den);
+    return { z, p, k: zpk.k * kk.re };
+  }
+  function bilinear(zpk, fs) {
+    const fs2 = 2 * fs;
+    const deg = zpk.p.length - zpk.z.length;
+    const tr = v => cdiv(cadd(C(fs2), v), csub(C(fs2), v));
+    const z = zpk.z.map(tr), p = zpk.p.map(tr);
+    for (let i = 0; i < deg; i++) z.push(C(-1));
+    let num = C(1), den = C(1);
+    zpk.z.forEach(v => { num = cmul(num, csub(C(fs2), v)); });
+    zpk.p.forEach(v => { den = cmul(den, csub(C(fs2), v)); });
+    const kk = cdiv(num, den);
+    return { z, p, k: zpk.k * kk.re };
+  }
+  // pair conjugates -> second-order sections [b0,b1,b2,a0,a1,a2]
+  function zpk2sos(zpk) {
+    const pairUp = arr => {
+      const rest = arr.slice(); const pairs = [];
+      while (rest.length) {
+        const a = rest.shift();
+        if (Math.abs(a.im) < 1e-9) { // real: pair with the nearest real
+          let j = rest.findIndex(v => Math.abs(v.im) < 1e-9);
+          if (j >= 0) { pairs.push([a, rest.splice(j, 1)[0]]); } else pairs.push([a]);
+        } else {
+          let j = rest.findIndex(v => Math.abs(v.re - a.re) < 1e-7 && Math.abs(v.im + a.im) < 1e-7);
+          if (j >= 0) { pairs.push([a, rest.splice(j, 1)[0]]); } else pairs.push([a, C(a.re, -a.im)]);
+        }
+      }
+      return pairs;
+    };
+    const poly = pr => { // (x - r1)(x - r2) -> real coefficients [1, c1, c2]
+      if (pr.length === 1) return [1, -pr[0].re, 0];
+      const s = cadd(pr[0], pr[1]), m = cmul(pr[0], pr[1]);
+      return [1, -s.re, m.re];
+    };
+    // sort poles by closeness to the unit circle so each section pairs zeros nearby (stability of cascade)
+    const P = zpk.p.slice().sort((a, b) => Math.hypot(b.re, b.im) - Math.hypot(a.re, a.im));
+    const Z = zpk.z.slice();
+    const pp = pairUp(P);
+    const sos = [];
+    pp.forEach((pair, idx) => {
+      // choose the zero(s) nearest this pole pair
+      const zs = [];
+      for (let n = 0; n < pair.length && Z.length; n++) {
+        let best = 0, bd = Infinity;
+        Z.forEach((v, j) => { const d = Math.hypot(v.re - pair[0].re, Math.abs(v.im) - Math.abs(pair[0].im)); if (d < bd) { bd = d; best = j; } });
+        const zz = Z.splice(best, 1)[0];
+        zs.push(zz);
+        if (Math.abs(zz.im) > 1e-9) { // also remove its conjugate
+          const cj = Z.findIndex(v => Math.abs(v.re - zz.re) < 1e-7 && Math.abs(v.im + zz.im) < 1e-7);
+          if (cj >= 0) { zs.push(Z.splice(cj, 1)[0]); n++; }
+        }
+      }
+      const b = zs.length ? poly(zs) : [1, 0, 0];
+      const a = poly(pair);
+      const g = idx === 0 ? zpk.k : 1;
+      sos.push([b[0] * g, b[1] * g, b[2] * g, a[0], a[1], a[2]]);
+    });
+    return sos;
+  }
+
+  function butter(N, cutoffHz, fs, btype = 'lowpass') {
+    const warp = f => 2 * fs * Math.tan(Math.PI * f / fs);
+    let zpk = buttap(N);
+    if (btype === 'lowpass') zpk = lp2lp(zpk, warp(cutoffHz));
+    else if (btype === 'highpass') zpk = lp2hp(zpk, warp(cutoffHz));
+    else {
+      const w1 = warp(cutoffHz[0]), w2 = warp(cutoffHz[1]);
+      const bw = w2 - w1, wo = Math.sqrt(w1 * w2);
+      zpk = btype === 'bandpass' ? lp2bp(zpk, wo, bw) : lp2bs(zpk, wo, bw);
+    }
+    return zpk2sos(bilinear(zpk, fs));
+  }
+
+  function sosfilt(sos, x, zi) { // direct form II transposed, per section
+    let y = Float64Array.from(x);
+    const st = zi || sos.map(() => [0, 0]);
+    sos.forEach(([b0, b1, b2, a0, a1, a2], s) => {
+      const z = st[s]; const out = new Float64Array(y.length);
+      for (let n = 0; n < y.length; n++) {
+        const xn = y[n];
+        const yn = b0 * xn + z[0];
+        z[0] = b1 * xn - a1 * yn + z[1];
+        z[1] = b2 * xn - a2 * yn;
+        out[n] = yn;
+      }
+      y = out;
+    });
+    return y;
+  }
+  // steady-state initial conditions for a step of amplitude 1 (like scipy sosfilt_zi)
+  function sosfiltZi(sos) {
+    let scale = 1;
+    return sos.map(([b0, b1, b2, a0, a1, a2]) => {
+      // solve for zi such that output is constant for constant input (scale)
+      const g = (b0 + b1 + b2) / (1 + a1 + a2); // dc gain of this section
+      const z0 = scale * ((b1 - a1 * b0) + (b2 - a2 * b0)) / (1 + a1 + a2) * 1; // approx via steady state
+      // exact: z1 = scale*(b2 - a2*b0)... use the standard linear solve
+      // Steady state: y = g*scale; z0 = y - b0*scale; z1 = z0 - (b1*scale - a1*y)
+      const y = g * scale;
+      const zz0 = y - b0 * scale;
+      const zz1 = zz0 - (b1 * scale - a1 * y);
+      scale = y;
+      return [zz0, zz1];
+    });
+  }
+  function sosfiltfilt(sos, x) {
+    const n = x.length;
+    const pad = Math.min(n - 1, 3 * 3 * sos.length); // ~ 3 * (order) samples (scipy: 3*max(len(a),len(b)))
+    // odd extension
+    const ext = new Float64Array(n + 2 * pad);
+    for (let i = 0; i < pad; i++) ext[i] = 2 * x[0] - x[pad - i];
+    for (let i = 0; i < n; i++) ext[pad + i] = x[i];
+    for (let i = 0; i < pad; i++) ext[pad + n + i] = 2 * x[n - 1] - x[n - 2 - i];
+    const zi = sosfiltZi(sos);
+    let y = sosfilt(sos, ext, zi.map(z => [z[0] * ext[0], z[1] * ext[0]]));
+    y.reverse();
+    y = sosfilt(sos, y, zi.map(z => [z[0] * y[0], z[1] * y[0]]));
+    y.reverse();
+    return y.slice(pad, pad + n);
+  }
+  function sosFreqz(sos, fHz, fs) { // magnitude response at a frequency (Hz)
+    const w = 2 * Math.PI * fHz / fs;
+    const e1 = C(Math.cos(-w), Math.sin(-w)), e2 = C(Math.cos(-2 * w), Math.sin(-2 * w));
+    let H = C(1);
+    sos.forEach(([b0, b1, b2, a0, a1, a2]) => {
+      const num = cadd(C(b0), cadd(cscale(e1, b1), cscale(e2, b2)));
+      const den = cadd(C(a0), cadd(cscale(e1, a1), cscale(e2, a2)));
+      H = cmul(H, cdiv(num, den));
+    });
+    return Math.hypot(H.re, H.im);
+  }
+  function sosPhase(sos, fHz, fs) {
+    const w = 2 * Math.PI * fHz / fs;
+    const e1 = C(Math.cos(-w), Math.sin(-w)), e2 = C(Math.cos(-2 * w), Math.sin(-2 * w));
+    let H = C(1);
+    sos.forEach(([b0, b1, b2, a0, a1, a2]) => {
+      const num = cadd(C(b0), cadd(cscale(e1, b1), cscale(e2, b2)));
+      const den = cadd(C(a0), cadd(cscale(e1, a1), cscale(e2, a2)));
+      H = cmul(H, cdiv(num, den));
+    });
+    return Math.atan2(H.im, H.re);
+  }
+
+  // ---- real FFT magnitude (radix-2, zero-padded), returns {f, mag} one-sided, mag scaled 2/N
+  function rfftMag(x, fs) {
+    let N = 1; while (N < x.length) N <<= 1;
+    const re = new Float64Array(N), im = new Float64Array(N);
+    for (let i = 0; i < x.length; i++) re[i] = x[i];
+    for (let i = 1, j = 0; i < N; i++) { // bit reversal
+      let bit = N >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit;
+      if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; }
+    }
+    for (let len = 2; len <= N; len <<= 1) {
+      const ang = -2 * Math.PI / len, wr = Math.cos(ang), wi = Math.sin(ang);
+      for (let i = 0; i < N; i += len) {
+        let cr = 1, ci = 0;
+        for (let j = 0; j < len / 2; j++) {
+          const ur = re[i + j], ui = im[i + j];
+          const vr = re[i + j + len / 2] * cr - im[i + j + len / 2] * ci;
+          const vi = re[i + j + len / 2] * ci + im[i + j + len / 2] * cr;
+          re[i + j] = ur + vr; im[i + j] = ui + vi;
+          re[i + j + len / 2] = ur - vr; im[i + j + len / 2] = ui - vi;
+          const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t;
+        }
+      }
+    }
+    const half = N / 2 + 1, f = new Float64Array(half), mag = new Float64Array(half);
+    for (let k = 0; k < half; k++) { f[k] = k * fs / N; mag[k] = 2 * Math.hypot(re[k], im[k]) / x.length; }
+    return { f, mag };
+  }
+
+  const api = { butter, sosfilt, sosfiltfilt, sosFreqz, sosPhase, rfftMag };
+  if (typeof module !== 'undefined') module.exports = api;
+  global.Butter = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+(() => {
+  const B = window.Butter;
+  const FS = 1000, NYQ = FS / 2, N = 1000;
+  const T = Array.from({ length: N }, (_, i) => i / FS);
+
+  // ------------------------------------------------------------ signals (seeded, as in the chapter figure script)
+  function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+  function gauss(r) { const u = 1 - r(), v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+  const r = rng(328);
+  const clean = T.map(t => Math.sin(2 * Math.PI * 50 * t) + Math.sin(2 * Math.PI * 120 * t));
+  const white1 = T.map(() => gauss(r)), white2 = T.map(() => gauss(r));
+  const hfNoise = Array.from(B.sosfiltfilt(B.butter(2, 200, FS, 'highpass'), white1)).map(v => 2 * v);
+  const lfNoise = Array.from(B.sosfiltfilt(B.butter(2, 10, FS, 'lowpass'), white2)).map(v => 8 * v);
+  const hum = T.map(t => Math.sin(2 * Math.PI * 60 * t));
+
+  const INPUTS = {
+    hf:   { name: 'tones + HF noise',       x: clean.map((c, i) => c + hfNoise[i]), target: clean, twin: [0, 0.2],  noiseBand: [175, 500] },
+    lf:   { name: 'tones + baseline drift', x: clean.map((c, i) => c + lfNoise[i]), target: clean, twin: [0, 1.0],  noiseBand: [0, 18] },
+    hum:  { name: 'tones + 60 Hz powerline noise',      x: clean.map((c, i) => c + hum[i]),     target: clean, twin: [0, 0.2],  noiseBand: [54, 66] },
+    all:  { name: 'tones + all three',      x: clean.map((c, i) => c + hfNoise[i] + lfNoise[i] + hum[i]), target: clean, twin: [0, 1.0], noiseBand: null },
+  };
+  Object.values(INPUTS).forEach(inp => { inp.spec = B.rfftMag(inp.x, FS); });
+
+  const isBand = ft => ft === 'bandpass' || ft === 'bandstop';
+
+  // ------------------------------------------------------------ Butterworth cache
+  const cache = new Map();
+  function design(ftype, c1, c2, order) {
+    const key = `${ftype}|${c1}|${c2}|${order}`;
+    if (cache.has(key)) return cache.get(key);
+    const cut = isBand(ftype) ? [Math.min(c1, c2), Math.max(c1, c2)] : c1;
+    const sos = B.butter(order, cut, FS, ftype);
+    const H = new Float64Array(501);
+    for (let f = 0; f <= 500; f++) H[f] = Math.min(1.05, B.sosFreqz(sos, f === 0 ? 1e-6 : f, FS));
+    const d = { sos, H, outputs: new Map() };
+    cache.set(key, d);
+    return d;
+  }
+  function output(d, inputKey, mode) {
+    const k = inputKey + '|' + mode;
+    if (!d.outputs.has(k)) d.outputs.set(k, Array.from(mode === 'causal' ? B.sosfilt(d.sos, INPUTS[inputKey].x) : B.sosfiltfilt(d.sos, INPUTS[inputKey].x)));
+    return d.outputs.get(k);
+  }
+
+  // ------------------------------------------------------------ state
+  const $ = id => document.getElementById(id);
+  const chart = $('chart');
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const CTL_IDS = ['ftype', 'cut1', 'cut2', 'order', 'input', 'mode'];
+  let ctl = { ftype: 'lowpass', c1: 100, c2: 150, order: 4, input: 'hf', mode: 'zero' };
+  const dirty = { ftype: false, cut1: false, cut2: false, order: false, input: false, mode: false };
+  let step = 0, prog = 0, playing = false, raf = 0, lastT = 0, speed = 0.16;
+
+  const FT = { lowpass: 'low-pass', highpass: 'high-pass', bandpass: 'band-pass', bandstop: 'notch' };
+  const cutText = c => isBand(c.ftype) ? `${Math.min(c.c1, c.c2)}–${Math.max(c.c1, c.c2)} Hz` : `${c.c1} Hz`;
+  const cutCode = c => isBand(c.ftype) ? `[${Math.min(c.c1, c.c2)}/nyq, ${Math.max(c.c1, c.c2)}/nyq]` : `${c.c1}/nyq`;
+  const scipyCall = (c, n) => `y = ${c.mode === 'causal' ? 'lfilter' : 'filtfilt'}(*butter(${n ?? c.order}, ${cutCode(c)}, btype='${c.ftype}'), x)`;
+
+  // ------------------------------------------------------------ steps (presets apply only to dials the user has not touched)
+  const STEPS = [
+    {
+      id: 'lp', anim: 'sweep',
+      title: 'Low-pass filtering of high-frequency noise',
+      tag: c => `${FT[c.ftype]} · ${cutText(c)} · n = ${c.order}`,
+      set: { ftype: 'lowpass', c1: 150, c2: 150, order: 4, input: 'hf', mode: 'zero' },
+      subtitle: 'How a low-pass filter removes noise above the two tones.',
+    },
+    {
+      id: 'hp', anim: 'sweep',
+      title: 'High-pass filtering of baseline drift',
+      tag: c => `${FT[c.ftype]} · ${cutText(c)} · n = ${c.order}`,
+      set: { ftype: 'highpass', c1: 20, c2: 150, order: 4, input: 'lf', mode: 'zero' },
+      subtitle: 'How a high-pass filter removes slow baseline wander below the tones.',
+    },
+    {
+      id: 'bp', anim: 'sweep',
+      title: 'Band-pass filtering of a signal with all three noises',
+      tag: c => `${FT[c.ftype]} · ${cutText(c)} · n = ${c.order}`,
+      set: { ftype: 'bandpass', c1: 20, c2: 100, order: 4, input: 'all', mode: 'zero' },
+      subtitle: 'How a single band-pass filter removes all three noises and the 120 Hz tone.',
+    },
+    {
+      id: 'notch', anim: 'sweep',
+      title: 'Notch filtering of 60 Hz interference',
+      tag: c => `${FT[c.ftype]} · ${cutText(c)} · n = ${c.order}`,
+      set: { ftype: 'bandstop', c1: 55, c2: 65, order: 4, input: 'hum', mode: 'zero' },
+      subtitle: 'How a narrow band-stop removes 60 Hz powerline noise between the two tones.',
+    },
+  ];
+
+  // ------------------------------------------------------------ layout
+  const W = 1200, H = 700;
+  const R = { x0: 56, x1: 560, y0: 34, y1: 290 };
+  const S = { x0: 660, x1: 1150, y0: 34, y1: 290 };
+  const TP = { x0: 56, x1: 1080, y0: 385, y1: 660 };
+  const fx = (p, f) => p.x0 + (f / 500) * (p.x1 - p.x0);
+  const gy = g => R.y1 - g * (R.y1 - R.y0) / 1.1;
+  const fmt = (v, d = 2) => (Math.round(v * 10 ** d) / 10 ** d).toFixed(d);
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  function path(pts) { let d = ''; for (const [x, y] of pts) { if (!isFinite(y)) continue; d += (d ? 'L' : 'M') + x.toFixed(1) + ',' + y.toFixed(1); } return d; }
+  let hoverScale = null;
+
+  // conventional legend: white rounded box, swatch + name in ink, static for the step
+  function legend(x, y, items, anchor = 'start') {
+    const rowH = 17, padX = 10, padY = 7;
+    const w = padX * 2 + 30 + Math.max(...items.map(it => it.name.length)) * 6.6;
+    const h = padY * 2 + items.length * rowH;
+    const x0 = anchor === 'end' ? x - w : x;
+    let s = `<g class="legend"><rect x="${x0}" y="${y}" width="${w.toFixed(0)}" height="${h}" rx="4" fill="#fff" fill-opacity=".9" stroke="var(--rule)"/>`;
+    items.forEach((it, i) => {
+      const cy = y + padY + i * rowH + rowH / 2;
+      if (it.dot) s += `<circle cx="${x0 + padX + 8}" cy="${cy}" r="3.5" fill="${it.color}" opacity="${it.opacity ?? 1}"/>`;
+      else s += `<line x1="${x0 + padX}" x2="${x0 + padX + 16}" y1="${cy}" y2="${cy}" stroke="${it.color}" stroke-width="3" ${it.dash ? `stroke-dasharray="${it.dash}"` : ''} opacity="${it.opacity ?? 1}"/>`;
+      s += `<text x="${x0 + padX + 24}" y="${cy + 4}" font-family="var(--sans)" font-size="12" fill="var(--ink)">${esc(it.name)}</text>`;
+    });
+    return s + '</g>';
+  }
+
+  const currentOrder = () => ctl.order;
+
+  // ------------------------------------------------------------ panels
+  function drawResponse(Hc, o) {
+    const { ftype, c1, c2, front } = o;
+    const lo = Math.min(c1, c2), hi = Math.max(c1, c2);
+    let s = `<text class="ptitle" x="${R.x0}" y="${R.y0 - 14}"><tspan font-weight="700">frequency response</tspan>  gain</text>`;
+    const bands = [];
+    if (ftype === 'lowpass') bands.push(['pass', 0, c1], ['stop', c1, 500]);
+    else if (ftype === 'highpass') bands.push(['stop', 0, c1], ['pass', c1, 500]);
+    else if (ftype === 'bandpass') bands.push(['stop', 0, lo], ['pass', lo, hi], ['stop', hi, 500]);
+    else bands.push(['pass', 0, lo], ['stop', lo, hi], ['pass', hi, 500]);
+    bands.forEach(([k, a, b]) => {
+      s += `<rect x="${fx(R, a)}" y="${R.y0}" width="${fx(R, b) - fx(R, a)}" height="${R.y1 - R.y0}" fill="var(--${k})"/>`;
+      if (b - a > 40) s += `<text class="slabel" x="${(fx(R, a) + fx(R, b)) / 2}" y="${R.y0 + 12}" text-anchor="middle" fill="${k === 'pass' ? 'var(--sig)' : 'var(--noise)'}" opacity=".8">${k}</text>`;
+    });
+    for (let g = 0; g <= 1; g += 0.5) s += `<line x1="${R.x0}" x2="${R.x1}" y1="${gy(g)}" y2="${gy(g)}" stroke="var(--grid)"/><text class="ax" x="${R.x0 - 8}" y="${gy(g) + 4}" text-anchor="end">${g.toFixed(1)}</text>`;
+    for (let f = 0; f <= 500; f += 100) s += `<line x1="${fx(R, f)}" x2="${fx(R, f)}" y1="${R.y0}" y2="${R.y1}" stroke="var(--grid)"/><text class="ax" x="${fx(R, f)}" y="${R.y1 + 16}" text-anchor="middle">${f}</text>`;
+    s += `<path d="M${R.x0},${R.y0}V${R.y1}H${R.x1}" fill="none" stroke="var(--ink-2)"/>`;
+    s += `<text class="axis-title" x="${R.x1}" y="${R.y1 + 30}" text-anchor="end">frequency (Hz)</text>`;
+    const cuts = isBand(ftype) ? [lo, hi] : [c1];
+    cuts.forEach(c => { s += `<line x1="${fx(R, c)}" x2="${fx(R, c)}" y1="${R.y0}" y2="${R.y1}" stroke="var(--ink-2)" stroke-dasharray="3 3"/>`; });
+    const cy = R.y0 + 46;
+    if (cuts.length === 2 && hi - lo < 45) s += `<text class="ax" x="${(fx(R, lo) + fx(R, hi)) / 2}" y="${cy}" text-anchor="middle" fill="var(--ink)">${lo} – ${hi} Hz</text>`;
+    else cuts.forEach(c => { s += `<text class="ax" x="${fx(R, c) + 4}" y="${cy}" text-anchor="start" fill="var(--ink)">${c} Hz</text>`; });
+    const lim = front == null ? 500 : Math.round(front);
+    const pts = []; for (let f = 0; f <= lim; f++) pts.push([fx(R, f), gy(Hc[f])]);
+    s += `<path d="${path(pts)}" fill="none" stroke="var(--sig)" stroke-width="2.4" stroke-linejoin="round"/>`;
+    if (front != null && front < 500) s += `<circle cx="${fx(R, lim)}" cy="${gy(Hc[lim])}" r="4.5" fill="var(--sig)" stroke="#fff" stroke-width="2"/>`;
+    const items = [];
+    items.push({ name: '|H(f)|', color: 'var(--sig)' });
+    s += Hc[500] > 0.5 ? legend(R.x1 - 6, R.y1 - 6 - (14 + items.length * 17), items, 'end') : legend(R.x1 - 6, R.y0 + 6, items, 'end');
+    return s;
+  }
+
+  function drawSpectrum(inp, Hc, front) {
+    const { f, mag } = inp.spec;
+    let ymax = 0; for (let k = 0; k < mag.length; k++) if (f[k] <= 500) ymax = Math.max(ymax, mag[k]);
+    ymax = Math.max(ymax * 1.18, 0.2);
+    const sy = v => S.y1 - (v / ymax) * (S.y1 - S.y0);
+    let s = `<text class="ptitle" x="${S.x0}" y="${S.y0 - 14}"><tspan font-weight="700">spectrum</tspan>  amplitude vs frequency</text>`;
+    for (let f0 = 0; f0 <= 500; f0 += 100) s += `<line x1="${fx(S, f0)}" x2="${fx(S, f0)}" y1="${S.y0}" y2="${S.y1}" stroke="var(--grid)"/><text class="ax" x="${fx(S, f0)}" y="${S.y1 + 16}" text-anchor="middle">${f0}</text>`;
+    [0, 0.5].forEach(fr => { const v = fr * ymax; s += `<line x1="${S.x0}" x2="${S.x1}" y1="${sy(v)}" y2="${sy(v)}" stroke="var(--grid)"/><text class="ax" x="${S.x0 - 8}" y="${sy(v) + 4}" text-anchor="end">${fmt(v, 1)}</text>`; });
+    s += `<path d="M${S.x0},${S.y0}V${S.y1}H${S.x1}" fill="none" stroke="var(--ink-2)"/>`;
+    s += `<text class="axis-title" x="${S.x1}" y="${S.y1 + 30}" text-anchor="end">frequency (Hz)</text>`;
+    const pre = []; for (let k = 0; k < f.length && f[k] <= 500; k++) pre.push([fx(S, f[k]), sy(mag[k])]);
+    s += `<path d="${path(pre)}" fill="none" stroke="var(--raw)" stroke-width="1.2"/>`;
+    const isSig = fq => Math.abs(fq - 50) < 3 || Math.abs(fq - 120) < 3;
+    const lim = front == null ? 500 : front;
+    let segSig = [], segNoise = [];
+    const flush = () => { if (segSig.length > 1) s += `<path d="${path(segSig)}" fill="none" stroke="var(--sig)" stroke-width="1.8"/>`; if (segNoise.length > 1) s += `<path d="${path(segNoise)}" fill="none" stroke="var(--noise)" stroke-width="1.6"/>`; segSig = []; segNoise = []; };
+    for (let k = 0; k < f.length && f[k] <= lim; k++) {
+      const fq = f[k], g = Hc[Math.min(500, Math.round(fq))];
+      const p = [fx(S, fq), sy(mag[k] * g)];
+      if (isSig(fq)) { segSig.push(p); if (segNoise.length) segNoise.push(p); } else { segNoise.push(p); if (segSig.length) segSig.push(p); }
+      const nx = f[k + 1] ?? 999;
+      if (isSig(fq) !== isSig(nx)) flush();
+    }
+    flush();
+    const hy = g => S.y1 - g * (S.y1 - S.y0) / 1.1;
+    const hp = []; for (let f0 = 0; f0 <= lim; f0++) hp.push([fx(S, f0), hy(Hc[f0])]);
+    s += `<path d="${path(hp)}" fill="none" stroke="var(--sig)" stroke-width="1" stroke-dasharray="4 3" opacity=".7"/>`;
+    if (front != null && front < 500) s += `<line x1="${fx(S, front)}" x2="${fx(S, front)}" y1="${S.y0}" y2="${S.y1}" stroke="var(--ink-2)" stroke-dasharray="2 2"/>`;
+    {
+      [50, 120].forEach(fq => { const k = Math.round(fq * 1024 / FS); s += `<text class="slabel" x="${fx(S, fq)}" y="${sy(mag[k]) - 6}" text-anchor="middle" fill="var(--sig)">${fq} Hz</text>`; });
+      if (inp.noiseBand) { const [a, b] = inp.noiseBand; const mid = (a + b) / 2; const nearTone = Math.abs(mid - 50) < 25 || Math.abs(mid - 120) < 25;
+        s += nearTone ? `<text class="slabel" x="${fx(S, b) + 4}" y="${S.y0 + 52}" text-anchor="start" fill="var(--noise)">← noise (${a}–${b} Hz)</text>` : b - a > 100 ? `<text class="slabel" x="${fx(S, a) + 4}" y="${S.y0 + 0.55 * (S.y1 - S.y0)}" text-anchor="start" fill="var(--noise)">noise band →</text>` : `<text class="slabel" x="${(fx(S, a) + fx(S, b)) / 2}" y="${S.y0 + 12}" text-anchor="middle" fill="var(--noise)">noise</text>`; }
+    }
+    s += legend(S.x1 - 6, S.y0 + 6, [
+      { name: 'input', color: 'var(--raw)' },
+      { name: 'after filter (signal)', color: 'var(--sig)' },
+      { name: 'after filter (noise)', color: 'var(--noise)' },
+      { name: '|H(f)| (scaled)', color: 'var(--sig)', dash: '4 3' },
+    ], 'end');
+    return s;
+  }
+
+  function niceTicks(lo, hi) {
+    const span = hi - lo, raw = span / 4, mag = 10 ** Math.floor(Math.log10(raw));
+    const stepv = [1, 2, 5, 10].map(m => m * mag).find(v => span / v <= 5) || mag;
+    const out = []; for (let v = Math.ceil(lo / stepv) * stepv; v <= hi; v += stepv) out.push(+v.toFixed(6)); return out;
+  }
+
+  function drawTime(inp, series, front, code) {
+    const [t0, t1] = inp.twin;
+    const i0 = Math.round(t0 * FS), i1 = Math.min(N - 1, Math.round(t1 * FS));
+    let lo = Infinity, hi = -Infinity;
+    for (let i = i0; i <= i1; i++) { lo = Math.min(lo, inp.x[i]); hi = Math.max(hi, inp.x[i]); }
+    series.forEach(sr => { for (let i = i0; i <= i1; i++) { lo = Math.min(lo, sr.y[i]); hi = Math.max(hi, sr.y[i]); } });
+    const pad = 0.12 * (hi - lo || 1); lo -= pad; hi += pad;
+    const tx = t => TP.x0 + ((t - t0) / (t1 - t0)) * (TP.x1 - TP.x0);
+    const ty = v => TP.y1 - ((v - lo) / (hi - lo)) * (TP.y1 - TP.y0);
+    let s = `<text class="ptitle" x="${TP.x0}" y="${TP.y0 - 14}"><tspan font-weight="700">time domain</tspan>  ${esc(inp.name)}</text>`;
+    if (code) s += `<text class="mono" x="${TP.x1}" y="${TP.y0 - 14}" text-anchor="end">${esc(code)}</text>`;
+    const tick = (t1 - t0) <= 0.25 ? 0.05 : 0.2;
+    for (let t = t0; t <= t1 + 1e-9; t += tick) s += `<line x1="${tx(t)}" x2="${tx(t)}" y1="${TP.y0}" y2="${TP.y1}" stroke="var(--grid)"/><text class="ax" x="${tx(t)}" y="${TP.y1 + 16}" text-anchor="middle">${t.toFixed(2)}</text>`;
+    const yt = niceTicks(lo, hi);
+    yt.forEach(v => { s += `<line x1="${TP.x0}" x2="${TP.x1}" y1="${ty(v)}" y2="${ty(v)}" stroke="var(--grid)"/><text class="ax" x="${TP.x0 - 8}" y="${ty(v) + 4}" text-anchor="end">${fmt(v, 1)}</text>`; });
+    s += `<path d="M${TP.x0},${TP.y0}V${TP.y1}H${TP.x1}" fill="none" stroke="var(--ink-2)"/>`;
+    s += `<text class="axis-title" x="${TP.x1}" y="${TP.y1 + 30}" text-anchor="end">time (s)</text>`;
+    const seg = (arr, a, b) => { const p = []; for (let i = a; i <= b; i++) p.push([tx(T[i]), ty(arr[i])]); return path(p); };
+    s += `<path d="${seg(inp.x, i0, i1)}" fill="none" stroke="var(--raw)" stroke-width="1.3"/>`;
+    s += `<path d="${seg(inp.target, i0, i1)}" fill="none" stroke="var(--clean)" stroke-width="1.4" stroke-dasharray="5 4" opacity=".7"/>`;
+    series.forEach(sr => {
+      const lim = sr.animated && front != null ? i0 + Math.round(front * (i1 - i0)) : i1;
+      if (lim <= i0) return;
+      s += `<path d="${seg(sr.y, i0, lim)}" fill="none" stroke="${sr.color}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" opacity="${sr.opacity ?? 1}"/>`;
+      if (sr.animated && front != null && front < 1) s += `<circle cx="${tx(T[lim])}" cy="${ty(sr.y[lim])}" r="4.5" fill="${sr.color}" stroke="#fff" stroke-width="2"/>`;
+    });
+    const items = [];
+    items.push({ name: 'input (noisy)', color: 'var(--raw)' });
+    items.push({ name: 'clean target (dashed)', color: 'var(--clean)', dash: '5 4' });
+    series.forEach(sr => items.push({ name: sr.legend ?? sr.name, color: sr.color }));
+    s += legend(TP.x0 + 6, TP.y0 + 6, items);
+    hoverScale = { tx, ty, t0, t1, i0, i1, series, inp };
+    return s;
+  }
+
+  // ------------------------------------------------------------ main render (always from the live dial values)
+  function render() {
+    const st = STEPS[step], c = ctl, inp = INPUTS[c.input];
+    let svg = '';
+    {
+      const d = design(c.ftype, c.c1, c.c2, c.order);
+      const front = st.anim === 'sweep' ? prog * 500 : null;
+      svg += drawResponse(d.H, { ftype: c.ftype, c1: c.c1, c2: c.c2, front });
+      svg += drawSpectrum(inp, d.H, front);
+      svg += drawTime(inp, [{ y: output(d, c.input, c.mode), color: c.mode === 'causal' ? 'var(--violet)' : 'var(--sig)', name: c.mode === 'causal' ? 'filtered output (causal)' : 'filtered output (zero-phase)', animated: true }], st.anim === 'sweep' ? prog : null, scipyCall(c));
+    }
+    svg += `<g id="hover"></g>`;
+    chart.innerHTML = `<style>.ax{font-family:var(--mono);font-size:11px;fill:var(--ink-2)}</style>` + svg;
+    $('title').innerHTML = esc(st.title) + `<span class="tag">${esc(st.tag(c))}</span>`;
+    $('counter').textContent = `${step + 1} / ${STEPS.length}`;
+  }
+
+  // ------------------------------------------------------------ hover
+  const tt = $('tt');
+  function hover(evt) {
+    const pt = chart.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+    const p = pt.matrixTransform(chart.getScreenCTM().inverse());
+    const hov = chart.querySelector('#hover'); if (!hov) return;
+    let html = '';
+    if (p.x >= TP.x0 && p.x <= TP.x1 && p.y >= TP.y0 && p.y <= TP.y1 && hoverScale) {
+      const hs = hoverScale;
+      const t = hs.t0 + (p.x - TP.x0) / (TP.x1 - TP.x0) * (hs.t1 - hs.t0);
+      const i = Math.max(hs.i0, Math.min(hs.i1, Math.round(t * FS)));
+      hov.innerHTML = `<line class="crosshair" x1="${hs.tx(T[i])}" x2="${hs.tx(T[i])}" y1="${TP.y0}" y2="${TP.y1}"/>`;
+      html = `<div class="row"><span>t</span><b>${T[i].toFixed(3)} s</b></div>`;
+      html += `<div class="row"><span><i class="sw" style="background:var(--raw)"></i>input</span><span>${fmt(hs.inp.x[i])}</span></div>`;
+      hs.series.forEach(sr => { html += `<div class="row"><span><i class="sw" style="background:${sr.color}"></i>${esc(sr.name)}</span><span>${fmt(sr.y[i])}</span></div>`; });
+      html += `<div class="row"><span><i class="sw" style="background:var(--clean)"></i>target</span><span>${fmt(hs.inp.target[i])}</span></div>`;
+    } else if (p.x >= R.x0 && p.x <= R.x1 && p.y >= R.y0 && p.y <= R.y1) {
+      const f = Math.max(0, Math.min(500, Math.round((p.x - R.x0) / (R.x1 - R.x0) * 500)));
+      const g = design(ctl.ftype, ctl.c1, ctl.c2, currentOrder()).H[f];
+      hov.innerHTML = `<line class="crosshair" x1="${fx(R, f)}" x2="${fx(R, f)}" y1="${R.y0}" y2="${R.y1}"/><circle cx="${fx(R, f)}" cy="${gy(g)}" r="4" fill="var(--sig)" stroke="#fff" stroke-width="1.5"/>`;
+      html = `<div class="row"><span>f</span><b>${f} Hz</b></div><div class="row"><span>|H|</span><span>${fmt(g, 3)}</span></div><div class="row"><span>dB</span><span>${g > 1e-6 ? fmt(20 * Math.log10(g), 1) : '−∞'}</span></div>`;
+    } else { unhover(); return; }
+    tt.innerHTML = html; tt.style.display = 'block';
+    const wrap = chart.parentElement.getBoundingClientRect();
+    const px = evt.clientX - wrap.left, py = evt.clientY - wrap.top;
+    tt.style.left = (px + 16 + tt.offsetWidth > wrap.width ? px - tt.offsetWidth - 12 : px + 16) + 'px';
+    tt.style.top = Math.max(0, py - 10) + 'px';
+  }
+  function unhover() { tt.style.display = 'none'; const hov = chart.querySelector('#hover'); if (hov) hov.innerHTML = ''; }
+
+  // ------------------------------------------------------------ dials <-> state
+  function syncUI() {
+    $('ftype').value = ctl.ftype; $('cut1').value = ctl.c1; $('cut2').value = ctl.c2; $('order').value = ctl.order; $('input').value = ctl.input; $('mode').value = ctl.mode;
+    const band = isBand(ctl.ftype);
+    $('g-cut2').hidden = !band;
+    $('cut1-label').textContent = band ? 'Lower cutoff' : 'Cutoff';
+    $('cut1-val').textContent = `${ctl.c1} Hz`; $('cut2-val').textContent = `${ctl.c2} Hz`;
+  }
+  function readUI(id) {
+    if (id) dirty[id] = true;
+    ctl.ftype = $('ftype').value; ctl.c1 = +$('cut1').value; ctl.c2 = +$('cut2').value; ctl.order = +$('order').value; ctl.input = $('input').value; ctl.mode = $('mode').value;
+    if (isBand(ctl.ftype) && ctl.c2 <= ctl.c1) ctl.c2 = Math.min(495, ctl.c1 + 4);
+    syncUI();
+    render();
+  }
+  function applyPreset(st) {
+    if (!st.set) return;
+    if (!dirty.ftype) ctl.ftype = st.set.ftype;
+    if (!dirty.cut1) ctl.c1 = st.set.c1;
+    if (!dirty.cut2) ctl.c2 = st.set.c2;
+    if (!dirty.order) ctl.order = st.set.order;
+    if (!dirty.input) ctl.input = st.set.input;
+    if (!dirty.mode) ctl.mode = st.set.mode;
+    if (isBand(ctl.ftype) && ctl.c2 <= ctl.c1) ctl.c2 = Math.min(495, ctl.c1 + 4);
+  }
+
+  // ------------------------------------------------------------ step control
+  function enterStep(k, completed = false) {
+    step = k;
+    const st = STEPS[step];
+    applyPreset(st);
+    syncUI();
+    $('subtitle').textContent = st.subtitle;
+    try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {}
+    $('prev').disabled = step === 0;
+    stopPlay();
+    prog = 0;
+    if (completed || speed === 0 || reduceMotion) finish();
+    else { render(); startPlay(); }
+  }
+  const done = () => prog >= 1;
+  function finish() { prog = 1; stopPlay(); render(); }
+  function tick(t) {
+    if (!playing) return;
+    const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+    prog = Math.min(1, prog + dt * speed);
+    render();
+    if (prog >= 1) { finish(); return; }
+    raf = requestAnimationFrame(tick);
+  }
+  function startPlay() { if (done()) return; playing = true; lastT = performance.now(); $('play').textContent = 'Pause'; raf = requestAnimationFrame(tick); }
+  function stopPlay() { playing = false; cancelAnimationFrame(raf); $('play').textContent = 'Play'; }
+  function next() { if (!done()) { finish(); return; } if (step < STEPS.length - 1) enterStep(step + 1); }
+  function prev() { if (step > 0) enterStep(step - 1, true); }
+  function restart() { enterStep(step); }
+  function resetDials() { CTL_IDS.forEach(id => { dirty[id] = false; }); enterStep(step); }
+
+  // ------------------------------------------------------------ wiring
+  $('next').addEventListener('click', e => { e.stopPropagation(); next(); });
+  $('prev').addEventListener('click', e => { e.stopPropagation(); prev(); });
+  $('restart').addEventListener('click', e => { e.stopPropagation(); restart(); });
+  $('reset').addEventListener('click', e => { e.stopPropagation(); resetDials(); });
+  $('play').addEventListener('click', e => { e.stopPropagation(); if (playing) stopPlay(); else if (done()) restart(); else startPlay(); });
+  $('slide').addEventListener('click', () => next());
+  document.addEventListener('keydown', e => {
+    if (['SELECT', 'INPUT', 'BUTTON'].includes(e.target.tagName) && e.key !== 'Escape') { if (e.target.tagName !== 'BUTTON') return; }
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
+    else if (e.key === 'r' || e.key === 'R') restart();
+  });
+  $('speed').addEventListener('change', e => { speed = parseFloat(e.target.value); if (speed === 0 && !done()) finish(); });
+  ['ftype', 'order', 'input', 'mode'].forEach(id => $(id).addEventListener('change', () => readUI(id)));
+  ['cut1', 'cut2'].forEach(id => $(id).addEventListener('input', () => readUI(id)));
+  chart.addEventListener('mousemove', hover);
+  chart.addEventListener('mouseleave', unhover);
+
+  const h = parseInt((location.hash || '').replace('#', ''), 10);
+  if (h >= 1 && h <= STEPS.length) step = h - 1;
+  enterStep(step);
+})();
+
+</script>
+
+</body>
+</html>

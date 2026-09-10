@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Confusion Matrix, Precision and Recall</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff;
+    --ink: #222222;
+    --ink-2: #666666;
+    --ink-3: #9a9a9a;
+    --rule: #dcdcdc;
+    --grid: #ececec;
+    --raw: #b4b4b4;
+    --raw-dot: #8c8c8c;
+    --clean: #444444;
+    --ma: #2a78d6;
+    --med: #1baf7a;
+    --wm: #4a3aa7;
+    --ewma: #eb6834;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans);
+    font-size: 15px; line-height: 1.4; padding-block: 18px 28px; padding-inline: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .stage { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
+  .slide {
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 6px;
+    padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px;
+    min-height: 560px; position: relative; outline: none; cursor: pointer; user-select: none;
+  }
+  .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
+  .head h1 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .chart-wrap { position: relative; min-height: 0; }
+  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt .row { display: flex; gap: 10px; justify-content: space-between; }
+  .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot .ctr { font-family: var(--mono); }
+  .bar { display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center; padding:14px 18px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
+  .group { display:flex; align-items:center; gap:8px; }
+  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
+  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
+  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  button:hover, select:hover { border-color:var(--ink); }
+  button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
+  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
+  .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
+  .grid line { stroke: var(--grid); stroke-width: 1; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .out-line { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+  .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
+  .mono { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
+  .mono-big { font-family: var(--mono); font-size: 16px; fill: var(--ink); }
+  .blk-text { font-family: var(--sans); font-size: 12px; font-weight: 700; fill: #fff; pointer-events: none; }
+  .label { font-family: var(--sans); font-size: 13px; fill: var(--ink-2); }
+  .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
+  @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
+</style>
+
+<div class="stage">
+  <section class="slide" id="slide" tabindex="0" aria-live="polite">
+    <div class="head">
+      <h1 id="title">The confusion matrix</h1>
+      <p id="subtitle"></p>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 1200 660" role="img" aria-label="Confusion matrix and per-class metrics"></svg>
+      <div class="tt" id="tt"></div>
+    </div>
+    <div class="foot">
+      <span>CS328 &nbsp;·&nbsp; Tuning and Evaluating Classifiers</span>
+      <span class="ctr" id="counter"></span>
+    </div>
+  </section>
+
+  <div class="bar">
+    <div class="group">
+      <button id="prev" title="Previous (←)">‹ Prev</button>
+      <button id="play" class="primary" title="Play / pause (space)">Play</button>
+      <button id="next" title="Next (→)">Next ›</button>
+      <button id="restart" title="Restart this step (r)">Restart</button>
+      <button id="reset" title="Reset all dials to the step presets">Reset dials</button>
+    </div>
+    <div class="group">
+      <label for="example">Classifier</label>
+      <select id="example">
+        <option value="activity" selected>five-class activity classifier</option>
+        <option value="sleep">sleep-stage classifier</option>
+        <option value="review">three-class activity classifier (review question)</option>
+      </select>
+    </div>
+    <div class="group">
+      <label for="majority">Majority class share</label>
+      <input type="range" id="majority" min="50" max="99" step="1" value="95">
+      <span class="val" id="majorityVal">95%</span>
+    </div>
+    <div class="group">
+      <label for="speed">Speed</label>
+      <select id="speed">
+        <option value="3">very slow</option>
+        <option value="6">slow</option>
+        <option value="14" selected>normal</option>
+        <option value="30">fast</option>
+        <option value="0">instant</option>
+      </select>
+    </div>
+    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ------------------------------------------------------------ data: the chapter's confusion matrices (rows = true label, columns = predicted)
+  const EXAMPLES = {
+    activity: { name: 'five-class activity classifier', classes: ['Sitting', 'Standing', 'Driving', 'Running', 'Walking'],
+      cm: [[20, 10, 10, 0, 0], [5, 30, 4, 0, 1], [5, 5, 30, 0, 0], [0, 0, 0, 35, 5], [0, 0, 0, 2, 5]] },
+    sleep: { name: 'sleep-stage classifier', classes: ['Wakefulness', 'REM', 'NREM'],
+      cm: [[630, 56, 9], [84, 228, 6], [12, 2, 48]] },
+    review: { name: 'three-class activity classifier', classes: ['Walking', 'Upstairs', 'Running'],
+      cm: [[80, 15, 5], [12, 60, 28], [4, 10, 86]] },
+  };
+  function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+  // arrival order of the test examples: every (true, predicted) pair of the matrix, shuffled with a fixed seed
+  const ARRIVALS = {};
+  for (const k in EXAMPLES) {
+    const e = EXAMPLES[k], a = [];
+    e.cm.forEach((row, i) => row.forEach((v, j) => { for (let n = 0; n < v; n++) a.push([i, j]); }));
+    const r = rng(328); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    ARRIVALS[k] = a; e.total = a.length;
+  }
+
+  // ------------------------------------------------------------ svg helpers
+  const W = 1200, H = 660;
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+  const text = (x, y, s, attrs = {}, parent) => { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; };
+  const $ = id => document.getElementById(id);
+  const chart = $('chart');
+  const C = { blue: '#2a78d6', dark: '#0b3d7a', light: '#eef4fb', diag: '#eb6834', prec: '#4a3aa7', rec: '#1baf7a', f1: '#2a78d6', ink: '#222222', ink2: '#666666', ink3: '#9a9a9a', bad: '#eb6834' };
+  const pct1 = v => (100 * v).toFixed(1) + '%';
+  const f2 = v => v.toFixed(2);
+  function mix(a, b, t) { const A = a.match(/\w\w/g).map(h => parseInt(h, 16)), B = b.match(/\w\w/g).map(h => parseInt(h, 16)); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join(''); }
+  function legend(parent, x, y, items) {
+    const rowH = 18, padX = 10, padY = 8;
+    const wdt = Math.max(...items.map(i => i.n.length)) * 7.2 + 2 * padX + 34;
+    const g = el('g', {}, parent);
+    el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
+    items.forEach((it, j) => {
+      const cy = y + padY + j * rowH + 6;
+      el('rect', { x: x + padX + 3, y: cy - 6, width: 12, height: 12, rx: 2, fill: it.c, stroke: it.edge || 'none', 'stroke-width': 2 }, g);
+      text(x + padX + 26, cy + 4, it.n, { class: 'axis-title', fill: 'var(--ink)' }, g);
+    });
+    return g;
+  }
+
+  // ------------------------------------------------------------ dials
+  const state = { example: 'activity', majority: 95, speed: 14 };
+  const dirty = {};
+  const DIALS = {
+    example: { id: 'example', parse: v => v },
+    majority: { id: 'majority', out: 'majorityVal', parse: v => parseInt(v, 10), fmt: v => v + '%' },
+  };
+  function setDial(name, value) { state[name] = value; const d = DIALS[name]; $(d.id).value = value; if (d.out) $(d.out).textContent = d.fmt(value); }
+  function applyPresets(p) { for (const k in p) if (!dirty[k]) setDial(k, p[k]); }
+  for (const name in DIALS) { const d = DIALS[name]; $(d.id).addEventListener(d.out ? 'input' : 'change', e => { dirty[name] = true; setDial(name, d.parse(e.target.value)); rebuild(); }); }
+
+  const ex = () => EXAMPLES[state.example];
+  function metrics(cm) {
+    const n = cm.length, rows = cm.map(r => r.reduce((a, b) => a + b, 0)), cols = cm[0].map((_, j) => cm.reduce((a, r) => a + r[j], 0));
+    const total = rows.reduce((a, b) => a + b, 0), diag = cm.map((r, i) => r[i]);
+    const prec = diag.map((d, i) => cols[i] ? d / cols[i] : 0), rec = diag.map((d, i) => rows[i] ? d / rows[i] : 0);
+    const f1 = prec.map((p, i) => p + rec[i] ? 2 * p * rec[i] / (p + rec[i]) : 0);
+    return { n, rows, cols, total, diag, acc: diag.reduce((a, b) => a + b, 0) / total, prec, rec, f1, bal: rec.reduce((a, b) => a + b, 0) / n };
+  }
+
+  // ------------------------------------------------------------ steps
+  const steps = [
+    { id: 'fill', title: () => 'Filling the confusion matrix as test predictions arrive', tag: () => `${ex().total} test examples · ${ex().classes.length} classes`,
+      subtitle: () => 'Filling the confusion matrix one test prediction at a time.',
+      presets: { example: 'activity' }, frames: () => ex().total, rate: () => ex().total / 110, draw: drawFill },
+    { id: 'acc', title: () => 'Accuracy: the diagonal sum over the total', tag: () => `accuracy = ${pct1(metrics(ex().cm).acc)}`,
+      subtitle: () => 'Computing accuracy as the diagonal count divided by the number of test examples.',
+      presets: { example: 'activity' }, frames: () => ex().classes.length + 2, rate: () => 0.5, draw: drawAccuracy },
+    { id: 'prec', title: () => 'Precision for each class: read down the column', tag: () => 'precision = TP / column total',
+      subtitle: () => 'Computing precision for each class from its column of the confusion matrix.',
+      presets: { example: 'activity' }, frames: () => ex().classes.length * 3, rate: () => 0.55, draw: cur => drawPR(cur, 'prec') },
+    { id: 'rec', title: () => 'Recall for each class: read across the row', tag: () => 'recall = TP / row total',
+      subtitle: () => 'Computing recall for each class from its row of the confusion matrix.',
+      presets: { example: 'activity' }, frames: () => ex().classes.length * 3, rate: () => 0.55, draw: cur => drawPR(cur, 'rec') },
+    { id: 'f1', title: () => 'F1 score and balanced accuracy', tag: () => `balanced accuracy = ${pct1(metrics(ex().cm).bal)}`,
+      subtitle: () => 'Computing the F1 score and balanced accuracy from the per-class precision and recall.',
+      presets: { example: 'activity' }, frames: () => ex().classes.length * 2 + 3, rate: () => 0.55, draw: drawF1 },
+    { id: 'imb', title: () => 'Accuracy under class imbalance: always predicting the majority class', tag: () => `A ${state.majority}% · B ${100 - state.majority}%`,
+      subtitle: () => 'Comparing accuracy and balanced accuracy when a classifier always predicts the majority class.',
+      presets: { majority: 95 }, frames: () => 100 + 4, rate: () => 1.4, draw: drawImbalance },
+  ];
+
+  // ------------------------------------------------------------ matrix drawing
+  function geom(n) { const cell = n <= 2 ? 180 : n <= 3 ? 130 : 92; const x0 = 210, y0 = 96; return { cell, x0, y0, x1: x0 + n * cell, y1: y0 + n * cell }; }
+  function drawMatrix(g, classes, cm, opts = {}) {
+    const n = classes.length, G = geom(n), mx = Math.max(1, ...cm.flat(), opts.vmax || 0);
+    text((G.x0 + G.x1) / 2, G.y0 - 50, 'predicted label', { class: 'axis-title', 'text-anchor': 'middle', 'font-size': 13 }, g);
+    classes.forEach((c, j) => text(G.x0 + (j + 0.5) * G.cell, G.y0 - 24, c, { class: 'dlabel', 'text-anchor': 'middle', fill: C.ink }, g));
+    text(G.x0 - 130, (G.y0 + G.y1) / 2, 'actual label', { class: 'axis-title', 'text-anchor': 'middle', 'font-size': 13, transform: `rotate(-90 ${G.x0 - 130} ${(G.y0 + G.y1) / 2})` }, g);
+    classes.forEach((c, i) => text(G.x0 - 12, G.y0 + (i + 0.5) * G.cell + 5, c, { class: 'dlabel', 'text-anchor': 'end', fill: C.ink }, g));
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      const v = cm[i][j], t = v / mx, dim = opts.dim && !opts.dim(i, j);
+      const fill = mix('#f7fbff', C.dark, Math.pow(t, 0.8));
+      el('rect', { x: G.x0 + j * G.cell, y: G.y0 + i * G.cell, width: G.cell, height: G.cell, fill, stroke: '#fff', 'stroke-width': 1.5, opacity: dim ? 0.25 : 1,
+        'data-tt': `true ${classes[i]} → predicted ${classes[j]}: ${v}${i === j ? ' (correct)' : ' (error)'}` }, g);
+      text(G.x0 + (j + 0.5) * G.cell, G.y0 + (i + 0.5) * G.cell + 8, v, { class: 'mono-big', 'text-anchor': 'middle', 'font-size': n <= 3 ? 26 : 22, 'font-weight': i === j ? 700 : 400, style: `fill:${t > 0.55 ? '#fff' : C.ink}`, opacity: dim ? 0.35 : 1, 'pointer-events': 'none' }, g);
+      if (i === j && opts.diag !== false) el('rect', { x: G.x0 + j * G.cell + 2, y: G.y0 + i * G.cell + 2, width: G.cell - 4, height: G.cell - 4, fill: 'none', stroke: C.diag, 'stroke-width': 2.5, opacity: dim ? 0.3 : 1, 'pointer-events': 'none' }, g);
+    }
+    return G;
+  }
+  function colBand(g, G, j, color) { el('rect', { x: G.x0 + j * G.cell, y: G.y0 - 4, width: G.cell, height: G.y1 - G.y0 + 8, fill: color, opacity: .16, 'pointer-events': 'none' }, g); el('rect', { x: G.x0 + j * G.cell, y: G.y0, width: G.cell, height: G.y1 - G.y0, fill: 'none', stroke: color, 'stroke-width': 3, 'pointer-events': 'none' }, g); }
+  function rowBand(g, G, i, color) { el('rect', { x: G.x0 - 4, y: G.y0 + i * G.cell, width: G.x1 - G.x0 + 8, height: G.cell, fill: color, opacity: .16, 'pointer-events': 'none' }, g); el('rect', { x: G.x0, y: G.y0 + i * G.cell, width: G.x1 - G.x0, height: G.cell, fill: 'none', stroke: color, 'stroke-width': 3, 'pointer-events': 'none' }, g); }
+  const RX = 760, RW = 380;   // right panel
+
+  // ------------------------------------------------------------ step 1: arrivals
+  function drawFill(cur) {
+    const e = ex(), n = e.classes.length, arr = ARRIVALS[state.example];
+    const cm = e.cm.map(r => r.map(() => 0));
+    for (let k = 0; k < Math.min(cur, arr.length); k++) cm[arr[k][0]][arr[k][1]]++;
+    const g = el('g', {}, chart);
+    const G = drawMatrix(g, e.classes, cm, { vmax: Math.max(...e.cm.flat()) });
+    legend(g, RX, 30, [{ c: mix('#f7fbff', C.dark, .6), n: 'count of test examples (darker = more)' }, { c: '#fff', n: 'diagonal: correct predictions', edge: C.diag }]);
+    const m = metrics(cm), seen = Math.min(cur, arr.length);
+    // current arrival
+    const y0 = 130;
+    if (seen > 0 && seen < arr.length) {
+      const [i, j] = arr[seen - 1];
+      el('rect', { x: G.x0 + j * G.cell + 4, y: G.y0 + i * G.cell + 4, width: G.cell - 8, height: G.cell - 8, fill: 'none', stroke: C.ink, 'stroke-width': 3, 'pointer-events': 'none' }, g);
+      text(RX, y0, `example ${seen}`, { class: 'label' }, g);
+      text(RX, y0 + 28, `true: ${e.classes[i]}`, { class: 'mono-big' }, g);
+      text(RX, y0 + 54, `predicted: ${e.classes[j]}`, { class: 'mono-big', fill: i === j ? C.ink : C.bad }, g);
+      text(RX, y0 + 80, i === j ? '✓ correct → diagonal' : '✗ error → off-diagonal', { class: 'mono', fill: i === j ? C.rec : C.bad }, g);
+    } else if (seen >= arr.length) {
+      text(RX, y0, `all ${arr.length} test examples counted`, { class: 'label' }, g);
+    } else text(RX, y0, 'waiting for the first test example', { class: 'label' }, g);
+    // running accuracy
+    const ya = 270;
+    text(RX, ya, 'running accuracy', { class: 'label' }, g);
+    text(RX, ya + 34, `${m.diag.reduce((a, b) => a + b, 0)} correct / ${seen} seen`, { class: 'mono-big' }, g);
+    text(RX, ya + 72, seen ? pct1(m.diag.reduce((a, b) => a + b, 0) / seen) : '—', { class: 'mono-big', 'font-size': 34, 'font-weight': 700 }, g);
+    el('rect', { x: RX, y: ya + 92, width: RW, height: 14, fill: '#f0f0f0', stroke: 'var(--rule)' }, g);
+    if (seen) el('rect', { x: RX, y: ya + 92, width: RW * m.diag.reduce((a, b) => a + b, 0) / seen, height: 14, fill: C.blue }, g);
+    el('rect', { x: RX, y: ya + 120, width: RW, height: 8, fill: '#f0f0f0' }, g);
+    el('rect', { x: RX, y: ya + 120, width: RW * seen / arr.length, height: 8, fill: C.ink3 }, g);
+    text(RX, ya + 146, `${seen} of ${arr.length} examples`, { class: 'mono', fill: C.ink2 }, g);
+  }
+
+  // ------------------------------------------------------------ step 2: accuracy
+  function drawAccuracy(cur) {
+    const e = ex(), n = e.classes.length, m = metrics(e.cm);
+    const g = el('g', {}, chart);
+    const k = Math.min(cur, n);
+    drawMatrix(g, e.classes, e.cm, { dim: (i, j) => i === j && i < k });
+    legend(g, RX, 30, [{ c: '#fff', n: 'diagonal: correct predictions', edge: C.diag }, { c: mix('#f7fbff', C.dark, .6), n: 'off-diagonal: errors (faded)' }]);
+    const y0 = 130;
+    text(RX, y0, 'accuracy = diagonal sum / total', { class: 'label' }, g);
+    const terms = m.diag.slice(0, k);
+    text(RX, y0 + 40, terms.length ? terms.join(' + ') + (k === n ? ` = ${terms.reduce((a, b) => a + b, 0)}` : '') : '…', { class: 'mono-big', 'font-weight': 700 }, g);
+    if (cur >= n + 1) text(RX, y0 + 84, `${m.diag.reduce((a, b) => a + b, 0)} / ${m.total} = ${pct1(m.acc)}`, { class: 'mono-big', 'font-size': 30, 'font-weight': 700 }, g);
+    if (cur >= n + 2) {
+      text(RX, y0 + 130, `errors: ${m.total - m.diag.reduce((a, b) => a + b, 0)} examples off the diagonal`, { class: 'mono', fill: C.ink2 }, g);
+      text(RX, y0 + 154, `largest confusion: ${largest(e)}`, { class: 'mono', fill: C.ink2 }, g);
+    }
+  }
+  function largest(e) { let b = [0, 1]; e.cm.forEach((r, i) => r.forEach((v, j) => { if (i !== j && v > e.cm[b[0]][b[1]]) b = [i, j]; })); return `${e.classes[b[0]]} predicted as ${e.classes[b[1]]} (${e.cm[b[0]][b[1]]})`; }
+
+  // ------------------------------------------------------------ steps 3-4: precision / recall
+  function drawPR(cur, kind) {
+    const e = ex(), n = e.classes.length, m = metrics(e.cm), col = kind === 'prec' ? C.prec : C.rec;
+    const g = el('g', {}, chart);
+    const c = Math.min(n - 1, Math.floor(cur / 3)), ph = cur % 3, finished = cur >= n * 3;
+    const nBars = finished ? n : c + (ph === 2 ? 1 : 0);
+    const G = drawMatrix(g, e.classes, e.cm, { dim: finished ? null : (i, j) => (kind === 'prec' ? j === c : i === c) });
+    if (!finished) (kind === 'prec' ? colBand : rowBand)(g, G, c, col);
+    legend(g, RX, 30, [{ c: col, n: kind === 'prec' ? 'precision (column view)' : 'recall (row view)' }, { c: '#fff', n: 'true positives (diagonal cell)', edge: C.diag }]);
+    // formula readout for the current class
+    const y0 = 118;
+    if (!finished) {
+      const tp = m.diag[c], tot = kind === 'prec' ? m.cols[c] : m.rows[c];
+      const parts = kind === 'prec' ? e.cm.map(r => r[c]) : e.cm[c];
+      text(RX, y0, `class ${e.classes[c]}`, { class: 'dlabel', fill: col }, g);
+      text(RX, y0 + 28, kind === 'prec' ? `column total = ${ph >= 1 ? parts.join(' + ') + ' = ' + tot : '…'}` : `row total = ${ph >= 1 ? parts.join(' + ') + ' = ' + tot : '…'}`, { class: 'mono' }, g);
+      text(RX, y0 + 56, ph >= 2 ? `${kind === 'prec' ? 'precision' : 'recall'} = ${tp} / ${tot} = ${f2(tp / tot)}` : `${kind === 'prec' ? 'precision' : 'recall'} = ${tp} / …`, { class: 'mono-big', 'font-weight': 700 }, g);
+    } else {
+      text(RX, y0, kind === 'prec' ? 'precision per class' : 'recall per class', { class: 'dlabel', fill: col }, g);
+      text(RX, y0 + 28, kind === 'prec' ? '“when the model says C, how often is it right?”' : '“of all the actual Cs, how many did it find?”', { class: 'label' }, g);
+      text(RX, y0 + 56, kind === 'prec' ? `precision_C = TP_C / (TP_C + FP_C)` : `recall_C = TP_C / (TP_C + FN_C)`, { class: 'mono' }, g);
+    }
+    bars(g, e.classes, [{ vals: kind === 'prec' ? m.prec : m.rec, c: col, upto: nBars }], 210);
+  }
+  function bars(g, classes, series, y0, opts = {}) {
+    const n = classes.length, rowH = Math.min(58, 420 / n), labW = 110, bw = RW - labW - 60, ns = series.length, bh = Math.min(16, (rowH - 8) / ns);
+    for (let v = 0; v <= 1.0001; v += 0.25) { const x = RX + labW + bw * v; el('line', { x1: x, x2: x, y1: y0 - 6, y2: y0 + n * rowH, stroke: 'var(--grid)' }, g); text(x, y0 + n * rowH + 14, v.toFixed(2), { class: 'axis-title', 'text-anchor': 'middle', 'font-family': 'var(--mono)' }, g); }
+    classes.forEach((cl, i) => {
+      const y = y0 + i * rowH;
+      text(RX + labW - 10, y + rowH / 2 + 4, cl, { class: 'dlabel', 'text-anchor': 'end', fill: C.ink }, g);
+      series.forEach((s, k) => {
+        if (i >= s.upto) return;
+        const yy = y + (rowH - ns * bh - (ns - 1) * 3) / 2 + k * (bh + 3);
+        el('rect', { x: RX + labW, y: yy, width: bw * s.vals[i], height: bh, fill: s.c, opacity: s.faded ? .35 : 1, 'data-tt': `${cl} · ${s.name || ''} ${f2(s.vals[i])}` }, g);
+        text(RX + labW + bw * s.vals[i] + 6, yy + bh - 3, f2(s.vals[i]), { class: 'mono', 'font-size': 12, fill: s.faded ? C.ink3 : C.ink }, g);
+      });
+    });
+  }
+
+  // ------------------------------------------------------------ step 5: F1 + balanced accuracy
+  function drawF1(cur) {
+    const e = ex(), n = e.classes.length, m = metrics(e.cm);
+    const g = el('g', {}, chart);
+    const kF = Math.min(n, cur), balPhase = cur - n;   // after F1 for all classes: recalls listed, then averaged
+    drawMatrix(g, e.classes, e.cm, {});
+    legend(g, RX, 30, [{ c: C.prec, n: 'precision' }, { c: C.rec, n: 'recall' }, { c: C.f1, n: 'F1 = 2·P·R / (P + R)' }]);
+    bars(g, e.classes, [{ vals: m.prec, c: C.prec, upto: n, name: 'precision' }, { vals: m.rec, c: C.rec, upto: n, name: 'recall' }, { vals: m.f1, c: C.f1, upto: kF, name: 'F1' }], 110);
+    const yb = 110 + n * Math.min(58, 420 / n) + 44;
+    if (kF > 0 && kF <= n && balPhase <= 0) {
+      const i = kF - 1;
+      text(RX, yb, `F1(${e.classes[i]}) = 2 · ${f2(m.prec[i])} · ${f2(m.rec[i])} / (${f2(m.prec[i])} + ${f2(m.rec[i])}) = ${f2(m.f1[i])}`, { class: 'mono' }, g);
+    }
+    if (balPhase >= 1) {
+      text(RX, yb, `balanced accuracy = mean of the ${n} recalls`, { class: 'label' }, g);
+      text(RX, yb + 26, `(${m.rec.map(f2).join(' + ')}) / ${n}`, { class: 'mono' }, g);
+    }
+    if (balPhase >= 2) text(RX, yb + 60, `= ${pct1(m.bal)}`, { class: 'mono-big', 'font-size': 28, 'font-weight': 700 }, g);
+    if (balPhase >= 3) text(RX, yb + 88, `plain accuracy = ${pct1(m.acc)}`, { class: 'mono', fill: C.ink2 }, g);
+  }
+
+  // ------------------------------------------------------------ step 6: imbalance
+  function drawImbalance(cur) {
+    const p = state.majority, classes = ['A', 'B'];
+    const seen = Math.min(cur, 100);
+    // the 100 examples arrive in a fixed shuffled order; all predicted A
+    const order = ORDER100;
+    const cm = [[0, 0], [0, 0]];
+    for (let k = 0; k < seen; k++) cm[order[k] < p ? 0 : 1][0]++;
+    const g = el('g', {}, chart);
+    const G = drawMatrix(g, classes, cm, { vmax: p });
+    legend(g, RX, 30, [{ c: mix('#f7fbff', C.dark, .6), n: 'count of examples (darker = more)' }, { c: '#fff', n: 'diagonal: correct predictions', edge: C.diag }]);
+    text((G.x0 + G.x1) / 2, G.y1 + 30, 'the model predicts A for every example', { class: 'label', 'text-anchor': 'middle' }, g);
+    const m = metrics(cm);
+    const y0 = 118;
+    text(RX, y0, `${seen} of 100 examples · ${cm[0][0]} are A, ${cm[1][0]} are B`, { class: 'mono' }, g);
+    const done = cur >= 101;
+    text(RX, y0 + 40, 'accuracy = diagonal / total', { class: 'label' }, g);
+    text(RX, y0 + 74, seen ? `${cm[0][0]} / ${seen} = ${pct1(cm[0][0] / seen)}` : '—', { class: 'mono-big', 'font-size': 28, 'font-weight': 700 }, g);
+    if (cur >= 102) {
+      text(RX, y0 + 120, 'recall: A = 100%   B = 0%', { class: 'mono' }, g);
+    }
+    if (cur >= 103) {
+      text(RX, y0 + 154, 'balanced accuracy = (100% + 0%) / 2', { class: 'label' }, g);
+      text(RX, y0 + 190, '= 50.0%', { class: 'mono-big', 'font-size': 28, 'font-weight': 700, fill: C.bad }, g);
+    }
+    if (done) {
+      // the two numbers as bars
+      const yb = y0 + 230, bw = RW - 20;
+      [['accuracy', p / 100, C.blue], ['balanced accuracy', 0.5, C.bad]].forEach(([n, v, c], i) => {
+        if (i === 1 && cur < 104) return;
+        const y = yb + i * 40;
+        el('rect', { x: RX, y, width: bw, height: 16, fill: '#f0f0f0' }, g);
+        el('rect', { x: RX, y, width: bw * v, height: 16, fill: c }, g);
+        text(RX, y - 5, n, { class: 'axis-title' }, g);
+      });
+    }
+  }
+  const ORDER100 = (() => { const r = rng(7), a = Array.from({ length: 100 }, (_, i) => i); for (let i = 99; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; })();
+
+  // ------------------------------------------------------------ hover
+  const tt = $('tt');
+  chart.addEventListener('mousemove', evt => {
+    const t = evt.target.closest('[data-tt]');
+    if (!t) { tt.style.display = 'none'; return; }
+    tt.textContent = t.getAttribute('data-tt'); tt.style.display = 'block';
+    const wrap = chart.parentElement.getBoundingClientRect();
+    const px = evt.clientX - wrap.left, py = evt.clientY - wrap.top;
+    tt.style.left = (px + 16 + tt.offsetWidth > wrap.width ? px - tt.offsetWidth - 12 : px + 16) + 'px';
+    tt.style.top = Math.max(0, py - 10) + 'px';
+  });
+  chart.addEventListener('mouseleave', () => { tt.style.display = 'none'; });
+
+  // ------------------------------------------------------------ step machinery
+  let step = 0, cursor = 0, playing = false, raf = 0, lastT = 0, acc = 0;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const frames = () => steps[step].frames();
+  const done = () => cursor >= frames();
+  function render() {
+    const d = steps[step];
+    chart.innerHTML = '';
+    d.draw(cursor);
+    $('title').innerHTML = d.title() + `<span class="tag">${d.tag()}</span>`;
+    $('subtitle').textContent = d.subtitle();
+    $('counter').textContent = `${step + 1} / ${steps.length}`;
+  }
+  function rebuild() { cursor = Math.min(cursor, frames()); render(); }
+  function enterStep(k, completed = false) {
+    step = k;
+    applyPresets(steps[step].presets);
+    try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {}
+    stopPlay();
+    cursor = 0;
+    if (completed || state.speed === 0 || reduceMotion) { cursor = frames(); render(); }
+    else { render(); startPlay(); }
+  }
+  function finish() { stopPlay(); cursor = frames(); render(); }
+  function tick(t) {
+    if (!playing) return;
+    const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+    acc += dt * state.speed * steps[step].rate();
+    let moved = false;
+    while (acc >= 1 && cursor < frames()) { cursor++; acc -= 1; moved = true; }
+    if (moved) render();
+    if (done()) { stopPlay(); return; }
+    raf = requestAnimationFrame(tick);
+  }
+  function startPlay() { if (done()) return; playing = true; lastT = performance.now(); acc = 0; $('play').textContent = 'Pause'; raf = requestAnimationFrame(tick); }
+  function stopPlay() { playing = false; cancelAnimationFrame(raf); $('play').textContent = 'Play'; }
+  function next() { if (!done()) { finish(); return; } if (step < steps.length - 1) enterStep(step + 1); }
+  function prev() { if (step > 0) enterStep(step - 1, true); }
+  function restart() { enterStep(step); }
+
+  $('next').addEventListener('click', e => { e.stopPropagation(); next(); });
+  $('prev').addEventListener('click', e => { e.stopPropagation(); prev(); });
+  $('restart').addEventListener('click', e => { e.stopPropagation(); restart(); });
+  $('play').addEventListener('click', e => { e.stopPropagation(); if (playing) stopPlay(); else if (done()) restart(); else startPlay(); });
+  $('reset').addEventListener('click', e => { e.stopPropagation(); for (const k in dirty) delete dirty[k]; setDial('example', 'activity'); setDial('majority', 95); restart(); });
+  $('speed').addEventListener('change', e => { state.speed = parseInt(e.target.value, 10); });
+  $('slide').addEventListener('click', () => next());
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
+    else if (e.key === 'r' || e.key === 'R') restart();
+  });
+
+  const h = parseInt((location.hash || '').replace('#', ''), 10);
+  enterStep(h >= 1 && h <= steps.length ? h - 1 : 0);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Epochs and the Hypnogram</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff; --ink: #222222; --ink-2: #666666; --ink-3: #9a9a9a;
+    --rule: #dcdcdc; --grid: #ececec; --raw: #b4b4b4; --raw-dot: #8c8c8c; --clean: #444444;
+    --window: rgba(34, 34, 34, 0.06); --window-edge: #222222;
+    --ma: #2a78d6; --med: #1baf7a; --wm: #4a3aa7; --ewma: #eb6834;
+    --wake: #eb6834; --light: #2a78d6; --deep: #4a3aa7; --rem: #1baf7a; --sleep: #2a78d6;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.4; padding-block: 18px 28px; padding-inline: 16px; -webkit-font-smoothing: antialiased; }
+  .stage { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
+  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; min-height: 560px; position: relative; outline: none; cursor: pointer; user-select: none; }
+  .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
+  .head h1 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .chart-wrap { position: relative; min-height: 0; }
+  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt .row { display: flex; gap: 10px; justify-content: space-between; }
+  .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot .ctr { font-family: var(--mono); }
+  .bar { display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center; padding:14px 18px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
+  .group { display:flex; align-items:center; gap:8px; }
+  .group label { font-size:13px; font-weight:700; color:var(--ink); }
+  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
+  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  button:hover, select:hover { border-color:var(--ink); }
+  button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
+  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
+  .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
+  .grid line { stroke: var(--grid); stroke-width: 1; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .mono { font-family: var(--mono); }
+  .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
+  .ann { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
+  .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
+  .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
+  @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
+</style>
+<div class="stage">
+  <section class="slide" id="slide" tabindex="0" aria-live="polite">
+    <div class="head">
+      <h1 id="title"></h1>
+      <p id="subtitle"></p>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 1200 600" role="img" aria-label="Hypnogram and sleep metrics"></svg>
+      <div class="tt" id="tt"></div>
+    </div>
+    <div class="foot">
+      <span>CS328 &nbsp;·&nbsp; Measuring Sleep Patterns</span>
+      <span class="ctr" id="counter"></span>
+    </div>
+  </section>
+  <div class="bar">
+    <div class="group">
+      <button id="prev" title="Previous (←)">‹ Prev</button>
+      <button id="play" class="primary" title="Play / pause (space)">Play</button>
+      <button id="next" title="Next (→)">Next ›</button>
+      <button id="restart" title="Restart this step (r)">Restart</button>
+      <button id="reset" title="Reset all dials to defaults">Reset dials</button>
+    </div>
+    <div class="group">
+      <label for="subject">Subject (PSG labels)</label>
+      <select id="subject">
+        <option value="1066528" selected>1066528 · 7.9 h</option>
+        <option value="8692923">8692923 · 8.0 h</option>
+        <option value="7749105">7749105 · 8.0 h</option>
+        <option value="1360686">1360686 · 8.1 h</option>
+        <option value="1455390">1455390 · 8.2 h</option>
+        <option value="46343">46343 · 4.7 h</option>
+      </select>
+    </div>
+    <div class="group">
+      <label for="speed">Speed</label>
+      <select id="speed">
+        <option value="8">very slow</option>
+        <option value="16">slow</option>
+        <option value="40" selected>normal</option>
+        <option value="120">fast</option>
+        <option value="0">instant</option>
+      </select>
+    </div>
+    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ------------------------------------------------------------ shared helpers (step machine, dials, svg)
+  const $ = id => document.getElementById(id);
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+  const txt = (parent, x, y, s, attrs = {}) => { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; };
+  const STAGE = { W: { n: 'Wake', c: 'var(--wake)', hex: '#eb6834' }, L: { n: 'Light (N1+N2)', c: 'var(--light)', hex: '#2a78d6' }, D: { n: 'Deep (N3)', c: 'var(--deep)', hex: '#4a3aa7' }, R: { n: 'REM', c: 'var(--rem)', hex: '#1baf7a' } };
+  const code2stage = v => v === 0 ? 'W' : (v === 1 || v === 2) ? 'L' : v === 3 ? 'D' : v === 5 ? 'R' : null;
+  // legend: items [{c, n, dash?, box?}] drawn on a white rounded rect at (x, y)
+  function legend(parent, x, y, items) {
+    const rowH = 18, padX = 10, padY = 8;
+    const wdt = 12 + Math.max(...items.map(i => i.n.length)) * 7.2 + 2 * padX + 22;
+    el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, parent);
+    items.forEach((it, j) => {
+      const yy = y + padY + j * rowH + 6;
+      if (it.box) el('rect', { x: x + padX, y: yy - 6, width: 18, height: 12, fill: it.c, opacity: it.op == null ? 1 : it.op, rx: 2 }, parent);
+      else el('line', { x1: x + padX, x2: x + padX + 18, y1: yy, y2: yy, stroke: it.c, 'stroke-width': it.dash ? 1.5 : 2.5, 'stroke-dasharray': it.dash ? '5 4' : 'none' }, parent);
+      txt(parent, x + padX + 26, yy + 4, it.n, { class: 'axis-title', fill: 'var(--ink)' });
+    });
+    return wdt;
+  }
+  function makeEngine(cfg) {
+    const dirty = {}; let step = 0, cursor = -1, playing = false, raf = 0, lastT = 0, acc = 0, speed = +cfg.speedDefault;
+    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let steps = cfg.steps();
+    const frames = () => steps[step].frames;
+    const animated = () => frames() > 0;
+    const done = () => !animated() || cursor >= frames() - 1;
+    function applyPresets() { const p = steps[step].presets || {}; for (const id in p) { if (!dirty[id]) { const c = $(id); c.value = p[id]; cfg.onDial(id, c.value); } } }
+    function setHead() { const d = steps[step]; $('title').innerHTML = d.title + (d.tag ? `<span class="tag">${d.tag}</span>` : ''); $('subtitle').textContent = d.subtitle; $('counter').textContent = `${step + 1} / ${steps.length}`; try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {} }
+    function enterStep(k, completed = false) {
+      step = k; stopPlay(); steps = cfg.steps(); applyPresets(); steps = cfg.steps(); setHead(); cursor = -1; cfg.enter(step);
+      if (!animated() || completed || speed === 0 || reduceMotion) finish(); else { cfg.render(cursor, step); startPlay(); }
+    }
+    function finish() { cursor = animated() ? frames() - 1 : -1; stopPlay(); cfg.render(cursor, step); }
+    function redraw() { steps = cfg.steps(); setHead(); cfg.enter(step); if (cursor > frames() - 1) cursor = frames() - 1; cfg.render(cursor, step); }
+    function tick(t) {
+      if (!playing) return; const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t; acc += dt * speed * (steps[step].speedScale || 1);
+      while (acc >= 1 && cursor < frames() - 1) { cursor++; acc -= 1; }
+      cfg.render(cursor, step); if (cursor >= frames() - 1) { finish(); return; } raf = requestAnimationFrame(tick);
+    }
+    function startPlay() { if (done()) return; playing = true; lastT = performance.now(); acc = 0; $('play').textContent = 'Pause'; raf = requestAnimationFrame(tick); }
+    function stopPlay() { playing = false; cancelAnimationFrame(raf); $('play').textContent = 'Play'; }
+    function next() { if (!done()) { finish(); return; } if (step < steps.length - 1) enterStep(step + 1); }
+    function prev() { if (step > 0) enterStep(step - 1, true); }
+    function restart() { enterStep(step); }
+    $('next').addEventListener('click', e => { e.stopPropagation(); next(); });
+    $('prev').addEventListener('click', e => { e.stopPropagation(); prev(); });
+    $('restart').addEventListener('click', e => { e.stopPropagation(); restart(); });
+    $('play').addEventListener('click', e => { e.stopPropagation(); if (playing) stopPlay(); else if (done()) { if (animated()) restart(); else next(); } else startPlay(); });
+    $('slide').addEventListener('click', () => next());
+    document.addEventListener('keydown', e => {
+      if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+      if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+      else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+      else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
+      else if (e.key === 'r' || e.key === 'R') restart();
+    });
+    cfg.dials.forEach(d => { const c = $(d.id); c.addEventListener(c.tagName === 'SELECT' ? 'change' : 'input', () => { dirty[d.id] = true; cfg.onDial(d.id, c.value); redraw(); }); });
+    $('reset').addEventListener('click', e => { e.stopPropagation(); for (const k in dirty) delete dirty[k]; cfg.dials.forEach(d => { const c = $(d.id); c.value = d.def; cfg.onDial(d.id, c.value); }); $('speed').value = cfg.speedDefault; speed = +cfg.speedDefault; enterStep(step); });
+    $('speed').addEventListener('change', e => { speed = parseInt(e.target.value, 10); });
+    cfg.dials.forEach(d => cfg.onDial(d.id, $(d.id).value));
+    const h = parseInt((location.hash || '').replace('#', ''), 10);
+    enterStep(h >= 1 && h <= steps.length ? h - 1 : 0);
+    return { get step() { return step; }, get cursor() { return cursor; } };
+  }
+  const DATA = {"labels":{"1066528":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,2,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,2,2,3,3,2,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,2,1,2,2,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0,0,0,0,0,0,0,1,1,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,1,2,2,2,2,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,1,1,5,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,2,2,2,2,3,2,2,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,0,1,1,1,1,0,0,1,1,1,1,1,2,2,2,2,2,2,2,2,0,0,0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,2,2,3,2,2,0,0,2,1,1,0,0,1,1,1,2,2,2,1,1,1,2,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,0,1,1,2,1,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0,0,0,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,2,2,3,2,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,3,0,0,1,0,1,0,0,0,0,1,0,1,1,1,1,2,2,2,1,2,2,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,1,1,1,5,1,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,1,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,2,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,5,5,2,5,5,5,2,2,2,2,2,2,0,1,2,2,1,2,2,1,2,2,1,2,0,1,1,1,1,1,2,2,2,2,2,1,2,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"46343":[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,0,0,0,0,1,2,2,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,0,2,2,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,0,1,1,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,1,1,1,2,1,1,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,0,1,1,2,2,2,2,2,2,2,2,2,2,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,3,3,0,0,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0,0,1,1,2,2,2,1,2,2,2,2,2,2,2,2,2,0,0,1,1,1,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"1360686":[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,0,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,2,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0,1,2,2,2,2,2,2,2,0,1,2,2,2,2,2,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,1,1,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,2,2,0,0,0,0,0,0,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,1,1,0,1,1,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,0,0,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0,1,0,1,2,0,0,1,1,0,0,1,2,2,2,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,-1,-1],"1455390":[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0,0,0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0,2,2,0,0,1,2,2,1,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0,0,0,0,1,2,2,2,2,0,2,0,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0,1,0,0,0,0,1,0,1,0,1,1,1,1,1,0,1,0,1,0,2,2,1,2,2,2,0,0,1,1,2,0,0,0,1,2,2,2,1,0,1,0,0,0,0,1,2,2,2,2,0,0,1,0,0,0,0,0,0,0,0,0,1,1,0,1,1,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0,0,2,2,2,2,2,2,2,2,2,2,0,2,2,2,2,2,2,2,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0,0,0,2,2,1,2,2,2,2,2,2,2,2,1,2,0,1,2,2,2,2,2,2,2,0,1,2,2,0,1,2,2,2,2,2,0,0,1,0,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,0,0,0,1,1,2,2,2,2,2,2,2,2,2,0,1,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0,0,1,2,1,2,2,2,2,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,1,1,0,1,1,1,5,5,5,5,5,0,1,1,5,5,5,5,5,5,0,0,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,1,5,5,0,1,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,0,0,1,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0,1,0,0,0,-1],"8692923":[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,2,3,3,2,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,2,2,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,2,2,2,2,2,2,2,2,2,2,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,0,1,1,1,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,2,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,2,2,2,2,2,2,2,2,2,2,2,2,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,2,2,2,2,2,2,2,2,2,2,1,2,2,1,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,1,1,1,2,2,1,2,2,2,2,2,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,1,1,2,2,2,2,2,2,2,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,3,2,2,2,2,2,2,2,3,3,3,3,3,2,0,1,1,2,2,2,2,2,2,1,1,2,1,2,2,2,2,2,2,2,2,2,2,2,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5],"7749105":[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,0,0,0,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,3,2,2,2,2,2,2,2,2,2,2,3,3,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,3,2,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,2,2,3,2,3,2,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,2,2,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,0,5,0,1,1,1,2,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,0,1,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,2,2,2,3,3,3,3,3,3,3,3,3,3,3,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,2,2,2,0,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,-1,-1]}};
+  const EPOCH_MIN = 0.5;
+  let subject = '1066528', lab = [], N = 0;
+  function loadSubject() { lab = DATA.labels[subject].map(code2stage); N = lab.length; }
+  const chart = $('chart');
+  const W = 1200, H = 600, PL = 92, PR = 30, PT = 28, HYP_H = 290;
+  const hypBottom = PT + HYP_H;
+  const xs = i => PL + (i / N) * (W - PL - PR);
+  const LEVELS = { W: 0, R: 1, L: 2, D: 3 };
+  const LEVEL_NAME = ['WAKE', 'REM', 'LIGHT', 'DEEP'];
+  const ysL = lv => PT + 24 + lv * ((HYP_H - 48) / 3);
+  const BIN = { W: 0, S: 1 };
+  const ysB = lv => PT + 50 + lv * (HYP_H - 100);
+
+  function steps() {
+    return [
+      { title: 'A night as a sequence of 30-second epochs', tag: `epoch = 30 s · N = ${N}`, frames: N,
+        subtitle: 'The hypnogram, drawn from the PSG stage label of each epoch.' },
+      { title: 'Timing metrics computed by counting epochs', tag: `epoch = 30 s · N = ${N}`, frames: N,
+        subtitle: 'How the sleep timing metrics are computed by counting the epoch labels.' },
+      { title: 'Collapsing the stages to wake versus sleep', tag: 'sleep = N1 + N2 + N3 + REM', frames: N,
+        subtitle: 'How the sleep stages collapse into a two-level wake versus sleep label.' },
+    ];
+  }
+
+  let G = {};
+  function enter(step) {
+    chart.innerHTML = '';
+    const grid = el('g', { class: 'grid' }, chart), axis = el('g', { class: 'axis' }, chart);
+    const binary = step === 2;
+    // y levels
+    const names = binary ? ['WAKE', 'SLEEP'] : LEVEL_NAME;
+    names.forEach((nm, lv) => {
+      const y = binary ? ysB(lv) : ysL(lv);
+      el('line', { x1: PL, x2: W - PR, y1: y, y2: y }, grid);
+      txt(axis, PL - 12, y + 4, nm, { 'text-anchor': 'end' });
+    });
+    // x ticks every 60 min
+    for (let m = 0; m <= N * EPOCH_MIN; m += 60) {
+      const x = xs(m / EPOCH_MIN);
+      el('line', { x1: x, x2: x, y1: PT, y2: hypBottom }, grid);
+      txt(axis, x, hypBottom + 18, m, { 'text-anchor': 'middle' });
+    }
+    el('path', { d: `M${PL},${PT}V${hypBottom}H${W - PR}` }, axis);
+    txt(chart, W - PR, hypBottom + 36, 'time from start of recording (min)', { class: 'axis-title', 'text-anchor': 'end' });
+    G.hyp = el('g', {}, chart);
+    G.cur = el('g', {}, chart);
+    G.lower = el('g', {}, chart);
+    G.legend = el('g', {}, chart);
+    const items = binary ? [{ c: STAGE.W.c, n: 'Wake', box: true }, { c: 'var(--sleep)', n: 'Sleep (N1 + N2 + N3 + REM)', box: true }]
+      : ['W', 'L', 'D', 'R'].map(k => ({ c: STAGE[k].c, n: STAGE[k].n, box: true }));
+    legend(G.legend, W - PR - 250, PT + 8, items);
+    G.hover = el('g', {}, chart);
+    G.hit = el('rect', { x: PL, y: PT, width: W - PL - PR, height: HYP_H, fill: 'transparent' }, chart);
+  }
+
+  function hypnogram(upto, binary) {
+    G.hyp.innerHTML = '';
+    const paths = {}; let vert = '';
+    let prevLv = null;
+    for (let i = 0; i <= upto; i++) {
+      const s = lab[i]; if (!s) { prevLv = null; continue; }
+      const key = binary ? (s === 'W' ? 'W' : 'S') : s;
+      const lv = binary ? BIN[key] : LEVELS[s];
+      const y = binary ? ysB(lv) : ysL(lv);
+      paths[key] = (paths[key] || '') + `M${xs(i).toFixed(1)},${y.toFixed(1)}H${xs(i + 1).toFixed(1)}`;
+      if (prevLv != null && prevLv !== y) vert += `M${xs(i).toFixed(1)},${prevLv.toFixed(1)}V${y.toFixed(1)}`;
+      prevLv = y;
+    }
+    el('path', { d: vert, stroke: 'var(--ink-3)', 'stroke-width': 1, fill: 'none' }, G.hyp);
+    for (const k in paths) el('path', { d: paths[k], stroke: k === 'S' ? 'var(--sleep)' : STAGE[k].c, 'stroke-width': 3, fill: 'none', 'stroke-linecap': 'butt' }, G.hyp);
+  }
+
+  function cursorMark(i, binary) {
+    G.cur.innerHTML = '';
+    if (i < 0) return;
+    const x = xs(i + 1);
+    el('line', { class: 'crosshair', x1: x, x2: x, y1: PT, y2: hypBottom }, G.cur);
+    const s = lab[i];
+    const name = !s ? 'unscored' : binary ? (s === 'W' ? 'WAKE' : 'SLEEP') : LEVEL_NAME[LEVELS[s]];
+    const right = i > N * 0.75;
+    txt(G.cur, x + (right ? -8 : 8), hypBottom - 8, `epoch ${i} · ${(i * EPOCH_MIN).toFixed(1)} min · ${name}`, { class: 'dlabel', fill: s ? (binary && s !== 'W' ? 'var(--sleep)' : STAGE[s].c) : 'var(--ink-2)', 'text-anchor': right ? 'end' : 'start' });
+  }
+
+  function counts(upto) {
+    const c = { W: 0, L: 0, D: 0, R: 0, scored: 0 }; let onset = -1;
+    for (let i = 0; i <= upto; i++) { const s = lab[i]; if (!s) continue; c[s]++; c.scored++; if (onset < 0 && s !== 'W') onset = i; }
+    let waso = 0; if (onset >= 0) for (let i = onset; i <= upto; i++) if (lab[i] === 'W') waso++;
+    return { c, onset, waso };
+  }
+
+  // lower area for step 1: last 40 epochs as boxes
+  function drawStrip(upto) {
+    G.lower.innerHTML = '';
+    const y0 = hypBottom + 70, bw = 24, bh = 40, K = 40;
+    txt(G.lower, PL, y0 - 12, 'the most recent 40 epochs, one box per 30 s', { class: 'axis-title' });
+    txt(G.lower, W - PR, y0 - 12, 'W wake · L light · D deep · R REM · – unscored', { class: 'axis-title', 'text-anchor': 'end' });
+    const x0 = PL + ((W - PL - PR) - K * bw) / 2;
+    for (let j = 0; j < K; j++) {
+      const i = upto - (K - 1) + j; if (i < 0) continue;
+      const s = lab[i]; const x = x0 + j * bw;
+      el('rect', { x, y: y0, width: bw - 2, height: bh, fill: s ? STAGE[s].c : '#eee', opacity: s ? 0.9 : 1, rx: 2 }, G.lower);
+      txt(G.lower, x + (bw - 2) / 2, y0 + bh / 2 + 5, s || '–', { class: 'mono', 'font-size': 13, fill: s ? '#fff' : 'var(--ink-3)', 'text-anchor': 'middle', 'font-weight': 700 });
+      if (i % 5 === 0) txt(G.lower, x + (bw - 2) / 2, y0 + bh + 16, i, { class: 'mono', 'font-size': 11, fill: 'var(--ink-2)', 'text-anchor': 'middle' });
+    }
+    if (upto >= 0) { const xc = x0 + (K - 1) * bw + (bw - 2) / 2; el('path', { d: `M${xs(upto + 1)},${hypBottom + 40}L${xc},${y0 - 2}`, stroke: 'var(--ink-3)', 'stroke-dasharray': '2 3', fill: 'none' }, G.lower); }
+    txt(G.lower, PL, y0 + bh + 44, `epochs scored so far: ${upto + 1} of ${N}   ·   ${((upto + 1) * EPOCH_MIN).toFixed(1)} min`, { class: 'ann' });
+  }
+
+  // lower area for step 2: stacked bar + metric readouts
+  function drawMetrics(upto) {
+    G.lower.innerHTML = '';
+    const { c, onset, waso } = counts(upto);
+    const y0 = hypBottom + 62;
+    const tib = c.scored * EPOCH_MIN, tst = (c.L + c.D + c.R) * EPOCH_MIN;
+    // stacked bar
+    const barW = 560, barX = PL, barH = 26;
+    txt(G.lower, barX, y0 - 10, 'time in each stage (stacked, minutes)', { class: 'axis-title' });
+    el('rect', { x: barX, y: y0, width: barW, height: barH, fill: '#f4f4f4', stroke: 'var(--rule)' }, G.lower);
+    const total = N * EPOCH_MIN; let x = barX;
+    ['W', 'L', 'D', 'R'].forEach(k => {
+      const w = (c[k] * EPOCH_MIN / total) * barW;
+      if (w > 0) el('rect', { x, y: y0, width: w, height: barH, fill: STAGE[k].c, opacity: 0.9 }, G.lower);
+      x += w;
+    });
+    let ly = y0 + barH + 22;
+    ['W', 'L', 'D', 'R'].forEach((k, j) => {
+      const lx = barX + j * 140;
+      el('rect', { x: lx, y: ly - 10, width: 12, height: 12, fill: STAGE[k].c, rx: 2 }, G.lower);
+      txt(G.lower, lx + 18, ly, `${STAGE[k].n.split(' ')[0]} ${(c[k] * EPOCH_MIN).toFixed(1)} min`, { class: 'ann', 'font-size': 13 });
+    });
+    ly += 34;
+    const F = ['TST = (light + deep + REM epochs) × 0.5 min', 'efficiency = TST / time in bed', 'onset latency = epochs before the first sleep epoch × 0.5 min', 'WASO = wake epochs after sleep onset × 0.5 min'];
+    F.forEach((f, j) => txt(G.lower, barX, ly + j * 20, f, { class: 'ann', 'font-size': 12, fill: 'var(--ink-2)' }));
+    // readouts on the right
+    const rx = PL + 640, rows = [
+      ['time in bed', `${tib.toFixed(1)} min`, 'var(--ink)'],
+      ['total sleep time (TST)', `${tst.toFixed(1)} min`, 'var(--sleep)'],
+      ['sleep efficiency', tib > 0 ? `${(100 * tst / tib).toFixed(1)} %` : '–', 'var(--sleep)'],
+      ['sleep onset latency', onset >= 0 ? `${(onset * EPOCH_MIN).toFixed(1)} min` : '–', 'var(--ink)'],
+      ['wake after sleep onset (WASO)', onset >= 0 ? `${(waso * EPOCH_MIN).toFixed(1)} min` : '–', STAGE.W.c],
+    ];
+    rows.forEach((r, j) => {
+      const y = y0 + 4 + j * 34;
+      txt(G.lower, rx, y + 14, r[0], { class: 'axis-title', 'font-size': 13, fill: 'var(--ink-2)' });
+      txt(G.lower, W - PR, y + 14, r[1], { class: 'mono', 'font-size': 20, 'font-weight': 700, fill: r[2], 'text-anchor': 'end' });
+      el('line', { x1: rx, x2: W - PR, y1: y + 24, y2: y + 24, stroke: 'var(--grid)' }, G.lower);
+    });
+  }
+
+  function drawBinary(upto) {
+    G.lower.innerHTML = '';
+    const y0 = hypBottom + 70, h = 60;
+    txt(G.lower, PL, y0 - 12, 'wake / sleep strip, one column per epoch', { class: 'axis-title' });
+    el('rect', { x: PL, y: y0, width: W - PL - PR, height: h, fill: '#f4f4f4', stroke: 'var(--rule)' }, G.lower);
+    let dW = '', dS = '';
+    for (let i = 0; i <= upto; i++) { const s = lab[i]; if (!s) continue; const seg = `M${xs(i).toFixed(1)},${y0}h${(xs(i + 1) - xs(i)).toFixed(2)}v${h}h-${(xs(i + 1) - xs(i)).toFixed(2)}z`; if (s === 'W') dW += seg; else dS += seg; }
+    el('path', { d: dS, fill: 'var(--sleep)', opacity: 0.85 }, G.lower);
+    el('path', { d: dW, fill: STAGE.W.c, opacity: 0.9 }, G.lower);
+    const { c } = counts(upto);
+    const nS = c.L + c.D + c.R;
+    txt(G.lower, PL, y0 + h + 30, `sleep epochs: ${nS}   ·   wake epochs: ${c.W}   ·   TST = ${(nS * EPOCH_MIN).toFixed(1)} min`, { class: 'ann', 'font-size': 15 });
+  }
+
+  function render(cursor, step) {
+    const binary = step === 2;
+    hypnogram(cursor, binary);
+    cursorMark(cursor, binary);
+    if (step === 0) drawStrip(cursor); else if (step === 1) drawMetrics(cursor); else drawBinary(cursor);
+  }
+
+  const tt = $('tt');
+  chart.addEventListener('mousemove', evt => {
+    const pt = chart.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+    const p = pt.matrixTransform(chart.getScreenCTM().inverse());
+    if (p.y < PT || p.y > hypBottom || p.x < PL || p.x > W - PR) { tt.style.display = 'none'; G.hover.innerHTML = ''; return; }
+    const i = Math.max(0, Math.min(N - 1, Math.floor((p.x - PL) / (W - PL - PR) * N)));
+    G.hover.innerHTML = '';
+    el('line', { class: 'crosshair', x1: xs(i), x2: xs(i), y1: PT, y2: hypBottom }, G.hover);
+    const s = lab[i];
+    tt.innerHTML = `<div class="row"><span>epoch</span><b>${i}</b></div><div class="row"><span>time</span><span>${(i * EPOCH_MIN).toFixed(1)} min</span></div><div class="row"><span><i class="sw" style="background:${s ? STAGE[s].hex : '#ddd'}"></i>stage</span><span>${s ? STAGE[s].n : 'unscored'}</span></div>`;
+    tt.style.display = 'block';
+    const wrap = chart.parentElement.getBoundingClientRect();
+    const px = evt.clientX - wrap.left, py = evt.clientY - wrap.top;
+    tt.style.left = (px + 16 + tt.offsetWidth > wrap.width ? px - tt.offsetWidth - 12 : px + 16) + 'px';
+    tt.style.top = Math.max(0, py - 10) + 'px';
+  });
+  chart.addEventListener('mouseleave', () => { tt.style.display = 'none'; G.hover.innerHTML = ''; });
+
+  loadSubject();
+  makeEngine({
+    steps, enter, render, speedDefault: '40',
+    dials: [{ id: 'subject', def: '1066528' }],
+    onDial: (id, v) => { if (id === 'subject') { subject = v; loadSubject(); } },
+  });
+
+})();
+</script>
+</body>
+</html>

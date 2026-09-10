@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tuning Hyperparameters with GridSearchCV</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff;
+    --ink: #222222;
+    --ink-2: #666666;
+    --ink-3: #9a9a9a;
+    --rule: #dcdcdc;
+    --grid: #ececec;
+    --raw: #b4b4b4;
+    --raw-dot: #8c8c8c;
+    --clean: #444444;
+    --ma: #2a78d6;
+    --med: #1baf7a;
+    --wm: #4a3aa7;
+    --ewma: #eb6834;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans);
+    font-size: 15px; line-height: 1.4; padding-block: 18px 28px; padding-inline: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .stage { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
+  .slide {
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 6px;
+    padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px;
+    min-height: 560px; position: relative; outline: none; cursor: pointer; user-select: none;
+  }
+  .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
+  .head h1 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .chart-wrap { position: relative; min-height: 0; }
+  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt .row { display: flex; gap: 10px; justify-content: space-between; }
+  .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot .ctr { font-family: var(--mono); }
+  .bar { display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center; padding:14px 18px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
+  .group { display:flex; align-items:center; gap:8px; }
+  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
+  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
+  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  button:hover, select:hover { border-color:var(--ink); }
+  button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
+  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
+  .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
+  .grid line { stroke: var(--grid); stroke-width: 1; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .out-line { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+  .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
+  .mono { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
+  .mono-big { font-family: var(--mono); font-size: 16px; fill: var(--ink); }
+  .blk-text { font-family: var(--sans); font-size: 12px; font-weight: 700; fill: #fff; pointer-events: none; }
+  .label { font-family: var(--sans); font-size: 13px; fill: var(--ink-2); }
+  .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
+  @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
+</style>
+
+<div class="stage">
+  <section class="slide" id="slide" tabindex="0" aria-live="polite">
+    <div class="head">
+      <h1 id="title">Tuning with cross-validation</h1>
+      <p id="subtitle"></p>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 1200 660" role="img" aria-label="Hyperparameter tuning with cross-validation"></svg>
+      <div class="tt" id="tt"></div>
+    </div>
+    <div class="foot">
+      <span>CS328 &nbsp;·&nbsp; Tuning and Evaluating Classifiers</span>
+      <span class="ctr" id="counter"></span>
+    </div>
+  </section>
+
+  <div class="bar">
+    <div class="group">
+      <button id="prev" title="Previous (←)">‹ Prev</button>
+      <button id="play" class="primary" title="Play / pause (space)">Play</button>
+      <button id="next" title="Next (→)">Next ›</button>
+      <button id="restart" title="Restart this step (r)">Restart</button>
+      <button id="reset" title="Reset all dials to the step presets">Reset dials</button>
+    </div>
+    <div class="group">
+      <label for="kfold">Folds K (cv=)</label>
+      <select id="kfold">
+        <option value="3">3</option>
+        <option value="5" selected>5</option>
+        <option value="10">10</option>
+      </select>
+    </div>
+    <div class="group">
+      <label for="band">Band</label>
+      <select id="band">
+        <option value="1" selected>±1 std across folds</option>
+        <option value="0">none</option>
+      </select>
+    </div>
+    <div class="group">
+      <label for="speed">Speed</label>
+      <select id="speed">
+        <option value="3">very slow</option>
+        <option value="6">slow</option>
+        <option value="14" selected>normal</option>
+        <option value="30">fast</option>
+        <option value="0">instant</option>
+      </select>
+    </div>
+    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ------------------------------------------------------------ data
+  // Activity-recognition windows (HAR-data/dataset1.csv, 2 s windows, 6 activities).
+  // cv[K].folds[d-1] = per-fold accuracy of DecisionTreeClassifier(max_depth=d), StratifiedKFold(K, shuffle, random_state=42).
+  // grid[K] = GridSearchCV(DecisionTreeClassifier, {max_depth:[3,5,7,10,None], min_samples_split:[2,5,10,20]}, cv=K)
+  //           on train_test_split(test_size=0.3, random_state=42); test scored once with best_estimator_.
+  const D = {"N":1605,"cv":{"3":{"sizes":[535,535,535],"folds":[[0.3832,0.385,0.3869],[0.6916,0.7084,0.6972],[0.8131,0.8112,0.828],[0.9196,0.9103,0.9215],[0.9533,0.9551,0.9607],[0.9589,0.9514,0.9664],[0.9607,0.9626,0.9664],[0.9533,0.9701,0.9664],[0.9533,0.9664,0.9664],[0.9533,0.9682,0.9664],[0.9533,0.9682,0.9664],[0.9533,0.9682,0.9664],[0.9533,0.9682,0.9664],[0.9533,0.9682,0.9664],[0.9533,0.9682,0.9664]]},"5":{"sizes":[321,321,321,321,321],"folds":[[0.3863,0.3832,0.3832,0.3863,0.3863],[0.6885,0.7134,0.6947,0.7009,0.6947],[0.8037,0.8287,0.8318,0.8318,0.8193],[0.9065,0.9346,0.9346,0.919,0.9097],[0.9502,0.9564,0.9688,0.947,0.9533],[0.9626,0.9595,0.972,0.9502,0.9688],[0.9657,0.9751,0.972,0.9439,0.9688],[0.972,0.9533,0.972,0.9533,0.9688],[0.972,0.9533,0.9657,0.9533,0.9688],[0.972,0.9533,0.972,0.9533,0.9688],[0.972,0.9533,0.972,0.9533,0.9688],[0.972,0.9533,0.972,0.9533,0.9688],[0.972,0.9533,0.972,0.9533,0.9688],[0.972,0.9533,0.972,0.9533,0.9688],[0.972,0.9533,0.972,0.9533,0.9688]]},"10":{"sizes":[161,161,161,161,161,160,160,160,160,160],"folds":[[0.3851,0.3851,0.3851,0.3789,0.3789,0.3875,0.3875,0.3875,0.3875,0.3875],[0.6894,0.6832,0.6957,0.7205,0.6894,0.7063,0.7312,0.6875,0.7063,0.6875],[0.8199,0.8137,0.8261,0.8385,0.8261,0.8438,0.85,0.8313,0.825,0.8187],[0.9193,0.9255,0.9379,0.9565,0.913,0.95,0.9313,0.9313,0.925,0.9],[0.9627,0.9689,0.9565,0.9565,0.9627,0.9812,0.95,0.9437,0.95,0.9625],[0.9627,0.9876,0.9627,0.9752,0.9689,0.9938,0.9688,0.9563,0.9563,0.975],[0.9689,0.9814,0.9689,0.9503,0.9689,0.9938,0.9625,0.9625,0.95,0.975],[0.9689,0.9752,0.9627,0.9565,0.9689,0.9812,0.9688,0.9563,0.95,0.975],[0.9689,0.9752,0.9627,0.9441,0.9689,0.9812,0.9688,0.9625,0.95,0.975],[0.9689,0.9752,0.9627,0.9441,0.9627,0.9812,0.9688,0.9625,0.95,0.975],[0.9689,0.9752,0.9627,0.9441,0.9627,0.9812,0.9688,0.9625,0.95,0.975],[0.9689,0.9752,0.9627,0.9441,0.9627,0.9812,0.9688,0.9625,0.95,0.975],[0.9689,0.9752,0.9627,0.9441,0.9627,0.9812,0.9688,0.9625,0.95,0.975],[0.9689,0.9752,0.9627,0.9441,0.9627,0.9812,0.9688,0.9625,0.95,0.975],[0.9689,0.9752,0.9627,0.9441,0.9627,0.9812,0.9688,0.9625,0.95,0.975]]}},"grid":{"3":{"cells":{"3|2":[0.8107,0.8262,0.8102],"3|5":[0.8107,0.8262,0.8102],"3|10":[0.8107,0.8262,0.8102],"3|20":[0.8107,0.8262,0.8102],"5|2":[0.96,0.9465,0.9572],"5|5":[0.96,0.9465,0.9572],"5|10":[0.9547,0.9519,0.9572],"5|20":[0.9547,0.9519,0.9492],"7|2":[0.9573,0.9358,0.9572],"7|5":[0.9547,0.9439,0.9572],"7|10":[0.9707,0.9412,0.9572],"7|20":[0.9627,0.9412,0.9492],"10|2":[0.9653,0.9492,0.9492],"10|5":[0.9547,0.9439,0.9572],"10|10":[0.9707,0.9412,0.9572],"10|20":[0.9627,0.9412,0.9492],"None|2":[0.9653,0.9492,0.9492],"None|5":[0.9547,0.9439,0.9572],"None|10":[0.9707,0.9412,0.9572],"None|20":[0.9627,0.9412,0.9492]},"best":["7",10],"best_cv":0.9564,"train_acc":0.9911,"test_acc":0.9502},"5":{"cells":{"3|2":[0.8,0.7911,0.8222,0.8304,0.808],"3|5":[0.8,0.7911,0.8222,0.8304,0.808],"3|10":[0.8,0.7911,0.8222,0.8304,0.808],"3|20":[0.8,0.7911,0.8222,0.8304,0.808],"5|2":[0.96,0.9511,0.9333,0.9643,0.9375],"5|5":[0.96,0.9511,0.9333,0.9643,0.9375],"5|10":[0.9644,0.9511,0.9289,0.9688,0.9375],"5|20":[0.9644,0.9511,0.9289,0.9688,0.9375],"7|2":[0.9422,0.9333,0.9378,0.9688,0.9554],"7|5":[0.9511,0.9422,0.9422,0.9643,0.9509],"7|10":[0.9689,0.9422,0.9333,0.9688,0.9554],"7|20":[0.9644,0.9422,0.9378,0.9688,0.9464],"10|2":[0.9511,0.9289,0.9378,0.9688,0.9509],"10|5":[0.9556,0.9378,0.9422,0.9643,0.9509],"10|10":[0.9733,0.9289,0.9333,0.9688,0.9554],"10|20":[0.96,0.9378,0.9378,0.9643,0.9464],"None|2":[0.9511,0.9289,0.9378,0.9688,0.9509],"None|5":[0.9556,0.9378,0.9422,0.9643,0.9509],"None|10":[0.9733,0.9289,0.9333,0.9688,0.9554],"None|20":[0.96,0.9378,0.9378,0.9643,0.9464]},"best":["7",10],"best_cv":0.9537,"train_acc":0.9911,"test_acc":0.9502},"10":{"cells":{"3|2":[0.8142,0.7965,0.7788,0.8036,0.8036,0.8304,0.8304,0.8125,0.8125,0.8661],"3|5":[0.8142,0.7965,0.7788,0.8036,0.8036,0.8304,0.8304,0.8125,0.8125,0.8661],"3|10":[0.8142,0.7965,0.7788,0.8036,0.8036,0.8304,0.8304,0.8125,0.8125,0.8661],"3|20":[0.8142,0.7965,0.7788,0.8036,0.8036,0.8304,0.8304,0.8125,0.8125,0.8661],"5|2":[0.9735,0.9469,0.9646,0.9554,0.9286,0.9375,0.9732,0.9554,0.9286,0.9464],"5|5":[0.9735,0.9469,0.9646,0.9554,0.9286,0.9375,0.9732,0.9554,0.9286,0.9464],"5|10":[0.9735,0.9558,0.9646,0.9554,0.9196,0.9286,0.9821,0.9554,0.9286,0.9464],"5|20":[0.9646,0.9558,0.9646,0.9554,0.9286,0.9286,0.9821,0.9554,0.9286,0.9464],"7|2":[0.9735,0.9558,0.9469,0.9554,0.9286,0.9464,0.9732,0.9464,0.9464,0.9554],"7|5":[0.9735,0.9469,0.9646,0.9464,0.9375,0.9554,0.9732,0.9464,0.9464,0.9464],"7|10":[0.9735,0.9558,0.9558,0.9554,0.9196,0.9375,0.9821,0.9464,0.9554,0.9375],"7|20":[0.9646,0.9558,0.9558,0.9554,0.9286,0.9375,0.9821,0.9464,0.9375,0.9464],"10|2":[0.9735,0.9646,0.9469,0.9554,0.9286,0.9464,0.9732,0.9464,0.9464,0.9464],"10|5":[0.9735,0.9558,0.9381,0.9464,0.9464,0.9554,0.9732,0.9464,0.9375,0.9464],"10|10":[0.9735,0.9646,0.9292,0.9554,0.9286,0.9375,0.9821,0.9464,0.9464,0.9375],"10|20":[0.9646,0.9735,0.9292,0.9554,0.9375,0.9375,0.9821,0.9464,0.9286,0.9375],"None|2":[0.9735,0.9646,0.9469,0.9554,0.9286,0.9464,0.9732,0.9464,0.9464,0.9464],"None|5":[0.9735,0.9558,0.9381,0.9464,0.9464,0.9554,0.9732,0.9464,0.9375,0.9464],"None|10":[0.9735,0.9646,0.9292,0.9554,0.9286,0.9375,0.9821,0.9464,0.9464,0.9375],"None|20":[0.9646,0.9735,0.9292,0.9554,0.9375,0.9375,0.9821,0.9464,0.9286,0.9375]},"best":["7",5],"best_cv":0.9537,"train_acc":0.9973,"test_acc":0.9502}},"grid_sizes":[1123,482]};
+  const N = D.N, DEPTHS = 15;
+  const DEPTH_GRID = ['3', '5', '7', '10', 'None'], MSS_GRID = [2, 5, 10, 20];
+
+  function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+  function shuffled(n, seed) { const r = rng(seed), a = Array.from({ length: n }, (_, i) => i); for (let i = n - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  const ORDER = shuffled(N, 42); const POS = []; ORDER.forEach((i, p) => POS[i] = p);
+
+  // ------------------------------------------------------------ svg helpers
+  const W = 1200, H = 660;
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+  const text = (x, y, s, attrs = {}, parent) => { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; };
+  const $ = id => document.getElementById(id);
+  const chart = $('chart');
+  const C = { train: '#2a78d6', trainLight: '#a9c8ee', val: '#eb6834', test: '#ffffff', testEdge: '#444444', none: '#b4b4b4', ink: '#222222', ink2: '#666666', ink3: '#9a9a9a', best: '#eb6834' };
+  const f3 = v => v.toFixed(3);
+  const SUBS = '₀₁₂₃₄₅₆₇₈₉';
+  const sub = n => String(n).split('').map(c => SUBS[+c]).join('');
+
+  function legend(parent, x, y, items) {
+    const rowH = 18, padX = 10, padY = 8;
+    const wdt = Math.max(...items.map(i => i.n.length)) * 7.2 + 2 * padX + 34;
+    const g = el('g', {}, parent);
+    el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
+    items.forEach((it, j) => {
+      const cy = y + padY + j * rowH + 6;
+      if (it.sq) el('rect', { x: x + padX + 3, y: cy - 6, width: 12, height: 12, rx: 2, fill: it.c, stroke: it.edge || 'none', 'stroke-width': 1.2 }, g);
+      else if (it.band) el('rect', { x: x + padX, y: cy - 6, width: 18, height: 12, fill: it.c, opacity: .25 }, g);
+      else if (it.dot) el('circle', { cx: x + padX + 9, cy, r: it.r || 4, fill: it.c, stroke: it.edge || 'none', 'stroke-width': 1.5 }, g);
+      else { el('line', { x1: x + padX, x2: x + padX + 18, y1: cy, y2: cy, stroke: it.c, 'stroke-width': it.wd || 2.5 }, g); if (it.mark) el('circle', { cx: x + padX + 9, cy, r: 4, fill: it.c }, g); }
+      text(x + padX + 26, cy + 4, it.n, { class: 'axis-title', fill: 'var(--ink)' }, g);
+    });
+    return g;
+  }
+
+  // ------------------------------------------------------------ dials
+  const state = { K: 5, band: 1, speed: 14 };
+  const dirty = {};
+  const DIALS = { K: { id: 'kfold', parse: v => parseInt(v, 10) }, band: { id: 'band', parse: v => parseInt(v, 10) } };
+  function setDial(name, value) { state[name] = value; $(DIALS[name].id).value = value; }
+  function applyPresets(p) { for (const k in p) if (!dirty[k]) setDial(k, p[k]); }
+  for (const name in DIALS) { const d = DIALS[name]; $(d.id).addEventListener('change', e => { dirty[name] = true; setDial(name, d.parse(e.target.value)); rebuild(); }); }
+
+  const cv = () => D.cv[String(state.K)];
+  const grid = () => D.grid[String(state.K)];
+  const nTrain = D.grid_sizes[0], nTest = D.grid_sizes[1];
+  const stats = arr => { const m = arr.reduce((a, b) => a + b, 0) / arr.length; return { m, s: Math.sqrt(arr.reduce((a, b) => a + (b - m) ** 2, 0) / arr.length) }; };
+
+  // ------------------------------------------------------------ steps
+  const steps = [
+    {
+      id: 'curve',
+      title: () => 'Cross-validation accuracy as a function of max_depth',
+      tag: () => `${state.K}-fold CV · ${N} windows`,
+      subtitle: () => 'How cross-validation accuracy varies with max_depth, averaged over the K folds.',
+      presets: { K: 5, band: 1 },
+      frames: () => DEPTHS * (state.K + 1) + 2, rate: () => (state.K + 1) / 6,
+      draw: drawCurve,
+    },
+    {
+      id: 'split',
+      title: () => 'Splitting off the test set before tuning',
+      tag: () => `train ${nTrain} · test ${nTest} (30%)`,
+      subtitle: () => 'Holding out the test set before GridSearchCV tunes on the training set.',
+      presets: { K: 5 },
+      frames: () => N + state.K + 2, rate: () => 24,
+      draw: drawSplit,
+    },
+    {
+      id: 'grid',
+      title: () => 'Scoring every grid setting with cross-validation',
+      tag: () => `cv = ${state.K} · 5 × 4 = 20 settings · ${20 * state.K} trees`,
+      subtitle: () => 'Scoring every max_depth and min_samples_split pair with cross-validation.',
+      presets: { K: 5 },
+      frames: () => 20 * (state.K + 1) + 2, rate: () => (state.K + 1) / 7,
+      draw: drawGrid,
+    },
+    {
+      id: 'final',
+      title: () => 'Refitting the best setting, then one test score',
+      tag: () => { const g = grid(); return `best: max_depth=${g.best[0]} · min_samples_split=${g.best[1]}`; },
+      subtitle: () => 'Refitting the best setting on the whole training set and scoring the test set once.',
+      presets: { K: 5 },
+      frames: () => 9, rate: () => 0.55,
+      draw: drawFinal,
+    },
+  ];
+
+  // ------------------------------------------------------------ shared: accuracy axes
+  function accAxes(parent, p, ylo, yhi, xlabels) {
+    const yv = v => p.y1 - ((v - ylo) / (yhi - ylo)) * (p.y1 - p.y0);
+    const gr = el('g', { class: 'grid' }, parent), axis = el('g', { class: 'axis' }, parent);
+    for (let v = ylo; v <= yhi + 1e-9; v += 0.1) { el('line', { x1: p.x0, x2: p.x1, y1: yv(v), y2: yv(v) }, gr); text(p.x0 - 10, yv(v) + 4, v.toFixed(1), { 'text-anchor': 'end' }, axis); }
+    xlabels.forEach((lab, i) => { const x = p.x0 + (i / (xlabels.length - 1)) * (p.x1 - p.x0); el('line', { x1: x, x2: x, y1: p.y0, y2: p.y1 }, gr); text(x, p.y1 + 18, lab, { 'text-anchor': 'middle' }, axis); });
+    el('path', { d: `M${p.x0},${p.y0}V${p.y1}H${p.x1}` }, axis);
+    return yv;
+  }
+
+  // fold strip: K blocks, one marked as validation
+  function foldStrip(parent, x, y, w, h, K, valIdx, label) {
+    if (label) text(x, y - 8, label, { class: 'label' }, parent);
+    for (let f = 0; f < K; f++) {
+      const isVal = f === valIdx;
+      el('rect', { x: x + f * w / K + 2, y, width: w / K - 4, height: h, rx: 3, fill: isVal ? 'url(#hatch)' : C.train, opacity: valIdx < 0 ? 0.5 : 1 }, parent);
+      if (w / K > 44) text(x + (f + 0.5) * w / K, y + h / 2 + 4, isVal ? 'VAL' : 'TRAIN', { class: 'blk-text', 'text-anchor': 'middle', 'font-size': 11 }, parent);
+    }
+  }
+  function hatchDefs(g) { el('defs', {}, g).innerHTML = `<pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="${C.val}"/><line x1="0" y1="0" x2="0" y2="7" stroke="#fff" stroke-width="2.2"/></pattern>`; }
+
+  // ------------------------------------------------------------ step 1: CV curve
+  const CP = { x0: 70, x1: 1120, y0: 120, y1: 580 };
+  function drawCurve(cur) {
+    const K = state.K, folds = cv().folds;
+    const g = el('g', {}, chart); hatchDefs(g);
+    const per = K + 1;
+    const dIdx = Math.min(DEPTHS - 1, Math.floor(cur / per)), ph = cur % per;        // ph < K: fold ph scored; ph == K: mean drawn
+    const finished = cur >= DEPTHS * per;
+    const nMean = finished ? DEPTHS : dIdx + (ph === K ? 1 : 0);
+    // fold strip
+    foldStrip(g, 70, 40, 520, 30, K, finished ? -1 : (ph < K ? ph : -1), finished ? `all ${K} folds scored for every depth` : `max_depth = ${dIdx + 1}: ${ph < K ? `fit on the other folds, score fold ${ph + 1}` : 'average the fold scores'}`);
+    const yv = accAxes(g, CP, 0.3, 1.0, Array.from({ length: DEPTHS }, (_, i) => i + 1));
+    const xd = d => CP.x0 + ((d - 1) / (DEPTHS - 1)) * (CP.x1 - CP.x0);
+    text((CP.x0 + CP.x1) / 2, CP.y1 + 40, 'max_depth', { class: 'axis-title', 'text-anchor': 'middle' }, g);
+    text(CP.x0 - 48, CP.y0 - 18, 'cross-validation accuracy', { class: 'axis-title' }, g);
+    const items = [{ c: C.trainLight, n: 'accuracy on one validation fold', dot: true, r: 3.5 }, { c: C.train, n: `${K}-fold CV mean accuracy`, mark: true }];
+    if (state.band) items.push({ c: C.train, n: '±1 std across folds', band: true });
+    legend(g, CP.x1 - 270, CP.y1 - 80, items);
+    // band + mean line
+    const means = folds.map(f => stats(f));
+    if (nMean > 0) {
+      if (state.band && nMean > 1) {
+        let d = ''; for (let i = 0; i < nMean; i++) d += (i ? 'L' : 'M') + xd(i + 1).toFixed(1) + ',' + yv(means[i].m + means[i].s).toFixed(1);
+        for (let i = nMean - 1; i >= 0; i--) d += 'L' + xd(i + 1).toFixed(1) + ',' + yv(means[i].m - means[i].s).toFixed(1);
+        el('path', { d: d + 'Z', fill: C.train, opacity: .18 }, g);
+      }
+      let d = ''; for (let i = 0; i < nMean; i++) d += (i ? 'L' : 'M') + xd(i + 1).toFixed(1) + ',' + yv(means[i].m).toFixed(1);
+      el('path', { class: 'out-line', d, stroke: C.train }, g);
+    }
+    // fold dots (all depths already averaged keep their dots, lightly)
+    for (let i = 0; i < DEPTHS; i++) {
+      const nf = finished || i < dIdx ? K : (i === dIdx ? Math.min(ph, K) : 0);
+      for (let f = 0; f < nf; f++) el('circle', { cx: xd(i + 1) + (f - (K - 1) / 2) * (K > 5 ? 2.2 : 4), cy: yv(folds[i][f]), r: 3.5, fill: C.trainLight, stroke: '#fff', 'stroke-width': 1, 'data-tt': `max_depth ${i + 1} · fold ${f + 1} · ${f3(folds[i][f])}` }, g);
+      if (i < nMean) el('circle', { cx: xd(i + 1), cy: yv(means[i].m), r: 5, fill: C.train, stroke: '#fff', 'stroke-width': 1.5, 'data-tt': `max_depth ${i + 1} · mean ${f3(means[i].m)} ± ${f3(means[i].s)}` }, g);
+    }
+    // live readout for the current depth
+    if (!finished) {
+      const x = xd(dIdx + 1);
+      el('line', { x1: x, x2: x, y1: CP.y0, y2: CP.y1, stroke: C.ink3, 'stroke-dasharray': '3 3' }, g);
+      const scored = folds[dIdx].slice(0, Math.min(ph, K));
+      const txt = ph < K ? `fold scores: ${scored.map(f3).join('  ')}` : `mean = ${f3(means[dIdx].m)}   std = ${f3(means[dIdx].s)}`;
+      text(W - 60, 62, txt, { class: 'mono-big', 'text-anchor': 'end' }, g);
+    } else {
+      const best = means.reduce((b, s, i) => s.m > means[b].m ? i : b, 0);
+      el('circle', { cx: xd(best + 1), cy: yv(means[best].m), r: 12, fill: 'none', stroke: C.best, 'stroke-width': 2 }, g);
+      text(xd(best + 1) + 18, yv(means[best].m) + 30, `best CV depth = ${best + 1}  (mean ${f3(means[best].m)} ± ${f3(means[best].s)})`, { class: 'mono-big', fill: C.best }, g);
+      text(W - 60, 62, `${DEPTHS} depths × ${K} folds = ${DEPTHS * K} trees trained`, { class: 'mono-big', 'text-anchor': 'end' }, g);
+    }
+  }
+
+  // ------------------------------------------------------------ step 2: hold out the test set
+  const COLS = 73, CELL = 15, GX = 52, GY = 44;
+  const cellX = i => GX + (i % COLS) * CELL, cellY = i => GY + Math.floor(i / COLS) * CELL;
+  const gridBottom = GY + Math.ceil(N / COLS) * CELL;
+  function drawSplit(cur) {
+    const K = state.K;
+    const g = el('g', {}, chart); hatchDefs(g);
+    const assigned = Math.min(cur, N);
+    const nTr = Math.min(assigned, nTrain), nTe = Math.max(0, assigned - nTrain);
+    for (let i = 0; i < N; i++) {
+      const p = POS[i]; const r = p >= assigned ? 'none' : p < nTrain ? 'train' : 'test';
+      el('rect', { x: cellX(i) + 1, y: cellY(i) + 1, width: CELL - 2, height: CELL - 2, rx: 1.5, fill: r === 'train' ? C.train : r === 'test' ? C.test : C.none, stroke: r === 'test' ? C.testEdge : 'none', 'stroke-width': 1,
+        'data-tt': `window ${i} · ${r === 'none' ? 'not yet assigned' : r === 'train' ? 'training set' : 'test set'}` }, g);
+    }
+    const by = gridBottom + 40, bh = 46, bx = GX, bw = COLS * CELL;
+    text(bx, by - 8, 'roles assigned so far', { class: 'label' }, g);
+    el('rect', { x: bx, y: by, width: bw, height: bh, fill: '#f4f4f4', stroke: 'var(--rule)' }, g);
+    const wTr = bw * nTrain / N;
+    const nF = Math.max(0, Math.min(cur - N, K));   // folds drawn inside the training block after the split
+    if (nF === 0) el('rect', { x: bx, y: by, width: bw * nTr / N, height: bh, fill: C.train }, g);
+    else for (let f = 0; f < K; f++) el('rect', { x: bx + f * wTr / K + 1, y: by, width: wTr / K - 2, height: bh, fill: f < nF ? C.train : C.trainLight, opacity: f < nF ? 1 : .6, stroke: f < nF ? '#fff' : 'none', 'stroke-width': 1.5, 'data-tt': `fold ${f + 1} of the training set · about ${Math.round(nTrain / K)} windows` }, g);
+    el('rect', { x: bx + wTr, y: by, width: bw * nTe / N, height: bh, fill: C.test, stroke: nTe ? C.testEdge : 'none', 'stroke-dasharray': '6 4' }, g);
+    text(bx + wTr / 2, by + bh + 22, `training set  ${nTr} / ${nTrain}  (70%)${nF > 0 ? `  →  ${K} folds for GridSearchCV` : ''}`, { class: 'mono', 'text-anchor': 'middle' }, g);
+    text(bx + wTr + (bw - wTr) / 2, by + bh + 22, `test set  ${nTe} / ${nTest}  (30%)`, { class: 'mono', 'text-anchor': 'middle' }, g);
+    legend(g, bx, by + bh + 40, [{ c: C.train, n: 'training window', sq: true }, { c: C.test, n: 'test window (locked away)', sq: true, edge: C.testEdge }, { c: C.none, n: 'not yet assigned', sq: true }]);
+    text(W - 60, by + bh + 62, 'train_test_split(X, y, test_size=0.3, random_state=42)', { class: 'mono', 'text-anchor': 'end', fill: C.ink2 }, g);
+  }
+
+  // ------------------------------------------------------------ step 3: the grid
+  const GP = { x0: 250, y0: 150, cw: 150, ch: 84 };
+  function cellColor(m) { const t = Math.max(0, Math.min(1, (m - 0.78) / (0.97 - 0.78))); return mix('#e8f0fa', '#0b3d7a', t); }
+  function mix(a, b, t) { const A = a.match(/\w\w/g).map(h => parseInt(h, 16)), B = b.match(/\w\w/g).map(h => parseInt(h, 16)); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join(''); }
+  function cellBox(g, r, c, fill, stroke, sw) { return el('rect', { x: GP.x0 + c * GP.cw + 3, y: GP.y0 + r * GP.ch + 3, width: GP.cw - 6, height: GP.ch - 6, rx: 4, fill, stroke, 'stroke-width': sw }, g); }
+  function drawGrid(cur) {
+    const K = state.K, G = grid();
+    const g = el('g', {}, chart); hatchDefs(g);
+    const per = K + 1, idx = Math.min(19, Math.floor(cur / per)), ph = cur % per, finished = cur >= 20 * per;
+    const nDone = finished ? 20 : idx + (ph === K ? 1 : 0);
+    foldStrip(g, 250, 40, 600, 30, K, finished ? -1 : (ph < K ? ph : -1), `training set (${nTrain} windows) in ${K} folds`);
+    el('rect', { x: 870, y: 40, width: 250, height: 30, rx: 3, fill: C.test, stroke: C.testEdge, 'stroke-dasharray': '6 4' }, g);
+    text(995, 60, `test set · ${nTest} · locked`, { class: 'blk-text', 'text-anchor': 'middle', style: `fill:${C.ink}` }, g);
+    // headers
+    text(GP.x0 + 2 * GP.cw, GP.y0 - 34, 'min_samples_split', { class: 'axis-title', 'text-anchor': 'middle', 'font-size': 13 }, g);
+    MSS_GRID.forEach((m, c) => text(GP.x0 + (c + 0.5) * GP.cw, GP.y0 - 12, m, { class: 'mono', 'text-anchor': 'middle', 'font-weight': 700 }, g));
+    text(GP.x0 - 100, GP.y0 - 12, 'max_depth', { class: 'axis-title', 'text-anchor': 'middle', 'font-size': 13 }, g);
+    DEPTH_GRID.forEach((d, r) => text(GP.x0 - 100, GP.y0 + (r + 0.5) * GP.ch + 5, d, { class: 'mono', 'text-anchor': 'middle', 'font-weight': 700 }, g));
+    legend(g, W - 300, GP.y0 + 4 * GP.ch + 30, [{ c: cellColor(0.95), n: 'mean CV accuracy (darker = higher)', sq: true }, { c: '#fff', n: 'best mean so far', sq: true, edge: C.best }]);
+    let best = -1, bestM = -1;
+    for (let k = 0; k < 20; k++) {
+      const r = Math.floor(k / 4), c = k % 4;
+      const key = `${DEPTH_GRID[r]}|${MSS_GRID[c]}`, sc = G.cells[key];
+      const isNow = !finished && k === idx;
+      if (k < nDone) {
+        const st = stats(sc);
+        if (st.m > bestM) { bestM = st.m; best = k; }
+        const dark = (st.m - 0.78) / 0.19 > 0.55;
+        const box = cellBox(g, r, c, cellColor(st.m), 'none', 0);
+        box.setAttribute('data-tt', `max_depth=${DEPTH_GRID[r]} · min_samples_split=${MSS_GRID[c]} · folds ${sc.map(f3).join(' ')} · mean ${f3(st.m)} ± ${f3(st.s)}`);
+        text(GP.x0 + (c + 0.5) * GP.cw, GP.y0 + (r + 0.5) * GP.ch + 6, f3(st.m), { class: 'mono-big', 'text-anchor': 'middle', 'font-weight': 700, style: `fill:${dark ? '#fff' : C.ink}`, 'pointer-events': 'none' }, g);
+      } else if (isNow) {
+        cellBox(g, r, c, '#fff', C.ink, 1.5);
+        const scored = sc.slice(0, ph);
+        text(GP.x0 + (c + 0.5) * GP.cw, GP.y0 + (r + 0.5) * GP.ch - 8, `fold ${Math.min(ph + 1, K)} of ${K}`, { class: 'label', 'text-anchor': 'middle' }, g);
+        text(GP.x0 + (c + 0.5) * GP.cw, GP.y0 + (r + 0.5) * GP.ch + 14, scored.length ? scored.map(v => v.toFixed(2)).join(' ') : '…', { class: 'mono', 'text-anchor': 'middle', 'font-size': K > 5 ? 9 : 12 }, g);
+      } else cellBox(g, r, c, '#f7f7f7', 'var(--rule)', 1);
+    }
+    if (best >= 0) { const r = Math.floor(best / 4), c = best % 4; cellBox(g, r, c, 'none', C.best, 3).setAttribute('pointer-events', 'none'); }
+    // side readout
+    const sx = W - 60;
+    text(sx, GP.y0 + 20, `settings scored: ${nDone} / 20`, { class: 'mono-big', 'text-anchor': 'end' }, g);
+    if (best >= 0) {
+      text(sx, GP.y0 + 52, `best so far: mean CV = ${f3(bestM)}`, { class: 'mono', 'text-anchor': 'end' }, g);
+      text(sx, GP.y0 + 74, `max_depth=${DEPTH_GRID[Math.floor(best / 4)]}, min_samples_split=${MSS_GRID[best % 4]}`, { class: 'mono', 'text-anchor': 'end', fill: C.best }, g);
+    }
+    if (finished) text(sx, GP.y0 + 110, `${20 * K} trees trained · test set untouched`, { class: 'mono', 'text-anchor': 'end', fill: C.ink2 }, g);
+    if (!finished) {
+      const r = Math.floor(idx / 4), c = idx % 4;
+      text(sx, GP.y0 + 110, ph < K ? `fit max_depth=${DEPTH_GRID[r]}, min_samples_split=${MSS_GRID[c]} on folds ≠ ${ph + 1}` : `average ${K} fold scores`, { class: 'mono', 'text-anchor': 'end', fill: C.ink2 }, g);
+    }
+  }
+
+  // ------------------------------------------------------------ step 4: refit + test once
+  function drawFinal(cur) {
+    const K = state.K, G = grid();
+    const g = el('g', {}, chart); hatchDefs(g);
+    const phase = cur < 3 ? 0 : cur < 6 ? 1 : 2;   // 0 best cell, 1 refit on all training, 2 test
+    // top: data roles
+    const y = 40;
+    el('rect', { x: 250, y, width: 600, height: 34, rx: 3, fill: C.train, opacity: phase >= 1 ? 1 : .45, stroke: phase === 1 ? C.ink : 'none', 'stroke-width': 3 }, g);
+    text(550, y + 22, phase >= 1 ? `refit on the whole training set · ${nTrain} windows` : `training set · ${nTrain} windows`, { class: 'blk-text', 'text-anchor': 'middle' }, g);
+    el('rect', { x: 870, y, width: 250, height: 34, rx: 3, fill: C.test, stroke: phase === 2 ? C.ink : C.testEdge, 'stroke-width': phase === 2 ? 3 : 1, 'stroke-dasharray': phase === 2 ? 'none' : '6 4' }, g);
+    text(995, y + 22, phase === 2 ? `test set · scored once` : `test set · ${nTest} · locked`, { class: 'blk-text', 'text-anchor': 'middle', style: `fill:${C.ink}` }, g);
+    // left: the chosen setting
+    text(70, 130, 'best_estimator_', { class: 'dlabel', fill: C.ink }, g);
+    text(70, 158, `DecisionTreeClassifier(max_depth=${G.best[0]}, min_samples_split=${G.best[1]})`, { class: 'mono' }, g);
+    text(70, 182, `chosen by ${K}-fold CV over 20 settings`, { class: 'label' }, g);
+    // bars
+    const bars = [
+      { n: `mean CV accuracy (cv=${K})`, v: G.best_cv, c: C.train, show: true },
+      { n: 'training accuracy after refit', v: G.train_acc, c: C.trainLight, show: phase >= 1 },
+      { n: 'test accuracy (scored once)', v: G.test_acc, c: C.ink, show: phase >= 2 },
+    ];
+    const P = { x0: 70, x1: 1120, y0: 230, y1: 560 };
+    const yv = accAxes(g, P, 0.3, 1.0, ['', '', '']); // grid only
+    const bw = 200, gap = 120, x0 = P.x0 + 120;
+    bars.forEach((b, i) => {
+      const x = x0 + i * (bw + gap);
+      text(x + bw / 2, P.y1 + 22, b.n, { class: 'axis-title', 'text-anchor': 'middle', 'font-size': 13 }, g);
+      if (!b.show) { el('rect', { x, y: P.y0, width: bw, height: P.y1 - P.y0, fill: 'none', stroke: 'var(--rule)', 'stroke-dasharray': '4 4' }, g); return; }
+      el('rect', { x, y: yv(b.v), width: bw, height: P.y1 - yv(b.v), fill: b.c, 'data-tt': `${b.n}: ${f3(b.v)}` }, g);
+      text(x + bw / 2, yv(b.v) - 12, f3(b.v), { class: 'mono-big', 'text-anchor': 'middle', 'font-weight': 700 }, g);
+    });
+    text(P.x0 - 48, P.y0 - 18, 'accuracy', { class: 'axis-title' }, g);
+    if (phase === 2) text(W - 60, 182, `generalization estimate: ${(100 * G.test_acc).toFixed(1)}% on ${nTest} unseen windows`, { class: 'mono-big', 'text-anchor': 'end', 'font-weight': 700 }, g);
+  }
+
+  // ------------------------------------------------------------ hover
+  const tt = $('tt');
+  chart.addEventListener('mousemove', evt => {
+    const t = evt.target.closest('[data-tt]');
+    if (!t) { tt.style.display = 'none'; return; }
+    tt.textContent = t.getAttribute('data-tt'); tt.style.display = 'block';
+    const wrap = chart.parentElement.getBoundingClientRect();
+    const px = evt.clientX - wrap.left, py = evt.clientY - wrap.top;
+    tt.style.left = (px + 16 + tt.offsetWidth > wrap.width ? px - tt.offsetWidth - 12 : px + 16) + 'px';
+    tt.style.top = Math.max(0, py - 10) + 'px';
+  });
+  chart.addEventListener('mouseleave', () => { tt.style.display = 'none'; });
+
+  // ------------------------------------------------------------ step machinery
+  let step = 0, cursor = 0, playing = false, raf = 0, lastT = 0, acc = 0;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const frames = () => steps[step].frames();
+  const done = () => cursor >= frames();
+  function render() {
+    const d = steps[step];
+    chart.innerHTML = '';
+    d.draw(cursor);
+    $('title').innerHTML = d.title() + `<span class="tag">${d.tag()}</span>`;
+    $('subtitle').textContent = d.subtitle();
+    $('counter').textContent = `${step + 1} / ${steps.length}`;
+  }
+  function rebuild() { cursor = Math.min(cursor, frames()); render(); }
+  function enterStep(k, completed = false) {
+    step = k;
+    applyPresets(steps[step].presets);
+    try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {}
+    stopPlay();
+    cursor = 0;
+    if (completed || state.speed === 0 || reduceMotion) { cursor = frames(); render(); }
+    else { render(); startPlay(); }
+  }
+  function finish() { stopPlay(); cursor = frames(); render(); }
+  function tick(t) {
+    if (!playing) return;
+    const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+    acc += dt * state.speed * steps[step].rate();
+    let moved = false;
+    while (acc >= 1 && cursor < frames()) { cursor++; acc -= 1; moved = true; }
+    if (moved) render();
+    if (done()) { stopPlay(); return; }
+    raf = requestAnimationFrame(tick);
+  }
+  function startPlay() { if (done()) return; playing = true; lastT = performance.now(); acc = 0; $('play').textContent = 'Pause'; raf = requestAnimationFrame(tick); }
+  function stopPlay() { playing = false; cancelAnimationFrame(raf); $('play').textContent = 'Play'; }
+  function next() { if (!done()) { finish(); return; } if (step < steps.length - 1) enterStep(step + 1); }
+  function prev() { if (step > 0) enterStep(step - 1, true); }
+  function restart() { enterStep(step); }
+
+  $('next').addEventListener('click', e => { e.stopPropagation(); next(); });
+  $('prev').addEventListener('click', e => { e.stopPropagation(); prev(); });
+  $('restart').addEventListener('click', e => { e.stopPropagation(); restart(); });
+  $('play').addEventListener('click', e => { e.stopPropagation(); if (playing) stopPlay(); else if (done()) restart(); else startPlay(); });
+  $('reset').addEventListener('click', e => { e.stopPropagation(); for (const k in dirty) delete dirty[k]; setDial('K', 5); setDial('band', 1); restart(); });
+  $('speed').addEventListener('change', e => { state.speed = parseInt(e.target.value, 10); });
+  $('slide').addEventListener('click', () => next());
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
+    else if (e.key === 'r' || e.key === 'R') restart();
+  });
+
+  const h = parseInt((location.hash || '').replace('#', ''), 10);
+  enterStep(h >= 1 && h <= steps.length ? h - 1 : 0);
+})();
+</script>
+</body>
+</html>

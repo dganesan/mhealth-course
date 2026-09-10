@@ -1,0 +1,855 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Window Size vs Step Peaks</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff;
+    --ink: #222222;
+    --ink-2: #666666;
+    --ink-3: #9a9a9a;
+    --rule: #dcdcdc;
+    --grid: #ececec;
+    --raw: #b4b4b4;
+    --raw-dot: #8c8c8c;
+    --ma: #2a78d6;
+    --lp: #1baf7a;
+    --bad: #eb6834;
+    --wm: #4a3aa7;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--sans); font-size: 15px; line-height: 1.4;
+    padding-block: 18px 28px; padding-inline: 16px; -webkit-font-smoothing: antialiased;
+  }
+  .stage { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
+  .slide {
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 6px;
+    padding: 26px 34px 14px; display: grid; grid-template-rows: auto 1fr auto; gap: 8px;
+    position: relative; outline: none; cursor: pointer; user-select: none;
+  }
+  .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
+  .head { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; }
+  .head h1 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
+  .head h1 .tag {
+    display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2);
+    margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px;
+  }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .counter { flex: 0 0 auto; text-align: right; font-family: var(--mono); line-height: 1.1; min-width: 200px; }
+  .counter .lbl { font-family: var(--sans); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+  .counter .big { font-size: clamp(34px, 4vw, 52px); font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .counter .big.bad { color: var(--bad); }
+  .counter .big.good { color: var(--lp); }
+  .counter .sub { font-size: 13px; color: var(--ink-2); margin-top: 4px; }
+  .counter .sub b { color: var(--ink); font-weight: 700; }
+
+  .chart-wrap { position: relative; min-height: 0; }
+  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  .tt {
+    position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule);
+    border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink);
+    box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2;
+  }
+  .tt .row { display: flex; gap: 10px; justify-content: space-between; }
+  .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; border-top: 1px solid var(--rule); }
+  .foot .ctr { font-family: var(--mono); }
+
+  .bar { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; padding: 14px 18px;
+         border: 1px solid var(--rule); border-radius: 6px; background: #f6f7f9; font-size: 14px; color: var(--ink); }
+  .group { display: flex; align-items: center; gap: 8px; }
+  .group label { font-size: 13px; font-weight: 700; color: var(--ink); letter-spacing: 0; text-transform: none; }
+  .val { font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--ma); min-width: 5ch; }
+  button, select { font: inherit; font-size: 14px; color: var(--ink); background: #fff; border: 1px solid #9a9a9a;
+                   border-radius: 5px; padding: 7px 13px; cursor: pointer; }
+  button:hover, select:hover { border-color: var(--ink); }
+  button.primary { background: var(--ma); color: #fff; border-color: var(--ma); min-width: 88px; font-weight: 700; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--ma); outline-offset: 2px; }
+  input[type=range] { accent-color: var(--ma); width: 200px; height: 30px; cursor: pointer; }
+  input[type=checkbox] { accent-color: var(--ma); width: 18px; height: 18px; }
+  .hint { margin-left: auto; color: var(--ink-2); font-size: 12px; }
+  .hint kbd { font-family: var(--mono); background: #fff; border: 1px solid var(--rule); border-radius: 3px; padding: 0 5px; font-size: 11px; }
+
+  .grid line { stroke: var(--grid); stroke-width: 1; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .formula { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
+  .raw-line { fill: none; stroke: var(--raw); stroke-width: 1.3; }
+  .out-line { fill: none; stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; }
+  .pk-x { stroke-width: 2; stroke-linecap: round; }
+  .pk-o { fill: none; stroke-width: 2; }
+  .ripple { fill: none; stroke-width: 1.4; stroke-dasharray: 2 2; }
+  .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
+  .ann text { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .ann line, .ann path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+  .wbar { fill: var(--ma); opacity: .8; }
+  .wbar-lbl { font-family: var(--mono); font-size: 11px; fill: var(--ink-2); }
+  .curve { fill: none; stroke: var(--ma); stroke-width: 2; }
+  .cdot { fill: var(--ma); stroke: #fff; stroke-width: 1.5; }
+  .truth { stroke: var(--lp); stroke-width: 1.5; stroke-dasharray: 5 4; }
+  .good-band { fill: rgba(27,175,122,.10); }
+  .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
+  .legend text { font-family: var(--sans); font-size: 12px; fill: var(--ink); }
+  .legend .bg { fill: #fff; opacity: .9; stroke: var(--rule); }
+  .cursor-w { stroke: var(--ink); stroke-width: 1; }
+
+  @media (max-width: 720px) {
+    .slide { padding: 18px 16px 12px; }
+    .head { flex-direction: column; }
+    .counter { text-align: left; }
+    .hint { display: none; }
+    input[type=range] { width: 140px; }
+  }
+</style>
+
+<div class="stage">
+  <section class="slide" id="slide" tabindex="0" aria-live="polite">
+    <div class="head">
+      <div>
+        <h1 id="title">Local maxima of the raw magnitude</h1>
+        <p id="subtitle"></p>
+      </div>
+      <div class="counter">
+        <div class="lbl">detected peaks</div>
+        <div class="big" id="count">0</div>
+        <div class="sub">true steps ≈ <b id="truth">13</b> <span id="ripples"></span></div>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 1200 650" role="img" aria-label="Walking accelerometer magnitude with detected peaks, and peak count versus window size"></svg>
+      <div class="tt" id="tt"></div>
+    </div>
+    <div class="foot">
+      <span>CS328 &nbsp;·&nbsp; Sensor Data Smoothing and Filtering</span>
+      <span class="ctr" id="counter"></span>
+    </div>
+  </section>
+
+  <div class="bar">
+    <div class="group">
+      <button id="prev" title="Previous (←)">‹ Prev</button>
+      <button id="play" class="primary" title="Play / pause (space)">Play</button>
+      <button id="next" title="Next (→)">Next ›</button>
+      <button id="restart" title="Restart this step (r)">Restart</button>
+      <button id="reset" title="Clear your dial changes and restart the step">Reset dials</button>
+    </div>
+    <div class="group" id="g-win">
+      <label for="win">Window w</label>
+      <input type="range" id="win" min="1" max="51" step="2" value="5">
+      <span class="val" id="win-val">5</span>
+    </div>
+    <div class="group" id="g-cut">
+      <label for="cut">Cutoff</label>
+      <input type="range" id="cut" min="1" max="6" step="0.5" value="3">
+      <span class="val" id="cut-val">3 Hz</span>
+    </div>
+    <div class="group">
+      <label for="speed">Speed</label>
+      <select id="speed">
+        <option value="0.25">very slow</option>
+        <option value="0.5">slow</option>
+        <option value="1" selected>normal</option>
+        <option value="2.5">fast</option>
+        <option value="0">instant</option>
+      </select>
+    </div>
+    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play &nbsp; <kbd>r</kbd> restart</span>
+  </div>
+</div>
+
+<script>
+// Butterworth IIR design + filtering, mirroring scipy.signal.butter / lfilter / filtfilt.
+// Design path: analog Butterworth prototype (zpk) -> lp2lp / lp2hp / lp2bp / lp2bs -> bilinear -> SOS.
+// Usage:
+//   const sos = butter(4, 100, 1000, 'lowpass');            // cutoff Hz, fs Hz
+//   const sos = butter(4, [58, 62], 1000, 'bandstop');
+//   const y = sosfilt(sos, x);                              // causal (lfilter)
+//   const y = sosfiltfilt(sos, x);                          // zero-phase (filtfilt)
+//   const mag = sosFreqz(sos, fHz, fs);                     // |H| at one frequency
+(function (global) {
+  // ---- minimal complex arithmetic
+  const C = (re, im = 0) => ({ re, im });
+  const cadd = (a, b) => C(a.re + b.re, a.im + b.im);
+  const csub = (a, b) => C(a.re - b.re, a.im - b.im);
+  const cmul = (a, b) => C(a.re * b.re - a.im * b.im, a.re * b.im + a.im * b.re);
+  const cdiv = (a, b) => { const d = b.re * b.re + b.im * b.im; return C((a.re * b.re + a.im * b.im) / d, (a.im * b.re - a.re * b.im) / d); };
+  const csqrt = a => { const r = Math.hypot(a.re, a.im); const re = Math.sqrt(Math.max(0, (r + a.re) / 2)); const im = Math.sign(a.im || 1) * Math.sqrt(Math.max(0, (r - a.re) / 2)); return C(re, im); };
+  const cscale = (a, s) => C(a.re * s, a.im * s);
+
+  function buttap(N) { // analog prototype poles, unit cutoff
+    const p = [];
+    for (let k = 1; k <= N; k++) { const th = Math.PI * (2 * k - 1) / (2 * N); p.push(C(-Math.sin(th), Math.cos(th))); }
+    return { z: [], p, k: 1 };
+  }
+  function lp2lp(zpk, wo) { return { z: zpk.z.map(v => cscale(v, wo)), p: zpk.p.map(v => cscale(v, wo)), k: zpk.k * Math.pow(wo, zpk.p.length - zpk.z.length) }; }
+  function lp2hp(zpk, wo) {
+    const z = zpk.z.map(v => cdiv(C(wo), v)), p = zpk.p.map(v => cdiv(C(wo), v));
+    const deg = zpk.p.length - zpk.z.length;
+    for (let i = 0; i < deg; i++) z.push(C(0));
+    let num = C(1), den = C(1);
+    zpk.z.forEach(v => { num = cmul(num, cscale(v, -1)); });
+    zpk.p.forEach(v => { den = cmul(den, cscale(v, -1)); });
+    const kk = cdiv(num, den);
+    return { z, p, k: zpk.k * kk.re };
+  }
+  function lp2bp(zpk, wo, bw) {
+    const deg = zpk.p.length - zpk.z.length;
+    const tr = v => { const s = cscale(v, bw / 2); const r = csqrt(csub(cmul(s, s), C(wo * wo))); return [cadd(s, r), csub(s, r)]; };
+    const z = [], p = [];
+    zpk.z.forEach(v => z.push(...tr(v)));
+    zpk.p.forEach(v => p.push(...tr(v)));
+    for (let i = 0; i < deg; i++) z.push(C(0));
+    return { z, p, k: zpk.k * Math.pow(bw, deg) };
+  }
+  function lp2bs(zpk, wo, bw) {
+    const deg = zpk.p.length - zpk.z.length;
+    const tr = v => { const s = cdiv(C(bw / 2), v); const r = csqrt(csub(cmul(s, s), C(wo * wo))); return [cadd(s, r), csub(s, r)]; };
+    const z = [], p = [];
+    zpk.z.forEach(v => z.push(...tr(v)));
+    zpk.p.forEach(v => p.push(...tr(v)));
+    for (let i = 0; i < deg; i++) { z.push(C(0, wo)); z.push(C(0, -wo)); }
+    let num = C(1), den = C(1);
+    zpk.z.forEach(v => { num = cmul(num, cscale(v, -1)); });
+    zpk.p.forEach(v => { den = cmul(den, cscale(v, -1)); });
+    const kk = cdiv(num, den);
+    return { z, p, k: zpk.k * kk.re };
+  }
+  function bilinear(zpk, fs) {
+    const fs2 = 2 * fs;
+    const deg = zpk.p.length - zpk.z.length;
+    const tr = v => cdiv(cadd(C(fs2), v), csub(C(fs2), v));
+    const z = zpk.z.map(tr), p = zpk.p.map(tr);
+    for (let i = 0; i < deg; i++) z.push(C(-1));
+    let num = C(1), den = C(1);
+    zpk.z.forEach(v => { num = cmul(num, csub(C(fs2), v)); });
+    zpk.p.forEach(v => { den = cmul(den, csub(C(fs2), v)); });
+    const kk = cdiv(num, den);
+    return { z, p, k: zpk.k * kk.re };
+  }
+  // pair conjugates -> second-order sections [b0,b1,b2,a0,a1,a2]
+  function zpk2sos(zpk) {
+    const pairUp = arr => {
+      const rest = arr.slice(); const pairs = [];
+      while (rest.length) {
+        const a = rest.shift();
+        if (Math.abs(a.im) < 1e-9) { // real: pair with the nearest real
+          let j = rest.findIndex(v => Math.abs(v.im) < 1e-9);
+          if (j >= 0) { pairs.push([a, rest.splice(j, 1)[0]]); } else pairs.push([a]);
+        } else {
+          let j = rest.findIndex(v => Math.abs(v.re - a.re) < 1e-7 && Math.abs(v.im + a.im) < 1e-7);
+          if (j >= 0) { pairs.push([a, rest.splice(j, 1)[0]]); } else pairs.push([a, C(a.re, -a.im)]);
+        }
+      }
+      return pairs;
+    };
+    const poly = pr => { // (x - r1)(x - r2) -> real coefficients [1, c1, c2]
+      if (pr.length === 1) return [1, -pr[0].re, 0];
+      const s = cadd(pr[0], pr[1]), m = cmul(pr[0], pr[1]);
+      return [1, -s.re, m.re];
+    };
+    // sort poles by closeness to the unit circle so each section pairs zeros nearby (stability of cascade)
+    const P = zpk.p.slice().sort((a, b) => Math.hypot(b.re, b.im) - Math.hypot(a.re, a.im));
+    const Z = zpk.z.slice();
+    const pp = pairUp(P);
+    const sos = [];
+    pp.forEach((pair, idx) => {
+      // choose the zero(s) nearest this pole pair
+      const zs = [];
+      for (let n = 0; n < pair.length && Z.length; n++) {
+        let best = 0, bd = Infinity;
+        Z.forEach((v, j) => { const d = Math.hypot(v.re - pair[0].re, Math.abs(v.im) - Math.abs(pair[0].im)); if (d < bd) { bd = d; best = j; } });
+        const zz = Z.splice(best, 1)[0];
+        zs.push(zz);
+        if (Math.abs(zz.im) > 1e-9) { // also remove its conjugate
+          const cj = Z.findIndex(v => Math.abs(v.re - zz.re) < 1e-7 && Math.abs(v.im + zz.im) < 1e-7);
+          if (cj >= 0) { zs.push(Z.splice(cj, 1)[0]); n++; }
+        }
+      }
+      const b = zs.length ? poly(zs) : [1, 0, 0];
+      const a = poly(pair);
+      const g = idx === 0 ? zpk.k : 1;
+      sos.push([b[0] * g, b[1] * g, b[2] * g, a[0], a[1], a[2]]);
+    });
+    return sos;
+  }
+
+  function butter(N, cutoffHz, fs, btype = 'lowpass') {
+    const warp = f => 2 * fs * Math.tan(Math.PI * f / fs);
+    let zpk = buttap(N);
+    if (btype === 'lowpass') zpk = lp2lp(zpk, warp(cutoffHz));
+    else if (btype === 'highpass') zpk = lp2hp(zpk, warp(cutoffHz));
+    else {
+      const w1 = warp(cutoffHz[0]), w2 = warp(cutoffHz[1]);
+      const bw = w2 - w1, wo = Math.sqrt(w1 * w2);
+      zpk = btype === 'bandpass' ? lp2bp(zpk, wo, bw) : lp2bs(zpk, wo, bw);
+    }
+    return zpk2sos(bilinear(zpk, fs));
+  }
+
+  function sosfilt(sos, x, zi) { // direct form II transposed, per section
+    let y = Float64Array.from(x);
+    const st = zi || sos.map(() => [0, 0]);
+    sos.forEach(([b0, b1, b2, a0, a1, a2], s) => {
+      const z = st[s]; const out = new Float64Array(y.length);
+      for (let n = 0; n < y.length; n++) {
+        const xn = y[n];
+        const yn = b0 * xn + z[0];
+        z[0] = b1 * xn - a1 * yn + z[1];
+        z[1] = b2 * xn - a2 * yn;
+        out[n] = yn;
+      }
+      y = out;
+    });
+    return y;
+  }
+  // steady-state initial conditions for a step of amplitude 1 (like scipy sosfilt_zi)
+  function sosfiltZi(sos) {
+    let scale = 1;
+    return sos.map(([b0, b1, b2, a0, a1, a2]) => {
+      // solve for zi such that output is constant for constant input (scale)
+      const g = (b0 + b1 + b2) / (1 + a1 + a2); // dc gain of this section
+      const z0 = scale * ((b1 - a1 * b0) + (b2 - a2 * b0)) / (1 + a1 + a2) * 1; // approx via steady state
+      // exact: z1 = scale*(b2 - a2*b0)... use the standard linear solve
+      // Steady state: y = g*scale; z0 = y - b0*scale; z1 = z0 - (b1*scale - a1*y)
+      const y = g * scale;
+      const zz0 = y - b0 * scale;
+      const zz1 = zz0 - (b1 * scale - a1 * y);
+      scale = y;
+      return [zz0, zz1];
+    });
+  }
+  function sosfiltfilt(sos, x) {
+    const n = x.length;
+    const pad = Math.min(n - 1, 3 * 3 * sos.length); // ~ 3 * (order) samples (scipy: 3*max(len(a),len(b)))
+    // odd extension
+    const ext = new Float64Array(n + 2 * pad);
+    for (let i = 0; i < pad; i++) ext[i] = 2 * x[0] - x[pad - i];
+    for (let i = 0; i < n; i++) ext[pad + i] = x[i];
+    for (let i = 0; i < pad; i++) ext[pad + n + i] = 2 * x[n - 1] - x[n - 2 - i];
+    const zi = sosfiltZi(sos);
+    let y = sosfilt(sos, ext, zi.map(z => [z[0] * ext[0], z[1] * ext[0]]));
+    y.reverse();
+    y = sosfilt(sos, y, zi.map(z => [z[0] * y[0], z[1] * y[0]]));
+    y.reverse();
+    return y.slice(pad, pad + n);
+  }
+  function sosFreqz(sos, fHz, fs) { // magnitude response at a frequency (Hz)
+    const w = 2 * Math.PI * fHz / fs;
+    const e1 = C(Math.cos(-w), Math.sin(-w)), e2 = C(Math.cos(-2 * w), Math.sin(-2 * w));
+    let H = C(1);
+    sos.forEach(([b0, b1, b2, a0, a1, a2]) => {
+      const num = cadd(C(b0), cadd(cscale(e1, b1), cscale(e2, b2)));
+      const den = cadd(C(a0), cadd(cscale(e1, a1), cscale(e2, a2)));
+      H = cmul(H, cdiv(num, den));
+    });
+    return Math.hypot(H.re, H.im);
+  }
+  function sosPhase(sos, fHz, fs) {
+    const w = 2 * Math.PI * fHz / fs;
+    const e1 = C(Math.cos(-w), Math.sin(-w)), e2 = C(Math.cos(-2 * w), Math.sin(-2 * w));
+    let H = C(1);
+    sos.forEach(([b0, b1, b2, a0, a1, a2]) => {
+      const num = cadd(C(b0), cadd(cscale(e1, b1), cscale(e2, b2)));
+      const den = cadd(C(a0), cadd(cscale(e1, a1), cscale(e2, a2)));
+      H = cmul(H, cdiv(num, den));
+    });
+    return Math.atan2(H.im, H.re);
+  }
+
+  // ---- real FFT magnitude (radix-2, zero-padded), returns {f, mag} one-sided, mag scaled 2/N
+  function rfftMag(x, fs) {
+    let N = 1; while (N < x.length) N <<= 1;
+    const re = new Float64Array(N), im = new Float64Array(N);
+    for (let i = 0; i < x.length; i++) re[i] = x[i];
+    for (let i = 1, j = 0; i < N; i++) { // bit reversal
+      let bit = N >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit;
+      if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; }
+    }
+    for (let len = 2; len <= N; len <<= 1) {
+      const ang = -2 * Math.PI / len, wr = Math.cos(ang), wi = Math.sin(ang);
+      for (let i = 0; i < N; i += len) {
+        let cr = 1, ci = 0;
+        for (let j = 0; j < len / 2; j++) {
+          const ur = re[i + j], ui = im[i + j];
+          const vr = re[i + j + len / 2] * cr - im[i + j + len / 2] * ci;
+          const vi = re[i + j + len / 2] * ci + im[i + j + len / 2] * cr;
+          re[i + j] = ur + vr; im[i + j] = ui + vi;
+          re[i + j + len / 2] = ur - vr; im[i + j + len / 2] = ui - vi;
+          const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t;
+        }
+      }
+    }
+    const half = N / 2 + 1, f = new Float64Array(half), mag = new Float64Array(half);
+    for (let k = 0; k < half; k++) { f[k] = k * fs / N; mag[k] = 2 * Math.hypot(re[k], im[k]) / x.length; }
+    return { f, mag };
+  }
+
+  const api = { butter, sosfilt, sosfiltfilt, sosFreqz, sosPhase, rfftMag };
+  if (typeof module !== 'undefined') module.exports = api;
+  global.Butter = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+(() => {
+  const WALK = [-0.939,0.001,1.668,1.317,9.137,14.032,10.552,5.332,2.708,3.572,2.726,-0.595,-3.041,-5.415,-4.956,-3.734,-2.382,-2.985,-4.970,-4.197,-3.354,-0.551,2.317,3.962,2.720,5.177,10.962,10.881,8.816,5.414,0.888,0.360,-2.828,-4.925,-5.391,-6.081,-7.775,-7.726,-8.338,-7.393,-7.094,-6.435,-6.029,-4.506,0.385,2.865,0.890,3.586,8.867,15.368,9.742,4.479,8.515,4.630,-1.141,-2.869,-5.498,-5.347,-3.953,-1.775,-1.257,-2.854,-4.831,-4.349,-3.459,-1.148,3.630,7.498,4.689,5.211,10.648,11.992,8.250,5.307,-2.070,-5.151,-8.572,-8.624,-6.795,-5.051,-3.595,-5.386,-8.396,-8.560,-8.079,-5.984,-3.546,-4.824,-3.970,-0.789,3.019,3.895,9.042,14.908,11.167,0.152,9.582,11.863,7.429,1.698,-4.152,-4.969,-5.721,-0.347,0.685,-3.124,-4.324,-2.721,-2.312,-0.111,1.688,4.030,2.882,2.985,9.917,11.022,9.543,7.202,-0.291,-3.416,-3.129,-0.784,-2.786,-6.280,-7.314,-5.491,-5.199,-6.918,-6.752,-5.823,-6.064,-1.598,1.926,0.706,0.345,3.759,12.199,13.420,8.058,2.956,7.375,4.488,1.385,-1.053,-4.810,-6.213,-4.316,-2.073,-2.998,-5.278,-3.832,-3.119,-0.143,5.136,6.368,3.332,4.068,10.414,12.202,9.306,8.190,-2.421,-3.755,-4.846,-2.999,-4.528,-6.912,-7.541,-6.563,-6.624,-7.011,-6.286,-5.624,-5.580,-3.367,0.446,0.810,1.605,3.405,10.441,18.547,10.153,9.897,12.821,7.057,0.353,-2.984,-6.349,-6.920,-6.526,-5.585,-4.877,-5.003,-3.929,-2.997,-1.723,2.146,8.002,7.225,3.649,9.121,9.112,10.357,8.326,-0.178,-2.864,-5.942,-6.120,-4.318,-4.858,-6.234,-5.543,-6.176,-7.482,-7.808,-7.736,-6.665,-6.714,-5.215,-2.404,-0.229,-0.257,7.843,9.885,12.991,8.408,7.197,8.930,5.400,3.187,-1.409,-8.179,-7.694,-4.567,-4.761,-3.444,-5.382,-5.963,-4.111,-3.974,-1.123,2.823,5.991,4.555,5.484,9.097,8.737,8.193,8.273,8.127,0.737,-4.352,-4.548,-5.280,-4.535,-4.192,-6.191,-8.532,-9.244,-9.137,-8.761,-8.674,-7.760,-10.093,-7.839,-9.234,1.715,4.385,4.350,8.924,9.474,17.159,11.833,10.748,5.679,4.262,-1.386,2.567,2.769,-0.891,-0.967,0.290,-1.823,-2.193,-4.634,-5.805,-4.908,-3.445,-4.111,-8.158,-6.237,-3.397,-1.944,-2.239,-2.049,-1.222,-0.780,-1.744,-3.586,-3.387,-2.116,0.073,0.942,-0.133,-2.063,-2.974,-1.097,-7.164,7.987,3.491,1.860,-6.185,0.998];
+  const FS = 50, N = WALK.length, DUR = N / FS;
+
+  // ------------------------------------------------------------ analysis helpers
+  function movingAverage(x, w) {
+    const M = (w - 1) / 2, out = new Float64Array(x.length);
+    for (let i = 0; i < x.length; i++) {
+      const lo = Math.max(0, i - M), hi = Math.min(x.length - 1, i + M);
+      let s = 0; for (let k = lo; k <= hi; k++) s += x[k];
+      out[i] = s / (hi - lo + 1);
+    }
+    return out;
+  }
+  function localMaxima(x) { // strict local maxima, like scipy.signal.find_peaks with no arguments
+    const p = [];
+    for (let i = 1; i < x.length - 1; i++) if (x[i] > x[i - 1] && x[i] > x[i + 1]) p.push(i);
+    return p;
+  }
+  function prominence(x, i) { // height above the higher of the two flanking minima (scipy definition)
+    let lmin = x[i], rmin = x[i];
+    for (let k = i - 1; k >= 0 && x[k] <= x[i]; k--) lmin = Math.min(lmin, x[k]);
+    for (let k = i + 1; k < x.length && x[k] <= x[i]; k++) rmin = Math.min(rmin, x[k]);
+    return x[i] - Math.max(lmin, rmin);
+  }
+  const RIPPLE = 1.0; // m/s² : peaks lower than this above their surroundings are called ripples
+  function lowpass(x, cutoffHz) { return Butter.sosfiltfilt(Butter.butter(4, cutoffHz, FS, 'lowpass'), x); }
+
+  const rawPeaks = localMaxima(WALK);
+  const WS = []; for (let w = 1; w <= 51; w += 2) WS.push(w);
+  const sweep = WS.map(w => { const y = movingAverage(WALK, w); const pk = localMaxima(y); return { w, y, pk, n: pk.length }; });
+  const bestIdx = sweep.reduce((b, s, i) => (s.w <= 15 && s.n < sweep[b].n) ? i : b, 0); // best within the rule-of-thumb range
+  const wBest = sweep[bestIdx].w;
+  const refPeaks = localMaxima(lowpass(WALK, 3));          // reference: the chapter's 3 Hz design
+  const trueSteps = refPeaks.length;
+  const periodSamples = Math.round((refPeaks[refPeaks.length - 1] - refPeaks[0]) / (refPeaks.length - 1)); // mean step period
+  const wRule = Math.round(periodSamples / 3) | 1;
+
+  // ------------------------------------------------------------ controls: live values + dirty flags
+  const $ = id => document.getElementById(id);
+  const dials = {
+    win: { el: $('win'), val: $('win-val'), dirty: false, get: () => parseInt($('win').value, 10), fmt: v => `${v}` },
+    cut: { el: $('cut'), val: $('cut-val'), dirty: false, get: () => parseFloat($('cut').value), fmt: v => `${v} Hz` },
+  };
+  const W_LIVE = () => dials.win.get();
+  const CUT_LIVE = () => dials.cut.get();
+  function setDial(name, v) { dials[name].el.value = v; dials[name].val.textContent = dials[name].fmt(dials[name].get()); }
+  function applyPresets(d) { // a step may only set a control the user has not touched
+    if (d.preset) for (const k in d.preset) if (!dials[k].dirty) setDial(k, d.preset[k]);
+  }
+  let lp = null, lpPeaks = null, lpCut = null;
+  function ensureLP() { const c = CUT_LIVE(); if (lpCut !== c) { lp = lowpass(WALK, c); lpPeaks = localMaxima(lp); lpCut = c; } }
+
+  // ------------------------------------------------------------ steps
+  const fmt1 = v => (Math.round(v * 10) / 10).toFixed(1);
+  const steps = [
+    {
+      id: 'raw', title: 'Local maxima of the raw magnitude',
+      tag: () => `${N} samples · ${DUR.toFixed(0)} s at ${FS} Hz`,
+      subtitle: () => `How counting every local maximum of the raw trace overcounts steps.`,
+      formula: () => `peak at i  ⇔  x[i−1] < x[i] > x[i+1]`
+    },
+    {
+      id: 'ma5', title: () => `Peaks after a ${W_LIVE()}-sample moving average`, preset: { win: 5 },
+      tag: () => `w = ${W_LIVE()}`,
+      subtitle: () => `How the moving average changes the trace and the counted peaks.`,
+      formula: () => `s[i] = (1/${W_LIVE()}) · Σ x[i+k],  k = −${(W_LIVE() - 1) / 2} … ${(W_LIVE() - 1) / 2}`
+    },
+    {
+      id: 'sweep', title: 'Peak count as a function of window length',
+      tag: () => `w = 1, 3, 5, … 51`,
+      subtitle: () => `How the peak count changes as the window length grows.`,
+      formula: () => `count[w] = len(find_peaks(moving_average(x, w)))`
+    },
+    {
+      id: 'big', title: 'Over-smoothing merges adjacent steps', preset: { win: 51 },
+      tag: () => `w = ${W_LIVE()} = ${(W_LIVE() / FS).toFixed(2)} s`,
+      subtitle: () => `How an overly long window merges neighbouring steps into one hump.`,
+      formula: () => `window = ${W_LIVE()} / ${FS} Hz = ${(W_LIVE() / FS).toFixed(2)} s ≈ ${(W_LIVE() / periodSamples).toFixed(1)} T`
+    },
+    {
+      id: 'rule', title: 'Window length relative to the step period', preset: { win: wRule },
+      tag: () => `T ≈ ${(periodSamples / FS).toFixed(2)} s · w = ${W_LIVE()}`,
+      subtitle: () => `Comparing window lengths with the length of one step period.`,
+      formula: () => `w ≈ ¼T … ½T = ${Math.round(periodSamples / 4)} … ${Math.round(periodSamples / 2)} samples`
+    },
+    {
+      id: 'lp', title: () => `A ${CUT_LIVE()} Hz Butterworth low-pass for comparison`, preset: { cut: 3, win: wBest },
+      tag: () => `order 4 · zero-phase · w = ${W_LIVE()}`,
+      subtitle: () => `Comparing a Butterworth low-pass with the moving average on the same trace.`,
+      formula: () => `filtfilt(butter(4, ${CUT_LIVE()} / (fs/2), 'lowpass'), mag)`
+    }
+  ];
+
+  // ------------------------------------------------------------ layout
+  const W = 1200, H = 650;
+  const PL = 56, PR = 120, PT = 22;
+  const MAIN_H = 330, GAP = 100, PANEL_H = 150;
+  const mainBottom = PT + MAIN_H;
+  const panelTop = mainBottom + GAP, panelBottom = panelTop + PANEL_H;
+  const xs = i => PL + (i / (N - 1)) * (W - PL - PR);
+  const yLo = -12, yHi = 20;
+  const ys = v => mainBottom - ((v - yLo) / (yHi - yLo)) * MAIN_H;
+  const pxW = w => PL + ((w - 1) / 50) * (W - PL - PR);
+  const cMax = Math.ceil(rawPeaks.length / 10) * 10;
+  const pyC = c => panelBottom - (c / cMax) * PANEL_H;
+
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+  const linePath = (arr, upto = arr.length - 1) => { let d = ''; for (let i = 0; i <= upto; i++) d += (i ? 'L' : 'M') + xs(i).toFixed(1) + ',' + ys(arr[i]).toFixed(1); return d; };
+
+  // ------------------------------------------------------------ state
+  const chart = $('chart');
+  let step = 0, cursor = -1, playing = false, raf = 0, lastT = 0, acc = 0;
+  let speedMult = 1;
+  let hoverW = null;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let G = {};
+
+  function drawStatic() {
+    chart.innerHTML = '';
+    const grid = el('g', { class: 'grid' }, chart);
+    const axis = el('g', { class: 'axis' }, chart);
+    for (let v = -10; v <= 20; v += 10) {
+      el('line', { x1: PL, x2: W - PR, y1: ys(v), y2: ys(v) }, grid);
+      el('text', { x: PL - 10, y: ys(v) + 4, 'text-anchor': 'end' }, axis).textContent = v;
+    }
+    for (let s = 0; s <= DUR; s += 1) {
+      const i = s * FS; if (i > N - 1) break;
+      el('line', { x1: xs(i), x2: xs(i), y1: PT, y2: mainBottom }, grid);
+      el('text', { x: xs(i), y: mainBottom + 18, 'text-anchor': 'middle' }, axis).textContent = s;
+    }
+    el('path', { d: `M${PL},${PT}V${mainBottom}H${W - PR}` }, axis);
+    el('text', { x: W - PR + 8, y: mainBottom + 18, class: 'axis-title' }, chart).textContent = 'time (s)';
+    el('text', { x: PL, y: PT - 8, class: 'axis-title' }, chart).textContent = 'acceleration magnitude, centred (m/s²)';
+    G.formula = el('text', { x: W - PR, y: PT - 8, class: 'formula', 'text-anchor': 'end' }, chart);
+    for (let c = 0; c <= cMax; c += 20) {
+      el('line', { x1: PL, x2: W - PR, y1: pyC(c), y2: pyC(c) }, grid);
+      el('text', { x: PL - 10, y: pyC(c) + 4, 'text-anchor': 'end' }, axis).textContent = c;
+    }
+    for (let w = 1; w <= 51; w += 10) el('text', { x: pxW(w), y: panelBottom + 18, 'text-anchor': 'middle' }, axis).textContent = w;
+    el('path', { d: `M${PL},${panelTop}V${panelBottom}H${W - PR}` }, axis);
+    el('text', { x: W - PR + 8, y: panelBottom + 18, class: 'axis-title' }, chart).textContent = 'window w';
+    el('text', { x: PL, y: panelTop - 8, class: 'axis-title' }, chart).textContent = 'detected peaks vs window size';
+    G.panelBand = el('g', {}, chart);
+    G.panelStatic = el('g', {}, chart);
+    el('line', { class: 'truth', x1: PL, x2: W - PR, y1: pyC(trueSteps), y2: pyC(trueSteps) }, G.panelStatic);
+    el('text', { x: W - PR + 8, y: pyC(trueSteps) + 4, class: 'dlabel', fill: 'var(--lp)' }, G.panelStatic).textContent = `true steps ${trueSteps}`;
+    G.panelCurve = el('g', {}, chart);
+    G.panelCursor = el('g', {}, chart);
+    G.rawLine = el('path', { class: 'raw-line', d: linePath(WALK) }, chart);
+    G.out = el('g', {}, chart);
+    G.peaks = el('g', {}, chart);
+    G.ann = el('g', { class: 'ann' }, chart);
+    G.labels = el('g', {}, chart);
+    G.hover = el('g', {}, chart);
+    G.legendMain = el('g', { class: 'legend' }, chart);
+    G.legendPanel = el('g', { class: 'legend' }, chart);
+    G.hitMain = el('rect', { x: PL, y: PT, width: W - PL - PR, height: MAIN_H, fill: 'transparent' }, chart);
+    G.hitPanel = el('rect', { x: PL, y: panelTop, width: W - PL - PR, height: PANEL_H, fill: 'transparent' }, chart);
+    G.hitMain.addEventListener('mousemove', hoverMain);
+    G.hitMain.addEventListener('mouseleave', unhover);
+    G.hitPanel.addEventListener('mousemove', hoverPanel);
+    G.hitPanel.addEventListener('mouseleave', () => { hoverW = null; unhover(); render(); });
+  }
+
+  function markPeaks(y, peaks, color, kind, upto = Infinity) {
+    let n = 0, ripples = 0;
+    peaks.forEach(i => {
+      if (i > upto) return;
+      n++;
+      const rip = prominence(y, i) < RIPPLE;
+      if (rip) ripples++;
+      const cx = xs(i), cy = ys(y[i]);
+      if (kind === 'o') el('circle', { class: 'pk-o', cx, cy, r: 6, stroke: color }, G.peaks);
+      else if (rip && kind === 'x-rip') el('circle', { class: 'ripple', cx, cy, r: 6, stroke: color }, G.peaks);
+      else el('path', { class: 'pk-x', d: `M${cx - 4},${cy - 4}L${cx + 4},${cy + 4}M${cx - 4},${cy + 4}L${cx + 4},${cy - 4}`, stroke: color }, G.peaks);
+    });
+    return { n, ripples };
+  }
+  function setCount(n, ripples, cls) {
+    const c = $('count'); c.textContent = n; c.className = 'big' + (cls ? ' ' + cls : '');
+    $('ripples').textContent = ripples > 0 ? `· ${ripples} ripple${ripples === 1 ? '' : 's'} < ${RIPPLE} m/s²` : '';
+  }
+  function drawCurve(uptoIdx) {
+    G.panelCurve.innerHTML = '';
+    if (uptoIdx < 0) return;
+    let d = '';
+    for (let j = 0; j <= uptoIdx; j++) d += (j ? 'L' : 'M') + pxW(sweep[j].w).toFixed(1) + ',' + pyC(sweep[j].n).toFixed(1);
+    el('path', { class: 'curve', d }, G.panelCurve);
+    for (let j = 0; j <= uptoIdx; j++) el('circle', { class: 'cdot', cx: pxW(sweep[j].w), cy: pyC(sweep[j].n), r: 3.5 }, G.panelCurve);
+  }
+  function panelCursorAt(w, n) {
+    G.panelCursor.innerHTML = '';
+    if (w == null) return;
+    el('line', { class: 'cursor-w', x1: pxW(w), x2: pxW(w), y1: panelTop, y2: panelBottom }, G.panelCursor);
+    el('circle', { cx: pxW(w), cy: pyC(n), r: 6, fill: 'var(--ma)', stroke: '#fff', 'stroke-width': 2 }, G.panelCursor);
+    const right = w > 40;
+    el('text', { x: pxW(w) + (right ? -8 : 8), y: panelTop + 34, class: 'dlabel', fill: 'var(--ma)', 'text-anchor': right ? 'end' : 'start' }, G.panelCursor).textContent = `w = ${w}: ${n} peaks`;
+  }
+  function goodBand(show) {
+    G.panelBand.innerHTML = '';
+    if (!show) return;
+    const a = periodSamples / 4, b = periodSamples / 2;
+    el('rect', { class: 'good-band', x: pxW(a), y: panelTop, width: pxW(b) - pxW(a), height: PANEL_H }, G.panelBand);
+    el('text', { x: (pxW(a) + pxW(b)) / 2, y: panelBottom - 6, 'text-anchor': 'middle', class: 'axis-title', fill: 'var(--lp)' }, G.panelBand).textContent = '¼ T … ½ T';
+  }
+  function showMA(w, upto, withRipples = true) {
+    const s = sweep[(w - 1) / 2];
+    el('path', { class: 'out-line', d: linePath(s.y, upto), stroke: 'var(--ma)' }, G.out);
+    if (upto >= N - 1) el('text', { x: W - PR + 8, y: ys(s.y[N - 1]) + 4, class: 'dlabel', fill: 'var(--ma)' }, G.labels).textContent = `moving average w=${w}`;
+    return markPeaks(s.y, s.pk, 'var(--bad)', withRipples ? 'x-rip' : 'x', upto);
+  }
+  // conventional legend: one horizontal row on a white rounded rect, drawn at step entry
+  function legendRow(g, x, y, items, anchorRight) {
+    g.innerHTML = '';
+    if (!items.length) return;
+    const gap = 18, sw = 16, pad = 8;
+    const widths = items.map(it => sw + 6 + it.name.length * 6.4);
+    const total = widths.reduce((a, b) => a + b, 0) + gap * (items.length - 1) + pad * 2;
+    let x0 = anchorRight ? x - total : x;
+    el('rect', { class: 'bg', x: x0, y: y - 11, width: total, height: 22, rx: 4 }, g);
+    let cx = x0 + pad;
+    items.forEach((it, k) => {
+      const c = it.color, mx = cx + sw / 2;
+      if (it.kind === 'line') el('line', { x1: cx, x2: cx + sw, y1: y, y2: y, stroke: c, 'stroke-width': 3 }, g);
+      else if (it.kind === 'dash') el('line', { x1: cx, x2: cx + sw, y1: y, y2: y, stroke: c, 'stroke-width': 2, 'stroke-dasharray': '5 4' }, g);
+      else if (it.kind === 'x') el('path', { d: `M${mx - 4},${y - 4}L${mx + 4},${y + 4}M${mx - 4},${y + 4}L${mx + 4},${y - 4}`, stroke: c, 'stroke-width': 2, fill: 'none' }, g);
+      else if (it.kind === 'ring') el('circle', { cx: mx, cy: y, r: 5, fill: 'none', stroke: c, 'stroke-width': 1.4, 'stroke-dasharray': '2 2' }, g);
+      else if (it.kind === 'o') el('circle', { cx: mx, cy: y, r: 5, fill: 'none', stroke: c, 'stroke-width': 2 }, g);
+      else if (it.kind === 'dot') { el('line', { x1: cx, x2: cx + sw, y1: y, y2: y, stroke: c, 'stroke-width': 2 }, g); el('circle', { cx: mx, cy: y, r: 3.5, fill: c, stroke: '#fff', 'stroke-width': 1.5 }, g); }
+      el('text', { x: cx + sw + 6, y: y + 4 }, g).textContent = it.name;
+      cx += widths[k] + gap;
+    });
+  }
+  function drawLegends() {
+    const d = steps[step];
+    const w = W_LIVE();
+    const raw = { kind: 'line', color: 'var(--raw)', name: 'raw magnitude' };
+    const ma = { kind: 'line', color: 'var(--ma)', name: `moving average w=${w}` };
+    const pk = { kind: 'x', color: 'var(--bad)', name: 'detected peak' };
+    const rip = { kind: 'ring', color: 'var(--bad)', name: 'ripple peak (< 1 m/s²)' };
+    let main;
+    if (d.id === 'raw') main = [raw, pk];
+    else if (d.id === 'lp') main = [raw, { kind: 'line', color: 'var(--lp)', name: `${CUT_LIVE()} Hz low-pass` }, { kind: 'o', color: 'var(--lp)', name: 'accepted step peak' }, ma];
+    else main = [raw, ma, pk, rip];
+    legendRow(G.legendMain, PL + 8, PT + 12, main, false);
+    const panel = d.id === 'raw' ? [] : [{ kind: 'dot', color: 'var(--ma)', name: 'peak count' }, { kind: 'dash', color: 'var(--lp)', name: `true steps (${trueSteps})` }];
+    legendRow(G.legendPanel, W - PR - 8, panelTop + 12, panel, true);
+  }
+  function setHead() {
+    drawLegends();
+    const d = steps[step];
+    $('title').innerHTML = (typeof d.title === 'function' ? d.title() : d.title) + `<span class="tag">${d.tag()}</span>`;
+    $('subtitle').textContent = d.subtitle();
+    G.formula.textContent = d.formula();
+  }
+
+  // ------------------------------------------------------------ per-step render
+  function render() {
+    const d = steps[step];
+    G.out.innerHTML = ''; G.peaks.innerHTML = ''; G.ann.innerHTML = ''; G.labels.innerHTML = '';
+    G.rawLine.style.opacity = 1;
+    setHead();
+    const wLive = W_LIVE();
+    const wShown = hoverW != null ? hoverW : wLive;
+
+    if (d.id === 'raw') {
+      G.rawLine.setAttribute('d', linePath(WALK, Math.max(0, cursor)));
+      const r = markPeaks(WALK, rawPeaks, 'var(--bad)', 'x', cursor);
+      setCount(r.n, 0, r.n > trueSteps * 1.5 ? 'bad' : '');
+      drawCurve(-1); panelCursorAt(null); goodBand(false);
+      if (cursor >= N - 1) el('text', { x: W - PR + 8, y: ys(WALK[N - 1]) + 4, class: 'dlabel', fill: 'var(--raw-dot)' }, G.labels).textContent = 'raw magnitude';
+      return;
+    }
+    G.rawLine.setAttribute('d', linePath(WALK));
+    G.rawLine.style.opacity = 0.7;
+
+    if (d.id === 'ma5') {
+      const r = showMA(wShown, cursor);
+      setCount(r.n, r.ripples, r.n > trueSteps * 1.5 ? 'bad' : '');
+      drawCurve(-1); panelCursorAt(cursor >= N - 1 ? wShown : null, sweep[(wShown - 1) / 2].n); goodBand(false);
+    } else if (d.id === 'sweep') {
+      const j = Math.max(0, Math.min(sweep.length - 1, cursor));
+      const w = hoverW != null ? hoverW : sweep[j].w;
+      if (hoverW == null) setDial('win', w); // dial mirrors the sweep; setDial does not mark it dirty
+      const r = showMA(w, N - 1);
+      setCount(r.n, r.ripples, r.n > trueSteps * 1.5 ? 'bad' : '');
+      drawCurve(j); panelCursorAt(w, sweep[(w - 1) / 2].n); goodBand(false);
+    } else if (d.id === 'big') {
+      const w = wShown;
+      const r = showMA(w, N - 1);
+      setCount(r.n, r.ripples, 'bad');
+      drawCurve(sweep.length - 1); panelCursorAt(w, sweep[(w - 1) / 2].n); goodBand(false);
+      if (w >= 2 * periodSamples - 5) { // window spans about two steps: bracket two real steps under one hump
+        const a = refPeaks[3], b = refPeaks[4];
+        const y0 = PT + 48;
+        el('path', { d: `M${xs(a)},${y0 + 8}V${y0}H${xs(b)}V${y0 + 8}` }, G.ann);
+        el('text', { x: (xs(a) + xs(b)) / 2, y: y0 - 6, 'text-anchor': 'middle' }, G.ann).textContent = 'two real steps, one smoothed hump';
+        [a, b].forEach(i => el('line', { x1: xs(i), x2: xs(i), y1: y0 + 8, y2: ys(sweep[(w - 1) / 2].y[i]) - 6, 'stroke-dasharray': '2 3' }, G.ann));
+      }
+    } else if (d.id === 'rule') {
+      const w = wShown;
+      const r = showMA(w, N - 1);
+      setCount(r.n, r.ripples, r.n > trueSteps * 1.5 ? 'bad' : '');
+      drawCurve(sweep.length - 1); panelCursorAt(w, sweep[(w - 1) / 2].n); goodBand(true);
+      const a = refPeaks[5], b = refPeaks[6];
+      const y0 = PT + 48;
+      el('path', { d: `M${xs(a)},${y0 + 8}V${y0}H${xs(b)}V${y0 + 8}` }, G.ann);
+      el('text', { x: (xs(a) + xs(b)) / 2, y: y0 - 4, 'text-anchor': 'middle' }, G.ann).textContent = `one step: T ≈ ${((b - a) / FS).toFixed(2)} s = ${b - a} samples`;
+      const bars = [5, 13, 25, 51];
+      if (!bars.includes(w)) { bars.push(w); bars.sort((p, q) => p - q); }
+      bars.forEach((bw, k) => {
+        const y = mainBottom + 36 + k * 13;
+        const len = xs(bw - 1) - xs(0);
+        const x0 = (xs(a) + xs(b)) / 2 - len / 2;
+        el('rect', { class: 'wbar', x: x0, y, width: len, height: 6, rx: 1, opacity: bw === w ? 1 : 0.4 }, G.ann);
+        el('text', { x: x0 + len + 8, y: y + 6, class: 'wbar-lbl' }, G.ann).textContent = `w = ${bw}  (${(bw / (b - a)).toFixed(2)} T)${bw === w ? '  ← current' : ''}`;
+      });
+    } else if (d.id === 'lp') {
+      ensureLP();
+      const upto = cursor;
+      el('path', { class: 'out-line', d: linePath(lp, Math.max(0, upto)), stroke: 'var(--lp)' }, G.out);
+      const r = markPeaks(lp, lpPeaks, 'var(--lp)', 'o', upto);
+      setCount(r.n, 0, upto >= N - 1 && r.n === trueSteps ? 'good' : '');
+      const s = sweep[(wShown - 1) / 2];
+      if (upto >= N - 1) {
+        el('path', { class: 'out-line', d: linePath(s.y), stroke: 'var(--ma)', opacity: 0.55, 'stroke-width': 1.6 }, G.out);
+        const y1 = ys(lp[N - 1]) + 4;
+        el('text', { x: W - PR + 8, y: y1, class: 'dlabel', fill: 'var(--lp)' }, G.labels).textContent = `low-pass ${lpCut} Hz: ${lpPeaks.length}`;
+        let y2 = ys(s.y[N - 1]) + 4; if (Math.abs(y2 - y1) < 16) y2 = y1 + 16;
+        el('text', { x: W - PR + 8, y: y2, class: 'dlabel', fill: 'var(--ma)', opacity: 0.7 }, G.labels).textContent = `moving avg w=${wShown}: ${s.n}`;
+      }
+      drawCurve(sweep.length - 1); panelCursorAt(wShown, s.n); goodBand(true);
+    }
+  }
+
+  // ------------------------------------------------------------ hover
+  const tt = $('tt');
+  function svgPoint(evt) { const pt = chart.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY; return pt.matrixTransform(chart.getScreenCTM().inverse()); }
+  function placeTT(evt, html) {
+    tt.innerHTML = html; tt.style.display = 'block';
+    const wrap = chart.parentElement.getBoundingClientRect();
+    const px = evt.clientX - wrap.left, py = evt.clientY - wrap.top;
+    tt.style.left = (px + 16 + tt.offsetWidth > wrap.width ? px - tt.offsetWidth - 12 : px + 16) + 'px';
+    tt.style.top = Math.max(0, py - 10) + 'px';
+  }
+  function currentW() {
+    const d = steps[step];
+    if (hoverW != null) return hoverW;
+    if (d.id === 'sweep') return sweep[Math.max(0, Math.min(sweep.length - 1, cursor))].w;
+    return W_LIVE();
+  }
+  function hoverMain(evt) {
+    const p = svgPoint(evt);
+    const i = Math.max(0, Math.min(N - 1, Math.round((p.x - PL) / (W - PL - PR) * (N - 1))));
+    G.hover.innerHTML = '';
+    el('line', { class: 'crosshair', x1: xs(i), x2: xs(i), y1: PT, y2: mainBottom }, G.hover);
+    const d = steps[step];
+    let html = `<div class="row"><span>t</span><b>${(i / FS).toFixed(2)} s</b></div><div class="row"><span><i class="sw" style="background:var(--raw-dot)"></i>raw</span><span>${fmt1(WALK[i])}</span></div>`;
+    if (d.id !== 'raw') { const w = currentW(); html += `<div class="row"><span><i class="sw" style="background:var(--ma)"></i>avg w=${w}</span><span>${fmt1(sweep[(w - 1) / 2].y[i])}</span></div>`; }
+    if (d.id === 'lp') { ensureLP(); html += `<div class="row"><span><i class="sw" style="background:var(--lp)"></i>low-pass</span><span>${fmt1(lp[i])}</span></div>`; }
+    placeTT(evt, html);
+  }
+  function hoverPanel(evt) {
+    const p = svgPoint(evt);
+    let w = Math.round((p.x - PL) / (W - PL - PR) * 50) + 1; w = Math.max(1, Math.min(51, w)); if (w % 2 === 0) w += 1; w = Math.min(51, w);
+    const d = steps[step];
+    if (d.id === 'raw') return;
+    if (d.id === 'sweep' && cursor < sweep.length - 1) return;
+    if (d.id === 'ma5' && cursor < N - 1) return;
+    hoverW = w; render();
+    placeTT(evt, `<div class="row"><span>window</span><b>${w}</b></div><div class="row"><span>peaks</span><b>${sweep[(w - 1) / 2].n}</b></div>`);
+  }
+  function unhover() { tt.style.display = 'none'; G.hover.innerHTML = ''; }
+
+  // ------------------------------------------------------------ step control
+  const total = () => steps[step].id === 'sweep' ? sweep.length - 1 : (steps[step].id === 'big' || steps[step].id === 'rule') ? 0 : N - 1;
+  const rate = () => (steps[step].id === 'sweep' ? 2 : 100) * speedMult;
+  const cursorDone = () => cursor >= total();
+
+  function enterStep(k, completed = false) {
+    step = k; hoverW = null;
+    const d = steps[step];
+    if (!G.rawLine) drawStatic();
+    applyPresets(d);
+    $('counter').textContent = `${step + 1} / ${steps.length}`;
+    $('prev').disabled = step === 0;
+    $('next').disabled = false;
+    try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {}
+    stopPlay();
+    cursor = -1;
+    if (completed || speedMult === 0 || reduceMotion || total() === 0) finish();
+    else { render(); startPlay(); }
+  }
+  function finish() { cursor = total(); stopPlay(); render(); }
+  function tick(t) {
+    if (!playing) return;
+    const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+    acc += dt * rate();
+    while (acc >= 1 && cursor < total()) { cursor++; acc -= 1; }
+    render();
+    if (cursorDone()) { finish(); return; }
+    raf = requestAnimationFrame(tick);
+  }
+  function startPlay() { if (cursorDone()) return; playing = true; lastT = performance.now(); acc = 0; $('play').textContent = 'Pause'; raf = requestAnimationFrame(tick); }
+  function stopPlay() { playing = false; cancelAnimationFrame(raf); $('play').textContent = 'Play'; }
+  function next() { if (!cursorDone()) { finish(); return; } if (step < steps.length - 1) enterStep(step + 1); }
+  function prev() { if (step > 0) enterStep(step - 1, true); }
+  function restart() { enterStep(step); }
+  function resetDials() { for (const k in dials) dials[k].dirty = false; enterStep(step); }
+
+  // ------------------------------------------------------------ wiring
+  $('next').addEventListener('click', e => { e.stopPropagation(); next(); });
+  $('prev').addEventListener('click', e => { e.stopPropagation(); prev(); });
+  $('restart').addEventListener('click', e => { e.stopPropagation(); restart(); });
+  $('reset').addEventListener('click', e => { e.stopPropagation(); resetDials(); });
+  $('play').addEventListener('click', e => { e.stopPropagation(); if (playing) stopPlay(); else if (cursorDone()) { if (total() > 0) restart(); else next(); } else startPlay(); });
+  $('slide').addEventListener('click', () => next());
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
+    else if (e.key === 'r' || e.key === 'R') restart();
+  });
+  $('speed').addEventListener('change', e => { speedMult = parseFloat(e.target.value); });
+  function onDial(name) {
+    dials[name].dirty = true;
+    dials[name].val.textContent = dials[name].fmt(dials[name].get());
+    const d = steps[step];
+    if (d.id === 'sweep' && name === 'win') { cursor = (W_LIVE() - 1) / 2; stopPlay(); render(); return; } // jump the sweep to this w
+    if (d.id === 'raw') { setHead(); return; }
+    if (!cursorDone()) finish(); else render();
+  }
+  ['win', 'cut'].forEach(id => {
+    $(id).addEventListener('input', () => onDial(id));
+    $(id).addEventListener('click', e => e.stopPropagation());
+  });
+  document.querySelector('.bar').addEventListener('click', e => e.stopPropagation());
+
+  $('truth').textContent = trueSteps;
+  for (const k in dials) dials[k].val.textContent = dials[k].fmt(dials[k].get());
+  const h = parseInt((location.hash || '').replace('#', ''), 10);
+  if (h >= 1 && h <= steps.length) step = h - 1;
+  enterStep(step, h >= 1);
+})();
+</script>
+
+</body>
+</html>

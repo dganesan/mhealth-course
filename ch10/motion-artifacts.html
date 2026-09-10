@@ -1,0 +1,755 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PPG Motion Artifacts</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff;
+    --ink: #222222;
+    --ink-2: #666666;
+    --ink-3: #9a9a9a;
+    --rule: #dcdcdc;
+    --grid: #ececec;
+    --raw: #b4b4b4;
+    --raw-dot: #8c8c8c;
+    --clean: #444444;
+    --window: rgba(34, 34, 34, 0.06);
+    --window-edge: #222222;
+    --ma: #2a78d6;
+    --med: #1baf7a;
+    --wm: #4a3aa7;
+    --ewma: #eb6834;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.4;
+    padding-block: 18px 28px;
+    padding-inline: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .stage { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
+
+  /* ---------- slide frame ---------- */
+  .slide {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 26px 34px 16px;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 10px;
+    min-height: 560px;
+    position: relative;
+    outline: none;
+    cursor: pointer;
+    user-select: none;
+  }
+  .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
+  .head h1 {
+    margin: 0;
+    font-size: clamp(22px, 2.6vw, 30px);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+    line-height: 1.15;
+  }
+  .head h1 .tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-weight: 400;
+    font-size: 0.6em;
+    color: var(--ink-2);
+    margin-left: 10px;
+    vertical-align: middle;
+    background: #f4f4f4;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+
+  .chart-wrap { position: relative; min-height: 0; }
+  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  .tt {
+    position: absolute; pointer-events: none; display: none;
+    background: #fff; border: 1px solid var(--rule); border-radius: 4px;
+    padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink);
+    box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2;
+  }
+  .tt .row { display: flex; gap: 10px; justify-content: space-between; }
+  .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+  .foot {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 12px; color: var(--ink-3); padding-top: 4px;
+  }
+  .foot .ctr { font-family: var(--mono); }
+
+  /* ---------- control bar ---------- */
+  .bar { display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center; padding:14px 18px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
+  .group { display:flex; align-items:center; gap:8px; }
+  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
+  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
+  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  button:hover, select:hover { border-color:var(--ink); }
+  button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
+  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
+  .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
+
+  /* ---------- svg parts ---------- */
+  .grid line { stroke: var(--grid); stroke-width: 1; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .raw-line { fill: none; stroke: var(--raw-dot); stroke-width: 1.5; }
+  .out-line { fill: none; stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
+  .zero-line { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 3; }
+  .cursor-line { stroke: var(--ink); stroke-width: 1; stroke-dasharray: 4 3; opacity: .7; }
+  .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
+  .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
+  .mono { font-family: var(--mono); }
+  .note { font-family: var(--mono); font-size: 13px; fill: var(--ink); white-space: pre; }
+  .note-big { font-family: var(--mono); font-size: 22px; font-weight: 700; white-space: pre; }
+  .callout text { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
+
+  @media (max-width: 720px) {
+    .slide { padding: 18px 16px 12px; min-height: 0; }
+    .hint { display: none; }
+  }
+
+  .pk { stroke: #fff; stroke-width: 1.5; }
+  .pk-rej { fill: none; stroke: var(--ewma); stroke-width: 1.8; }
+  .acc-line { fill: none; stroke: var(--ink-2); stroke-width: 1.3; }
+  .thr-line { stroke: var(--clean); stroke-width: 1.3; stroke-dasharray: 6 4; }
+  .motion-rect { fill: rgba(235,104,52,.10); stroke: none; }
+  .motion-edge { stroke: var(--ewma); stroke-width: 1; stroke-dasharray: 4 3; }
+  .hr-line { fill: none; stroke: var(--ma); stroke-width: 1.4; }
+  .big-red { fill: var(--ewma); }
+</style>
+
+<div class="stage">
+  <section class="slide" id="slide" tabindex="0" aria-live="polite">
+    <div class="head">
+      <h1 id="title">Peak detection on wrist PPG through a motion event</h1>
+      <p id="subtitle"></p>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 1200 660" role="img" aria-label="Wrist PPG with motion artifacts and accelerometer"></svg>
+      <div class="tt" id="tt"></div>
+    </div>
+    <div class="foot">
+      <span>CS328 &nbsp;·&nbsp; Sensing Heart Rhythm with PPG</span>
+      <span class="ctr" id="counter"></span>
+    </div>
+  </section>
+
+  <div class="bar">
+    <div class="group">
+      <button id="prev" title="Previous (←)">‹ Prev</button>
+      <button id="play" class="primary" title="Play / pause (space)">Play</button>
+      <button id="next" title="Next (→)">Next ›</button>
+      <button id="restart" title="Restart this step (r)">Restart</button>
+      <button id="reset" title="Reset all dials to the step's presets">Reset dials</button>
+    </div>
+    <div class="group">
+      <label for="thr">Motion threshold (× median)</label>
+      <input type="range" id="thr" min="1" max="12" step="0.5" value="4">
+      <span class="val" id="thrVal">4.0</span>
+    </div>
+    <div class="group">
+      <label for="prom">Prominence (× std)</label>
+      <input type="range" id="prom" min="0" max="1.5" step="0.05" value="0.5">
+      <span class="val" id="promVal">0.50</span>
+    </div>
+    <div class="group">
+      <label for="speed">Speed</label>
+      <select id="speed">
+        <option value="0.25">very slow</option>
+        <option value="0.5">slow</option>
+        <option value="1" selected>normal</option>
+        <option value="2.5">fast</option>
+        <option value="0">instant</option>
+      </select>
+    </div>
+    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play &nbsp; <kbd>r</kbd> restart</span>
+  </div>
+</div>
+
+<script>
+// Butterworth IIR design + filtering, mirroring scipy.signal.butter / lfilter / filtfilt.
+// Design path: analog Butterworth prototype (zpk) -> lp2lp / lp2hp / lp2bp / lp2bs -> bilinear -> SOS.
+// Usage:
+//   const sos = butter(4, 100, 1000, 'lowpass');            // cutoff Hz, fs Hz
+//   const sos = butter(4, [58, 62], 1000, 'bandstop');
+//   const y = sosfilt(sos, x);                              // causal (lfilter)
+//   const y = sosfiltfilt(sos, x);                          // zero-phase (filtfilt)
+//   const mag = sosFreqz(sos, fHz, fs);                     // |H| at one frequency
+(function (global) {
+  // ---- minimal complex arithmetic
+  const C = (re, im = 0) => ({ re, im });
+  const cadd = (a, b) => C(a.re + b.re, a.im + b.im);
+  const csub = (a, b) => C(a.re - b.re, a.im - b.im);
+  const cmul = (a, b) => C(a.re * b.re - a.im * b.im, a.re * b.im + a.im * b.re);
+  const cdiv = (a, b) => { const d = b.re * b.re + b.im * b.im; return C((a.re * b.re + a.im * b.im) / d, (a.im * b.re - a.re * b.im) / d); };
+  const csqrt = a => { const r = Math.hypot(a.re, a.im); const re = Math.sqrt(Math.max(0, (r + a.re) / 2)); const im = Math.sign(a.im || 1) * Math.sqrt(Math.max(0, (r - a.re) / 2)); return C(re, im); };
+  const cscale = (a, s) => C(a.re * s, a.im * s);
+
+  function buttap(N) { // analog prototype poles, unit cutoff
+    const p = [];
+    for (let k = 1; k <= N; k++) { const th = Math.PI * (2 * k - 1) / (2 * N); p.push(C(-Math.sin(th), Math.cos(th))); }
+    return { z: [], p, k: 1 };
+  }
+  function lp2lp(zpk, wo) { return { z: zpk.z.map(v => cscale(v, wo)), p: zpk.p.map(v => cscale(v, wo)), k: zpk.k * Math.pow(wo, zpk.p.length - zpk.z.length) }; }
+  function lp2hp(zpk, wo) {
+    const z = zpk.z.map(v => cdiv(C(wo), v)), p = zpk.p.map(v => cdiv(C(wo), v));
+    const deg = zpk.p.length - zpk.z.length;
+    for (let i = 0; i < deg; i++) z.push(C(0));
+    let num = C(1), den = C(1);
+    zpk.z.forEach(v => { num = cmul(num, cscale(v, -1)); });
+    zpk.p.forEach(v => { den = cmul(den, cscale(v, -1)); });
+    const kk = cdiv(num, den);
+    return { z, p, k: zpk.k * kk.re };
+  }
+  function lp2bp(zpk, wo, bw) {
+    const deg = zpk.p.length - zpk.z.length;
+    const tr = v => { const s = cscale(v, bw / 2); const r = csqrt(csub(cmul(s, s), C(wo * wo))); return [cadd(s, r), csub(s, r)]; };
+    const z = [], p = [];
+    zpk.z.forEach(v => z.push(...tr(v)));
+    zpk.p.forEach(v => p.push(...tr(v)));
+    for (let i = 0; i < deg; i++) z.push(C(0));
+    return { z, p, k: zpk.k * Math.pow(bw, deg) };
+  }
+  function lp2bs(zpk, wo, bw) {
+    const deg = zpk.p.length - zpk.z.length;
+    const tr = v => { const s = cdiv(C(bw / 2), v); const r = csqrt(csub(cmul(s, s), C(wo * wo))); return [cadd(s, r), csub(s, r)]; };
+    const z = [], p = [];
+    zpk.z.forEach(v => z.push(...tr(v)));
+    zpk.p.forEach(v => p.push(...tr(v)));
+    for (let i = 0; i < deg; i++) { z.push(C(0, wo)); z.push(C(0, -wo)); }
+    let num = C(1), den = C(1);
+    zpk.z.forEach(v => { num = cmul(num, cscale(v, -1)); });
+    zpk.p.forEach(v => { den = cmul(den, cscale(v, -1)); });
+    const kk = cdiv(num, den);
+    return { z, p, k: zpk.k * kk.re };
+  }
+  function bilinear(zpk, fs) {
+    const fs2 = 2 * fs;
+    const deg = zpk.p.length - zpk.z.length;
+    const tr = v => cdiv(cadd(C(fs2), v), csub(C(fs2), v));
+    const z = zpk.z.map(tr), p = zpk.p.map(tr);
+    for (let i = 0; i < deg; i++) z.push(C(-1));
+    let num = C(1), den = C(1);
+    zpk.z.forEach(v => { num = cmul(num, csub(C(fs2), v)); });
+    zpk.p.forEach(v => { den = cmul(den, csub(C(fs2), v)); });
+    const kk = cdiv(num, den);
+    return { z, p, k: zpk.k * kk.re };
+  }
+  // pair conjugates -> second-order sections [b0,b1,b2,a0,a1,a2]
+  function zpk2sos(zpk) {
+    const pairUp = arr => {
+      const rest = arr.slice(); const pairs = [];
+      while (rest.length) {
+        const a = rest.shift();
+        if (Math.abs(a.im) < 1e-9) { // real: pair with the nearest real
+          let j = rest.findIndex(v => Math.abs(v.im) < 1e-9);
+          if (j >= 0) { pairs.push([a, rest.splice(j, 1)[0]]); } else pairs.push([a]);
+        } else {
+          let j = rest.findIndex(v => Math.abs(v.re - a.re) < 1e-7 && Math.abs(v.im + a.im) < 1e-7);
+          if (j >= 0) { pairs.push([a, rest.splice(j, 1)[0]]); } else pairs.push([a, C(a.re, -a.im)]);
+        }
+      }
+      return pairs;
+    };
+    const poly = pr => { // (x - r1)(x - r2) -> real coefficients [1, c1, c2]
+      if (pr.length === 1) return [1, -pr[0].re, 0];
+      const s = cadd(pr[0], pr[1]), m = cmul(pr[0], pr[1]);
+      return [1, -s.re, m.re];
+    };
+    // sort poles by closeness to the unit circle so each section pairs zeros nearby (stability of cascade)
+    const P = zpk.p.slice().sort((a, b) => Math.hypot(b.re, b.im) - Math.hypot(a.re, a.im));
+    const Z = zpk.z.slice();
+    const pp = pairUp(P);
+    const sos = [];
+    pp.forEach((pair, idx) => {
+      // choose the zero(s) nearest this pole pair
+      const zs = [];
+      for (let n = 0; n < pair.length && Z.length; n++) {
+        let best = 0, bd = Infinity;
+        Z.forEach((v, j) => { const d = Math.hypot(v.re - pair[0].re, Math.abs(v.im) - Math.abs(pair[0].im)); if (d < bd) { bd = d; best = j; } });
+        const zz = Z.splice(best, 1)[0];
+        zs.push(zz);
+        if (Math.abs(zz.im) > 1e-9) { // also remove its conjugate
+          const cj = Z.findIndex(v => Math.abs(v.re - zz.re) < 1e-7 && Math.abs(v.im + zz.im) < 1e-7);
+          if (cj >= 0) { zs.push(Z.splice(cj, 1)[0]); n++; }
+        }
+      }
+      const b = zs.length ? poly(zs) : [1, 0, 0];
+      const a = poly(pair);
+      const g = idx === 0 ? zpk.k : 1;
+      sos.push([b[0] * g, b[1] * g, b[2] * g, a[0], a[1], a[2]]);
+    });
+    return sos;
+  }
+
+  function butter(N, cutoffHz, fs, btype = 'lowpass') {
+    const warp = f => 2 * fs * Math.tan(Math.PI * f / fs);
+    let zpk = buttap(N);
+    if (btype === 'lowpass') zpk = lp2lp(zpk, warp(cutoffHz));
+    else if (btype === 'highpass') zpk = lp2hp(zpk, warp(cutoffHz));
+    else {
+      const w1 = warp(cutoffHz[0]), w2 = warp(cutoffHz[1]);
+      const bw = w2 - w1, wo = Math.sqrt(w1 * w2);
+      zpk = btype === 'bandpass' ? lp2bp(zpk, wo, bw) : lp2bs(zpk, wo, bw);
+    }
+    return zpk2sos(bilinear(zpk, fs));
+  }
+
+  function sosfilt(sos, x, zi) { // direct form II transposed, per section
+    let y = Float64Array.from(x);
+    const st = zi || sos.map(() => [0, 0]);
+    sos.forEach(([b0, b1, b2, a0, a1, a2], s) => {
+      const z = st[s]; const out = new Float64Array(y.length);
+      for (let n = 0; n < y.length; n++) {
+        const xn = y[n];
+        const yn = b0 * xn + z[0];
+        z[0] = b1 * xn - a1 * yn + z[1];
+        z[1] = b2 * xn - a2 * yn;
+        out[n] = yn;
+      }
+      y = out;
+    });
+    return y;
+  }
+  // steady-state initial conditions for a step of amplitude 1 (like scipy sosfilt_zi)
+  function sosfiltZi(sos) {
+    let scale = 1;
+    return sos.map(([b0, b1, b2, a0, a1, a2]) => {
+      // solve for zi such that output is constant for constant input (scale)
+      const g = (b0 + b1 + b2) / (1 + a1 + a2); // dc gain of this section
+      const z0 = scale * ((b1 - a1 * b0) + (b2 - a2 * b0)) / (1 + a1 + a2) * 1; // approx via steady state
+      // exact: z1 = scale*(b2 - a2*b0)... use the standard linear solve
+      // Steady state: y = g*scale; z0 = y - b0*scale; z1 = z0 - (b1*scale - a1*y)
+      const y = g * scale;
+      const zz0 = y - b0 * scale;
+      const zz1 = zz0 - (b1 * scale - a1 * y);
+      scale = y;
+      return [zz0, zz1];
+    });
+  }
+  function sosfiltfilt(sos, x) {
+    const n = x.length;
+    const pad = Math.min(n - 1, 3 * 3 * sos.length); // ~ 3 * (order) samples (scipy: 3*max(len(a),len(b)))
+    // odd extension
+    const ext = new Float64Array(n + 2 * pad);
+    for (let i = 0; i < pad; i++) ext[i] = 2 * x[0] - x[pad - i];
+    for (let i = 0; i < n; i++) ext[pad + i] = x[i];
+    for (let i = 0; i < pad; i++) ext[pad + n + i] = 2 * x[n - 1] - x[n - 2 - i];
+    const zi = sosfiltZi(sos);
+    let y = sosfilt(sos, ext, zi.map(z => [z[0] * ext[0], z[1] * ext[0]]));
+    y.reverse();
+    y = sosfilt(sos, y, zi.map(z => [z[0] * y[0], z[1] * y[0]]));
+    y.reverse();
+    return y.slice(pad, pad + n);
+  }
+  function sosFreqz(sos, fHz, fs) { // magnitude response at a frequency (Hz)
+    const w = 2 * Math.PI * fHz / fs;
+    const e1 = C(Math.cos(-w), Math.sin(-w)), e2 = C(Math.cos(-2 * w), Math.sin(-2 * w));
+    let H = C(1);
+    sos.forEach(([b0, b1, b2, a0, a1, a2]) => {
+      const num = cadd(C(b0), cadd(cscale(e1, b1), cscale(e2, b2)));
+      const den = cadd(C(a0), cadd(cscale(e1, a1), cscale(e2, a2)));
+      H = cmul(H, cdiv(num, den));
+    });
+    return Math.hypot(H.re, H.im);
+  }
+  function sosPhase(sos, fHz, fs) {
+    const w = 2 * Math.PI * fHz / fs;
+    const e1 = C(Math.cos(-w), Math.sin(-w)), e2 = C(Math.cos(-2 * w), Math.sin(-2 * w));
+    let H = C(1);
+    sos.forEach(([b0, b1, b2, a0, a1, a2]) => {
+      const num = cadd(C(b0), cadd(cscale(e1, b1), cscale(e2, b2)));
+      const den = cadd(C(a0), cadd(cscale(e1, a1), cscale(e2, a2)));
+      H = cmul(H, cdiv(num, den));
+    });
+    return Math.atan2(H.im, H.re);
+  }
+
+  // ---- real FFT magnitude (radix-2, zero-padded), returns {f, mag} one-sided, mag scaled 2/N
+  function rfftMag(x, fs) {
+    let N = 1; while (N < x.length) N <<= 1;
+    const re = new Float64Array(N), im = new Float64Array(N);
+    for (let i = 0; i < x.length; i++) re[i] = x[i];
+    for (let i = 1, j = 0; i < N; i++) { // bit reversal
+      let bit = N >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit;
+      if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; }
+    }
+    for (let len = 2; len <= N; len <<= 1) {
+      const ang = -2 * Math.PI / len, wr = Math.cos(ang), wi = Math.sin(ang);
+      for (let i = 0; i < N; i += len) {
+        let cr = 1, ci = 0;
+        for (let j = 0; j < len / 2; j++) {
+          const ur = re[i + j], ui = im[i + j];
+          const vr = re[i + j + len / 2] * cr - im[i + j + len / 2] * ci;
+          const vi = re[i + j + len / 2] * ci + im[i + j + len / 2] * cr;
+          re[i + j] = ur + vr; im[i + j] = ui + vi;
+          re[i + j + len / 2] = ur - vr; im[i + j + len / 2] = ui - vi;
+          const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t;
+        }
+      }
+    }
+    const half = N / 2 + 1, f = new Float64Array(half), mag = new Float64Array(half);
+    for (let k = 0; k < half; k++) { f[k] = k * fs / N; mag[k] = 2 * Math.hypot(re[k], im[k]) / x.length; }
+    return { f, mag };
+  }
+
+  const api = { butter, sosfilt, sosfiltfilt, sosFreqz, sosPhase, rfftMag };
+  if (typeof module !== 'undefined') module.exports = api;
+  global.Butter = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+// find_peaks(x, {distance, prominence}) mirroring scipy.signal.find_peaks:
+// local maxima (plateaus -> midpoint), then distance (keep tallest first), then prominence.
+function findPeaks(x, opt) {
+  const n = x.length, peaks = [];
+  let i = 1;
+  while (i < n - 1) {
+    if (x[i - 1] < x[i]) {
+      let ahead = i + 1;
+      while (ahead < n - 1 && x[ahead] === x[i]) ahead++;
+      if (x[ahead] < x[i]) { peaks.push(Math.floor((i + ahead - 1) / 2)); i = ahead; continue; }
+    }
+    i++;
+  }
+  let keep = peaks;
+  if (opt.distance) {
+    const d = opt.distance;
+    const order = keep.slice().sort((a, b) => x[b] - x[a]);
+    const alive = new Set(keep);
+    order.forEach(p => { if (!alive.has(p)) return; keep.forEach(q => { if (q !== p && alive.has(q) && Math.abs(q - p) < d && x[q] <= x[p]) alive.delete(q); }); });
+    keep = keep.filter(p => alive.has(p));
+  }
+  const prom = p => {
+    let lmin = x[p], j = p - 1; while (j >= 0 && x[j] <= x[p]) { if (x[j] < lmin) lmin = x[j]; j--; }
+    let rmin = x[p]; j = p + 1; while (j < n && x[j] <= x[p]) { if (x[j] < rmin) rmin = x[j]; j++; }
+    return x[p] - Math.max(lmin, rmin);
+  };
+  const out = keep.map(p => ({ i: p, prom: prom(p) }));
+  return opt.prominence != null ? out.filter(o => o.prom >= opt.prominence) : out;
+}
+
+(() => {
+  // ------------------------------------------------------------ data
+  // WESAD subject S2, wrist BVP at 64 Hz and accelerometer magnitude at 32 Hz,
+  // 22 s starting at t = 1944.5 s of the recording (the motion event of the notes).
+  const FB = 64, FA = 32, DUR = 22;
+  const BVP = [13.01,7.57,6.68,10.29,16.70,23.62,29.02,31.93,32.53,31.79,30.82,30.34,30.35,30.21,29.07,26.18,21.29,14.63,6.72,-1.90,-10.78,-19.55,-27.74,-34.60,-39.26,-40.96,-39.40,-35.02,-28.85,-22.15,-15.97,-10.87,-6.84,-3.62,-1.01,0.94,1.88,1.47,-0.42,-3.56,-7.30,-10.83,-13.35,-14.35,-13.67,-11.60,-8.68,-5.51,-2.57,-0.16,1.62,2.66,2.79,1.76,-0.64,-4.40,-9.25,-14.71,-20.28,-25.66,-30.80,-35.90,-41.24,-47.15,-53.81,-61.22,-69.03,-76.60,-83.31,-88.72,-92.84,-95.94,-98.08,-98.75,-96.81,-90.90,-80.14,-64.70,-45.90,-25.71,-6.04,11.79,27.11,39.64,49.12,55.22,57.76,56.99,53.72,49.28,45.23,43.07,44.05,49.00,58.11,70.82,85.78,101.06,114.61,124.84,130.88,132.68,130.68,125.43,117.27,106.39,93.05,78.00,62.54,48.41,37.36,30.59,28.36,30.00,34.10,38.99,43.18,45.63,45.86,44.04,40.84,37.44,35.19,35.24,37.91,42.34,46.49,47.63,43.29,32.22,15.05,-5.81,-26.97,-45.29,-58.94,-67.82,-72.97,-75.51,-75.70,-72.64,-65.02,-52.27,-35.46,-17.28,-1.10,10.41,16.12,16.52,13.07,7.28,0.29,-7.01,-13.58,-18.08,-19.15,-15.97,-8.83,0.97,11.48,20.81,27.62,31.31,31.85,29.57,24.88,18.21,10.07,1.13,-7.66,-15.04,-19.62,-20.24,-16.44,-8.64,1.79,12.97,22.97,30.32,34.22,34.53,31.54,25.76,17.69,7.62,-4.54,-19.23,-36.96,-57.53,-79.45,-99.72,-114.29,-119.34,-112.88,-95.77,-71.81,-46.57,-25.41,-11.61,-5.43,-4.37,-4.60,-2.76,2.70,11.20,20.65,28.72,34.07,36.84,38.37,40.41,43.98,48.81,53.33,55.16,52.15,42.96,27.54,7.05,-16.28,-39.33,-58.25,-68.91,-68.08,-54.77,-31.32,-3.18,22.75,40.86,49.24,50.32,49.29,50.87,56.73,64.58,69.88,68.68,60.00,46.36,32.25,21.71,16.41,15.33,15.79,15.20,12.36,7.67,2.64,-1.11,-2.55,-1.48,1.64,6.07,11.04,15.91,20.11,23.12,24.48,24.00,22.07,19.81,18.94,21.31,28.24,39.79,54.58,69.98,82.97,91.08,93.10,89.37,81.28,70.52,58.19,44.65,29.76,13.55,-3.18,-18.90,-31.85,-40.96,-46.36,-49.45,-52.19,-56.28,-62.49,-70.48,-79.02,-86.51,-91.50,-93.01,-90.86,-85.60,-78.40,-70.75,-64.03,-59.24,-56.86,-56.88,-58.93,-62.35,-66.25,-69.63,-71.52,-71.36,-69.20,-65.71,-61.92,-58.65,-56.10,-53.80,-50.76,-46.01,-38.94,-29.57,-18.52,-6.91,3.96,12.77,18.51,20.71,19.47,15.49,9.74,3.29,-3.06,-8.89,-14.15,-19.03,-23.77,-28.54,-33.36,-38.14,-42.75,-47.28,-51.98,-57.28,-63.36,-69.90,-76.03,-80.85,-83.98,-86.03,-88.25,-91.59,-95.73,-98.72,-97.69,-90.17,-75.40,-54.52,-29.78,-3.24,23.91,51.11,77.36,100.67,118.47,129.05,132.90,132.88,132.87,135.71,141.60,148.11,151.74,149.92,142.42,131.16,118.93,107.86,98.56,90.34,82.11,73.31,64.11,55.18,47.01,39.38,31.52,22.60,12.34,1.54,-8.14,-14.92,-17.66,-16.53,-13.02,-9.27,-7.24,-7.89,-10.83,-14.67,-17.69,-18.57,-16.95,-13.35,-8.92,-4.77,-1.60,0.50,1.93,3.22,4.80,6.76,8.93,11.01,12.69,13.77,14.17,13.82,12.74,10.96,8.57,5.72,2.63,-0.43,-3.29,-5.83,-8.16,-10.56,-13.32,-16.63,-20.41,-24.17,-27.20,-28.71,-28.10,-25.16,-20.14,-13.64,-6.44,0.69,7.17,12.65,16.99,20.15,22.17,23.08,22.93,21.83,19.94,17.49,14.74,11.93,9.29,6.99,5.13,3.73,2.72,1.94,1.20,0.37,-0.65,-1.84,-3.16,-4.53,-5.90,-7.32,-8.82,-10.51,-12.45,-14.67,-17.11,-19.52,-21.50,-22.54,-22.15,-20.08,-16.40,-11.60,-6.31,-1.19,3.27,6.85,9.56,11.44,12.52,12.79,12.32,11.29,9.97,8.68,7.60,6.73,5.93,5.01,3.87,2.54,1.21,0.08,-0.69,-1.07,-1.20,-1.29,-1.57,-2.12,-2.90,-3.75,-4.55,-5.26,-6.00,-6.96,-8.31,-10.11,-12.30,-14.82,-17.52,-20.23,-22.66,-24.38,-24.94,-23.93,-21.20,-16.93,-11.58,-5.77,-0.11,4.92,9.02,12.07,14.12,15.28,15.75,15.76,15.46,14.99,14.41,13.72,12.91,11.91,10.69,9.33,7.93,6.70,5.80,5.30,5.15,5.23,5.34,5.33,5.10,4.57,3.75,2.68,1.42,0.07,-1.28,-2.55,-3.72,-4.78,-5.72,-6.49,-7.05,-7.43,-7.76,-8.29,-9.30,-10.98,-13.36,-16.27,-19.32,-21.96,-23.64,-23.85,-22.29,-18.98,-14.20,-8.47,-2.45,3.25,8.11,11.78,14.10,15.14,15.07,14.26,13.12,12.00,11.16,10.71,10.62,10.81,11.12,11.38,11.44,11.18,10.54,9.61,8.55,7.53,6.74,6.24,6.02,5.95,5.90,5.66,5.13,4.22,2.88,1.13,-0.98,-3.32,-5.72,-7.93,-9.80,-11.17,-12.11,-12.81,-13.51,-14.41,-15.53,-16.72,-17.64,-17.92,-17.25,-15.46,-12.54,-8.65,-4.10,0.69,5.26,9.24,12.31,14.39,15.49,15.72,15.27,14.31,12.99,11.51,10.08,8.87,8.08,7.82,8.09,8.83,9.85,10.92,11.81,12.34,12.45,12.18,11.54,10.53,9.12,7.30,5.18,2.94,0.79,-1.13,-2.85,-4.51,-6.24,-8.01,-9.61,-10.71,-11.03,-10.61,-9.74,-8.91,-8.62,-9.22,-10.76,-13.12,-15.98,-18.87,-21.25,-22.58,-22.40,-20.46,-16.81,-11.79,-5.96,0.07,5.73,10.59,14.31,16.76,17.94,18.01,17.25,16.00,14.55,13.07,11.64,10.25,8.85,7.45,6.12,5.00,4.19,3.75,3.64,3.73,3.82,3.79,3.58,3.20,2.70,2.09,1.32,0.39,-0.69,-1.80,-2.80,-3.58,-4.17,-4.71,-5.34,-6.16,-7.14,-8.19,-9.20,-10.15,-11.05,-12.02,-13.16,-14.46,-15.84,-17.06,-17.82,-17.78,-16.66,-14.36,-10.96,-6.77,-2.22,2.20,6.07,9.12,11.26,12.55,13.13,13.23,13.03,12.70,12.32,11.95,11.56,11.10,10.55,9.86,9.12,8.38,7.72,7.17,6.75,6.39,6.04,5.66,5.24,4.76,4.19,3.52,2.70,1.69,0.49,-0.93,-2.49,-4.11,-5.66,-7.04,-8.20,-9.22,-10.24,-11.42,-12.88,-14.56,-16.38,-18.11,-19.49,-20.23,-20.07,-18.85,-16.55,-13.38,-9.72,-5.99,-2.60,0.24,2.43,4.10,5.40,6.54,7.64,8.73,9.71,10.44,10.79,10.75,10.43,10.06,9.80,9.75,9.91,10.19,10.54,10.95,11.41,11.85,12.13,12.08,11.59,10.68,9.55,8.42,7.41,6.54,5.70,4.77,3.71,2.59,1.48,0.49,-0.38,-1.18,-2.00,-2.91,-3.94,-5.06,-6.29,-7.59,-8.92,-10.15,-11.07,-11.38,-10.80,-9.21,-6.65,-3.45,-0.03,3.13,5.72,7.62,8.90,9.74,10.31,10.70,10.90,10.88,10.62,10.16,9.60,9.05,8.59,8.24,8.03,7.91,7.86,7.85,7.81,7.73,7.60,7.41,7.13,6.76,6.24,5.57,4.73,3.75,2.71,1.68,0.73,-0.18,-1.10,-2.13,-3.32,-4.69,-6.17,-7.64,-8.99,-10.15,-11.14,-11.99,-12.78,-13.53,-14.25,-14.95,-15.63,-16.23,-16.63,-16.58,-15.82,-14.18,-11.72,-8.67,-5.44,-2.38,0.28,2.52,4.36,5.84,6.87,7.35,7.27,6.72,5.91,5.06,4.30,3.64,3.04,2.44,1.89,1.51,1.40,1.63,2.13,2.78,3.39,3.79,3.85,3.51,2.79,1.77,0.58,-0.60,-1.68,-2.62,-3.43,-4.11,-4.68,-5.10,-5.37,-5.47,-5.47,-5.43,-5.47,-5.65,-5.97,-6.44,-7.08,-7.86,-8.74,-9.61,-10.29,-10.58,-10.32,-9.47,-8.10,-6.35,-4.38,-2.32,-0.25,1.74,3.54,4.95,5.78,5.91,5.41,4.48,3.44,2.56,2.00,1.73,1.62,1.52,1.42,1.40,1.56,1.90,2.29,2.54,2.48,2.12,1.58,1.01,0.53,0.17,-0.15,-0.50,-0.89,-1.33,-1.80,-2.33,-2.98,-3.79,-4.76,-5.83,-6.87,-7.80,-8.59,-9.23,-9.75,-10.21,-10.68,-11.29,-12.11,-13.19,-14.44,-15.70,-16.68,-17.07,-16.60,-15.11,-12.62,-9.33,-5.62,-1.96,1.18,3.52,4.96,5.60,5.68,5.47,5.09,4.60,3.99,3.26,2.48,1.75,1.23,1.09,1.39,2.14,3.22,4.49,5.75,6.83,7.60,7.97,7.93,7.49,6.72,5.75,4.80,4.06,3.67,3.59,3.66,3.64,3.30,2.59,1.59,0.53,-0.40,-1.13,-1.69,-2.23,-2.92,-3.83,-4.96,-6.26,-7.66,-9.12,-10.54,-11.73,-12.45,-12.41,-11.46,-9.60,-7.12,-4.41,-1.96,-0.11,1.06,1.62,1.81,1.83,1.80,1.72,1.55,1.31,1.05,0.90,0.97,1.30,1.86,2.53,3.21,3.84,4.45,5.06,5.74,6.45,7.12,7.61,7.79,7.62,7.11,6.35,5.45,4.47,3.42,2.30,1.12,-0.10,-1.28,-2.33,-3.19,-3.81,-4.19,-4.40,-4.49,-4.54,-4.62,-4.79,-5.07,-5.44,-5.82,-6.08,-6.00,-5.37,-4.00,-1.91,0.76,3.73,6.60,9.08,10.96,12.22,12.92,13.17,13.08,12.67,11.98,11.02,9.84,8.56,7.31,6.20,5.23,4.43,3.71,3.05,2.44,1.95,1.67,1.69,2.04,2.64,3.39,4.09,4.62,4.88,4.83,4.49,3.91,3.15,2.27,1.30,0.24,-0.96,-2.32,-3.78,-5.19,-6.38,-7.24,-7.84,-8.38,-9.16,-10.32,-11.84,-13.48,-14.95,-16.03,-16.58,-16.55,-15.87,-14.48,-12.36,-9.68,-6.84,-4.37,-2.70,-2.03,-2.20,-2.85,-3.55,-4.00,-4.08,-3.81,-3.31,-2.70,-2.11,-1.68,-1.51,-1.62,-1.91,-2.15,-2.04,-1.30,0.24,2.56,5.48,8.69,11.89,14.73,16.95,18.42,19.16,19.34,19.21,19.08,19.18,19.59,20.23,20.85,21.13,20.80,19.69,17.85,15.43,12.66,9.78,7.03,4.62,2.78,1.74,1.60,2.33,3.66,5.22,6.61,7.56,8.00,8.00,7.66,7.01,6.02,4.63,2.84,0.75,-1.47,-3.65,-5.69,-7.57,-9.39,-11.20,-13.06,-15.00,-17.03,-19.19,-21.51,-23.98,-26.47,-28.76,-30.47,-31.20,-30.59,-28.45,-24.87,-20.30,-15.40,-11.03,-7.91,-6.49,-6.81,-8.45,-10.59,-12.19,-12.14,-9.50,-3.83,4.69,15.24,26.51,37.11,45.94,52.47,56.71,58.99,59.58,58.54,55.74,51.04,44.62,36.99,28.94,21.22,14.31,8.27,2.94,-1.91,-6.37,-10.28,-13.41,-15.60,-16.92,-17.71,-18.50,-19.80,-21.98,-25.17,-29.23,-33.74,-38.11,-41.69,-43.88,-44.26,-42.67,-39.30,-34.56,-28.98,-23.03,-17.04,-11.16,-5.45,0.04,5.19,9.83,13.82,17.14,19.92,22.35,24.57,26.55,28.10,28.97,28.94,28.06,26.52,24.61,22.58,20.52,18.36,16.02,13.45,10.75,8.19,6.03,4.45,3.44,2.75,2.01,0.86,-0.92,-3.32,-6.08,-8.75,-10.87,-12.07,-12.19,-11.32,-9.78,-7.95,-6.18,-4.67,-3.50,-2.63,-1.99,-1.55,-1.38,-1.57,-2.15,-3.09,-4.19,-5.23,-6.05,-6.62,-7.04,-7.49,-8.10,-8.81,-9.45,-9.77,-9.61,-9.01,-8.22,-7.54,-7.21,-7.23,-7.44,-7.65,-7.81,-8.14,-8.95,-10.52,-12.80,-15.40,-17.74,-19.20,-19.44,-18.43,-16.43,-13.81,-10.81,-7.62,-4.34,-1.11,1.87,4.36,6.17,7.21,7.47,7.07,6.11,4.73,3.04,1.19,-0.69,-2.48,-4.10,-5.52,-6.74,-7.79,-8.65,-9.33,-9.84,-10.23,-10.62,-11.11,-11.74,-12.45,-13.13,-13.65,-14.00,-14.30,-14.68];
+  const ACC = [60.84,62.51,62.69,63.89,63.22,58.87,56.01,55.74,60.30,64.52,66.14,62.85,60.07,55.61,53.91,57.45,61.85,65.74,67.45,68.71,67.36,75.69,79.37,84.01,75.15,64.72,56.31,55.84,51.65,50.16,52.29,58.97,64.64,79.25,70.46,61.60,53.09,52.78,57.18,66.14,69.19,73.14,69.12,62.08,59.06,59.81,65.12,68.22,70.92,72.03,73.22,76.42,76.54,74.47,71.74,67.12,59.76,59.93,62.88,62.93,64.53,62.55,57.70,50.78,48.67,51.55,55.62,56.54,56.55,55.58,56.73,58.83,73.40,84.59,87.28,76.16,76.93,78.90,75.72,47.43,44.46,48.31,56.96,70.96,78.70,75.27,60.41,53.04,48.47,52.32,54.95,63.95,74.87,80.96,79.03,72.53,70.65,70.23,67.68,66.83,68.48,69.53,62.59,61.52,58.32,55.40,55.66,58.73,59.31,61.33,61.91,57.32,55.22,54.90,57.29,58.20,61.62,69.69,71.74,68.94,65.28,58.47,57.59,56.47,56.47,56.92,58.87,62.03,61.37,60.74,61.91,62.88,57.00,55.90,57.71,54.72,50.85,57.78,63.94,71.48,69.76,68.37,65.65,68.16,78.80,78.62,66.87,62.97,63.63,65.67,65.47,65.31,62.40,62.82,62.82,64.41,64.92,67.21,64.68,59.03,55.95,56.36,60.22,63.77,68.42,67.68,65.31,63.69,63.31,61.62,61.60,62.38,61.00,61.00,61.27,62.06,62.27,62.37,61.81,61.69,62.94,62.94,63.07,62.27,62.27,62.06,61.27,61.88,62.03,62.65,63.28,63.91,63.28,62.52,62.52,62.65,62.52,62.52,61.89,62.52,63.28,63.28,62.52,62.52,61.89,62.52,62.52,61.89,62.65,62.03,63.42,63.42,63.27,63.27,61.88,61.88,61.88,61.88,62.66,62.66,62.66,62.66,62.66,62.66,62.66,62.66,62.66,62.50,62.65,63.44,62.65,62.65,62.66,61.69,61.01,61.73,62.52,63.44,63.42,62.66,62.40,61.62,61.73,63.28,62.65,63.27,62.52,62.52,62.50,61.73,63.28,63.28,62.65,62.50,62.50,61.74,61.88,62.50,62.65,62.65,62.65,62.65,62.50,62.50,62.50,61.74,61.13,61.74,63.91,63.33,63.51,62.87,63.28,62.50,61.88,61.88,61.74,61.88,61.88,63.28,64.26,63.33,63.44,62.65,62.50,62.71,61.20,61.10,62.50,63.28,64.08,63.44,62.65,61.88,62.50,61.74,61.13,61.13,61.74,61.74,63.13,63.28,63.17,63.17,63.17,63.17,62.37,61.73,63.13,63.13,62.36,62.36,62.36,62.36,62.99,62.36,61.74,62.36,61.62,61.62,63.13,63.13,62.36,62.36,62.36,62.50,62.50,62.50,62.50,62.50,62.50,62.50,62.50,62.50,62.50,62.50,62.50,62.50,62.50,62.50,62.50,62.50,62.36,61.74,62.36,62.50,63.13,63.13,63.13,62.50,62.36,62.36,62.36,62.50,62.50,62.36,62.36,62.40,62.40,61.80,62.49,62.49,62.49,62.49,62.59,63.19,63.19,63.19,62.59,62.40,63.19,62.40,63.19,62.52,62.40,62.40,63.19,62.40,62.40,62.40,63.19,63.19,63.19,62.40,62.40,62.40,62.40,62.40,62.40,62.40,62.40,62.40,62.40,62.40,62.40,62.40,63.02,63.02,62.40,62.52,63.13,63.13,62.40,62.40,62.40,62.40,62.40,62.40,62.52,62.52,62.40,62.49,62.49,62.49,63.09,63.19,62.52,62.52,62.40,62.40,61.80,62.40,62.40,62.52,62.40,62.40,63.13,62.52,62.52,62.52,62.52,62.40,63.19,62.52,62.40,61.80,62.40,62.40,62.40,62.52,62.52,62.40,62.40,62.52,62.52,62.52,63.13,62.52,62.52,62.52,63.13,62.52,63.13,63.13,63.13,63.13,62.36,62.52,62.52,62.71,62.59,62.59,62.59,62.59,61.92,62.50,62.50,61.74,62.52,62.52,62.52,62.52,62.59,62.59,62.52,63.13,62.52,62.36,62.52,62.52,62.52,61.62,62.36,62.50,63.13,62.50,62.36,63.13,63.28,63.13,62.99,63.13,62.50,62.36,61.74,61.62,61.69,62.59,62.59,64.10,63.31,64.10,62.01,62.01,62.25,61.59,59.94,60.62,61.33,61.92,61.92,61.88,63.13,63.77,62.37,63.02,63.02,63.67,63.67,63.82,64.34,62.94,62.94,62.80,62.88,62.99,62.24,63.02,62.91,62.14,62.14,63.02,62.91,63.69,64.10,64.02,64.02,63.37,63.44,63.53,63.53,63.53,62.14,61.69,61.59,61.15,60.32,60.99,60.99,60.32,60.08,60.08,61.26,62.87,63.51,63.51,62.03,62.21,62.85,63.63,63.53,64.10,63.29,63.88,63.80,65.01,64.94,64.33,62.93,63.00,63.61,63.61,61.74,61.16,61.16,60.50,60.84,63.73,60.64,60.64,61.89,60.78,59.08,62.04,63.90,62.39,65.34,69.24,66.86,64.82,64.35,65.77,65.95,62.97,64.41,67.36,65.12,60.89,62.97,64.41,61.69,61.82,62.43,61.69,60.91,63.17,62.88,59.31,57.81,58.60,65.12,65.22,64.02,61.50,61.98,63.76,63.82,63.04,61.47,62.04,63.02,63.89,63.21,62.18,62.18,62.18,62.18,63.04,63.76,63.76,62.21,62.18,62.04,62.89,62.18,63.76,64.48,62.94,62.89,62.21,62.27,63.04,61.49,62.75,62.07,62.89,62.18,61.47,63.92,64.65,63.98,63.25,62.68,63.04,63.61,63.09,62.89,61.47,62.33,62.33,62.18,62.18,62.18,62.18,63.04,62.36,63.04,63.73,60.78,62.18,62.89,62.33,62.33,61.98,62.68,64.60,63.76,63.04,61.47,61.47,62.33,63.04,63.04,62.33,62.18,62.18,62.18,62.89,62.33,62.33,63.73,63.04,63.04,62.33,63.04,63.04,62.18,62.33,63.04,63.04,63.04,62.18,62.18,62.33];
+  const { butter, sosfiltfilt } = window.Butter;
+  const PPG = Array.from(sosfiltfilt(butter(2, [0.5, 4], FB, 'bandpass'), BVP));
+  const NB = PPG.length, NA = ACC.length, TEND = (NB - 1) / FB;
+  const STD = (() => { const m = PPG.reduce((a, b) => a + b, 0) / NB; return Math.sqrt(PPG.reduce((a, b) => a + (b - m) * (b - m), 0) / NB); })();
+  const median = a => { const s = a.slice().sort((x, y) => x - y); const n = s.length; return n % 2 ? s[(n - 1) / 2] : 0.5 * (s[n / 2 - 1] + s[n / 2]); };
+  const AM = (() => { const m = median(ACC); return ACC.map(v => Math.abs(v - m)); })();           // |a − median|
+  const TAIL_MED = median(AM.filter((_, i) => i / FA > 10));                                      // baseline from the calm tail
+  const ENV = AM.map((_, i) => { let mx = 0; for (let k = Math.max(0, i - 8); k <= Math.min(NA - 1, i + 7); k++) if (AM[k] > mx) mx = AM[k]; return mx; }); // 0.5 s rolling max
+  const DIST = Math.floor(0.25 * FB);
+
+  // ------------------------------------------------------------ state
+  const $ = id => document.getElementById(id);
+  const chart = $('chart');
+  let thrMul = 4, prom = 0.5, speedMul = 1;
+  const dirty = { thr: false, prom: false, speed: false };
+  const PRESET = { thr: 4, prom: 0.5 };
+  let thr = 0, mEnd = DUR, peaks = [], beats = [];
+  let step = 0, cursor = 0, playing = false, raf = 0, lastT = 0;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const f1 = v => v.toFixed(1), f2 = v => v.toFixed(2);
+
+  function compute() {
+    thr = thrMul * TAIL_MED;
+    peaks = findPeaks(PPG, { distance: DIST, prominence: prom * STD }).map(o => o.i);
+    // motion window: from the start until the envelope first stays under the threshold for two continuous seconds
+    mEnd = DUR;
+    const w2 = 2 * FA;
+    for (let i = FA; i < NA - w2; i++) {
+      let ok = true; for (let k = i; k < i + w2; k++) if (ENV[k] >= thr) { ok = false; break; }
+      if (ok) { mEnd = i / FA; break; }
+    }
+    beats = [];
+    for (let k = 1; k < peaks.length; k++) {
+      const t0 = peaks[k - 1] / FB, t1 = peaks[k] / FB, dt = t1 - t0;
+      beats.push({ t0, t1, dt, bpm: 60 / dt, tm: (t0 + t1) / 2, motion: t0 < mEnd });
+    }
+  }
+  const inMotion = t => t < mEnd;
+
+  // ------------------------------------------------------------ steps
+  const STEPS = [
+    {
+      id: 'peaks', rate: 2,
+      title: 'Peak detection on wrist PPG through a motion event',
+      tag: () => `find_peaks · distance = 0.25 s · prominence = ${f2(prom)}·std`,
+      subtitle: 'How the peak detector mistakes motion spikes in wrist PPG for heartbeats.'
+    },
+    {
+      id: 'flag', rate: 2,
+      title: 'Flagging the motion window with the accelerometer',
+      tag: () => `threshold = ${f1(thrMul)} × median |a|`,
+      subtitle: 'How the accelerometer flags the motion window so its peaks are not counted.'
+    },
+    {
+      id: 'hr', rate: 2,
+      title: 'Inter-beat intervals with and without motion rejection',
+      tag: () => `HR = 60 / Δt`,
+      subtitle: 'Comparing the inter-beat intervals with and without rejecting the motion window.'
+    }
+  ];
+
+  // ------------------------------------------------------------ layout
+  const W = 1200;
+  const PL = 78, PR = 30;
+  let PA, PB, PC;
+  let yLo = -120, yHi = 140, aHi = 30, hrLo = 40, hrHi = 200;
+  const xs = t => PL + t / DUR * (W - PL - PR);
+  const ysA = v => PA.y1 - (v - yLo) / (yHi - yLo) * (PA.y1 - PA.y0);
+  const ysB = v => PB.y1 - v / aHi * (PB.y1 - PB.y0);
+  const ysC = v => PC.y1 - (v - hrLo) / (hrHi - hrLo) * (PC.y1 - PC.y0);
+
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+  function pathOf(arr, fs, ys, i1) {
+    let d = '';
+    for (let i = 0; i <= i1; i++) d += (i ? 'L' : 'M') + xs(i / fs).toFixed(1) + ',' + ys(arr[i]).toFixed(1);
+    return d;
+  }
+  function ranges() {
+    const d = STEPS[step];
+    if (d.id === 'hr') { PA = { y0: 22, y1: 250 }; PB = { y0: 296, y1: 420 }; PC = { y0: 466, y1: 612 }; }
+    else { PA = { y0: 22, y1: 360 }; PB = { y0: 416, y1: 612 }; PC = null; }
+    const lo = Math.min(...PPG), hi = Math.max(...PPG), span = hi - lo;
+    yLo = Math.floor((lo - 0.1 * span) / 20) * 20; yHi = Math.ceil((hi + 0.12 * span) / 20) * 20;
+    aHi = Math.ceil(Math.max(...AM, thr) / 5) * 5 + 5;
+    if (PC) {
+      const b = beats.map(x => x.bpm);
+      hrLo = Math.max(0, Math.floor(Math.min(...b) / 20) * 20 - 20); hrHi = Math.ceil(Math.max(...b) / 20) * 20 + 20;
+    }
+  }
+
+  // ------------------------------------------------------------ drawing
+  let G = {};
+  function panelAxes(p, ys, lo, hi, tickStep, label, withTime) {
+    const grid = el('g', { class: 'grid' }, chart);
+    const axis = el('g', { class: 'axis' }, chart);
+    for (let t = 0; t <= DUR + 1e-9; t += 2.5) {
+      el('line', { x1: xs(t), x2: xs(t), y1: p.y0, y2: p.y1 }, grid);
+      if (withTime) el('text', { x: xs(t), y: p.y1 + 18, 'text-anchor': 'middle' }, axis).textContent = Number.isInteger(t) ? t : t.toFixed(1);
+    }
+    const first = Math.ceil(lo / tickStep - 1e-9) * tickStep;
+    for (let v = first; v <= hi + 1e-9; v += tickStep) {
+      el('line', { x1: PL, x2: W - PR, y1: ys(v), y2: ys(v) }, grid);
+      el('text', { x: PL - 10, y: ys(v) + 4, 'text-anchor': 'end' }, axis).textContent = v;
+    }
+    el('path', { d: `M${PL},${p.y0}V${p.y1}H${W - PR}` }, axis);
+    el('text', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${PL - 52},${(p.y0 + p.y1) / 2}) rotate(-90)` }, chart).textContent = label;
+    if (withTime) el('text', { x: (PL + W - PR) / 2, y: p.y1 + 36, class: 'axis-title', 'text-anchor': 'middle' }, chart).textContent = 'time (seconds)';
+  }
+  function legend(x, y, items) {
+    const g = el('g', {}, chart);
+    const rowH = 18, padX = 10, padY = 8;
+    const wdt = Math.max(...items.map(i => i.n.length)) * 7.2 + 2 * padX + 40;
+    el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
+    items.forEach((it, j) => {
+      const yy = y + padY + j * rowH + 6;
+      if (it.dot) el('circle', { cx: x + padX + 9, cy: yy, r: 4.5, fill: it.hollow ? 'none' : it.c, stroke: it.hollow ? it.c : '#fff', 'stroke-width': 1.6 }, g);
+      else if (it.box) el('rect', { x: x + padX, y: yy - 6, width: 18, height: 12, fill: it.c, stroke: '#eb6834', 'stroke-dasharray': '3 2' }, g);
+      else el('line', { x1: x + padX, x2: x + padX + 18, y1: yy, y2: yy, stroke: it.c, 'stroke-width': it.dash ? 1.5 : 2.5, 'stroke-dasharray': it.dash ? '6 4' : 'none' }, g);
+      el('text', { x: x + padX + 26, y: yy + 4, class: 'axis-title', fill: 'var(--ink)' }, g).textContent = it.n;
+    });
+    return g;
+  }
+  function drawStatic() {
+    chart.innerHTML = '';
+    ranges();
+    const d = STEPS[step];
+    const flagged = d.id !== 'peaks';
+    // motion shading (grows with the cursor)
+    G.shade = el('g', {}, chart);
+    panelAxes(PA, ysA, yLo, yHi, 50, 'wrist PPG (band-passed)', false);
+    el('line', { class: 'zero-line', x1: PL, x2: W - PR, y1: ysA(0), y2: ysA(0) }, chart);
+    G.sig = el('path', { class: 'out-line', stroke: 'var(--ma)', 'stroke-width': 1.8 }, chart);
+    G.pk = el('g', {}, chart);
+    const itemsA = [{ c: '#2a78d6', n: 'wrist PPG, band-pass 0.5–4 Hz' }, { c: '#eb6834', n: flagged ? 'detected peak, counted' : 'detected peak', dot: true }];
+    if (flagged) itemsA.push({ c: '#eb6834', n: 'detected peak, rejected (motion)', dot: true, hollow: true }, { c: 'rgba(235,104,52,.10)', n: 'motion window (accelerometer above threshold)', box: true });
+    legend(W - PR - 8 - (Math.max(...itemsA.map(i => i.n.length)) * 7.2 + 60), PA.y0 + 8, itemsA);
+    G.big = el('text', { x: PL + 12, y: PA.y0 + 24, class: 'note-big big-red' }, chart);
+    // accelerometer panel
+    panelAxes(PB, ysB, 0, aHi, aHi > 20 ? 10 : 5, 'accelerometer |a − median|', !PC);
+    G.acc = el('path', { class: 'acc-line' }, chart);
+    G.thr = el('line', { class: 'thr-line', x1: PL, x2: W - PR, y1: ysB(thr), y2: ysB(thr) }, chart);
+    legend(W - PR - 8 - (44 * 7.2 + 60), PB.y0 + 8, [{ c: '#666', n: 'accelerometer magnitude (32 Hz)' }, { c: '#444', n: `motion threshold = ${f1(thrMul)} × median = ${f2(thr)}`, dash: true }]);
+    if (PC) {
+      panelAxes(PC, ysC, hrLo, hrHi, 40, 'HR = 60/Δt (bpm)', true);
+      G.hrLine = el('path', { class: 'hr-line' }, chart);
+      G.hrDots = el('g', {}, chart);
+      legend(W - PR - 8 - (34 * 7.2 + 60), PC.y0 + 8, [{ c: '#2a78d6', n: 'interval between true beats', dot: true }, { c: '#eb6834', n: 'interval inside the motion window', dot: true, hollow: true }]);
+      G.hrNote = el('text', { x: PL + 12, y: PC.y0 + 22, class: 'note' }, chart);
+    }
+    G.cursor = el('line', { class: 'cursor-line', y1: PA.y0, y2: PC ? PC.y1 : PB.y1 }, chart);
+    G.hover = el('g', {}, chart);
+    G.hit = el('rect', { x: PL, y: PA.y0, width: W - PL - PR, height: (PC ? PC.y1 : PB.y1) - PA.y0, fill: 'transparent' }, chart);
+  }
+  function render() {
+    const d = STEPS[step];
+    const flagged = d.id !== 'peaks';
+    const tc = Math.min(DUR, Math.max(0, cursor));
+    const ib = Math.min(NB - 1, Math.round(tc * FB)), ia = Math.min(NA - 1, Math.round(tc * FA));
+    const isDone = cursor >= TEND;
+    G.sig.setAttribute('d', pathOf(PPG, FB, ysA, ib));
+    G.acc.setAttribute('d', pathOf(AM, FA, ysB, ia));
+    G.shade.innerHTML = '';
+    if (flagged) {
+      const xEnd = xs(Math.min(tc, mEnd));
+      const bottom = PC ? PC.y1 : PB.y1;
+      if (xEnd > PL) el('rect', { class: 'motion-rect', x: PL, y: PA.y0, width: xEnd - PL, height: bottom - PA.y0 }, G.shade);
+      if (tc >= mEnd) el('line', { class: 'motion-edge', x1: xs(mEnd), x2: xs(mEnd), y1: PA.y0, y2: bottom }, G.shade);
+    }
+    G.pk.innerHTML = '';
+    let nAcc = 0, nRej = 0;
+    peaks.forEach(i => {
+      if (i > ib) return;
+      const t = i / FB, rej = flagged && inMotion(t);
+      if (rej) { nRej++; el('circle', { class: 'pk-rej', cx: xs(t), cy: ysA(PPG[i]), r: 5.5 }, G.pk); }
+      else { nAcc++; el('circle', { class: 'pk', cx: xs(t), cy: ysA(PPG[i]), r: 5.5, fill: 'var(--ewma)' }, G.pk); }
+    });
+    G.big.textContent = flagged ? `${nAcc} counted · ${nRej} rejected` : `${nAcc} peak${nAcc === 1 ? '' : 's'} detected`;
+    if (PC) {
+      const shown = beats.filter(b => b.t1 <= tc);
+      G.hrDots.innerHTML = '';
+      let dpath = '', started = false;
+      shown.forEach(b => {
+        if (b.motion) el('circle', { class: 'pk-rej', cx: xs(b.tm), cy: ysC(b.bpm), r: 4.5 }, G.hrDots);
+        else { dpath += (started ? 'L' : 'M') + xs(b.tm).toFixed(1) + ',' + ysC(b.bpm).toFixed(1); started = true; el('circle', { class: 'pk', cx: xs(b.tm), cy: ysC(b.bpm), r: 4.5, fill: 'var(--ma)' }, G.hrDots); }
+      });
+      G.hrLine.setAttribute('d', dpath);
+      const clean = shown.filter(b => !b.motion).map(b => b.bpm), bad = shown.filter(b => b.motion).map(b => b.bpm);
+      const rng = a => a.length ? `${Math.round(Math.min(...a))}–${Math.round(Math.max(...a))} bpm` : '—';
+      G.hrNote.textContent = `motion window: ${rng(bad)}    still: ${rng(clean)}${clean.length ? `  (median ${Math.round(median(clean))} bpm)` : ''}`;
+    }
+    const cx = xs(tc);
+    G.cursor.setAttribute('x1', cx); G.cursor.setAttribute('x2', cx);
+    G.cursor.style.opacity = isDone ? 0 : 1;
+  }
+
+  // ------------------------------------------------------------ hover
+  const tt = $('tt');
+  function hover(evt) {
+    const pt = chart.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+    const p = pt.matrixTransform(chart.getScreenCTM().inverse());
+    const t = Math.max(0, Math.min(TEND, (p.x - PL) / (W - PL - PR) * DUR));
+    const ib = Math.round(t * FB), ia = Math.min(NA - 1, Math.round(t * FA));
+    G.hover.innerHTML = '';
+    el('line', { class: 'crosshair', x1: xs(t), x2: xs(t), y1: PA.y0, y2: PC ? PC.y1 : PB.y1 }, G.hover);
+    let html = `<div class="row"><span>t</span><b>${t.toFixed(2)} s</b></div><div class="row"><span><i class="sw" style="background:#2a78d6"></i>PPG</span><span>${PPG[ib].toFixed(1)}</span></div><div class="row"><span><i class="sw" style="background:#666"></i>|a − median|</span><span>${AM[ia].toFixed(2)}</span></div>`;
+    if (step > 0) html += `<div class="row"><span>window</span><span>${inMotion(t) ? 'motion' : 'still'}</span></div>`;
+    const b = beats.find(b => t >= b.t0 && t < b.t1 && b.t1 <= cursor);
+    if (b && step === 2) html += `<div class="row"><span>Δt</span><span>${b.dt.toFixed(3)} s</span></div><div class="row"><span>60/Δt</span><span>${b.bpm.toFixed(1)} bpm</span></div>`;
+    tt.innerHTML = html; tt.style.display = 'block';
+    const wrap = chart.parentElement.getBoundingClientRect();
+    const px = evt.clientX - wrap.left, py = evt.clientY - wrap.top;
+    tt.style.left = (px + 16 + tt.offsetWidth > wrap.width ? px - tt.offsetWidth - 12 : px + 16) + 'px';
+    tt.style.top = Math.max(0, py - 10) + 'px';
+  }
+  function unhover() { tt.style.display = 'none'; G.hover.innerHTML = ''; }
+
+  // ------------------------------------------------------------ step control
+  function applyPresets() {
+    if (!dirty.thr) { thrMul = PRESET.thr; $('thr').value = thrMul; $('thrVal').textContent = f1(thrMul); }
+    if (!dirty.prom) { prom = PRESET.prom; $('prom').value = prom; $('promVal').textContent = f2(prom); }
+  }
+  function header() {
+    const d = STEPS[step];
+    $('title').innerHTML = d.title + `<span class="tag">${d.tag()}</span>`;
+    $('subtitle').textContent = typeof d.subtitle === 'function' ? d.subtitle() : d.subtitle;
+    $('counter').textContent = `${step + 1} / ${STEPS.length}`;
+  }
+  function enterStep(k, completed = false) {
+    step = Math.max(0, Math.min(STEPS.length - 1, k));
+    applyPresets();
+    compute();
+    header();
+    try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {}
+    stopPlay();
+    drawStatic();
+    cursor = 0;
+    if (completed || speedMul === 0 || reduceMotion) finish(); else { render(); startPlay(); }
+  }
+  const done = () => cursor >= TEND;
+  function finish() { cursor = TEND; stopPlay(); render(); }
+  function tick(t) {
+    if (!playing) return;
+    const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+    cursor = Math.min(TEND, cursor + dt * STEPS[step].rate * speedMul);
+    render();
+    if (done()) { finish(); return; }
+    raf = requestAnimationFrame(tick);
+  }
+  function startPlay() {
+    if (done()) return;
+    if (speedMul === 0) { finish(); return; }
+    playing = true; lastT = performance.now();
+    $('play').textContent = 'Pause';
+    raf = requestAnimationFrame(tick);
+  }
+  function stopPlay() { playing = false; cancelAnimationFrame(raf); $('play').textContent = 'Play'; }
+  function next() { if (!done()) { finish(); return; } if (step < STEPS.length - 1) enterStep(step + 1); }
+  function prev() { if (step > 0) enterStep(step - 1, true); }
+  function restart() { enterStep(step); }
+  function redraw() { compute(); header(); drawStatic(); render(); }
+
+  // ------------------------------------------------------------ wiring
+  $('next').addEventListener('click', e => { e.stopPropagation(); next(); });
+  $('prev').addEventListener('click', e => { e.stopPropagation(); prev(); });
+  $('restart').addEventListener('click', e => { e.stopPropagation(); restart(); });
+  $('play').addEventListener('click', e => { e.stopPropagation(); if (playing) stopPlay(); else if (done()) restart(); else startPlay(); });
+  $('slide').addEventListener('click', () => next());
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
+    else if (e.key === 'r' || e.key === 'R') restart();
+  });
+  $('thr').addEventListener('input', e => { dirty.thr = true; thrMul = parseFloat(e.target.value); $('thrVal').textContent = f1(thrMul); redraw(); });
+  $('prom').addEventListener('input', e => { dirty.prom = true; prom = parseFloat(e.target.value); $('promVal').textContent = f2(prom); redraw(); });
+  $('speed').addEventListener('change', e => { dirty.speed = true; speedMul = parseFloat(e.target.value); if (speedMul === 0 && playing) finish(); });
+  $('reset').addEventListener('click', e => {
+    e.stopPropagation();
+    dirty.thr = dirty.prom = dirty.speed = false;
+    speedMul = 1; $('speed').value = '1';
+    enterStep(step);
+  });
+  chart.addEventListener('mousemove', hover);
+  chart.addEventListener('mouseleave', unhover);
+
+  const h = parseInt((location.hash || '').replace('#', ''), 10);
+  enterStep(h >= 1 && h <= STEPS.length ? h - 1 : 0);
+})();
+</script>
+</body>
+</html>

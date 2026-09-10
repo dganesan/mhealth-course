@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Four find_peaks Criteria</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff; --ink: #222222; --ink-2: #666666; --ink-3: #9a9a9a;
+    --rule: #dcdcdc; --grid: #ececec; --raw: #b4b4b4; --raw-dot: #8c8c8c; --clean: #444444;
+    --window: rgba(34, 34, 34, 0.06); --window-edge: #222222;
+    --ma: #2a78d6; --med: #1baf7a; --wm: #4a3aa7; --ewma: #eb6834;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.4; padding-block: 18px 28px; padding-inline: 16px; -webkit-font-smoothing: antialiased; }
+  .stage { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
+  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; min-height: 560px; position: relative; outline: none; cursor: pointer; user-select: none; }
+  .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
+  .head h1 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .chart-wrap { position: relative; min-height: 0; }
+  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt .row { display: flex; gap: 10px; justify-content: space-between; }
+  .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot .ctr { font-family: var(--mono); }
+  .bar { display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center; padding:14px 18px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
+  .group { display:flex; align-items:center; gap:8px; }
+  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
+  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
+  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  button:hover, select:hover { border-color:var(--ink); }
+  button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
+  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
+  .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
+  .grid line { stroke: var(--grid); stroke-width: 1; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .ptitle { font-family: var(--sans); font-size: 13px; font-weight: 700; fill: var(--ink); }
+  .raw-line { fill: none; stroke: var(--raw); stroke-width: 1.5; }
+  .out-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .thin-line { fill: none; stroke-width: 1.4; stroke-linejoin: round; }
+  .dash { stroke-dasharray: 5 4; }
+  .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
+  .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
+  .mono { font-family: var(--mono); }
+  .big { font-family: var(--mono); font-size: 22px; font-weight: 700; }
+  .badge { font-family: var(--mono); font-size: 15px; font-weight: 700; fill: var(--ink); }
+  .kept { fill: none; stroke: var(--ewma); stroke-width: 2.2; }
+  .cross { stroke: var(--raw-dot); stroke-width: 1.6; }
+  .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
+  @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
+</style>
+
+<div class="stage">
+  <section class="slide" id="slide" tabindex="0" aria-live="polite">
+    <div class="head">
+      <h1 id="title"></h1>
+      <p id="subtitle"></p>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 1200 640" role="img" aria-label="The Four find_peaks Criteria"></svg>
+      <div class="tt" id="tt"></div>
+    </div>
+    <div class="foot">
+      <span>CS328 &nbsp;·&nbsp; Counting: Steps and Repetitions</span>
+      <span class="ctr" id="counter"></span>
+    </div>
+  </section>
+
+  <div class="bar">
+    <div class="group">
+      <button id="prev" title="Previous (←)">‹ Prev</button>
+      <button id="play" class="primary" title="Play / pause (space)">Play</button>
+      <button id="next" title="Next (→)">Next ›</button>
+      <button id="restart" title="Restart this step (r)">Restart</button>
+      <button id="reset" title="Reset dials to this step's presets">Reset dials</button>
+    </div>
+    <div class="group">
+      <label for="height">height</label>
+      <input type="range" id="height" min="-1" max="2" step="0.1" value="1" style="width:120px">
+      <span class="val" id="heightVal">1.0</span>
+    </div>
+    <div class="group">
+      <label for="dist">distance</label>
+      <input type="range" id="dist" min="0.05" max="1.5" step="0.05" value="0.4" style="width:120px">
+      <span class="val" id="distVal">0.40 s</span>
+    </div>
+    <div class="group">
+      <label for="prom">prominence</label>
+      <input type="range" id="prom" min="0" max="3" step="0.1" value="1.2" style="width:120px">
+      <span class="val" id="promVal">1.2</span>
+    </div>
+    <div class="group">
+      <label for="width">width</label>
+      <input type="range" id="width" min="0.02" max="0.4" step="0.01" value="0.15" style="width:120px">
+      <span class="val" id="widthVal">0.15 s</span>
+    </div>
+
+    <div class="group">
+      <label for="speed">Speed</label>
+      <select id="speed">
+        <option value="0.25">very slow</option>
+        <option value="0.5">slow</option>
+        <option value="1" selected>normal</option>
+        <option value="2.5">fast</option>
+        <option value="0">instant</option>
+      </select>
+    </div>
+    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play &nbsp; <kbd>r</kbd> restart</span>
+  </div>
+</div>
+
+<script>
+(() => {
+const Y=[0.2219,0.2313,0.6054,0.7623,0.9506,1.1178,1.1534,1.3382,1.3714,1.6164,1.4698,1.4246,1.3906,1.3159,1.2267,1.179,1.1334,1.0023,0.9627,0.8021,0.7077,0.675,0.5124,0.3425,0.2353,0.1413,0.0733,-0.1825,-0.3341,-0.4309,-0.6885,-0.8234,-0.9271,-1.0983,-1.2679,-1.3681,-1.6513,-1.5417,-1.6938,-1.7493,-1.6365,-1.5629,-1.5308,-1.4375,-1.2243,-1.041,-0.7564,-0.5591,-0.3443,-0.0506,0.1299,0.3321,0.6317,0.836,0.9765,1.101,1.275,1.2316,1.4532,1.4765,1.3761,1.443,1.3525,1.3818,1.1714,1.1456,1.1371,1.0639,0.7984,0.7785,0.714,0.5581,0.5551,0.2982,0.2516,0.0507,0.035,-0.1826,-0.3536,-0.5804,-0.5738,-0.7849,-0.9469,-1.083,-1.2664,-1.4435,-1.5579,-1.6384,-1.5803,-1.739,-1.6772,-1.6079,-1.4883,-1.3429,-1.2735,-1.1081,-0.8083,-0.5159,-0.2956,-0.0747,0.1446,0.4124,0.6082,0.8638,0.9614,1.1583,1.2669,1.3898,1.4338,1.5809,1.5324,1.5122,1.2946,1.3215,1.2362,1.2108,0.9799,1.0566,0.9512,0.7296,0.6397,0.5392,0.4681,0.3797,0.3257,0.082,-0.0088,-0.1862,-0.26,-0.4708,-0.6032,-0.89,-1.0075,-1.1931,-1.22,-1.3884,-1.5409,-1.6264,-1.6273,-1.7009,-1.6907,-1.5615,-1.367,-1.3718,-1.2241,-1.0632,-0.8562,-0.5305,-0.2704,-0.0644,0.1972,0.4227,0.645,0.7624,0.9918,1.1684,1.242,1.345,1.3853,1.4381,1.4993,1.4144,1.3847,1.3737,1.2924,1.2617,0.9815,1.0325,0.8653,0.7927,0.7215,0.6242,0.5083,0.3453,0.2931,0.0664,-0.0662,-0.1666,-0.3887,-0.4134,-0.6344,-0.741,-1.0124,-1.184,-1.2981,-1.3941,-1.5626,-1.59,-1.6549,-1.5846,-1.6738,-1.5267,-1.5128,-1.3951,-1.2169,-1.047,-0.7633,-0.4852,-0.2841,-0.013,0.2824,0.4495,0.6654,0.8406,0.9477,1.2118,1.2018,1.4074,1.429,1.5122,1.4523,1.3908,1.4059,1.2994,1.2445,1.1717,1.0715,0.972,0.8393,0.7678,0.5637,0.5528,0.3867,0.3834,0.2654,-0.0283,-0.0639,-0.2255,-0.4267,-0.5085,-0.7222,-0.9518,-1.0376,-1.1846,-1.3122,-1.5018,-1.5098,-1.5772,-1.7136,-1.6977,-1.641,-1.6005,-1.3836,-1.3241,-1.2168,-1.0096,-0.7546,-0.4019,-0.2806,-0.0172,0.2465,0.453,0.7871,0.8433,1.0786,1.1927,1.3289,1.3216,1.5213,1.4508,1.4562,1.3822,1.3471,1.3499,1.2962,1.1999,1.1307,1.0089,0.8738,0.8103,0.6913,0.5463,0.4732,0.3815,0.2028,0.04,-0.0472,-0.1368,-0.3981,-0.5532,-0.7196,-0.8158,-1.1292,-1.1711,-1.2689,-1.4902,-1.4733,-1.5919,-1.6858,-1.6536,-1.7097,-1.5934,-1.3694,-1.3663,-1.0587,-0.9569,-0.6829,-0.4943,-0.3631,-0.0316,0.2503,0.4163,0.6229,0.9035,1.022,1.1105,1.2717,1.429,1.4123,1.5044,1.5296,1.4275,1.3225,1.2509,1.2389,1.1989,1.0758,0.9923,0.8416,0.7747,0.629,0.5257,0.3625,0.2283,0.1562,-0.009,-0.1432,-0.2111,-0.4061,-0.4165,-0.6802,-0.9222,-1.0115,-1.1837,-1.3736,-1.4035,-1.5936,-1.7762,-1.6205,-1.6935,-1.5545,-1.5903,-1.5095,-1.2311,-1.1891,-0.925,-0.641,-0.4706,-0.2344,0.0227,0.3027,0.4522,0.738,0.9292,1.1839,1.1888,1.268,1.428,1.419,1.4727,1.4584,1.4811,1.3415,1.3055,1.1058,1.1028,1.1312,0.9226,0.8202,0.69,0.6725,0.5415,0.358,0.33,0.1824,0.0726,-0.1395,-0.1705,-0.3936,-0.5817,-0.7662,-0.9163,-1.0204,-1.2271,-1.2961,-1.4386,-1.4943,-1.5869,-1.6649,-1.7567,-1.6093,-1.5108,-1.4318,-1.2674,-1.1432,-0.9365,-0.7414,-0.388,-0.2017,0.0135,0.214,0.5036,0.7965,0.9384,1.0437,1.2873,1.3928,1.4454,1.4809,1.5164,1.4774,1.4581,1.3305,1.3791,1.2381,1.241,0.9443,0.9836,0.8957,0.7249,0.657,0.5606,0.4364,0.2593,0.1514,0.0743,-0.0558,-0.2652,-0.4235,-0.5795,-0.7021,-0.9703,-1.1428,-1.2194,-1.4159,-1.5058,-1.5639,-1.6076,-1.7167,-1.6195,-1.7082,-1.5152,-1.508,-1.3455,-1.0716,-0.9199,-0.7146,-0.458,-0.1657,0.0559,0.2988,0.5825,0.7054,0.9064,1.0663,1.2842,1.3784,1.4656,1.4423,1.451,1.4911,1.3962,1.4061,1.3343,1.1847,1.1281,1.0325,1.0266,0.9674,0.7282,0.626,0.3996,0.4082,0.2756,0.0939,0.051,-0.2102,-0.2938,-0.4338,-0.6656,-0.7249,-0.8783,-1.1585,-1.3079,-1.341,-1.4866,-1.6352,-1.6503,-1.6695,-1.6648,-1.5731,-1.5151,-1.3296,-1.1993,-1.0537,-0.8277,-0.5892,-0.3801,-0.2296,0.1221,0.3236,0.629,0.7626,0.9709,1.1211,1.3196,1.3449,1.3924,1.4617,1.4369,1.4546,1.4119,1.3732,1.3881,1.1924,1.1265,1.0204,0.9652,0.7703,0.6897,0.6141,0.5315,0.3854,0.2405,0.0932,0.0256,-0.0721,-0.2798,-0.4447,-0.5946,-0.8286,-0.9601,-1.1154,-1.2345,-1.383,-1.5543,-1.5246,-1.5546,-1.6781,-1.6355,-1.5959,-1.4868,-1.4808,-1.1735,-1.0948,-0.8002,-0.6318,-0.4145,-0.1546,0.1444,0.2964,0.5476,0.7503,0.8732,1.1817,1.274,1.3419,1.4686,1.4005,1.4551,1.5307,1.4575,1.2432,1.1191,1.1537,1.1701,0.9987,0.9123,0.8512,0.6711,0.6176,0.5343,0.4011,0.2748,0.0953,0.014,-0.178,-0.2437,-0.339,-0.6675,-0.9039,-0.9792,-1.0959,-1.2084,-1.3376,-1.541,-1.6266,-1.5793,-1.7202,-1.5985,-1.6151,-1.4791,-1.3601,-1.2011,-1.0139,-0.8946,-0.6013,-0.3738,-0.1115,0.1815];
+
+// SciPy-faithful scipy.signal.find_peaks subset: local maxima with plateau handling,
+// height, distance, prominence (wlen = whole signal), width (rel_height 0.5).
+function localMaxima(x) {
+  const n = x.length, out = [];
+  let i = 1;
+  while (i < n - 1) {
+    if (x[i - 1] < x[i]) {
+      let ahead = i + 1;
+      while (ahead < n - 1 && x[ahead] === x[i]) ahead++;
+      if (x[ahead] < x[i]) { out.push(Math.floor((i + ahead - 1) / 2)); i = ahead; }
+      else i = ahead;
+    } else i++;
+  }
+  return out;
+}
+function prominences(x, peaks) {
+  const n = x.length;
+  return peaks.map(p => {
+    let lm = x[p], lb = p, i = p;
+    while (i >= 0 && x[i] <= x[p]) { if (x[i] < lm) { lm = x[i]; lb = i; } i--; }
+    let rm = x[p], rb = p; i = p;
+    while (i < n && x[i] <= x[p]) { if (x[i] < rm) { rm = x[i]; rb = i; } i++; }
+    return { prom: x[p] - Math.max(lm, rm), lb, rb, lm, rm };
+  });
+}
+function widths(x, peaks, pr, rel = 0.5) {
+  return peaks.map((p, k) => {
+    const h = x[p] - pr[k].prom * rel;
+    let i = p; while (pr[k].lb < i && h < x[i]) i--;
+    let lip = i; if (x[i] < h) lip += (h - x[i]) / (x[i + 1] - x[i]);
+    i = p; while (i < pr[k].rb && h < x[i]) i++;
+    let rip = i; if (x[i] < h) rip -= (h - x[i]) / (x[i - 1] - x[i]);
+    return { width: rip - lip, h, lip, rip };
+  });
+}
+function selectByDistance(peaks, priority, distance) {
+  const n = peaks.length, keep = new Array(n).fill(true), killedBy = new Array(n).fill(-1);
+  const order = priority.map((v, i) => i).sort((a, b) => priority[a] - priority[b]);
+  const d = Math.ceil(distance);
+  for (let j = n - 1; j >= 0; j--) {
+    const i = order[j]; if (!keep[i]) continue;
+    let k = i - 1; while (k >= 0 && peaks[i] - peaks[k] < d) { if (keep[k]) { keep[k] = false; killedBy[k] = i; } k--; }
+    k = i + 1; while (k < n && peaks[k] - peaks[i] < d) { if (keep[k]) { keep[k] = false; killedBy[k] = i; } k++; }
+  }
+  return { keep, killedBy };
+}
+// Returns every local maximum annotated with which criteria it passes, plus the kept subset.
+// opts: { height, distance (samples), prominence, width (samples) } -- undefined means inactive.
+function findPeaks(x, opts = {}) {
+  let peaks = localMaxima(x);
+  const all = peaks.map(p => ({ i: p, v: x[p], pass: {} }));
+  let alive = all.slice();
+  if (opts.height != null) { alive.forEach(a => a.pass.height = a.v >= opts.height); alive = alive.filter(a => a.pass.height); }
+  if (opts.distance != null) {
+    const sel = selectByDistance(alive.map(a => a.i), alive.map(a => a.v), opts.distance);
+    alive.forEach((a, k) => { a.pass.distance = sel.keep[k]; a.killedBy = sel.killedBy[k] >= 0 ? alive[sel.killedBy[k]].i : -1; });
+    alive = alive.filter(a => a.pass.distance);
+  }
+  // prominence and width evaluated on the survivors (as scipy does), but also on every maximum for display
+  const prAll = prominences(x, all.map(a => a.i)); const wAll = widths(x, all.map(a => a.i), prAll);
+  all.forEach((a, k) => { a.prom = prAll[k].prom; a.lb = prAll[k].lb; a.rb = prAll[k].rb; a.base = Math.max(prAll[k].lm, prAll[k].rm); a.width = wAll[k].width; a.wh = wAll[k].h; a.lip = wAll[k].lip; a.rip = wAll[k].rip; });
+  if (opts.prominence != null) { alive.forEach(a => a.pass.prominence = a.prom >= opts.prominence); alive = alive.filter(a => a.pass.prominence); }
+  if (opts.width != null) { alive.forEach(a => a.pass.width = a.width >= opts.width); alive = alive.filter(a => a.pass.width); }
+  return { all, kept: alive.map(a => a.i) };
+}
+
+// ------------------------------------------------------------ shared helpers
+const $ = id => document.getElementById(id);
+const svgNS = 'http://www.w3.org/2000/svg';
+const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+const txt = (parent, x, y, s, attrs = {}) => { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; };
+const chart = $('chart'), tt = $('tt');
+const C = { blue: '#2a78d6', green: '#1baf7a', violet: '#4a3aa7', red: '#eb6834', grey: '#b4b4b4', greyDot: '#8c8c8c', ink: '#222', ink2: '#666', ink3: '#9a9a9a' };
+const fmt = (v, d = 2) => (Math.round(v * Math.pow(10, d)) / Math.pow(10, d)).toFixed(d);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+function niceTicks(lo, hi, n = 6) {
+  const span = hi - lo, raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => span / s <= n) || mag * 10;
+  const out = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(6)); return out;
+}
+// A panel: axes + grid + clip; returns scales and a content group.
+function panel(parent, box, xd, yd, o = {}) {
+  const { x, y, w, h } = box;
+  const sx = v => x + (v - xd[0]) / (xd[1] - xd[0]) * w;
+  const sy = v => y + h - (v - yd[0]) / (yd[1] - yd[0]) * h;
+  const grid = el('g', { class: 'grid' }, parent), axis = el('g', { class: 'axis' }, parent);
+  const xt = o.xt || niceTicks(xd[0], xd[1], o.nx || 8), yt = o.yt || niceTicks(yd[0], yd[1], o.ny || 5);
+  xt.forEach(v => { el('line', { x1: sx(v), x2: sx(v), y1: y, y2: y + h }, grid); txt(axis, sx(v), y + h + 17, o.xf ? o.xf(v) : v, { 'text-anchor': 'middle' }); });
+  yt.forEach(v => { el('line', { x1: x, x2: x + w, y1: sy(v), y2: sy(v) }, grid); txt(axis, x - 8, sy(v) + 4, o.yf ? o.yf(v) : v, { 'text-anchor': 'end' }); });
+  el('path', { d: `M${x},${y}V${y + h}H${x + w}` }, axis);
+  if (o.xlabel) txt(parent, x + w, y + h + 34, o.xlabel, { class: 'axis-title', 'text-anchor': 'end' });
+  if (o.ylabel) { const t = txt(parent, 0, 0, o.ylabel, { class: 'axis-title', 'text-anchor': 'middle' }); t.setAttribute('transform', `translate(${x - (o.ylx || 46)},${y + h / 2}) rotate(-90)`); }
+  if (o.title) txt(parent, x, y - 8, o.title, { class: 'ptitle' });
+  const id = 'clip' + Math.random().toString(36).slice(2, 8);
+  const cp = el('clipPath', { id }, parent); el('rect', { x, y: y - 2, width: w, height: h + 4 }, cp);
+  const g = el('g', { 'clip-path': `url(#${id})` }, parent);
+  const top = el('g', {}, parent);
+  return { sx, sy, g, top, box, xd, yd };
+}
+function pathOf(xs, ys, upto) { let d = ''; const n = upto == null ? xs.length : upto; for (let i = 0; i < n; i++) d += (i ? 'L' : 'M') + xs[i].toFixed(1) + ',' + ys[i].toFixed(1); return d; }
+function legend(parent, x, y, items) {
+  const rowH = 18, padX = 10, padY = 8;
+  const wdt = Math.max(...items.map(i => i.n.length)) * 7.1 + 2 * padX + 30;
+  el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, parent);
+  items.forEach((it, j) => {
+    const cy = y + padY + j * rowH + 6, cx = x + padX + 9;
+    if (it.k === 'cross') { el('line', { x1: cx - 5, x2: cx + 5, y1: cy - 5, y2: cy + 5, class: 'cross' }, parent); el('line', { x1: cx - 5, x2: cx + 5, y1: cy + 5, y2: cy - 5, class: 'cross' }, parent); }
+    else if (it.k === 'circle') el('circle', { cx, cy, r: 5.5, class: 'kept', stroke: it.c || C.red }, parent);
+    else if (it.k === 'rect') el('rect', { x: x + padX, y: cy - 6, width: 18, height: 12, class: 'win-rect' }, parent);
+    else if (it.k === 'dot') el('circle', { cx, cy, r: 4.5, fill: it.c }, parent);
+    else el('line', { x1: x + padX, x2: x + padX + 18, y1: cy, y2: cy, stroke: it.c, 'stroke-width': it.k === 'dash' ? 1.5 : 2.5, 'stroke-dasharray': it.k === 'dash' ? '5 4' : 'none' }, parent);
+    txt(parent, x + padX + 26, cy + 4, it.n, { class: 'axis-title', fill: 'var(--ink)' });
+  });
+  return wdt;
+}
+function cross(parent, x, y, s = 5, attrs = {}) { const g = el('g', Object.assign({ class: 'cross' }, attrs), parent); el('line', { x1: x - s, x2: x + s, y1: y - s, y2: y + s }, g); el('line', { x1: x - s, x2: x + s, y1: y + s, y2: y - s }, g); return g; }
+function badge(parent, x, y, s, color) { const g = el('g', {}, parent); const w = s.length * 9.4 + 18; el('rect', { x, y: y - 17, width: w, height: 24, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g); txt(g, x + 9, y, s, { class: 'badge', fill: color || 'var(--ink)' }); return g; }
+function tipAt(evt, html) {
+  tt.innerHTML = html; tt.style.display = 'block';
+  const wrap = chart.parentElement.getBoundingClientRect();
+  const px = evt.clientX - wrap.left, py = evt.clientY - wrap.top;
+  tt.style.left = (px + 16 + tt.offsetWidth > wrap.width ? px - tt.offsetWidth - 12 : px + 16) + 'px';
+  tt.style.top = Math.max(0, py - 10) + 'px';
+}
+function svgPoint(evt) { const pt = chart.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY; return pt.matrixTransform(chart.getScreenCTM().inverse()); }
+
+// ------------------------------------------------------------ dials (persist unless the user touched them)
+// defs: { id: { val: id of readout span, parse, fmt } }
+const dials = {}, dirty = {};
+function defDial(id, o) {
+  dials[id] = o; dirty[id] = false;
+  const inp = $(id);
+  const ev = inp.tagName === 'SELECT' ? 'change' : 'input';
+  inp.addEventListener(ev, e => { e.stopPropagation(); dirty[id] = true; showDial(id); onDial(id); });
+  inp.addEventListener('click', e => e.stopPropagation());
+  showDial(id);
+}
+function dial(id) { const v = $(id).value; return dials[id].parse ? dials[id].parse(v) : v; }
+function showDial(id) { const o = dials[id]; if (o.val) $(o.val).textContent = o.fmt ? o.fmt(dial(id)) : $(id).value; }
+function applyPresets(p, force = false) { for (const id in p || {}) if (force || !dirty[id]) { $(id).value = p[id]; showDial(id); } }
+
+// ------------------------------------------------------------ step machine
+let step = 0, progress = 0, playing = false, raf = 0, lastT = 0;
+const speedMult = () => parseFloat($('speed').value);
+function cur() { return STEPS[step]; }
+function updateHead() {
+  const d = cur();
+  $('title').innerHTML = d.title + (d.tag ? `<span class="tag">${d.tag()}</span>` : '');
+  $('subtitle').textContent = d.subtitle;
+  $('counter').textContent = `${step + 1} / ${STEPS.length}`;
+}
+function enterStep(k, completed = false) {
+  step = clamp(k, 0, STEPS.length - 1); stopPlay();
+  applyPresets(cur().presets);
+  try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {}
+  progress = 0; cur().setup();
+  if (!cur().dur || completed || speedMult() === 0) { progress = 1; cur().draw(1); updateHead(); }
+  else { cur().draw(0); updateHead(); startPlay(); }
+}
+function redraw() { cur().setup(); cur().draw(progress); updateHead(); }
+function onDial() { redraw(); }
+function tick(t) {
+  if (!playing) return;
+  const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+  progress = Math.min(1, progress + dt * speedMult() / cur().dur);
+  cur().draw(progress); updateHead();
+  if (progress >= 1) { stopPlay(); return; }
+  raf = requestAnimationFrame(tick);
+}
+function startPlay() { if (progress >= 1 || !cur().dur) return; playing = true; lastT = performance.now(); $('play').textContent = 'Pause'; raf = requestAnimationFrame(tick); }
+function stopPlay() { playing = false; cancelAnimationFrame(raf); $('play').textContent = 'Play'; }
+function finish() { stopPlay(); progress = 1; cur().draw(1); updateHead(); }
+function next() { if (progress < 1) { finish(); return; } if (step < STEPS.length - 1) enterStep(step + 1); }
+function prev() { if (step > 0) enterStep(step - 1, true); }
+function restart() { enterStep(step); }
+function wire() {
+  $('next').addEventListener('click', e => { e.stopPropagation(); next(); });
+  $('prev').addEventListener('click', e => { e.stopPropagation(); prev(); });
+  $('restart').addEventListener('click', e => { e.stopPropagation(); restart(); });
+  $('reset').addEventListener('click', e => { e.stopPropagation(); for (const id in dirty) dirty[id] = false; applyPresets(cur().presets, true); restart(); });
+  $('play').addEventListener('click', e => { e.stopPropagation(); if (playing) stopPlay(); else if (progress >= 1) restart(); else startPlay(); });
+  $('speed').addEventListener('click', e => e.stopPropagation());
+  $('speed').addEventListener('change', e => { e.stopPropagation(); if (speedMult() === 0) finish(); });
+  $('slide').addEventListener('click', () => next());
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
+    else if (e.key === 'r' || e.key === 'R') restart();
+  });
+  chart.addEventListener('mouseleave', () => { tt.style.display = 'none'; if (typeof unhover === 'function') unhover(); });
+  const h = parseInt((location.hash || '').replace('#', ''), 10);
+  enterStep(h >= 1 && h <= STEPS.length ? h - 1 : 0);
+}
+
+// ------------------------------------------------------------ data: the chapter's walking-like signal, 600 samples at 100 Hz
+const N = Y.length, FS = 100, T = Array.from({ length: N }, (_, i) => i / FS);
+const BOX = { x: 70, y: 22, w: 1080, h: 540 }, YD = [-1.9, 2.7];
+const ALL = findPeaks(Y).all;               // every local maximum with prominence, bases and width
+const M = ALL.length;
+const dSamp = () => Math.round(dial('dist') * FS), wSamp = () => Math.round(dial('width') * FS);
+defDial('height', { val: 'heightVal', parse: parseFloat, fmt: v => v.toFixed(1) });
+defDial('dist', { val: 'distVal', parse: parseFloat, fmt: v => v.toFixed(2) + ' s' });
+defDial('prom', { val: 'promVal', parse: parseFloat, fmt: v => v.toFixed(1) });
+defDial('width', { val: 'widthVal', parse: parseFloat, fmt: v => v.toFixed(2) + ' s' });
+
+let G = {};
+function base(items, code) {
+  chart.innerHTML = '';
+  const P = panel(chart, BOX, [0, 6], YD, { xlabel: 'time (seconds)', ylabel: 'amplitude', ny: 5, yf: v => fmt(v, 1) });
+  el('path', { class: 'out-line', d: pathOf(T.map(P.sx), Y.map(P.sy)), stroke: C.blue, 'stroke-width': 1.6 }, P.g);
+  legend(P.top, BOX.x + 10, BOX.y + 8, items);
+  if (code) txt(P.top, BOX.x + BOX.w - 12, BOX.y + 24, code, { class: 'mono', 'text-anchor': 'end', 'font-size': 15, fill: 'var(--ink)' });
+  G.P = P; return P;
+}
+const px = a => G.P.sx(T[a.i]), py = a => G.P.sy(a.v);
+const drawCross = (a, faded) => cross(G.P.top, px(a), py(a), 5, faded ? { opacity: .3 } : {});
+const drawKept = a => el('circle', { cx: px(a), cy: py(a), r: 7.5, class: 'kept' }, G.P.top);
+const cursor = i => el('line', { x1: G.P.sx(T[i]), x2: G.P.sx(T[i]), y1: BOX.y, y2: BOX.y + BOX.h, stroke: 'var(--ink-2)', 'stroke-width': 1, 'stroke-dasharray': '3 3' }, G.P.top);
+const countBadge = (s, c) => badge(G.P.top, BOX.x + BOX.w - (s.length * 9.4 + 18) - 12, BOX.y + 54, s, c);
+const SIG = { c: C.blue, n: 'signal' }, MAXI = { k: 'cross', n: 'all local maxima' }, KEPT = { k: 'circle', n: 'kept by find_peaks' };
+let last = { n: 0 };
+
+const STEPS = [
+  {
+    title: 'Every local maximum', dur: 8, tag: () => `find_peaks(y) → ${last.n} local maxima`,
+    subtitle: 'The local maxima find_peaks returns when called with no arguments.',
+    setup() {}, draw(p) {
+      base([SIG, MAXI], 'find_peaks(y)');
+      const i = Math.round(p * (N - 1)); const seen = ALL.filter(a => a.i <= i);
+      seen.forEach(a => drawCross(a)); cursor(i); last.n = seen.length; countBadge(`local maxima: ${seen.length}`, C.greyDot);
+    }
+  },
+  {
+    title: 'height: an absolute amplitude threshold', dur: 8, presets: { height: 1 },
+    tag: () => `height = ${fmt(dial('height'), 1)} → ${last.n} kept`,
+    subtitle: 'How the height threshold keeps only maxima above an absolute amplitude.',
+    setup() {}, draw(p) {
+      base([SIG, MAXI, KEPT, { k: 'dash', c: C.ink, n: 'height threshold' }], `find_peaks(y, height=${fmt(dial('height'), 1)})`);
+      const h = YD[0] + p * (dial('height') - YD[0]);
+      el('line', { x1: BOX.x, x2: BOX.x + BOX.w, y1: G.P.sy(h), y2: G.P.sy(h), stroke: C.ink, 'stroke-width': 1.5, 'stroke-dasharray': '6 4' }, G.P.top);
+      txt(G.P.top, BOX.x + BOX.w - 12, G.P.sy(h) - 8, `height = ${fmt(h, 2)}`, { class: 'dlabel', 'text-anchor': 'end', fill: C.ink });
+      let n = 0; ALL.forEach(a => { if (a.v >= h) { drawKept(a); n++; } else drawCross(a); });
+      last.n = n; countBadge(`kept: ${n} of ${M}`, C.red);
+    }
+  },
+  {
+    title: 'distance: minimum spacing between peaks', dur: 12, presets: { dist: 0.4 },
+    tag: () => `distance = ${dSamp()} samples (${fmt(dial('dist'), 2)} s) → ${last.n} kept`,
+    subtitle: 'Sweeping left to right, a maximum is dropped when a taller one lies within the distance.',
+    setup() { G.sel = selectByDistance(ALL.map(a => a.i), ALL.map(a => a.v), dSamp()); },
+    draw(p) {
+      base([SIG, MAXI, KEPT, { k: 'rect', n: 'window claimed by a kept peak' }], `find_peaks(y, distance=${dSamp()})`);
+      const d = dSamp(), i = Math.round(p * (N - 1)), { keep, killedBy } = G.sel;
+      let n = 0;
+      ALL.forEach((a, r) => {
+        if (a.i > i) { drawCross(a); return; }                       // not reached by the sweep yet
+        if (keep[r]) {
+          n++;
+          const x0 = G.P.sx(T[Math.max(0, a.i - d)]), x1 = G.P.sx(T[Math.min(N - 1, a.i + d)]);
+          el('rect', { class: 'win-rect', x: x0, y: BOX.y + 2, width: x1 - x0, height: BOX.h - 4, opacity: .55 }, G.P.g);
+          drawKept(a);
+        } else {
+          drawCross(a, true);                                          // dropped: a taller peak lies within the distance
+          const t = ALL[killedBy[r]]; if (t) el('line', { x1: px(a), y1: py(a), x2: px(t), y2: py(t), stroke: C.greyDot, 'stroke-width': 1, 'stroke-dasharray': '2 3' }, G.P.top);
+        }
+      });
+      cursor(i);
+      last.n = n; countBadge(`kept: ${n} of ${M}`, C.red);
+    }
+  },
+  {
+    title: 'prominence: rise above the local baseline', dur: 12, presets: { prom: 1.2 },
+    tag: () => `prominence ≥ ${fmt(dial('prom'), 1)} → ${last.n} kept`,
+    subtitle: 'How prominence measures each maximum’s rise above the neighbouring valleys.',
+    setup() {}, draw(p) {
+      base([SIG, MAXI, KEPT, { c: C.ink, n: 'prominence of each maximum' }], `find_peaks(y, prominence=${fmt(dial('prom'), 1)})`);
+      const i = Math.round(p * (N - 1)); let n = 0;
+      ALL.forEach(a => {
+        if (a.i > i) { drawCross(a); return; }
+        const ok = a.prom >= dial('prom'); const c = ok ? C.red : C.greyDot;
+        el('line', { x1: G.P.sx(T[a.lb]), x2: G.P.sx(T[a.rb]), y1: G.P.sy(a.base), y2: G.P.sy(a.base), stroke: c, 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: .7 }, G.P.g);
+        el('line', { x1: px(a), x2: px(a), y1: py(a), y2: G.P.sy(a.base), stroke: c, 'stroke-width': ok ? 2.5 : 1.5 }, G.P.g);
+        if (ok) { drawKept(a); n++; } else drawCross(a, true);
+      });
+      cursor(i); last.n = n; countBadge(`kept: ${n} of ${M}`, C.red);
+    }
+  },
+  {
+    title: 'width: extent at half prominence', dur: 12, presets: { width: 0.15 },
+    tag: () => `width ≥ ${wSamp()} samples (${fmt(dial('width'), 2)} s) → ${last.n} kept`,
+    subtitle: 'How the width parameter drops narrow spikes and keeps broad bumps.',
+    setup() {}, draw(p) {
+      base([SIG, MAXI, KEPT, { c: C.ink, n: 'width at half prominence' }], `find_peaks(y, width=${wSamp()})`);
+      const i = Math.round(p * (N - 1)); let n = 0;
+      ALL.forEach(a => {
+        if (a.i > i) { drawCross(a); return; }
+        const ok = a.width >= wSamp(); const c = ok ? C.red : C.greyDot;
+        el('line', { x1: G.P.sx(a.lip / FS), x2: G.P.sx(a.rip / FS), y1: G.P.sy(a.wh), y2: G.P.sy(a.wh), stroke: c, 'stroke-width': ok ? 3 : 2 }, G.P.g);
+        if (ok) { drawKept(a); n++; } else drawCross(a, true);
+      });
+      cursor(i); last.n = n; countBadge(`kept: ${n} of ${M}`, C.red);
+    }
+  },
+  {
+    title: 'distance and prominence together', dur: 8, presets: { dist: 0.4, prom: 1.2 },
+    tag: () => `distance = ${dSamp()} samples · prominence = ${fmt(dial('prom'), 1)} → ${last.n} kept`,
+    subtitle: 'Combining distance and prominence to count each step exactly once.',
+    setup() { G.kept = new Set(findPeaks(Y, { distance: dSamp(), prominence: dial('prom') }).kept); },
+    draw(p) {
+      base([SIG, MAXI, KEPT], `find_peaks(y, distance=${dSamp()}, prominence=${fmt(dial('prom'), 1)})`);
+      const i = Math.round(p * (N - 1)); let n = 0;
+      ALL.forEach(a => { if (a.i <= i && G.kept.has(a.i)) { drawKept(a); n++; } else drawCross(a, a.i <= i); });
+      cursor(i); last.n = n; countBadge(`kept: ${n} of ${M}`, C.red);
+    }
+  }
+];
+chart.addEventListener('mousemove', evt => {
+  const pt = svgPoint(evt), P = G.P; if (!P) return;
+  const i = clamp(Math.round((pt.x - BOX.x) / BOX.w * (N - 1)), 0, N - 1);
+  let html = `<div class="row"><span>t</span><b>${fmt(T[i], 2)} s</b></div><div class="row"><span>y</span><span>${fmt(Y[i], 3)}</span></div>`;
+  const near = ALL.find(a => Math.abs(a.i - i) <= 3);
+  if (near) html += `<div class="row"><span>maximum</span><span>${fmt(near.v, 3)}</span></div><div class="row"><span>prominence</span><span>${fmt(near.prom, 3)}</span></div><div class="row"><span>width</span><span>${fmt(near.width / FS, 3)} s</span></div>`;
+  tipAt(evt, html);
+});
+wire();
+
+})();
+</script>
+</body>
+</html>

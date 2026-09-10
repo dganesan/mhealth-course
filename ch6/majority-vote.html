@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Majority Voting in an Ensemble</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff; --ink: #222222; --ink-2: #666666; --ink-3: #9a9a9a;
+    --rule: #dcdcdc; --grid: #ececec; --raw: #b4b4b4; --raw-dot: #8c8c8c; --clean: #444444;
+    --ma: #2a78d6; --med: #1baf7a; --wm: #4a3aa7; --ewma: #eb6834;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.4; padding-block: 18px 28px; padding-inline: 16px; -webkit-font-smoothing: antialiased; }
+  .stage { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
+  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; min-height: 560px; position: relative; outline: none; cursor: pointer; user-select: none; }
+  .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
+  .head h1 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .chart-wrap { position: relative; min-height: 0; }
+  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt .row { display: flex; gap: 10px; justify-content: space-between; }
+  .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot .ctr { font-family: var(--mono); }
+  .bar { display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center; padding:14px 18px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
+  .group { display:flex; align-items:center; gap:8px; }
+  .group label { font-size:13px; font-weight:700; color:var(--ink); }
+  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
+  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  button:hover, select:hover { border-color:var(--ink); }
+  button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
+  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
+  .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
+  .grid line { stroke: var(--grid); stroke-width: 1; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .mono { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
+  .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
+  .box { fill: #fff; stroke: var(--ink-2); stroke-width: 1.2; }
+  .box-title { font-family: var(--sans); font-size: 14px; font-weight: 700; fill: var(--ink); }
+  .arrow { stroke: var(--ink-2); stroke-width: 1.4; fill: none; }
+  @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
+</style>
+
+<div class="stage">
+  <section class="slide" id="slide" tabindex="0" aria-live="polite">
+    <div class="head">
+      <h1 id="title">Majority voting</h1>
+      <p id="subtitle"></p>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 1200 620" role="img" aria-label="Ensemble voting"></svg>
+      <div class="tt" id="tt"></div>
+    </div>
+    <div class="foot">
+      <span>CS328 &nbsp;·&nbsp; Beyond Decision Trees</span>
+      <span class="ctr" id="counter"></span>
+    </div>
+  </section>
+
+  <div class="bar">
+    <div class="group">
+      <button id="prev" title="Previous (←)">‹ Prev</button>
+      <button id="play" class="primary" title="Play / pause (space)">Play</button>
+      <button id="next" title="Next (→)">Next ›</button>
+      <button id="restart" title="Restart this step (r)">Restart</button>
+      <button id="reset" title="Reset all dials to the step presets">Reset dials</button>
+    </div>
+    <div class="group">
+      <label for="M">Models M</label>
+      <input type="range" id="M" min="1" max="25" step="2" value="5">
+      <span class="val" id="MVal">5</span>
+    </div>
+    <div class="group">
+      <label for="p">Error rate p</label>
+      <input type="range" id="p" min="0.05" max="0.5" step="0.05" value="0.3">
+      <span class="val" id="pVal">0.30</span>
+    </div>
+    <div class="group">
+      <label for="rho">Shared mistakes ρ</label>
+      <input type="range" id="rho" min="0" max="1" step="0.1" value="0">
+      <span class="val" id="rhoVal">0.0</span>
+    </div>
+    <div class="group">
+      <label for="seed">Seed</label>
+      <input type="range" id="seed" min="1" max="20" step="1" value="1">
+      <span class="val" id="seedVal">1</span>
+    </div>
+    <div class="group">
+      <label for="speed">Speed</label>
+      <select id="speed">
+        <option value="3">very slow</option>
+        <option value="6">slow</option>
+        <option value="14" selected>normal</option>
+        <option value="30">fast</option>
+        <option value="0">instant</option>
+      </select>
+    </div>
+    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+  const text = (x, y, s, attrs = {}, parent) => { const t = el('text', { x, y, ...attrs }, parent); t.textContent = s; return t; };
+  const chart = $('chart');
+  const W = 1200, H = 620;
+  function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+
+  // ------------------------------------------------------------ classes (as in the chapter's figure)
+  const CLS = [{ name: 'Walking', color: '#2a78d6', tint: '#d6e4f7' }, { name: 'Running', color: '#eb6834', tint: '#fbe0d6' }];
+  const N = 50;   // test inputs in the stream
+
+  // ------------------------------------------------------------ dials (persist across steps unless a step preset is applied)
+  const DIALS = {
+    M:    { get: () => parseInt($('M').value, 10),  set: v => { $('M').value = v; $('MVal').textContent = v; } },
+    p:    { get: () => parseFloat($('p').value),    set: v => { $('p').value = v; $('pVal').textContent = (+v).toFixed(2); } },
+    rho:  { get: () => parseFloat($('rho').value),  set: v => { $('rho').value = v; $('rhoVal').textContent = (+v).toFixed(1); } },
+    seed: { get: () => parseInt($('seed').value, 10), set: v => { $('seed').value = v; $('seedVal').textContent = v; } },
+  };
+  const dirty = {};
+
+  // ------------------------------------------------------------ simulation
+  // each model has marginal error p; with probability rho a model copies a shared mistake coin, otherwise flips its own
+  let sim = null;
+  function simulate() {
+    const M = DIALS.M.get(), p = DIALS.p.get(), rho = DIALS.rho.get(), seed = DIALS.seed.get();
+    const r = rng(1000 + seed * 7919);
+    const ex = [];
+    for (let j = 0; j < N; j++) {
+      const truth = r() < 0.5 ? 0 : 1;
+      const shared = r() < p;
+      const votes = [], wrong = [];
+      for (let m = 0; m < M; m++) {
+        const w = (r() < rho) ? shared : (r() < p);
+        wrong.push(w); votes.push(w ? 1 - truth : truth);
+      }
+      const c = [0, 0]; votes.forEach(v => c[v]++);
+      const maj = c[0] > c[1] ? 0 : c[1] > c[0] ? 1 : truth; // M is odd, ties cannot occur
+      ex.push({ truth, votes, wrong, counts: c, maj, majWrong: maj !== truth });
+    }
+    sim = { M, p, rho, ex };
+  }
+
+  // ------------------------------------------------------------ steps
+  const steps = [
+    { id: 'one', title: 'Three classifiers vote on one input', presets: { M: 3 },
+      subtitle: 'How three classifiers each cast a vote and the majority decides the output.',
+      frames: () => 5, rate: 0.25 },
+    { id: 'indep', title: 'Many inputs: mistakes that are not shared wash out', presets: { M: 5, rho: 0 },
+      subtitle: 'How the majority vote is wrong less often when the models make independent mistakes.',
+      frames: () => N, rate: 1 },
+    { id: 'corr', title: 'Perfectly correlated mistakes: the vote cannot help', presets: { M: 5, rho: 1 },
+      subtitle: 'How the majority vote gains nothing when every model makes the same mistakes.',
+      frames: () => N, rate: 1 },
+    { id: 'more', title: 'More voters, still independent', presets: { M: 15, rho: 0 },
+      subtitle: 'How the majority vote improves further as more independent models are added.',
+      frames: () => N, rate: 1 },
+  ];
+  const tagFor = () => `M = ${sim.M} · p = ${sim.p.toFixed(2)} · ρ = ${sim.rho.toFixed(1)}`;
+
+  // ------------------------------------------------------------ drawing
+  function draw(frame) {
+    chart.innerHTML = '';
+    if (steps[step].id === 'one') drawOne(frame); else drawStream(frame);
+  }
+
+  function drawOne(frame) {
+    const M = sim.M;
+    // pick an input on which some model errs but the majority is right (like the chapter figure), else the first
+    let j = sim.ex.findIndex(e => e.wrong.some(w => w) && !e.majWrong); if (j < 0) j = 0;
+    const e = sim.ex[j];
+    const cy = 330, rowGap = Math.min(110, 380 / Math.max(1, M));
+    const y0 = cy - (M - 1) * rowGap / 2;
+    const inX = 150, mX = 460, vX = 820, oX = 1060;
+    // input
+    const g = el('g', {}, chart);
+    el('rect', { class: 'box', x: inX - 70, y: cy - 34, width: 140, height: 68, rx: 8 }, g);
+    text(inX, cy - 6, 'New input', { class: 'box-title', 'text-anchor': 'middle' }, g);
+    text(inX, cy + 16, `example ${j + 1} · truly ${CLS[e.truth].name}`, { class: 'axis-title', 'text-anchor': 'middle' }, g);
+    for (let m = 0; m < M; m++) {
+      const y = y0 + m * rowGap;
+      el('path', { class: 'arrow', d: `M${inX + 72},${cy}L${mX - 82},${y}`, opacity: frame >= 0 ? 1 : 0 }, g);
+      el('rect', { class: 'box', x: mX - 80, y: y - 26, width: 160, height: 52, rx: 8 }, g);
+      text(mX, y + 5, `Model ${m + 1}`, { class: 'box-title', 'text-anchor': 'middle' }, g);
+      if (frame >= m + 1) {
+        const c = CLS[e.votes[m]];
+        text(mX + 96, y + 5, `“${c.name}” ${e.wrong[m] ? '✗' : '✓'}`, { class: 'dlabel', fill: e.wrong[m] ? '#eb6834' : c.color }, g);
+      }
+    }
+    // vote box
+    el('rect', { class: 'box', x: vX - 70, y: cy - 34, width: 140, height: 68, rx: 8, fill: '#f4f4f4' }, g);
+    text(vX, cy + 5, 'Majority vote', { class: 'box-title', 'text-anchor': 'middle' }, g);
+    if (frame >= M + 1) {
+      for (let m = 0; m < M; m++) el('path', { class: 'arrow', d: `M${mX + 82 + 120},${y0 + m * rowGap}L${vX - 72},${cy}` }, g);
+      el('path', { class: 'arrow', d: `M${vX + 72},${cy}L${oX - 72},${cy}` }, g);
+      el('rect', { class: 'box', x: oX - 70, y: cy - 34, width: 140, height: 68, rx: 8, stroke: CLS[e.maj].color }, g);
+      text(oX, cy + 6, CLS[e.maj].name, { class: 'box-title', 'text-anchor': 'middle', fill: CLS[e.maj].color, 'font-size': 18 }, g);
+      text(vX, cy + 62, `${CLS[0].name} × ${e.counts[0]}   ${CLS[1].name} × ${e.counts[1]}`, { class: 'mono', 'text-anchor': 'middle', fill: 'var(--ink-2)' }, g);
+    } else {
+      for (let m = 0; m < M; m++) el('path', { class: 'arrow', d: `M${mX + 82 + 120},${y0 + m * rowGap}L${vX - 72},${cy}`, opacity: 0.25 }, g);
+    }
+    drawLegend([{ c: CLS[0].color, n: 'vote: Walking' }, { c: CLS[1].color, n: 'vote: Running' }, { c: '#eb6834', n: '✗ wrong vote', txt: true }], 40, 30);
+  }
+
+  function drawStream(frame) {
+    const M = sim.M, ex = sim.ex, upto = Math.min(frame, N);
+    const PL = 130, PR = 400, top = 60;
+    const cw = (W - PL - PR) / N;
+    const rowH = Math.min(34, 430 / (M + 3));
+    const ys = { truth: top, model: m => top + rowH * 1.6 + m * rowH, maj: top + rowH * 1.6 + M * rowH + rowH * 0.7 };
+    const bottom = ys.maj + rowH;
+    const g = el('g', {}, chart);
+    // row labels
+    text(PL - 10, ys.truth + rowH * 0.7, 'true label', { class: 'dlabel', 'text-anchor': 'end', fill: 'var(--ink-2)' }, g);
+    for (let m = 0; m < M; m++) if (M <= 15 || m % 2 === 0 || m === M - 1) text(PL - 10, ys.model(m) + rowH * 0.7, `Model ${m + 1}`, { class: 'axis-title', 'text-anchor': 'end', fill: 'var(--ink)' }, g);
+    text(PL - 10, ys.maj + rowH * 0.7, 'majority vote', { class: 'dlabel', 'text-anchor': 'end' }, g);
+    // input axis
+    const axis = el('g', { class: 'axis' }, chart);
+    for (let j = 0; j < N; j += 10) text(PL + (j + 0.5) * cw, bottom + 18, j + 1, { 'text-anchor': 'middle' }, axis);
+    text(PL + N * cw + 8, bottom + 18, 'input', { class: 'axis-title' }, chart);
+    // cells
+    const cell = (j, y, cls, wrong, strong) => {
+      const x = PL + j * cw;
+      el('rect', { x: x + 0.5, y: y + 1, width: cw - 1, height: rowH - 2, fill: CLS[cls].color, opacity: strong ? 0.95 : 0.55, rx: 1.5 }, g);
+      if (wrong) { const s = Math.min(cw, rowH) * 0.28, cx = x + cw / 2, cy = y + rowH / 2; el('path', { d: `M${cx - s},${cy - s}L${cx + s},${cy + s}M${cx + s},${cy - s}L${cx - s},${cy + s}`, stroke: '#222', 'stroke-width': 1.8, fill: 'none' }, g); }
+    };
+    for (let j = 0; j < upto; j++) {
+      const e = ex[j];
+      cell(j, ys.truth, e.truth, false, false);
+      for (let m = 0; m < M; m++) cell(j, ys.model(m), e.votes[m], e.wrong[m], true);
+      cell(j, ys.maj, e.maj, e.majWrong, true);
+    }
+    // current-input marker
+    if (upto > 0 && upto < N) el('rect', { x: PL + (upto - 1) * cw, y: ys.truth - 4, width: cw, height: bottom - ys.truth + 8, fill: 'none', stroke: '#222', 'stroke-width': 1, 'stroke-dasharray': '3 3' }, g);
+    // running error bars on the right
+    const bx = W - PR + 70, bw = 240;
+    const bar = (y, err, color, label, bold) => {
+      el('rect', { x: bx, y: y + 3, width: bw, height: rowH - 6, fill: '#f4f4f4' }, g);
+      el('rect', { x: bx, y: y + 3, width: bw * Math.min(1, err / 0.6), height: rowH - 6, fill: color, opacity: bold ? 1 : 0.6 }, g);
+      text(bx + bw + 8, y + rowH * 0.7, upto ? `${Math.round(err * 100)}%` : '–', { class: 'mono', fill: bold ? color : 'var(--ink-2)', 'font-weight': bold ? 700 : 400 }, g);
+    };
+    text(bx, ys.truth + rowH * 0.7, `error rate after ${upto} of ${N} inputs`, { class: 'axis-title', fill: 'var(--ink)' }, g);
+    const mErr = [];
+    for (let m = 0; m < M; m++) { let e = 0; for (let j = 0; j < upto; j++) if (ex[j].wrong[m]) e++; mErr.push(upto ? e / upto : 0); bar(ys.model(m), mErr[m], '#8c8c8c', '', false); }
+    let eE = 0; for (let j = 0; j < upto; j++) if (ex[j].majWrong) eE++; const ensErr = upto ? eE / upto : 0;
+    bar(ys.maj, ensErr, '#2a78d6', '', true);
+    for (const v of [0, 0.3, 0.6]) { const x = bx + bw * v / 0.6; el('line', { x1: x, x2: x, y1: ys.model(0) - 2, y2: ys.maj + rowH, stroke: 'var(--ink-3)', 'stroke-width': 1, 'stroke-dasharray': '2 3' }, g); text(x, ys.maj + rowH + 16, `${Math.round(v * 100)}%`, { class: 'axis-title', 'text-anchor': 'middle' }, g); }
+    // summary line
+    const mean = mErr.length ? mErr.reduce((a, b) => a + b, 0) / mErr.length : 0;
+    if (upto) text(PL, bottom + 50, `mean individual error ${Math.round(mean * 100)}%   ·   majority-vote error ${Math.round(ensErr * 100)}%`, { class: 'mono', 'font-size': 15 }, g);
+    drawLegend([{ c: CLS[0].color, n: 'vote: Walking' }, { c: CLS[1].color, n: 'vote: Running' }, { c: '#222', n: '✗ wrong vote', txt: true }], W - PR + 70, bottom + 36, true);
+    G.rows = { PL, cw, N, top: ys.truth, bottom };
+  }
+
+  const G = {};
+  function drawLegend(items, x, y, horizontal = false) {
+    const rowH = 18, padX = 10, padY = 8;
+    const g = el('g', {}, chart);
+    if (horizontal) {
+      let cx = x; const wdt = items.reduce((s, it) => s + it.n.length * 7.2 + 40, 0) + 2 * padX;
+      el('rect', { x: x - padX, y, width: wdt, height: rowH + 8, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
+      items.forEach(it => { if (it.txt) text(cx, y + 17, it.n, { class: 'axis-title', fill: it.c }, g); else { el('rect', { x: cx, y: y + 7, width: 14, height: 12, fill: it.c, rx: 2 }, g); text(cx + 20, y + 17, it.n, { class: 'axis-title', fill: 'var(--ink)' }, g); } cx += it.n.length * 7.2 + 40; });
+      return;
+    }
+    const wdt = 12 + Math.max(...items.map(i => i.n.length)) * 7.2 + 2 * padX + 22;
+    el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
+    items.forEach((it, j) => { const yy = y + padY + j * rowH + 6; if (it.txt) text(x + padX, yy + 4, it.n, { class: 'axis-title', fill: it.c }, g); else { el('rect', { x: x + padX, y: yy - 6, width: 18, height: 12, fill: it.c, rx: 2 }, g); text(x + padX + 26, yy + 4, it.n, { class: 'axis-title', fill: 'var(--ink)' }, g); } });
+  }
+
+  // ------------------------------------------------------------ hover
+  const tt = $('tt');
+  function hover(evt) {
+    if (steps[step].id === 'one' || !G.rows) return;
+    const pt = chart.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+    const p = pt.matrixTransform(chart.getScreenCTM().inverse());
+    const j = Math.floor((p.x - G.rows.PL) / G.rows.cw);
+    if (j < 0 || j >= Math.min(frame, N) || p.y < G.rows.top || p.y > G.rows.bottom) { unhover(); return; }
+    const e = sim.ex[j];
+    let html = `<div class="row"><span>input</span><b>${j + 1}</b></div><div class="row"><span>true label</span><span>${CLS[e.truth].name}</span></div>`;
+    html += `<div class="row"><span>votes</span><span>${CLS[0].name} ${e.counts[0]} · ${CLS[1].name} ${e.counts[1]}</span></div><div class="row"><span>majority</span><b>${CLS[e.maj].name}${e.majWrong ? ' ✗' : ' ✓'}</b></div>`;
+    tt.innerHTML = html; tt.style.display = 'block';
+    const wrap = chart.parentElement.getBoundingClientRect();
+    const px = evt.clientX - wrap.left, py = evt.clientY - wrap.top;
+    tt.style.left = (px + 16 + tt.offsetWidth > wrap.width ? px - tt.offsetWidth - 12 : px + 16) + 'px';
+    tt.style.top = Math.max(0, py - 10) + 'px';
+  }
+  function unhover() { tt.style.display = 'none'; }
+
+  // ------------------------------------------------------------ step machinery
+  let step = 0, frame = 0, total = 0, playing = false, raf = 0, lastT = 0, acc = 0, speed = 14;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function applyPresets(d) { for (const k in (d.presets || {})) if (!dirty[k]) DIALS[k].set(d.presets[k]); }
+  function rebuild() { simulate(); total = steps[step].frames(); }
+  function enterStep(k, completed = false) {
+    step = k; const d = steps[step];
+    applyPresets(d); rebuild();
+    $('subtitle').textContent = d.subtitle;
+    $('counter').textContent = `${step + 1} / ${steps.length}`;
+    try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {}
+    stopPlay();
+    frame = (completed || speed === 0 || reduceMotion) ? total : 0;
+    render();
+    if (frame < total) startPlay();
+  }
+  function render() { $('title').innerHTML = steps[step].title + `<span class="tag">${tagFor()}</span>`; draw(frame); }
+  function finish() { frame = total; stopPlay(); render(); }
+  function tick(t) {
+    if (!playing) return;
+    const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+    acc += dt * speed * steps[step].rate;
+    while (acc >= 1 && frame < total) { frame++; acc -= 1; }
+    render();
+    if (frame >= total) { stopPlay(); return; }
+    raf = requestAnimationFrame(tick);
+  }
+  function startPlay() { if (frame >= total) return; playing = true; lastT = performance.now(); acc = 0; $('play').textContent = 'Pause'; raf = requestAnimationFrame(tick); }
+  function stopPlay() { playing = false; cancelAnimationFrame(raf); $('play').textContent = 'Play'; }
+  function next() { if (frame < total) { finish(); return; } if (step < steps.length - 1) enterStep(step + 1); }
+  function prev() { if (step > 0) enterStep(step - 1, true); }
+  function restart() { enterStep(step); }
+  function onDial(k) { dirty[k] = true; rebuild(); frame = Math.min(frame, total); render(); }
+
+  // ------------------------------------------------------------ wiring
+  $('next').addEventListener('click', e => { e.stopPropagation(); next(); });
+  $('prev').addEventListener('click', e => { e.stopPropagation(); prev(); });
+  $('restart').addEventListener('click', e => { e.stopPropagation(); restart(); });
+  $('play').addEventListener('click', e => { e.stopPropagation(); if (playing) stopPlay(); else if (frame >= total) restart(); else startPlay(); });
+  $('reset').addEventListener('click', e => { e.stopPropagation(); for (const k in dirty) delete dirty[k]; DIALS.M.set(5); DIALS.p.set(0.3); DIALS.rho.set(0); DIALS.seed.set(1); enterStep(step); });
+  $('slide').addEventListener('click', () => next());
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
+    else if (e.key === 'r' || e.key === 'R') restart();
+  });
+  for (const k of ['M', 'p', 'rho', 'seed']) $(k).addEventListener('input', () => { DIALS[k].set($(k).value); onDial(k); });
+  $('speed').addEventListener('change', e => { speed = parseInt(e.target.value, 10); });
+  chart.addEventListener('mousemove', hover);
+  chart.addEventListener('mouseleave', unhover);
+  document.querySelectorAll('.bar').forEach(b => b.addEventListener('click', e => e.stopPropagation()));
+
+  const h = parseInt((location.hash || '').replace('#', ''), 10);
+  enterStep(h >= 1 && h <= steps.length ? h - 1 : 0);
+})();
+</script>
+</body>
+</html>

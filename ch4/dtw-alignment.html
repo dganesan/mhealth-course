@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dynamic Time Warping</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff;
+    --ink: #222222;
+    --ink-2: #666666;
+    --ink-3: #9a9a9a;
+    --rule: #dcdcdc;
+    --grid: #ececec;
+    --ma: #2a78d6;
+    --b: #eb6834;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.4; padding-block: 18px 28px; padding-inline: 16px; -webkit-font-smoothing: antialiased; }
+  .stage { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
+  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; min-height: 560px; position: relative; outline: none; cursor: pointer; user-select: none; }
+  .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
+  .head h1 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .chart-wrap { position: relative; min-height: 0; }
+  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt .row { display: flex; gap: 10px; justify-content: space-between; }
+  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot .ctr { font-family: var(--mono); }
+  .bar { display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center; padding:14px 18px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
+  .group { display:flex; align-items:center; gap:8px; }
+  .group label { font-size:13px; font-weight:700; color:var(--ink); }
+  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
+  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  button:hover, select:hover { border-color:var(--ink); }
+  button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
+  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
+  .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
+  .grid line { stroke: var(--grid); stroke-width: 1; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .cell-val { font-family: var(--mono); font-size: 14px; text-anchor: middle; pointer-events: none; }
+  .dlabel { font-family: var(--mono); font-size: 13px; font-weight: 700; }
+  .big { font-family: var(--mono); font-size: 17px; font-weight: 700; }
+  .formula { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
+  .align { stroke: #999; stroke-width: 0.9; }
+  @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
+</style>
+
+<div class="stage">
+  <section class="slide" id="slide" tabindex="0" aria-live="polite">
+    <div class="head">
+      <h1 id="title"></h1>
+      <p id="subtitle"></p>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 1200 640" role="img" aria-label="Two signals, their alignment and the DTW cost matrix"></svg>
+      <div class="tt" id="tt"></div>
+    </div>
+    <div class="foot">
+      <span>CS328 &nbsp;·&nbsp; Feature Extraction</span>
+      <span class="ctr" id="counter"></span>
+    </div>
+  </section>
+
+  <div class="bar">
+    <div class="group">
+      <button id="prev" title="Previous (←)">‹ Prev</button>
+      <button id="play" class="primary" title="Play / pause (space)">Play</button>
+      <button id="next" title="Next (→)">Next ›</button>
+      <button id="restart" title="Restart this step (r)">Restart</button>
+      <button id="reset" title="Reset all dials to the step presets">Reset dials</button>
+    </div>
+    <div class="group">
+      <label for="plateau">Peak samples in B</label>
+      <input type="range" id="plateau" min="1" max="5" step="1" value="3">
+      <span class="val" id="plateauVal">3</span>
+    </div>
+    <div class="group">
+      <label for="speed">Speed</label>
+      <select id="speed">
+        <option value="1.5">very slow</option>
+        <option value="3">slow</option>
+        <option value="6" selected>normal</option>
+        <option value="14">fast</option>
+        <option value="0">instant</option>
+      </select>
+    </div>
+    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ------------------------------------------------------------ data
+  // Toy pulses from the chapter: A = (0,2,4,2,0), B = (0,2,4,4,4,2,0) (B dwells `plateau`
+  // samples at its peak). Rowing strokes: UCI Daily and Sports Activities data set, activity
+  // a17 (rowing), right-arm gyroscope magnitude at 25 Hz, three strokes of subject p4 (fast)
+  // and subject p6 (slow), lightly smoothed as in the chapter's figure script.
+  const ROW_FS = 25;
+  const ROW_A = [1.222,1.638,1.663,1.634,1.64,1.797,1.566,1.83,1.695,1.699,1.442,1.192,1.135,0.971,1.021,0.979,1.199,1.356,1.572,1.717,1.838,1.994,2.016,1.956,1.693,1.369,1.176,1.051,0.89,0.674,0.465,0.335,0.245,0.228,0.363,0.414,0.382,0.336,0.323,0.318,0.341,0.318,0.463,0.632,0.956,1.315,1.297,1.433,1.34,1.458,1.306,1.299,1.45,1.536,1.679,1.61,1.761,1.682,1.737,1.718,1.704,1.758,1.69,1.572,1.509,1.432,1.353,1.057,0.876,0.877,0.954,0.928,0.933,0.91,0.918,1.008,1.056,1.321,1.529,1.855,1.964,1.339];
+  const ROW_B = [1.21,1.789,1.526,1.284,0.855,0.712,0.571,0.591,0.639,0.573,0.498,0.321,0.222,0.145,0.113,0.106,0.186,0.249,0.296,0.306,0.302,0.272,0.379,0.447,0.53,0.375,0.302,0.227,0.221,0.203,0.152,0.197,0.226,0.286,0.325,0.398,0.493,0.535,0.577,0.669,0.954,1.283,1.582,1.687,1.652,1.608,1.648,1.812,1.986,2.029,1.905,1.605,1.341,1.085,0.98,0.743,0.605,0.395,0.321,0.28,0.335,0.312,0.241,0.157,0.201,0.314,0.373,0.39,0.384,0.346,0.3,0.25,0.306,0.366,0.475,0.592,0.667,0.737,0.892,1.176,1.33,1.265,1.103,0.975,0.91,0.839,0.82,0.773,0.788,0.787,0.838,0.866,0.89,0.909,0.885,0.864,0.858,0.845,0.866,0.723,0.656,0.65,1.015,0.818];
+  const toyA = () => [0, 2, 4, 2, 0];
+  const toyB = k => [0, 2].concat(new Array(k).fill(4), [2, 0]);
+
+  // ------------------------------------------------------------ DTW (same recurrence and tie-breaking as the chapter script)
+  function dtw(a, b) {
+    const n = a.length, m = b.length;
+    const C = [], D = [];
+    for (let i = 0; i < n; i++) { C.push([]); D.push([]); for (let j = 0; j < m; j++) { C[i].push(Math.abs(a[i] - b[j])); D[i].push(Infinity); } }
+    D[0][0] = C[0][0];
+    for (let i = 0; i < n; i++) for (let j = 0; j < m; j++) {
+      if (i === 0 && j === 0) continue;
+      let best = Infinity;
+      if (i > 0) best = Math.min(best, D[i - 1][j]);
+      if (j > 0) best = Math.min(best, D[i][j - 1]);
+      if (i > 0 && j > 0) best = Math.min(best, D[i - 1][j - 1]);
+      D[i][j] = C[i][j] + best;
+    }
+    let i = n - 1, j = m - 1; const path = [[i, j]];
+    while (i !== 0 || j !== 0) {
+      if (i === 0) j--;
+      else if (j === 0) i--;
+      else { const c = [D[i - 1][j - 1], D[i - 1][j], D[i][j - 1]]; const s = c.indexOf(Math.min(...c)); if (s === 0) { i--; j--; } else if (s === 1) i--; else j--; }
+      path.push([i, j]);
+    }
+    path.reverse();
+    return { C, D, path, n, m };
+  }
+  // predecessors of (i,j) that exist, as [name, i, j]
+  function preds(i, j) { const r = []; if (i > 0) r.push(['D(' + (i - 1) + ',' + j + ')', i - 1, j]); if (j > 0) r.push(['D(' + i + ',' + (j - 1) + ')', i, j - 1]); if (i > 0 && j > 0) r.push(['D(' + (i - 1) + ',' + (j - 1) + ')', i - 1, j - 1]); return r; }
+
+  // ------------------------------------------------------------ steps
+  const STEPS = [
+    { id: 'local', kind: 'toy', phase: 'C',
+      title: 'Local cost of matching one sample to another',
+      subtitle: 'How the local cost of matching each pair of samples fills the cost table.' },
+    { id: 'accum', kind: 'toy', phase: 'D',
+      title: 'Accumulating cost with the recurrence',
+      subtitle: 'How the DTW recurrence accumulates cost from the three neighboring cells.' },
+    { id: 'path', kind: 'toy', phase: 'P',
+      title: 'Tracing the warping path back from the corner',
+      subtitle: 'Tracing the lowest-cost warping path back from the last cell to the first.' },
+    { id: 'rowing', kind: 'row', phase: 'DP',
+      title: 'DTW on two rowing strokes of different pace',
+      subtitle: 'How DTW aligns a slow rowing stroke signal with a faster one.' },
+  ];
+  const PRESET = { plateau: 3 };
+
+  // ------------------------------------------------------------ layout
+  const W = 1200, H = 640;
+  const L = { x0: 70, x1: 560, y0: 78, y1: 596 };      // signals panel
+  const R = { x0: 660, x1: 1176, y0: 78, y1: 596 };    // matrix panel
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+  const txt = (parent, x, y, s, attrs = {}) => { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; };
+  const fmt = (v, d = 2) => v.toFixed(d);
+  // Blues colormap (matplotlib), light -> dark
+  const BLUES = [[247, 251, 255], [222, 235, 247], [198, 219, 239], [158, 202, 225], [107, 174, 214], [66, 146, 198], [33, 113, 181], [8, 81, 156], [8, 48, 107]];
+  function blues(t) { t = Math.max(0, Math.min(1, t)) * (BLUES.length - 1); const k = Math.floor(t), f = t - k, a = BLUES[k], b = BLUES[Math.min(k + 1, BLUES.length - 1)]; return `rgb(${Math.round(a[0] + f * (b[0] - a[0]))},${Math.round(a[1] + f * (b[1] - a[1]))},${Math.round(a[2] + f * (b[2] - a[2]))})`; }
+
+  // ------------------------------------------------------------ state
+  const $ = id => document.getElementById(id);
+  const chart = $('chart'), tt = $('tt');
+  let plateau = 3, speed = 6;
+  const dirty = { plateau: false };
+  let step = 0, cursor = -1, playing = false, raf = 0, lastT = 0, acc = 0;
+  let A, B, res, total = 0, geo = {}, drawn = { rows: 0, path: 0 };
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function prepare() {
+    const d = STEPS[step];
+    if (d.kind === 'toy') { A = toyA(); B = toyB(plateau); } else { A = ROW_A; B = ROW_B; }
+    res = dtw(A, B);
+    if (d.phase === 'C' || d.phase === 'D') total = res.n * res.m;
+    else if (d.phase === 'P') total = res.path.length;
+    else total = res.n + res.path.length;
+    // matrix geometry: square cells, centred in the right panel, leaving room for axes
+    const availW = R.x1 - R.x0 - 40, availH = R.y1 - R.y0 - 40;
+    const cs = Math.min(64, availW / res.m, availH / res.n);
+    const mx0 = R.x0 + 40 + (availW - cs * res.m) / 2, my1 = R.y1 - 40 - (availH - cs * res.n) / 2;
+    geo = { cs, mx0, my1, cx: j => mx0 + (j + 0.5) * cs, cy: i => my1 - (i + 0.5) * cs };
+    // signal geometry
+    const isToy = d.kind === 'toy';
+    const xs = isToy ? (k => L.x0 + 30 + k * ((L.x1 - L.x0 - 60) / (Math.max(res.n, res.m) - 1)))
+                     : (k => L.x0 + 10 + (k / ROW_FS) / (Math.max(res.n, res.m) / ROW_FS) * (L.x1 - L.x0 - 30));
+    const off = isToy ? 6 : (Math.max(...A) - Math.min(...B) + 1.5);
+    const lo = isToy ? 0 : Math.min(...A), hi = isToy ? 4 + off : Math.max(...B) + off;
+    const ys = v => L.y1 - 40 - ((v - lo) / (hi - lo)) * (L.y1 - L.y0 - 150);
+    geo.xs = xs; geo.ys = ys; geo.off = off;
+    // A on top for the toy (as in the chapter figure), B on top for rowing (as in its figure)
+    geo.yA = i => ys(A[i] + (isToy ? off : 0));
+    geo.yB = j => ys(B[j] + (isToy ? 0 : off));
+  }
+
+  // ------------------------------------------------------------ drawing
+  let G = {};
+  function drawStatic() {
+    chart.innerHTML = '';
+    G.base = el('g', {}, chart);
+    G.cells = el('g', {}, chart);
+    G.lines = el('g', {}, chart);
+    G.dyn = el('g', {}, chart);
+    G.legend = el('g', {}, chart);
+    drawn = { rows: 0, path: 0 };
+    const d = STEPS[step], g = G.base, isToy = d.kind === 'toy';
+    // ---- signals panel
+    const axis = el('g', { class: 'axis' }, g);
+    const nmax = Math.max(res.n, res.m);
+    el('path', { d: `M${L.x0},${L.y1 - 40}H${L.x1}` }, axis);
+    if (isToy) {
+      for (let k = 0; k < nmax; k++) { el('line', { x1: geo.xs(k), x2: geo.xs(k), y1: L.y1 - 40, y2: L.y1 - 35 }, axis); txt(axis, geo.xs(k), L.y1 - 20, k, { 'text-anchor': 'middle' }); }
+      txt(g, L.x1, L.y1 - 4, 'sample index', { class: 'axis-title', 'text-anchor': 'end' });
+    } else {
+      for (let t = 0; t <= nmax / ROW_FS; t += 0.5) { const x = geo.xs(t * ROW_FS); el('line', { x1: x, x2: x, y1: L.y1 - 40, y2: L.y1 - 35 }, axis); txt(axis, x, L.y1 - 20, fmt(t, 1), { 'text-anchor': 'middle' }); }
+      txt(g, L.x1, L.y1 - 4, 'time within stroke window (s)', { class: 'axis-title', 'text-anchor': 'end' });
+      txt(g, L.x0 - 22, (L.y0 + L.y1) / 2, 'right-arm angular velocity magnitude (rad/s, offset)', { class: 'axis-title', 'text-anchor': 'middle', transform: `rotate(-90 ${L.x0 - 22} ${(L.y0 + L.y1) / 2})` });
+    }
+    // traces
+    const pa = A.map((v, i) => (i ? 'L' : 'M') + geo.xs(i).toFixed(1) + ',' + geo.yA(i).toFixed(1)).join('');
+    const pb = B.map((v, j) => (j ? 'L' : 'M') + geo.xs(j).toFixed(1) + ',' + geo.yB(j).toFixed(1)).join('');
+    el('path', { d: pb, fill: 'none', stroke: 'var(--b)', 'stroke-width': 2, 'stroke-dasharray': '6 4' }, g);
+    el('path', { d: pa, fill: 'none', stroke: 'var(--ma)', 'stroke-width': 2 }, g);
+    const me = isToy ? 1 : Math.max(1, Math.floor(res.n / 12));
+    A.forEach((v, i) => { if (i % me === 0) el('circle', { cx: geo.xs(i), cy: geo.yA(i), r: isToy ? 6 : 4, fill: 'var(--ma)', stroke: '#fff', 'stroke-width': 1 }, g); });
+    const meB = isToy ? 1 : Math.max(1, Math.floor(res.m / 12));
+    B.forEach((v, j) => { if (j % meB === 0) el('rect', { x: geo.xs(j) - (isToy ? 5.5 : 3.5), y: geo.yB(j) - (isToy ? 5.5 : 3.5), width: isToy ? 11 : 7, height: isToy ? 11 : 7, fill: 'var(--b)', stroke: '#fff', 'stroke-width': 1 }, g); });
+    if (isToy) {
+      A.forEach((v, i) => txt(g, geo.xs(i), geo.yA(i) - 12, `a${sub(i)}=${v}`, { class: 'dlabel', fill: 'var(--ma)', 'text-anchor': 'middle' }));
+      B.forEach((v, j) => txt(g, geo.xs(j), geo.yB(j) - 12, `b${sub(j)}=${v}`, { class: 'dlabel', fill: 'var(--b)', 'text-anchor': 'middle' }));
+    } else {
+    }
+    // ---- matrix panel: axes + all cells (values hidden until filled)
+    const ax = el('g', { class: 'axis' }, g);
+    const { cs, mx0, my1 } = geo;
+    el('path', { d: `M${mx0},${my1 - res.n * cs}V${my1}H${mx0 + res.m * cs}` }, ax);
+    const tj = isToy ? 1 : 20, ti = isToy ? 1 : 20;
+    for (let j = 0; j < res.m; j += tj) txt(ax, geo.cx(j) - (isToy ? 0 : cs / 2), my1 + 16, j, { 'text-anchor': 'middle' });
+    for (let i = 0; i < res.n; i += ti) txt(ax, mx0 - 8, geo.cy(i) + (isToy ? 4 : cs / 2 + 4), i, { 'text-anchor': 'end' });
+    txt(g, mx0 + res.m * cs, my1 + 32, 'signal B index j', { class: 'axis-title', 'text-anchor': 'end' });
+    txt(g, mx0 - 30, my1 - res.n * cs - 10, 'signal A index i', { class: 'axis-title' });
+    txt(g, R.x1, R.y1 - 4, d.phase === 'C' ? 'c(i,j) = |aᵢ − bⱼ|' : 'D(i,j) = c(i,j) + min{ D(i−1,j), D(i,j−1), D(i−1,j−1) }', { class: 'formula', 'text-anchor': 'end' });
+    G.cellRects = [];
+    for (let i = 0; i < res.n; i++) { G.cellRects.push([]); for (let j = 0; j < res.m; j++) G.cellRects[i].push(el('rect', { x: mx0 + j * cs, y: my1 - (i + 1) * cs, width: cs, height: cs, fill: '#fff', stroke: isToy ? 'var(--grid)' : 'none', 'stroke-width': 1 }, G.cells)); }
+    G.hit = el('rect', { x: mx0, y: my1 - res.n * cs, width: res.m * cs, height: res.n * cs, fill: 'transparent' }, chart);
+    G.hit.addEventListener('mousemove', hover); G.hit.addEventListener('mouseleave', unhover);
+  }
+  const SUBS = '₀₁₂₃₄₅₆₇₈₉';
+  const sub = k => String(k).split('').map(ch => SUBS[+ch]).join('');
+
+  function fillCell(i, j, M, vmax, withText) {
+    const r = G.cellRects[i][j], v = M[i][j];
+    r.setAttribute('fill', blues(vmax ? v / vmax : 0));
+    if (withText) { const t = txt(G.cells, geo.cx(j), geo.cy(i) + 5, Number.isInteger(v) ? v : fmt(v, 1), { class: 'cell-val', fill: v > 0.55 * vmax ? '#fff' : '#222' }); t.dataset.cell = '1'; }
+  }
+  function clearCells() { G.cells.querySelectorAll('text').forEach(t => t.remove()); G.cellRects.forEach(row => row.forEach(r => r.setAttribute('fill', '#fff'))); drawn.rows = 0; }
+  const vmaxOf = M => { let mx = 0; M.forEach(row => row.forEach(v => { if (v > mx) mx = v; })); return mx; };
+  function outline(i, j, color, width, dash) { const { cs, mx0, my1 } = geo; el('rect', { x: mx0 + j * cs + 1, y: my1 - (i + 1) * cs + 1, width: cs - 2, height: cs - 2, fill: 'none', stroke: color, 'stroke-width': width, 'stroke-dasharray': dash || 'none', rx: 2 }, G.dyn); }
+  function connect(i, j, color, width) { el('line', { class: 'align', x1: geo.xs(i), y1: geo.yA(i), x2: geo.xs(j), y2: geo.yB(j), stroke: color || '#999', 'stroke-width': width || 0.9 }, G.lines); }
+  function drawPath(upto, withDiagonal) {
+    const P = res.path;
+    if (withDiagonal) el('line', { x1: geo.cx(0), y1: geo.cy(0), x2: geo.cx(res.m - 1), y2: geo.cy(res.n - 1), stroke: '#888', 'stroke-width': 1.6, 'stroke-dasharray': '2 4' }, G.dyn);
+    // path is stored from (0,0) to (n-1,m-1); it is traced backwards, so draw the last `upto` cells
+    const from = Math.max(0, P.length - 1 - upto);
+    let d = '';
+    for (let k = from; k < P.length; k++) d += (k === from ? 'M' : 'L') + geo.cx(P[k][1]).toFixed(1) + ',' + geo.cy(P[k][0]).toFixed(1);
+    el('path', { d, fill: 'none', stroke: 'var(--ma)', 'stroke-width': STEPS[step].kind === 'toy' ? 3 : 2.2, 'stroke-linejoin': 'round' }, G.dyn);
+    if (STEPS[step].kind === 'toy') for (let k = from; k < P.length; k++) el('circle', { cx: geo.cx(P[k][1]), cy: geo.cy(P[k][0]), r: 7, fill: 'var(--ma)', stroke: '#fff', 'stroke-width': 1.5 }, G.dyn);
+    return from;
+  }
+  function readout(lines, color) {
+    const x = L.x0 + 10; let y = L.y0 + 18;
+    lines.forEach((s, k) => { txt(G.dyn, x, y, s, { class: k === 0 ? 'big' : 'dlabel', fill: color || 'var(--ink)' }); y += 22; });
+  }
+
+  function render() {
+    const d = STEPS[step];
+    G.dyn.innerHTML = '';
+    const { C, D, path, n, m } = res;
+    if (d.phase === 'C' || d.phase === 'D') {
+      const M = d.phase === 'C' ? C : D, vmax = vmaxOf(M);
+      clearCells(); G.lines.innerHTML = '';
+      for (let k = 0; k <= cursor; k++) fillCell(Math.floor(k / m), k % m, M, vmax, true);
+      if (cursor < 0) return;
+      const i = Math.floor(cursor / m), j = cursor % m;
+      outline(i, j, 'var(--b)', 3);
+      connect(i, j, 'var(--b)', 2);
+      el('circle', { cx: geo.xs(i), cy: geo.yA(i), r: 9, fill: 'none', stroke: 'var(--b)', 'stroke-width': 2 }, G.dyn);
+      el('circle', { cx: geo.xs(j), cy: geo.yB(j), r: 9, fill: 'none', stroke: 'var(--b)', 'stroke-width': 2 }, G.dyn);
+      if (d.phase === 'C') readout([`c(${i},${j}) = |a${sub(i)} − b${sub(j)}| = |${A[i]} − ${B[j]}| = ${C[i][j]}`], 'var(--b)');
+      else {
+        const p = preds(i, j);
+        p.forEach(q => outline(q[1], q[2], '#444', 1.5, '4 3'));
+        if (p.length) { const best = p.reduce((a, q) => D[q[1]][q[2]] < D[a[1]][a[2]] ? q : a, p[0]); outline(best[1], best[2], '#444', 2.5); }
+        const names = p.map(q => q[0]).join(', '), vals = p.map(q => D[q[1]][q[2]]).join(', ');
+        readout(p.length ? [`D(${i},${j}) = c(${i},${j}) + min{${names}}`, `= ${C[i][j]} + min{${vals}} = ${D[i][j]}`] : [`D(0,0) = c(0,0) = ${C[0][0]}`], 'var(--b)');
+        if (cursor === total - 1) readout(['', '', `DTW distance = D(${n - 1},${m - 1}) = ${D[n - 1][m - 1]}`], 'var(--ink)');
+      }
+    } else if (d.phase === 'P') {
+      const vmax = vmaxOf(D);
+      if (drawn.rows !== n) { clearCells(); for (let i = 0; i < n; i++) for (let j = 0; j < m; j++) fillCell(i, j, D, vmax, true); drawn.rows = n; }
+      G.lines.innerHTML = '';
+      const from = drawPath(Math.max(0, cursor), true);
+      for (let k = from; k < path.length; k++) connect(path[k][0], path[k][1]);
+      if (cursor >= 0) {
+        const [i, j] = path[from];
+        outline(i, j, 'var(--b)', 3);
+        el('circle', { cx: geo.xs(i), cy: geo.yA(i), r: 9, fill: 'none', stroke: 'var(--b)', 'stroke-width': 2 }, G.dyn);
+        el('circle', { cx: geo.xs(j), cy: geo.yB(j), r: 9, fill: 'none', stroke: 'var(--b)', 'stroke-width': 2 }, G.dyn);
+        const p = preds(i, j);
+        const lines = [`at (${i},${j}): matched a${sub(i)} ↔ b${sub(j)}`];
+        if (p.length) lines.push(`next: cheapest of {${p.map(q => q[0] + '=' + D[q[1]][q[2]]).join(', ')}}`);
+        else lines.push(`reached (0,0): path complete, ${path.length} matched pairs`);
+        lines.push(`DTW distance = D(${n - 1},${m - 1}) = ${D[n - 1][m - 1]}`);
+        readout(lines, 'var(--ink)');
+      }
+    } else {
+      // rowing: phase 1 fills rows (no cell text), phase 2 traces the path and draws alignment lines
+      const vmax = vmaxOf(D);
+      const rowsWanted = Math.min(n, cursor + 1);
+      if (rowsWanted < drawn.rows) clearCells();
+      for (let i = drawn.rows; i < rowsWanted; i++) for (let j = 0; j < m; j++) fillCell(i, j, D, vmax, false);
+      drawn.rows = Math.max(drawn.rows, rowsWanted);
+      const pk = cursor - n;  // path cells traced so far (from the corner)
+      if (pk < 0) {
+        G.lines.innerHTML = '';
+        if (cursor >= 0) { const { cs, mx0, my1 } = geo; el('rect', { x: mx0, y: my1 - (cursor + 1) * cs, width: m * cs, height: cs, fill: 'none', stroke: 'var(--b)', 'stroke-width': 1.5 }, G.dyn); readout([`filling row i = ${cursor} of ${n}`, `${n} × ${m} = ${n * m} cells, O(nm) work`], 'var(--b)'); }
+        return;
+      }
+      const from = drawPath(pk, true);
+      const stride = Math.max(1, Math.ceil(path.length / 70));
+      G.lines.innerHTML = '';
+      for (let k = from; k < path.length; k++) if (k % stride === 0) connect(path[k][0], path[k][1]);
+      const [i, j] = path[from];
+      outline(i, j, 'var(--b)', 2);
+      el('circle', { cx: geo.xs(i), cy: geo.yA(i), r: 7, fill: 'none', stroke: 'var(--b)', 'stroke-width': 2 }, G.dyn);
+      el('circle', { cx: geo.xs(j), cy: geo.yB(j), r: 7, fill: 'none', stroke: 'var(--b)', 'stroke-width': 2 }, G.dyn);
+      connect(i, j, 'var(--b)', 1.6);
+      readout([`matched a${sub(i)} (t = ${fmt(i / ROW_FS)} s) ↔ b${sub(j)} (t = ${fmt(j / ROW_FS)} s)`, `path: ${path.length - from} of ${path.length} matched pairs`, `DTW distance = D(${n - 1},${m - 1}) = ${fmt(D[n - 1][m - 1], 1)}`], from === 0 ? 'var(--ink)' : 'var(--b)');
+    }
+  }
+
+  function drawLegend() {
+    G.legend.innerHTML = '';
+    const d = STEPS[step], toy = d.kind === 'toy';
+    const nA = toy ? 'signal A (fast)' : `subject A (fast): ${res.n} samples, ${fmt(res.n / ROW_FS)} s`;
+    const nB = toy ? 'signal B (slow)' : `subject B (slow): ${res.m} samples, ${fmt(res.m / ROW_FS)} s`;
+    legendRows(G.legend, L.x1, L.y0 - 32, L.x1 - L.x0, [{ c: 'var(--ma)', n: nA, line: true, dot: true }, { c: 'var(--b)', n: nB, dash: true, sq: true }, { c: '#999', n: 'matched pair', line: true }]);
+    const items = [{ c: '#4292c6', n: d.phase === 'C' ? 'c(i,j), darker = costlier' : 'D(i,j), darker = costlier', band: true }];
+    if (d.phase === 'C' || d.phase === 'D') items.push({ c: 'var(--b)', n: 'cell being filled', ring: true });
+    if (d.phase === 'D') items.push({ c: '#444', n: 'predecessors (solid = min)', ringDash: true });
+    if (d.phase === 'DP') items.push({ c: 'var(--b)', n: 'row being filled', ring: true });
+    if (d.phase === 'P' || d.phase === 'DP') { items.push({ c: 'var(--ma)', n: 'warping path', line: true }); items.push({ c: 'var(--b)', n: 'current cell', ring: true }); items.push({ c: '#888', n: 'diagonal (equal speed)', dots: true }); }
+    legendRows(G.legend, R.x1, R.y0 - 32, R.x1 - R.x0, items);
+  }
+  // legend items packed into as many right-aligned rows as needed (rows stack upward from y)
+  function legendRows(parent, xr, y, maxW, items) {
+    const padX = 10, gap = 14, rows = [[]], widths = items.map(it => 26 + it.n.length * 6.6);
+    let cur = 2 * padX;
+    items.forEach((it, j) => { const add = widths[j] + (rows[rows.length - 1].length ? gap : 0); if (cur + add > maxW && rows[rows.length - 1].length) { rows.push([]); cur = 2 * padX; } cur += add; rows[rows.length - 1].push(j); });
+    rows.forEach((row, k) => legendRow(parent, xr, y - 26 * (rows.length - 1 - k), row.map(j => items[j])));
+  }
+  function legendRow(parent, xr, y, items) {
+    const padX = 10, gap = 14, h = 24;
+    const widths = items.map(it => 26 + it.n.length * 6.6);
+    const wdt = widths.reduce((a, b) => a + b, 0) + gap * (items.length - 1) + 2 * padX;
+    const x = xr - wdt;
+    el('rect', { x, y, width: wdt, height: h, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, parent);
+    let cx = x + padX; const yy = y + h / 2;
+    items.forEach((it, j) => {
+      if (it.band) el('rect', { x: cx, y: yy - 6, width: 18, height: 12, fill: it.c }, parent);
+      else if (it.ring || it.ringDash) el('rect', { x: cx + 3, y: yy - 6, width: 12, height: 12, fill: 'none', stroke: it.c, 'stroke-width': 2, 'stroke-dasharray': it.ringDash ? '3 2' : 'none' }, parent);
+      else el('line', { x1: cx, x2: cx + 18, y1: yy, y2: yy, stroke: it.c, 'stroke-width': it.dots ? 1.6 : 2, 'stroke-dasharray': it.dash ? '5 3' : it.dots ? '2 4' : 'none' }, parent);
+      if (it.dot) el('circle', { cx: cx + 9, cy: yy, r: 3.5, fill: it.c, stroke: '#fff', 'stroke-width': 1 }, parent);
+      if (it.sq) el('rect', { x: cx + 5.5, y: yy - 3.5, width: 7, height: 7, fill: it.c, stroke: '#fff', 'stroke-width': 1 }, parent);
+      txt(parent, cx + 26, yy + 4, it.n, { class: 'axis-title', fill: 'var(--ink)' });
+      cx += widths[j] + gap;
+    });
+  }
+
+  // ------------------------------------------------------------ hover (matrix cells)
+  function hover(evt) {
+    const pt = chart.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+    const p = pt.matrixTransform(chart.getScreenCTM().inverse());
+    const j = Math.floor((p.x - geo.mx0) / geo.cs), i = Math.floor((geo.my1 - p.y) / geo.cs);
+    if (i < 0 || j < 0 || i >= res.n || j >= res.m) { unhover(); return; }
+    const d = STEPS[step];
+    const v = d.phase === 'C' ? res.C[i][j] : res.D[i][j];
+    const shown = d.phase === 'C' || d.phase === 'D' ? (i * res.m + j <= cursor) : d.phase === 'P' ? true : i < drawn.rows;
+    tt.innerHTML = `<div class="row"><span>(i, j)</span><b>(${i}, ${j})</b></div><div class="row"><span>aᵢ, bⱼ</span><span>${fmt(A[i], 2)}, ${fmt(B[j], 2)}</span></div><div class="row"><span>c(i,j)</span><span>${fmt(res.C[i][j], 2)}</span></div>` + (shown && d.phase !== 'C' ? `<div class="row"><span>D(i,j)</span><span>${fmt(v, 2)}</span></div>` : '');
+    tt.style.display = 'block';
+    const wrap = chart.parentElement.getBoundingClientRect();
+    const px = evt.clientX - wrap.left, py = evt.clientY - wrap.top;
+    tt.style.left = (px + 16 + tt.offsetWidth > wrap.width ? px - tt.offsetWidth - 12 : px + 16) + 'px';
+    tt.style.top = Math.max(0, py - 10) + 'px';
+  }
+  function unhover() { tt.style.display = 'none'; }
+
+  // ------------------------------------------------------------ step control
+  function applyPresets() { if (!dirty.plateau) { plateau = PRESET.plateau; $('plateau').value = plateau; $('plateauVal').textContent = plateau; } }
+  function tag() { return STEPS[step].kind === 'toy' ? `A = (${A.join(',')}) · B = (${B.join(',')}) · n = ${res.n}, m = ${res.m}` : `n = ${res.n}, m = ${res.m} · ${ROW_FS} Hz`; }
+  function enterStep(k, completed = false) {
+    step = k;
+    applyPresets();
+    const d = STEPS[step];
+    prepare();
+    drawStatic();
+    $('title').innerHTML = d.title + `<span class="tag">${tag()}</span>`;
+    $('subtitle').textContent = d.subtitle;
+    $('counter').textContent = `${step + 1} / ${STEPS.length}`;
+    try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {}
+    stopPlay();
+    cursor = -1;
+    drawLegend();
+    if (completed || speed === 0 || reduceMotion) finish();
+    else { render(); startPlay(); }
+  }
+  function redraw() {
+    const frac = total ? Math.max(0, cursor) / total : 0;
+    const wasDone = cursorDone();
+    prepare(); drawStatic(); drawLegend();
+    $('title').innerHTML = STEPS[step].title + `<span class="tag">${tag()}</span>`;
+    cursor = wasDone ? total - 1 : Math.min(total - 1, Math.round(frac * total));
+    render();
+  }
+  function cursorDone() { return cursor >= total - 1; }
+  function finish() { cursor = total - 1; stopPlay(); render(); }
+  function rate() { return speed * (STEPS[step].kind === 'row' ? 5 : 1); }
+  function tick(t) {
+    if (!playing) return;
+    const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+    acc += dt * rate();
+    while (acc >= 1 && cursor < total - 1) { cursor++; acc -= 1; }
+    render();
+    if (cursor >= total - 1) { finish(); return; }
+    raf = requestAnimationFrame(tick);
+  }
+  function startPlay() {
+    if (cursorDone()) return;
+    playing = true; lastT = performance.now(); acc = 0;
+    $('play').textContent = 'Pause';
+    raf = requestAnimationFrame(tick);
+  }
+  function stopPlay() { playing = false; cancelAnimationFrame(raf); $('play').textContent = 'Play'; }
+  function next() { if (!cursorDone()) { finish(); return; } if (step < STEPS.length - 1) enterStep(step + 1); }
+  function prev() { if (step > 0) enterStep(step - 1, true); }
+  function restart() { enterStep(step); }
+
+  // ------------------------------------------------------------ wiring
+  $('next').addEventListener('click', e => { e.stopPropagation(); next(); });
+  $('prev').addEventListener('click', e => { e.stopPropagation(); prev(); });
+  $('restart').addEventListener('click', e => { e.stopPropagation(); restart(); });
+  $('play').addEventListener('click', e => { e.stopPropagation(); if (playing) stopPlay(); else if (cursorDone()) restart(); else startPlay(); });
+  $('slide').addEventListener('click', () => next());
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
+    else if (e.key === 'r' || e.key === 'R') restart();
+  });
+  $('plateau').addEventListener('input', e => { dirty.plateau = true; plateau = parseInt(e.target.value, 10); $('plateauVal').textContent = plateau; redraw(); });
+  $('speed').addEventListener('change', e => { speed = parseFloat(e.target.value); });
+  $('reset').addEventListener('click', e => { e.stopPropagation(); dirty.plateau = false; enterStep(step); });
+
+  const h = parseInt((location.hash || '').replace('#', ''), 10);
+  enterStep(h >= 1 && h <= STEPS.length ? h - 1 : 0);
+})();
+</script>
+</body>
+</html>

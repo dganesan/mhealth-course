@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Walking the Cardiac Risk Tree</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff; --ink: #222222; --ink-2: #666666; --ink-3: #9a9a9a;
+    --rule: #dcdcdc; --grid: #ececec; --raw: #b4b4b4; --raw-dot: #8c8c8c; --clean: #444444;
+    --ma: #2a78d6; --med: #1baf7a; --wm: #4a3aa7; --ewma: #eb6834;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.4; padding-block: 18px 28px; padding-inline: 16px; -webkit-font-smoothing: antialiased; }
+  .stage { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
+  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; min-height: 560px; position: relative; outline: none; cursor: pointer; user-select: none; }
+  .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
+  .head h1 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .chart-wrap { position: relative; min-height: 0; }
+  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt .row { display: flex; gap: 10px; justify-content: space-between; }
+  .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot .ctr { font-family: var(--mono); }
+  .bar { display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center; padding:14px 18px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
+  .group { display:flex; align-items:center; gap:8px; }
+  .group label { font-size:13px; font-weight:700; color:var(--ink); }
+  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
+  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  button:hover, select:hover { border-color:var(--ink); }
+  button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
+  button:focus-visible, select:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
+  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
+  .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
+  svg text { white-space: pre; }
+  .grid line { stroke: var(--grid); stroke-width: 1; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .box { fill: #fafafa; stroke: var(--ink-3); stroke-width: 1; }
+  .box.win { stroke: var(--ma); stroke-width: 2; fill: #eef4fc; }
+  .pid { font-family: var(--mono); font-size: 11px; font-weight: 700; fill: #fff; text-anchor: middle; pointer-events: none; }
+  .lab { font-family: var(--sans); font-size: 14px; fill: var(--ink); }
+  .lab.b { font-weight: 700; }
+  .lab.sub { fill: var(--ink-2); font-size: 13px; }
+  .num { font-family: var(--mono); font-size: 14px; fill: var(--ink); }
+  .formula { font-family: var(--mono); font-size: 17px; fill: var(--ink); }
+  .formula.hi { fill: var(--ma); font-weight: 700; }
+  .q { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ma); text-anchor: middle; }
+  .branch { stroke: var(--ink-3); stroke-width: 1.2; fill: none; }
+  .curve { fill: none; stroke: var(--ink); stroke-width: 2; }
+  .ptitle { font-family: var(--sans); font-size: 13px; font-weight: 700; fill: var(--ink); }
+  @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
+</style>
+
+<div class="stage">
+  <section class="slide" id="slide" tabindex="0" aria-live="polite">
+    <div class="head">
+      <h1 id="title">The cardiac risk tree</h1>
+      <p id="subtitle"></p>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 1200 560" role="img" aria-label="The cardiac risk decision tree with a patient walking from the root to a leaf"></svg>
+      <div class="tt" id="tt"></div>
+    </div>
+    <div class="foot">
+      <span>CS328 &nbsp;·&nbsp; Decision Trees</span>
+      <span class="ctr" id="counter"></span>
+    </div>
+  </section>
+
+  <div class="bar">
+    <div class="group">
+      <button id="prev" title="Previous (←)">‹ Prev</button>
+      <button id="play" class="primary" title="Play / pause (space)">Play</button>
+      <button id="next" title="Next (→)">Next ›</button>
+      <button id="restart" title="Restart this step (r)">Restart</button>
+      <button id="reset" title="Reset all dials to defaults">Reset dials</button>
+    </div>
+    <div class="group">
+      <label for="age">Age</label>
+      <select id="age"><option value="<40">under 40</option><option value="40–55">40–55</option><option value=">55">over 55</option></select>
+    </div>
+    <div class="group">
+      <label for="fh">Family history</label>
+      <select id="fh"><option value="Yes">yes</option><option value="No">no</option></select>
+    </div>
+    <div class="group">
+      <label for="ex">Exercise</label>
+      <select id="ex"><option value="Regularly">regularly</option><option value="Rarely">rarely</option></select>
+    </div>
+    <div class="group">
+      <label for="speed">Speed</label>
+      <select id="speed">
+        <option value="0.25">very slow</option>
+        <option value="0.5">slow</option>
+        <option value="1" selected>normal</option>
+        <option value="2">fast</option>
+        <option value="0">instant</option>
+      </select>
+    </div>
+    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ------------------------------------------------------------ data (chapter table, 15 patients) and the chapter's tree
+  const P = [
+    [1,'<40','No','Regularly','Low'], [2,'<40','No','Rarely','Low'], [3,'<40','No','Rarely','Low'],
+    [4,'<40','Yes','Regularly','Low'], [5,'<40','Yes','Rarely','High'], [6,'40–55','No','Regularly','Low'],
+    [7,'40–55','No','Rarely','High'], [8,'40–55','Yes','Regularly','High'], [9,'40–55','Yes','Rarely','High'],
+    [10,'>55','No','Regularly','Low'], [11,'>55','Yes','Regularly','High'], [12,'>55','Yes','Rarely','High'],
+    [13,'>55','No','Rarely','High'], [14,'<40','Yes','Regularly','High'], [15,'40–55','Yes','Regularly','Low']
+  ];
+  const CCOL = { Low: '#2a78d6', High: '#eb6834', '?': '#c9a400' };
+  const ATTR = { fh: { q: 'Family history?', col: 2, name: 'family history' }, ex: { q: 'Exercise?', col: 3, name: 'exercise' }, age: { q: 'Age?', col: 1, name: 'age' } };
+  // tree from the chapter figure; positions are viewBox coordinates
+  const T = { a: 'fh', x: 600, y: 48, kids: {
+    Yes: { a: 'ex', x: 300, y: 158, kids: {
+      Regularly: { a: 'age', x: 170, y: 268, kids: { '<40': { x: 60, y: 378 }, '40–55': { x: 170, y: 378 }, '>55': { x: 280, y: 378 } } },
+      Rarely: { x: 430, y: 268 } } },
+    No: { a: 'ex', x: 900, y: 158, kids: {
+      Regularly: { x: 770, y: 268 },
+      Rarely: { a: 'age', x: 1030, y: 268, kids: { '<40': { x: 920, y: 378 }, '40–55': { x: 1030, y: 378 }, '>55': { x: 1140, y: 378 } } } } } } };
+  // route every training patient to its leaf; leaf label = majority (or '?' for a tie)
+  (function annotate(n, set) {
+    n.set = set;
+    if (!n.kids) { const lo = set.filter(p => p[4] === 'Low').length, hi = set.length - lo; n.label = lo > hi ? 'Low' : hi > lo ? 'High' : '?'; n.counts = [lo, hi]; return; }
+    for (const v in n.kids) annotate(n.kids[v], set.filter(p => p[ATTR[n.a].col] === v));
+  })(T, P);
+  const BR = { '<40': '<40', '40–55': '40–55', '>55': '>55', Yes: 'Yes', No: 'No', Regularly: 'Reg.', Rarely: 'Rarely' };
+
+  // ------------------------------------------------------------ state
+  const $ = id => document.getElementById(id);
+  const chart = $('chart');
+  let age = '40–55', fh = 'No', ex = 'Regularly', speed = 1;
+  const dirty = {};
+  let steps = [], step = 0, cursor = 0, playing = false, raf = 0, lastT = 0;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function pathFor(a, f, e) {
+    const vals = { age: a, fh: f, ex: e }, out = [{ node: T }];
+    let n = T;
+    while (n.kids) { const v = vals[n.a]; const k = n.kids[v]; out[out.length - 1].answer = v; out.push({ node: k }); n = k; }
+    return out;   // [{node, answer}, ..., {node: leaf}]
+  }
+  const STEP_DEFS = [
+    { kind: 'tree', title: 'The cardiac risk tree', subtitle: 'The structure of the cardiac risk tree with its questions, branches, and leaves.' },
+    { kind: 'walk', presets: { age: '40–55', fh: 'No', ex: 'Regularly' }, title: 'Predicting for a new patient', subtitle: 'How the answers of a new patient lead from the root to a leaf.' },
+    { kind: 'walk', presets: { age: '>55', fh: 'Yes', ex: 'Rarely' }, title: 'A second patient lands at a different leaf', subtitle: 'How the answers of a different patient lead to a different leaf.' },
+    { kind: 'walk', presets: { age: '<40', fh: 'Yes', ex: 'Regularly' }, title: 'Reaching a mixed leaf', subtitle: 'How a patient can reach a leaf with a mix of Low and High patients.' }
+  ];
+  function buildSteps() { return STEP_DEFS.map(s => { const path = s.kind === 'walk' ? pathFor(age, fh, ex) : null; return Object.assign({}, s, { path, frames: path ? path.length - 1 : 0, rate: 0.8 }); }); }
+
+  // ------------------------------------------------------------ drawing
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+  const txt = (x, y, s, cls, attrs = {}, parent) => { const t = el('text', Object.assign({ x, y, class: cls }, attrs), parent); t.textContent = s; return t; };
+  const NW = 150, NH = 34, LW = 100, LH = 30;
+  let G = {};
+  function drawStatic() {
+    chart.innerHTML = '';
+    G.edges = el('g', {}, chart); G.hi = el('g', {}, chart); G.nodes = el('g', {}, chart); G.dyn = el('g', {}, chart); G.legend = el('g', {}, chart);
+    (function draw(n) {
+      if (n.kids) {
+        for (const v in n.kids) {
+          const k = n.kids[v];
+          el('line', { class: 'branch', x1: n.x, y1: n.y + NH / 2, x2: k.x, y2: k.y - (k.kids ? NH : LH) / 2 }, G.edges);
+          const mx = (n.x + k.x) / 2, my = (n.y + NH / 2 + k.y - (k.kids ? NH : LH) / 2) / 2;
+          txt(mx + (k.x < n.x ? -6 : k.x > n.x ? 6 : 0), my + 4, BR[v], 'lab b', { 'text-anchor': k.x < n.x ? 'end' : k.x > n.x ? 'start' : 'middle', 'font-size': 13 }, G.edges);
+        }
+        el('rect', { x: n.x - NW / 2, y: n.y - NH / 2, width: NW, height: NH, rx: 17, fill: '#fff', stroke: 'var(--ma)', 'stroke-width': 1.5 }, G.nodes);
+        txt(n.x, n.y + 5, ATTR[n.a].q, 'q', {}, G.nodes);
+        for (const v in n.kids) draw(n.kids[v]);
+      } else {
+        const c = CCOL[n.label];
+        el('rect', { x: n.x - LW / 2, y: n.y - LH / 2, width: LW, height: LH, rx: 5, fill: c, 'fill-opacity': .18, stroke: c, 'stroke-width': 1.5 }, G.nodes);
+        txt(n.x, n.y + 5, n.label === '?' ? '?' : `${n.label} risk`, 'lab b', { 'text-anchor': 'middle', fill: c }, G.nodes);
+        // training patients at this leaf
+        const r = 9, gap = 22, x0 = n.x - ((n.set.length - 1) * gap) / 2;
+        n.set.forEach((p, i) => { const g = el('g', { 'data-id': p[0] }, G.nodes); el('circle', { cx: x0 + i * gap, cy: n.y + LH / 2 + 18, r, fill: CCOL[p[4]], stroke: '#fff', 'stroke-width': 1.5 }, g); txt(x0 + i * gap, n.y + LH / 2 + 22, p[0], 'pid', {}, g); });
+        txt(n.x, n.y + LH / 2 + 44, `${n.counts[0]} L · ${n.counts[1]} H`, 'num', { 'text-anchor': 'middle', 'font-size': 11, fill: 'var(--ink-2)' }, G.nodes);
+      }
+    })(T);
+    // legend
+    const items = [{ n: 'decision node (tests one feature)', stroke: 'var(--ma)', fill: '#fff' }, { n: 'Low-risk leaf', fill: CCOL.Low }, { n: 'High-risk leaf', fill: CCOL.High }, { n: 'mixed leaf (tie)', fill: CCOL['?'] }, { n: 'training patient (colour = risk)', dot: true }];
+    const rowH = 18, padX = 10, padY = 8, wdt = 236, x0 = 1200 - wdt - 10, y0 = 8;
+    el('rect', { x: x0, y: y0, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, G.legend);
+    items.forEach((it, j) => {
+      const y = y0 + padY + j * rowH + 6;
+      if (it.dot) { el('circle', { cx: x0 + padX + 5, cy: y, r: 5, fill: CCOL.Low }, G.legend); el('circle', { cx: x0 + padX + 15, cy: y, r: 5, fill: CCOL.High }, G.legend); }
+      else el('rect', { x: x0 + padX, y: y - 6, width: 20, height: 12, rx: 3, fill: it.fill, 'fill-opacity': it.stroke ? 1 : .35, stroke: it.stroke || it.fill, 'stroke-width': 1.5 }, G.legend);
+      txt(x0 + padX + 28, y + 4, it.n, 'axis-title', { fill: 'var(--ink)' }, G.legend);
+    });
+  }
+
+  function render() {
+    const d = steps[step];
+    G.hi.innerHTML = ''; G.dyn.innerHTML = '';
+    if (d.kind !== 'walk') return;
+    const path = d.path, k = Math.min(path.length - 1, Math.floor(cursor + 1e-9)), frac = cursor - Math.floor(cursor), done = cursor >= d.frames;
+    const ageTxt = { '<40': 'under 40', '40–55': '40–55', '>55': 'over 55' }[age];
+    txt(20, 24, `New patient: age ${ageTxt} · family history ${fh.toLowerCase()} · exercises ${ex.toLowerCase()}`, 'lab b', { 'font-size': 15 }, G.dyn);
+    // visited edges
+    for (let i = 0; i < k; i++) {
+      const a = path[i].node, b = path[i + 1].node;
+      el('line', { x1: a.x, y1: a.y + NH / 2, x2: b.x, y2: b.y - (b.kids ? NH : LH) / 2, stroke: 'var(--ma)', 'stroke-width': 4, 'stroke-linecap': 'round' }, G.hi);
+    }
+    path.slice(0, k + 1).forEach(s => { const n = s.node; const w = n.kids ? NW : LW, h = n.kids ? NH : LH; el('rect', { x: n.x - w / 2 - 4, y: n.y - h / 2 - 4, width: w + 8, height: h + 8, rx: n.kids ? 21 : 8, fill: 'none', stroke: 'var(--ma)', 'stroke-width': 3 }, G.hi); });
+    // token in flight
+    let tx, ty;
+    if (!done && k < path.length - 1) {
+      const a = path[k].node, b = path[k + 1].node;
+      const y1 = a.y + NH / 2, y2 = b.y - (b.kids ? NH : LH) / 2;
+      tx = a.x + (b.x - a.x) * frac; ty = y1 + (y2 - y1) * frac;
+      el('line', { x1: a.x, y1, x2: tx, y2: ty, stroke: 'var(--ma)', 'stroke-width': 4, 'stroke-linecap': 'round' }, G.hi);
+    } else { const n = path[path.length - 1].node; tx = n.x; ty = n.y; }
+    el('circle', { cx: tx, cy: ty, r: 11, fill: '#fff', stroke: 'var(--ink)', 'stroke-width': 3 }, G.dyn);
+    el('circle', { cx: tx, cy: ty, r: 4, fill: 'var(--ink)' }, G.dyn);
+    // transcript
+    const parts = [];
+    for (let i = 0; i <= Math.min(k, path.length - 2); i++) parts.push(`${ATTR[path[i].node.a].q} ${path[i].answer}`);
+    const leaf = path[path.length - 1].node;
+    let line = parts.join('  →  ');
+    if (done) line += `  →  ${leaf.label === '?' ? 'mixed leaf: 1 Low, 1 High (tie)' : leaf.label + ' risk'}`;
+    txt(20, 500, line, 'formula' + (done ? ' hi' : ''), {}, G.dyn);
+    if (done) txt(20, 532, leaf.label === '?' ? `training patients ${leaf.set.map(p => p[0]).join(' and ')} share every feature value but differ in label; the tree reports the majority, here a tie` : `${leaf.set.length} training patient${leaf.set.length > 1 ? 's' : ''} reached this leaf (${leaf.counts[0]} Low, ${leaf.counts[1]} High); the prediction is the reason: the path itself`, 'lab sub', {}, G.dyn);
+    $('title').innerHTML = d.title + `<span class="tag">${parts.length} question${parts.length === 1 ? '' : 's'} asked${done ? ' · leaf: ' + (leaf.label === '?' ? 'tie' : leaf.label) : ''}</span>`;
+  }
+
+  // ------------------------------------------------------------ hover
+  const tt = $('tt');
+  chart.addEventListener('mousemove', evt => {
+    const g = evt.target.closest('[data-id]');
+    if (!g) { tt.style.display = 'none'; return; }
+    const p = P[parseInt(g.getAttribute('data-id'), 10) - 1];
+    tt.innerHTML = `<div class="row"><b>Patient ${p[0]}</b></div><div class="row"><span>Age</span><span>${p[1]}</span></div><div class="row"><span>Family history</span><span>${p[2]}</span></div><div class="row"><span>Exercise</span><span>${p[3]}</span></div><div class="row"><span><i class="sw" style="background:${CCOL[p[4]]}"></i>Risk</span><span>${p[4]}</span></div>`;
+    tt.style.display = 'block';
+    const wrap = chart.parentElement.getBoundingClientRect();
+    const x = evt.clientX - wrap.left, y = evt.clientY - wrap.top;
+    tt.style.left = (x + 16 + tt.offsetWidth > wrap.width ? x - tt.offsetWidth - 12 : x + 16) + 'px';
+    tt.style.top = Math.max(0, y - 10) + 'px';
+  });
+  chart.addEventListener('mouseleave', () => { tt.style.display = 'none'; });
+
+  // ------------------------------------------------------------ step control
+  function applyPresets(d) {
+    if (!d.presets) return;
+    if (!dirty.age) { age = d.presets.age; $('age').value = age; }
+    if (!dirty.fh) { fh = d.presets.fh; $('fh').value = fh; }
+    if (!dirty.ex) { ex = d.presets.ex; $('ex').value = ex; }
+  }
+  function setHead() { const d = steps[step]; $('title').innerHTML = d.title + (d.kind === 'tree' ? '<span class="tag">15 patients · 7 leaves</span>' : ''); $('subtitle').textContent = d.subtitle; $('counter').textContent = `${step + 1} / ${steps.length}`; }
+  function enterStep(k, completed = false) {
+    step = Math.max(0, Math.min(STEP_DEFS.length - 1, k));
+    applyPresets(STEP_DEFS[step]);
+    steps = buildSteps();
+    drawStatic(); setHead();
+    try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {}
+    stopPlay(); cursor = 0;
+    if (completed || speed === 0 || reduceMotion || steps[step].frames === 0) finish();
+    else { render(); startPlay(); }
+  }
+  function liveRedraw() { steps = buildSteps(); cursor = Math.min(cursor, steps[step].frames); setHead(); render(); }
+  const cursorDone = () => cursor >= steps[step].frames;
+  function finish() { cursor = steps[step].frames; stopPlay(); render(); }
+  function tick(t) {
+    if (!playing) return;
+    const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+    cursor += dt * speed * steps[step].rate;
+    if (cursorDone()) { finish(); return; }
+    render(); raf = requestAnimationFrame(tick);
+  }
+  function startPlay() { if (cursorDone()) return; playing = true; lastT = performance.now(); $('play').textContent = 'Pause'; raf = requestAnimationFrame(tick); }
+  function stopPlay() { playing = false; cancelAnimationFrame(raf); $('play').textContent = 'Play'; }
+  function next() { if (!cursorDone()) { finish(); return; } if (step < steps.length - 1) enterStep(step + 1); }
+  function prev() { if (step > 0) enterStep(step - 1, true); }
+  function restart() { enterStep(step); }
+
+  // ------------------------------------------------------------ wiring
+  $('next').addEventListener('click', e => { e.stopPropagation(); next(); });
+  $('prev').addEventListener('click', e => { e.stopPropagation(); prev(); });
+  $('restart').addEventListener('click', e => { e.stopPropagation(); restart(); });
+  $('play').addEventListener('click', e => { e.stopPropagation(); if (playing) stopPlay(); else if (cursorDone()) { if (steps[step].frames) restart(); else next(); } else startPlay(); });
+  $('slide').addEventListener('click', () => next());
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'SELECT') return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
+    else if (e.key === 'r' || e.key === 'R') restart();
+  });
+  $('age').addEventListener('change', e => { dirty.age = true; age = e.target.value; liveRedraw(); });
+  $('fh').addEventListener('change', e => { dirty.fh = true; fh = e.target.value; liveRedraw(); });
+  $('ex').addEventListener('change', e => { dirty.ex = true; ex = e.target.value; liveRedraw(); });
+  $('speed').addEventListener('change', e => { speed = parseFloat(e.target.value); });
+  $('reset').addEventListener('click', e => { e.stopPropagation(); for (const k in dirty) delete dirty[k]; speed = 1; $('speed').value = '1'; enterStep(step); });
+
+  const h = parseInt((location.hash || '').replace('#', ''), 10);
+  enterStep(h >= 1 ? h - 1 : 0);
+})();
+</script>
+</body>
+</html>

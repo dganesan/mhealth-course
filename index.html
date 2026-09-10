@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CS328 Companion Visualizations</title>
+<style>
+  :root { --paper:#fff; --ink:#222; --ink-2:#666; --ink-3:#9a9a9a; --rule:#dcdcdc; --ma:#2a78d6;
+    --sans:"Helvetica Neue",Helvetica,-apple-system,Arial,sans-serif; --mono:Menlo,"SF Mono",Consolas,monospace; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font-family:var(--sans); font-size:15px; line-height:1.45; padding-block:40px 60px; padding-inline:16px; -webkit-font-smoothing:antialiased; }
+  main { max-width:1200px; margin:0 auto; }
+  .eyebrow { font-family:var(--mono); font-size:12px; color:var(--ink-3); letter-spacing:.04em; }
+  h1 { margin:6px 0 28px; font-size:clamp(24px,3.4vw,32px); font-weight:700; letter-spacing:-.01em; line-height:1.1; }
+  .grid { column-width:360px; column-gap:16px; }
+  .box { border:1px solid var(--rule); border-radius:6px; padding:18px 20px 16px; display:flex; flex-direction:column; gap:10px; break-inside:avoid; margin-bottom:16px; }
+  .box.active { border-color:var(--ink); }
+  .num { font-family:var(--mono); font-size:12px; color:var(--ink-3); }
+  h2 { margin:0; font-size:17px; font-weight:700; line-height:1.2; }
+  h3 { margin:8px 0 2px; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); }
+  ul { list-style:none; margin:0; padding:0; display:grid; gap:4px; }
+  li a { color:var(--ma); text-decoration:none; font-size:14.5px; white-space:nowrap; display:block; overflow:hidden; text-overflow:ellipsis; }
+  li a:hover { text-decoration:underline; }
+  li a:focus-visible { outline:2px solid var(--ma); outline-offset:2px; border-radius:2px; }
+  .soon { color:var(--ink-3); font-size:13px; margin-top:auto; }
+  @media (max-width:600px) { .grid { column-width:auto; column-count:1; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">CS328 · Mobile Health Sensing and Analytics</div>
+  <h1>Companion Visualizations</h1>
+
+  <div class="grid">
+    <section class="box">
+      <div class="num">Chapter 1</div>
+      <h2>Sensor Data Smoothing and Filtering</h2>
+      <h3>Time-domain smoothing</h3>
+      <ul>
+        <li><a href="ch1/smoothers-by-hand.html">Smoothing Filters by Hand</a></li>
+        <li><a href="ch1/smoothers-in-motion.html">Time-Domain Smoothing Filters</a></li>
+        <li><a href="ch1/window-vs-steps.html">Window Size vs Step Peaks</a></li>
+      </ul>
+      <h3>From time to frequency</h3>
+      <ul>
+        <li><a href="ch1/where-noise-lives.html">Signals and Noise in Frequency</a></li>
+        <li><a href="ch1/aliasing.html">Aliasing and Nyquist</a></li>
+        <li><a href="ch1/averaging-vs-notch.html">Moving Average vs Band-Stop</a></li>
+      </ul>
+      <h3>Frequency-domain filtering</h3>
+      <ul>
+        <li><a href="ch1/filter-shapes.html">Filter Shapes</a></li>
+        <li><a href="ch1/ecg-pipeline.html">ECG Denoising Pipeline</a></li>
+        <li><a href="ch1/causal-vs-zero-phase.html">lfilter versus filtfilt</a></li>
+      </ul>
+    </section>
+
+    <section class="box">
+      <div class="num">Chapter 2</div>
+      <h2>Counting: Steps and Repetitions</h2>
+      <h3>Step counting</h3>
+      <ul>
+        <li><a href="ch2/axes-to-magnitude.html">Three Axes to Filtered Magnitude</a></li>
+        <li><a href="ch2/find-peaks-criteria.html">The find_peaks Criteria</a></li>
+        <li><a href="ch2/step-count-distance.html">Step Count vs Peak Spacing</a></li>
+      </ul>
+      <h3>Repetition counting</h3>
+      <ul>
+        <li><a href="ch2/rep-counting-pipeline.html">Repetition-Counting Pipeline</a></li>
+        <li><a href="ch2/one-setting-per-exercise.html">One Peak Spacing per Exercise</a></li>
+      </ul>
+    </section>
+    <section class="box">
+      <div class="num">Chapter 3</div>
+      <h2>The Activity Recognition Pipeline</h2>
+      <h3>Sensor data</h3>
+      <ul>
+        <li><a href="ch3/activity-traces.html">Traces of Six Activities</a></li>
+        <li><a href="ch3/bandpass-preprocessing.html">Band-Pass Pre-processing</a></li>
+      </ul>
+      <h3>Windows and features</h3>
+      <ul>
+        <li><a href="ch3/windowing.html">Segmenting into Windows</a></li>
+        <li><a href="ch3/windows-to-features.html">From Windows to a Feature Table</a></li>
+        <li><a href="ch3/pipeline-stages.html">The Pipeline Stage by Stage</a></li>
+      </ul>
+    </section>
+    <section class="box">
+      <div class="num">Chapter 4</div>
+      <h2>Feature Extraction</h2>
+      <h3>Time and frequency domain</h3>
+      <ul>
+        <li><a href="ch4/time-domain-features.html">Sliding-Window Time Features</a></li>
+        <li><a href="ch4/frequency-domain-features.html">Spectrum and Dominant Frequency</a></li>
+      </ul>
+      <h3>Sequence similarity</h3>
+      <ul>
+        <li><a href="ch4/dtw-alignment.html">Dynamic Time Warping</a></li>
+      </ul>
+    </section>
+    <section class="box">
+      <div class="num">Chapter 5</div>
+      <h2>Decision Trees</h2>
+      <h3>Choosing a split</h3>
+      <ul>
+        <li><a href="ch5/root-question.html">Information Gain on Cardiac Data</a></li>
+        <li><a href="ch5/threshold-scan.html">Threshold Search on Features</a></li>
+      </ul>
+      <h3>Growing and using a tree</h3>
+      <ul>
+        <li><a href="ch5/growing-a-tree.html">Growing a Decision Tree</a></li>
+        <li><a href="ch5/depth-and-overfitting.html">Tree Depth and Overfitting</a></li>
+        <li><a href="ch5/cardiac-tree-walk.html">Walking the Cardiac Risk Tree</a></li>
+      </ul>
+    </section>
+    <section class="box">
+      <div class="num">Chapter 6</div>
+      <h2>Beyond Decision Trees</h2>
+      <h3>Ensembles</h3>
+      <ul>
+        <li><a href="ch6/majority-vote.html">Majority Voting</a></li>
+        <li><a href="ch6/bagging.html">Bagging and Bootstrap Samples</a></li>
+        <li><a href="ch6/random-forest.html">Random Forests</a></li>
+        <li><a href="ch6/boosting.html">Boosting</a></li>
+      </ul>
+    </section>
+    <section class="box">
+      <div class="num">Chapter 7</div>
+      <h2>Tuning and Evaluating Classifiers</h2>
+      <h3>Validation</h3>
+      <ul>
+        <li><a href="ch7/holdout-and-cross-validation.html">Holdout and Cross-Validation</a></li>
+        <li><a href="ch7/tuning-with-gridsearchcv.html">Tuning with GridSearchCV</a></li>
+      </ul>
+      <h3>Metrics</h3>
+      <ul>
+        <li><a href="ch7/confusion-matrix-and-metrics.html">Confusion Matrix and Metrics</a></li>
+      </ul>
+    </section>
+    <section class="box">
+      <div class="num">Chapter 8</div>
+      <h2>Case Studies in Activity Recognition</h2>
+      <h3>Activity recognition</h3>
+      <ul>
+        <li><a href="ch8/har-windows-and-features.html">Activity Windows and Features</a></li>
+        <li><a href="ch8/har-subject-split-and-tuning.html">Subject Split and Tuning</a></li>
+      </ul>
+      <h3>Exercise recognition</h3>
+      <ul>
+        <li><a href="ch8/exercise-feature-spaces.html">Feature Families for Exercises</a></li>
+        <li><a href="ch8/exercise-adding-dimensions.html">Sensors, Direction and 39 Classes</a></li>
+      </ul>
+    </section>
+    <section class="box">
+      <div class="num">Chapter 9</div>
+      <h2>Voice-Based Health Analytics</h2>
+      <h3>Representing speech</h3>
+      <ul>
+        <li><a href="ch9/framing-and-spectrogram.html">Framing and the Spectrogram</a></li>
+        <li><a href="ch9/mfcc-pipeline.html">The MFCC Pipeline</a></li>
+      </ul>
+      <h3>Voice features</h3>
+      <ul>
+        <li><a href="ch9/pitch-and-intensity.html">Pitch and Intensity Contours</a></li>
+        <li><a href="ch9/jitter-shimmer-hnr.html">Jitter, Shimmer and HNR</a></li>
+      </ul>
+    </section>
+    <section class="box">
+      <div class="num">Chapter 10</div>
+      <h2>Sensing Heart Rhythm with PPG</h2>
+      <h3>From PPG to heart rate</h3>
+      <ul>
+        <li><a href="ch10/bandpass-filtering.html">Band-Pass Filtering the PPG</a></li>
+        <li><a href="ch10/peaks-to-heart-rate.html">Peaks to Heart Rate</a></li>
+      </ul>
+      <h3>Motion and variability</h3>
+      <ul>
+        <li><a href="ch10/motion-artifacts.html">Peak Detection through Motion</a></li>
+        <li><a href="ch10/heart-rate-variability.html">Heart Rate Variability</a></li>
+      </ul>
+    </section>
+    <section class="box">
+      <div class="num">Chapter 11</div>
+      <h2>Measuring Sleep Patterns</h2>
+      <h3>A night of data</h3>
+      <ul>
+        <li><a href="ch11/night-in-epochs.html">Epochs and the Hypnogram</a></li>
+        <li><a href="ch11/overnight-signals.html">Overnight Motion and Heart Rate</a></li>
+      </ul>
+      <h3>Actigraphy</h3>
+      <ul>
+        <li><a href="ch11/epoch-features.html">Per-Epoch Motion Features</a></li>
+        <li><a href="ch11/wake-sleep-classifier.html">Wake/Sleep Classifier</a></li>
+      </ul>
+    </section>
+  </div>
+</main>
+</body>
+</html>

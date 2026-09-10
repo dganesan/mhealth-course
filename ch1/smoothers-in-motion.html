@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Time-Domain Smoothing Filters</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff;
+    --ink: #222222;
+    --ink-2: #666666;
+    --ink-3: #9a9a9a;
+    --rule: #dcdcdc;
+    --grid: #ececec;
+    --raw: #b4b4b4;
+    --raw-dot: #8c8c8c;
+    --clean: #444444;
+    --window: rgba(34, 34, 34, 0.06);
+    --window-edge: #222222;
+    --ma: #2a78d6;
+    --med: #1baf7a;
+    --wm: #4a3aa7;
+    --ewma: #eb6834;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.4;
+    padding-block: 18px 28px;
+    padding-inline: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .stage { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
+
+  /* ---------- slide frame ---------- */
+  .slide {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 26px 34px 16px;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 10px;
+    min-height: 560px;
+    position: relative;
+    outline: none;
+    cursor: pointer;
+    user-select: none;
+  }
+  .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
+  .head h1 {
+    margin: 0;
+    font-size: clamp(22px, 2.6vw, 30px);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+    line-height: 1.15;
+  }
+  .head h1 .tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-weight: 400;
+    font-size: 0.6em;
+    color: var(--ink-2);
+    margin-left: 10px;
+    vertical-align: middle;
+    background: #f4f4f4;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+
+  .chart-wrap { position: relative; min-height: 0; }
+  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  .tt {
+    position: absolute; pointer-events: none; display: none;
+    background: #fff; border: 1px solid var(--rule); border-radius: 4px;
+    padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink);
+    box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2;
+  }
+  .tt .row { display: flex; gap: 10px; justify-content: space-between; }
+  .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+
+  .foot {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 12px; color: var(--ink-3); padding-top: 4px;
+  }
+  .foot .ctr { font-family: var(--mono); }
+
+  /* ---------- control bar ---------- */
+  .bar { display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center; padding:14px 18px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
+  .group { display:flex; align-items:center; gap:8px; }
+  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
+  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
+  button, select, input[type=text] { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  input[type=text] { font-family:var(--mono); cursor:text; flex:1 1 260px; min-width:200px; }
+  button:hover, select:hover { border-color:var(--ink); }
+  button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
+  button:disabled { opacity:.4; cursor:default; }
+  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
+  .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
+
+  /* ---------- svg parts ---------- */
+  .grid line { stroke: var(--grid); stroke-width: 1; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .raw-line { fill: none; stroke: var(--raw); stroke-width: 1.5; }
+  .raw-dot { fill: var(--raw-dot); }
+  .clean-line { fill: none; stroke: var(--clean); stroke-width: 1.5; stroke-dasharray: 5 4; opacity: .7; }
+  .out-line { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+  .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
+  .win-dot { stroke: #fff; stroke-width: 1.5; }
+  .med-ring { fill: none; stroke-width: 2; }
+  .connector { stroke-width: 1; stroke-dasharray: 2 3; fill: none; }
+  .out-dot { stroke: #fff; stroke-width: 2; }
+  .wbar { opacity: .85; }
+  .wlabel { font-family: var(--sans); font-size: 12px; fill: var(--ink-3); }
+  .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
+  .callout text { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .callout line { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 3; }
+  .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
+
+  @media (max-width: 720px) {
+    .slide { padding: 18px 16px 12px; min-height: 0; }
+    .notes { grid-template-columns: 1fr; gap: 10px; }
+    .hint { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { .fade { transition: none !important; } }
+</style>
+
+<div class="stage">
+  <section class="slide" id="slide" tabindex="0" aria-live="polite">
+    <div class="head">
+      <h1 id="title">Raw signal</h1>
+      <p id="subtitle"></p>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 1200 600" role="img" aria-label="Signal and filter output"></svg>
+      <div class="tt" id="tt"></div>
+    </div>
+    <div class="foot">
+      <span>CS328 &nbsp;·&nbsp; Sensor Data Smoothing and Filtering</span>
+      <span class="ctr" id="counter"></span>
+    </div>
+  </section>
+
+  <div class="bar">
+    <div class="group">
+      <button id="prev" title="Previous (←)">‹ Prev</button>
+      <button id="play" class="primary" title="Play / pause (space)">Play</button>
+      <button id="next" title="Next (→)">Next ›</button>
+      <button id="restart" title="Restart this step (r)">Restart</button>
+      <button id="reset" title="Reset all dials to defaults">Reset dials</button>
+    </div>
+    <div class="group">
+      <label for="scenario">Signal</label>
+      <select id="scenario">
+        <option value="combo">sine + step edge + outliers</option>
+        <option value="a">(a) smooth + noise</option>
+        <option value="b">(b) edges + noise</option>
+        <option value="c">(c) smooth + outliers</option>
+      </select>
+    </div>
+    <div class="group">
+      <label for="win">Window w</label>
+      <input type="range" id="win" min="3" max="41" step="2" value="9">
+      <span class="val" id="winVal">9</span>
+    </div>
+    <div class="group">
+      <label for="alpha">EWMA α</label>
+      <select id="alpha">
+        <option value="auto" selected>2/(w+1), matched to w</option>
+        <option value="0.1">0.1</option>
+        <option value="0.2">0.2</option>
+        <option value="0.33">0.33</option>
+        <option value="0.5">0.5</option>
+      </select>
+    </div>
+    <div class="group">
+      <label for="speed">Speed</label>
+      <select id="speed">
+        <option value="3">very slow</option>
+        <option value="6">slow</option>
+        <option value="14" selected>normal</option>
+        <option value="30">fast</option>
+        <option value="0">instant</option>
+      </select>
+    </div>
+    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ------------------------------------------------------------ data
+  const N = 120;
+  function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+  function gauss(r) { const u = 1 - r(), v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+
+  function makeSignal(kind) {
+    const r = rng(kind === 'combo' ? 328 : kind === 'a' ? 11 : kind === 'b' ? 22 : 33);
+    const clean = [], x = [];
+    const outliers = [], edges = [];
+    for (let i = 0; i < N; i++) {
+      let c;
+      if (kind === 'a') c = Math.sin(2 * Math.PI * i / 30);
+      else if (kind === 'b') c = i < 60 ? 0 : 1;
+      else if (kind === 'c') c = Math.sin(2 * Math.PI * i / 30);
+      else c = i < 66 ? 0.8 * Math.sin(2 * Math.PI * i / 30) : 1.6;
+      clean.push(c);
+      const sigma = kind === 'b' ? 0.12 : kind === 'c' ? 0.05 : 0.2;
+      x.push(c + sigma * gauss(r));
+    }
+    if (kind === 'combo') { x[27] += 2.4; outliers.push(27); x[96] -= 2.2; outliers.push(96); edges.push(66); }
+    if (kind === 'c') { x[20] += 3; outliers.push(20); x[92] -= 3.2; outliers.push(92); }
+    if (kind === 'b') edges.push(60);
+    return { x, clean, outliers, edges };
+  }
+
+  // ------------------------------------------------------------ filters
+  // Centered windows, w = 2M+1, shrinking at the edges (only available samples used).
+  function windowIdx(i, M) { const lo = Math.max(0, i - M), hi = Math.min(N - 1, i + M); const idx = []; for (let k = lo; k <= hi; k++) idx.push(k); return idx; }
+  function triW(k, M) { return M + 1 - Math.abs(k); }
+
+  function computeAll(x, w, alpha) {
+    const M = (w - 1) / 2;
+    const ma = [], med = [], wm = [], ewma = [];
+    for (let i = 0; i < N; i++) {
+      const idx = windowIdx(i, M);
+      ma.push(idx.reduce((s, k) => s + x[k], 0) / idx.length);
+      const sorted = idx.map(k => x[k]).sort((a, b) => a - b);
+      med.push(sorted.length % 2 ? sorted[(sorted.length - 1) / 2] : 0.5 * (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]));
+      let sw = 0, sv = 0; idx.forEach(k => { const wt = triW(k - i, M); sw += wt; sv += wt * x[k]; });
+      wm.push(sv / sw);
+      ewma.push(i === 0 ? x[0] : alpha * x[i] + (1 - alpha) * ewma[i - 1]);
+    }
+    // cascades for the "order matters" step: run a second window over the first output
+    const win = (arr, fn) => arr.map((_, i) => fn(windowIdx(i, M).map(k => arr[k])));
+    const mean = v => v.reduce((a, b) => a + b, 0) / v.length;
+    const median = v => { const q = v.slice().sort((a, b) => a - b); return q.length % 2 ? q[(q.length - 1) / 2] : 0.5 * (q[q.length / 2 - 1] + q[q.length / 2]); };
+    const medma = win(med, mean);
+    const mamed = win(ma, median);
+    return { ma, med, wm, ewma, medma, mamed };
+  }
+  // index of the sample whose value the median picks (nearest, for the ring)
+  function medianPick(x, i, M) {
+    const idx = windowIdx(i, M);
+    const sorted = idx.slice().sort((a, b) => x[a] - x[b]);
+    return sorted[Math.floor((sorted.length - 1) / 2)];
+  }
+
+  // ------------------------------------------------------------ steps
+  const SERIES = {
+    ma:   { key: 'ma',   name: 'moving average', color: 'var(--ma)',   hex: '#2a78d6' },
+    med:  { key: 'med',  name: 'median',         color: 'var(--med)',  hex: '#1baf7a' },
+    wm:   { key: 'wm',   name: 'weighted mean',  color: 'var(--wm)',   hex: '#4a3aa7' },
+    ewma: { key: 'ewma', name: 'EWMA',           color: 'var(--ewma)', hex: '#eb6834' },
+    medma: { key: 'medma', name: 'median, then average', color: 'var(--med)',  hex: '#1baf7a' },
+    mamed: { key: 'mamed', name: 'average, then median', color: 'var(--ewma)', hex: '#eb6834' },
+  };
+  const STATIC = s => s === 'all' || s === 'cascade';
+  const KEYS = s => s === 'all' ? ['ma', 'wm', 'ewma', 'med'] : s === 'cascade' ? ['medma', 'mamed'] : s ? [s] : [];
+
+  const fmt = v => (Math.round(v * 100) / 100).toFixed(2);
+
+  function stepDefs(w, alpha, alphaAuto) {
+    const M = (w - 1) / 2;
+    const aTxt = alpha.toFixed(2).replace(/0$/, '');
+    const wEq = Math.round(2 / alpha - 1);
+    return [
+      {
+        id: 'raw', series: null,
+        title: 'The input signal', tag: `N = ${N} samples`,
+        subtitle: 'The noisy input signal and the clean signal each filter tries to recover.',
+        formula: `xᵢ = cleanᵢ + noiseᵢ`,
+        takeaway: 'Every filter below replaces each sample by a summary of its neighborhood. What differs is <strong>which</strong> neighbors count, and <strong>how much</strong>.'
+      },
+      {
+        id: 'ma', series: 'ma',
+        title: 'Moving average', tag: `w = ${w}`,
+        subtitle: `Sliding a window along the signal and averaging the samples inside it.`,
+        formula: `sᵢ = (1/w) · Σₖ₌₋ₘ..ₘ xᵢ₊ₖ        w = 2M+1 = ${w}\n\nweights:  1/w, 1/w, …, 1/w   (flat)`,
+        takeaway: `Noise averages out nicely. But the <strong>outlier is smeared</strong> into a bump ${w} samples wide, and the <strong>step edge becomes a ramp</strong> ${w} samples wide.`
+      },
+      {
+        id: 'med', series: 'med',
+        title: 'Median filter', tag: `w = ${w}`,
+        subtitle: `Sliding the same window and taking the median of the samples inside it.`,
+        formula: `sᵢ = median( xᵢ₋ₘ, …, xᵢ₊ₘ )\n\nno weights: pick the middle of the sorted window`,
+        takeaway: `One outlier can never be the middle value, so it <strong>vanishes</strong>. The <strong>step edge stays sharp</strong>. Cost: a sort per sample, and smooth peaks get slightly flattened.`
+      },
+      {
+        id: 'wm', series: 'wm',
+        title: 'Weighted moving average (triangular weights)', tag: `w = ${w}`,
+        subtitle: `Sliding the same window with triangular weights on the samples inside it.`,
+        formula: `sᵢ = Σₖ₌₋ₘ..ₘ wₖ · xᵢ₊ₖ ,   Σ wₖ = 1\n\nwₖ ∝ M+1−|k|   (triangle, peak at k = 0)`,
+        takeaway: `Follows the signal more closely than the flat window, so the edge ramp is <strong>shorter and steeper</strong>. The outlier still leaks in, but as a <strong>peaked bump</strong> instead of a flat plateau.`
+      },
+      {
+        id: 'ewma', series: 'ewma',
+        title: 'Exponentially weighted moving average', tag: `α = ${aTxt}`,
+        subtitle: `How the EWMA blends each new sample with the previous output.`,
+        formula: `sᵢ = α · xᵢ + (1−α) · sᵢ₋₁\n\nweights on xᵢ₋ₖ:  α(1−α)ᵏ      effective w ≈ 2/α − 1 = ${wEq}`,
+        takeaway: `One multiply-add per sample and no buffer, so it is the cheapest. Because it only looks <strong>backward</strong>, the output <strong>lags</strong>: it trails the step, and the outlier decays over roughly 1/α samples.`
+      },
+      {
+        id: 'all', series: 'all',
+        title: 'The four filters compared', tag: `w = ${w}  ·  α = ${aTxt}${alphaAuto ? ' ≈ 2/(w+1)' : ''}`,
+        subtitle: 'Comparing all four filter outputs on the same signal.',
+        formula: `<span class="lbl">Same neighborhood, different summary</span>flat mean · middle value · triangle mean · geometric memory`,
+        takeaway: `<strong>Average</strong> and <strong>weighted mean</strong> smear outliers, <strong>median</strong> deletes them, <strong>EWMA</strong> lags. Choose by what your noise looks like and what structure you must keep.`
+      },
+      {
+        id: 'cascade', series: 'cascade',
+        title: 'Cascading two filters: effect of order', tag: `w = ${w} each`,
+        subtitle: 'Comparing median then moving average with moving average then median.',
+        formula: `<span class="lbl">Recipe</span>median (kills spikes)  →  moving average (smooths the rest)\n\nreverse order: the average spreads each spike over w samples first, and the median can no longer find a majority to outvote it`,
+        takeaway: `<strong>Median first</strong> deletes the glitches and then smooths cleanly. <strong>Average first</strong> turns each glitch into a wide bump that the median then keeps. Order the stages so each removes what the next one cannot.`
+      }
+    ];
+  }
+
+  // ------------------------------------------------------------ layout
+  const W = 1200, H = 600;
+  const PL = 56, PR = 130, PT = 18;
+  const PLOT_H = 450, STRIP_GAP = 28, STRIP_H = 60;
+  const PB = H - PT - PLOT_H - STRIP_GAP - STRIP_H;
+  const plotBottom = PT + PLOT_H;
+  const stripTop = plotBottom + STRIP_GAP;
+  const stripBottom = stripTop + STRIP_H;
+  const xs = i => PL + (i / (N - 1)) * (W - PL - PR);
+  let yLo = -1.6, yHi = 3.2;
+  const ys = v => plotBottom - ((v - yLo) / (yHi - yLo)) * PLOT_H;
+
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+  const linePath = (arr, upto = arr.length - 1) => { let d = ''; for (let i = 0; i <= upto; i++) d += (i ? 'L' : 'M') + xs(i).toFixed(1) + ',' + ys(arr[i]).toFixed(1); return d; };
+
+  // ------------------------------------------------------------ state
+  const $ = id => document.getElementById(id);
+  const chart = $('chart');
+  let scenario = 'combo', w = 9, alphaMode = 'auto', speed = 14;
+  let data, out, steps, step = 0, cursor = -1, playing = false, raf = 0, lastT = 0, acc = 0;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const alphaVal = () => alphaMode === 'auto' ? 2 / (w + 1) : parseFloat(alphaMode);
+
+  function rebuild(keepStep = true) {
+    data = makeSignal(scenario);
+    const a = alphaVal();
+    out = computeAll(data.x, w, a);
+    const lo = Math.min(...data.x), hi = Math.max(...data.x);
+    const pad = 0.25 * (hi - lo);
+    yLo = Math.floor((lo - pad) * 2) / 2; yHi = Math.ceil((hi + pad) * 2) / 2;
+    steps = stepDefs(w, a, alphaMode === 'auto');
+    if (!keepStep) step = 0;
+    enterStep(step, true);
+  }
+
+  // ------------------------------------------------------------ drawing
+  let G = {};
+  function drawStatic() {
+    chart.innerHTML = '';
+    // grid + axes
+    const grid = el('g', { class: 'grid' }, chart);
+    const axis = el('g', { class: 'axis' }, chart);
+    const yTicks = []; for (let v = Math.ceil(yLo); v <= Math.floor(yHi); v++) yTicks.push(v);
+    yTicks.forEach(v => {
+      el('line', { x1: PL, x2: W - PR, y1: ys(v), y2: ys(v) }, grid);
+      el('text', { x: PL - 10, y: ys(v) + 4, 'text-anchor': 'end' }, axis).textContent = v;
+    });
+    for (let i = 0; i < N; i += 20) {
+      el('line', { x1: xs(i), x2: xs(i), y1: PT, y2: plotBottom }, grid);
+      el('text', { x: xs(i), y: plotBottom + 18, 'text-anchor': 'middle' }, axis).textContent = i;
+    }
+    el('path', { d: `M${PL},${PT}V${plotBottom}H${W - PR}` }, axis);
+    el('text', { x: W - PR + 8, y: plotBottom + 18, class: 'axis-title' }, chart).textContent = 'sample';
+    // weights strip baseline + label
+    G.strip = el('g', {}, chart);
+    el('line', { x1: PL, x2: W - PR, y1: stripBottom, y2: stripBottom, stroke: 'var(--rule)' }, G.strip);
+    G.stripLabel = el('text', { x: PL - 10, y: stripBottom - 4, class: 'wlabel', 'text-anchor': 'end' }, G.strip);
+    G.stripLabel.textContent = 'weights';
+    G.wbars = el('g', {}, G.strip);
+    // signal layers
+    G.clean = el('path', { class: 'clean-line', d: linePath(data.clean) }, chart);
+    G.rawLine = el('path', { class: 'raw-line', d: linePath(data.x) }, chart);
+    G.rawDots = el('g', {}, chart);
+    data.x.forEach((v, i) => el('circle', { class: 'raw-dot', cx: xs(i), cy: ys(v), r: 2.4, 'data-i': i }, G.rawDots));
+    G.outLines = el('g', {}, chart);
+    G.win = el('g', {}, chart);
+    G.callouts = el('g', { class: 'callout' }, chart);
+    G.labels = el('g', {}, chart);
+    G.legend = el('g', {}, chart);
+    G.hover = el('g', {}, chart);
+    G.hitRect = el('rect', { x: PL, y: PT, width: W - PL - PR, height: PLOT_H, fill: 'transparent' }, chart);
+  }
+
+  function setWeights(series, i) {
+    G.wbars.innerHTML = '';
+    if (series === 'all') { drawKernelGallery(); return; }
+    if (series === 'cascade') { G.stripLabel.style.opacity = 0; return; }
+    if (!series) { G.stripLabel.style.opacity = 0.5; G.stripLabel.textContent = 'weights'; return; }
+    G.stripLabel.style.opacity = 1;
+    const M = (w - 1) / 2;
+    const s = SERIES[series];
+    const bw = Math.max(3, (W - PL - PR) / (N - 1) - 2);
+    if (series === 'ewma') {
+      const a = alphaVal();
+      const maxH = STRIP_H - 8;
+      for (let k = 0; k <= 40 && i - k >= 0; k++) {
+        const wt = a * Math.pow(1 - a, k);
+        const h = (wt / a) * maxH;
+        if (h < 0.6) break;
+        el('rect', { class: 'wbar', x: xs(i - k) - bw / 2, y: stripBottom - h, width: bw, height: h, fill: s.color, rx: 1 }, G.wbars);
+      }
+      G.stripLabel.textContent = `weights  α(1−α)ᵏ`;
+      return;
+    }
+    const idx = windowIdx(i, M);
+    let wts;
+    if (series === 'ma') wts = idx.map(() => 1);
+    else if (series === 'wm') wts = idx.map(k => triW(k - i, M));
+    else { wts = idx.map(() => 0.45); }
+    const mx = Math.max(...wts);
+    const maxH = STRIP_H - 8;
+    idx.forEach((k, j) => {
+      const h = (wts[j] / mx) * maxH * (series === 'med' ? 0.5 : 1);
+      el('rect', { class: 'wbar', x: xs(k) - bw / 2, y: stripBottom - h, width: bw, height: h, fill: series === 'med' ? 'var(--ink-3)' : s.color, rx: 1, opacity: series === 'med' ? 0.5 : 0.85 }, G.wbars);
+    });
+    if (series === 'med') {
+      const pick = medianPick(data.x, i, M);
+      const h = maxH;
+      el('rect', { class: 'wbar', x: xs(pick) - bw / 2, y: stripBottom - h, width: bw, height: h, fill: s.color, rx: 1 }, G.wbars);
+      G.stripLabel.textContent = 'window · middle value';
+    } else {
+      G.stripLabel.textContent = series === 'ma' ? 'weights  1/w (flat)' : 'weights  triangle';
+    }
+  }
+
+  // comparison step: the four kernels side by side, on the same scale
+  function drawKernelGallery() {
+    G.stripLabel.style.opacity = 1;
+    G.stripLabel.textContent = 'weights';
+    const M = (w - 1) / 2, a = alphaVal();
+    const K = Math.min(w, 15), Mk = (K - 1) / 2;
+    const bw = 5, gapx = 2, maxH = STRIP_H - 10;
+    const groups = [
+      { k: 'ma',   wts: Array.from({ length: K }, () => 1) },
+      { k: 'wm',   wts: Array.from({ length: K }, (_, j) => triW(j - Mk, Mk)) },
+      { k: 'med',  wts: Array.from({ length: K }, (_, j) => j === Mk ? 1 : 0.28), pick: true },
+      { k: 'ewma', wts: Array.from({ length: K }, (_, j) => j > Mk ? 0 : Math.pow(1 - a, Mk - j)), causal: true },
+    ];
+    const gw = K * (bw + gapx) + 118;
+    const total = groups.length * gw + (groups.length - 1) * 30;
+    let x = PL + ((W - PL - PR) - total) / 2;
+    groups.forEach(g => {
+      const mx = Math.max(...g.wts);
+      g.wts.forEach((wt, j) => {
+        const h = Math.max(0, (wt / mx) * maxH);
+        if (h < 0.5) return;
+        const isPick = g.pick && j === Mk;
+        el('rect', { class: 'wbar', x: x + j * (bw + gapx), y: stripBottom - h, width: bw, height: h, rx: 1,
+          fill: g.pick && !isPick ? 'var(--ink-3)' : SERIES[g.k].color, opacity: g.pick && !isPick ? 0.45 : 0.9 }, G.wbars);
+      });
+      // center tick for "now"
+      el('line', { x1: x + Mk * (bw + gapx) + bw / 2, x2: x + Mk * (bw + gapx) + bw / 2, y1: stripBottom, y2: stripBottom + 4, stroke: 'var(--ink-3)' }, G.wbars);
+      const t = el('text', { x: x + K * (bw + gapx) + 8, y: stripBottom - 4, class: 'dlabel', fill: SERIES[g.k].color }, G.wbars);
+      t.textContent = SERIES[g.k].name;
+      const sub = el('text', { x: x + K * (bw + gapx) + 8, y: stripBottom - 20, class: 'wlabel' }, G.wbars);
+      sub.textContent = g.k === 'ma' ? 'flat' : g.k === 'wm' ? 'triangle' : g.k === 'med' ? 'middle value' : 'past only, decaying';
+      x += gw + 30;
+    });
+  }
+
+  function drawCursor(series, i) {
+    G.win.innerHTML = '';
+    if (!series || STATIC(series) || i < 0) return;
+    const s = SERIES[series];
+    const M = (w - 1) / 2;
+    const arr = out[series];
+    if (series !== 'ewma') {
+      const idx = windowIdx(i, M);
+      const x0 = xs(idx[0]) - 5, x1 = xs(idx[idx.length - 1]) + 5;
+      el('rect', { class: 'win-rect', x: x0, y: PT + 2, width: x1 - x0, height: PLOT_H - 4, rx: 3 }, G.win);
+      idx.forEach(k => el('circle', { class: 'win-dot', cx: xs(k), cy: ys(data.x[k]), r: 3.6, fill: series === 'med' ? 'var(--ink-2)' : s.color, opacity: series === 'wm' ? 0.35 + 0.65 * triW(k - i, M) / (M + 1) : 0.9 }, G.win));
+      if (series === 'med') {
+        const pick = medianPick(data.x, i, M);
+        el('circle', { class: 'med-ring', cx: xs(pick), cy: ys(data.x[pick]), r: 8, stroke: s.color }, G.win);
+        el('path', { class: 'connector', d: `M${xs(pick)},${ys(data.x[pick])}H${xs(i)}`, stroke: s.color }, G.win);
+      } else {
+        // mean level line across the window
+        el('path', { class: 'connector', d: `M${x0},${ys(arr[i])}H${x1}`, stroke: s.color }, G.win);
+      }
+    } else {
+      // EWMA: shade the memory tail with a soft gradient of dots
+      const a = alphaVal();
+      for (let k = 0; k <= 40 && i - k >= 0; k++) {
+        const wt = Math.pow(1 - a, k);
+        if (wt < 0.04) break;
+        el('circle', { class: 'win-dot', cx: xs(i - k), cy: ys(data.x[i - k]), r: 3.6, fill: s.color, opacity: 0.15 + 0.85 * wt }, G.win);
+      }
+      if (i > 0) el('path', { class: 'connector', d: `M${xs(i - 1)},${ys(arr[i - 1])}L${xs(i)},${ys(data.x[i])}`, stroke: s.color }, G.win);
+      el('line', { x1: xs(i), x2: xs(i), y1: PT + 2, y2: plotBottom, stroke: s.color, 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: .6 }, G.win);
+    }
+    el('circle', { class: 'out-dot', cx: xs(i), cy: ys(arr[i]), r: 5.5, fill: s.color }, G.win);
+    // live value readout
+    const t = el('text', { x: xs(i) + (i > N * 0.8 ? -12 : 12), y: ys(arr[i]) - 12, class: 'dlabel', fill: s.color, 'text-anchor': i > N * 0.8 ? 'end' : 'start' }, G.win);
+    t.textContent = `sᵢ = ${fmt(arr[i])}`;
+  }
+
+  function drawOutputs(series, upto) {
+    G.outLines.innerHTML = '';
+    G.labels.innerHTML = '';
+    G.callouts.innerHTML = '';
+    if (!series) return;
+    const keys = KEYS(series);
+    keys.forEach(k => {
+      const lim = STATIC(series) ? N - 1 : upto;
+      if (lim < 0) return;
+      el('path', { class: 'out-line', d: linePath(out[k], lim), stroke: SERIES[k].color, opacity: STATIC(series) ? 0.95 : 1 }, G.outLines);
+    });
+    // direct labels
+    const finals = keys.filter(k => STATIC(series) || upto >= N - 1).map(k => ({ k, y: ys(out[k][N - 1]) })).sort((a, b) => a.y - b.y);
+    for (let j = 1; j < finals.length; j++) if (finals[j].y - finals[j - 1].y < 16) finals[j].y = finals[j - 1].y + 16;
+    for (let j = finals.length - 2; j >= 0; j--) if (finals[j + 1].y - finals[j].y < 16) finals[j].y = finals[j + 1].y - 16;
+    finals.forEach(f => {
+      const t = el('text', { x: W - PR + 10, y: f.y + 4, class: 'dlabel', fill: SERIES[f.k].color }, G.labels);
+      t.textContent = SERIES[f.k].name;
+    });
+    // callouts on the comparison step
+    if (STATIC(series)) {
+      data.outliers.forEach(i => callout(i, 'outlier', data.x[i] > out.ma[i]));
+      data.edges.forEach(i => callout(i, 'step edge', true));
+    }
+  }
+  function callout(i, text, above) {
+    const g = el('g', {}, G.callouts);
+    const y = above ? PT + 12 : plotBottom - 8;
+    el('line', { x1: xs(i), x2: xs(i), y1: PT + 2, y2: plotBottom }, g);
+    const t = el('text', { x: xs(i) + 6, y: y, 'text-anchor': 'start' }, g);
+    t.textContent = text;
+  }
+
+  // ------------------------------------------------------------ hover
+  const tt = $('tt');
+  function hover(evt) {
+    const s = steps[step].series;
+    const pt = chart.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+    const p = pt.matrixTransform(chart.getScreenCTM().inverse());
+    const i = Math.max(0, Math.min(N - 1, Math.round((p.x - PL) / (W - PL - PR) * (N - 1))));
+    G.hover.innerHTML = '';
+    el('line', { class: 'crosshair', x1: xs(i), x2: xs(i), y1: PT, y2: plotBottom }, G.hover);
+    el('circle', { cx: xs(i), cy: ys(data.x[i]), r: 4, fill: 'var(--ink-2)', stroke: '#fff', 'stroke-width': 1.5 }, G.hover);
+    let html = `<div class="row"><span>sample</span><b>${i}</b></div><div class="row"><span><i class="sw" style="background:var(--raw-dot)"></i>raw</span><span>${fmt(data.x[i])}</span></div>`;
+    const keys = KEYS(s);
+    keys.forEach(k => { if (STATIC(s) || i <= cursor) html += `<div class="row"><span><i class="sw" style="background:${SERIES[k].hex}"></i>${SERIES[k].name}</span><span>${fmt(out[k][i])}</span></div>`; });
+    tt.innerHTML = html; tt.style.display = 'block';
+    const wrap = chart.parentElement.getBoundingClientRect();
+    const px = evt.clientX - wrap.left, py = evt.clientY - wrap.top;
+    tt.style.left = (px + 16 + tt.offsetWidth > wrap.width ? px - tt.offsetWidth - 12 : px + 16) + 'px';
+    tt.style.top = Math.max(0, py - 10) + 'px';
+  }
+  function unhover() { tt.style.display = 'none'; G.hover.innerHTML = ''; }
+
+  // ------------------------------------------------------------ step control
+  function enterStep(k, redraw = false, completed = false) {
+    step = k;
+    const d = steps[step];
+    if (redraw || !G.rawLine) drawStatic();
+    $('title').innerHTML = d.title + (d.tag ? `<span class="tag">${d.tag}</span>` : '');
+    $('subtitle').textContent = d.subtitle;
+    $('counter').textContent = `${step + 1} / ${steps.length}`;
+    try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {}
+    $('prev').disabled = step === 0;
+    $('next').disabled = step === steps.length - 1 && cursorDone();
+    stopPlay();
+    cursor = -1;
+    drawLegend();
+    if (STATIC(d.series) || !d.series || completed || speed === 0 || reduceMotion) { finish(); }
+    else { render(); startPlay(); }
+    G.rawDots.style.opacity = STATIC(d.series) ? 0 : 1;
+    G.rawLine.style.opacity = STATIC(d.series) ? 1 : 0.55;
+    $('next').disabled = false;
+  }
+  function drawLegend() {
+    G.legend.innerHTML = '';
+    const s = steps[step].series;
+    const items = [{ c: 'var(--raw)', n: 'input (noisy)' }, { c: 'var(--clean)', n: 'clean signal', dash: true }];
+    KEYS(s).forEach(k => items.push({ c: SERIES[k].color, n: (k === 'ma' || k === 'med' || k === 'wm') ? `${SERIES[k].name} w=${w}` : k === 'ewma' ? `EWMA α=${alphaVal().toFixed(2)}` : SERIES[k].name }));
+    const rowH = 18, padX = 10, padY = 8;
+    const wdt = 12 + Math.max(...items.map(i => i.n.length)) * 7.2 + 2 * padX + 22;
+    el('rect', { x: PL + 10, y: PT + 8, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, G.legend);
+    items.forEach((it, j) => {
+      const y = PT + 8 + padY + j * rowH + 6;
+      el('line', { x1: PL + 10 + padX, x2: PL + 10 + padX + 18, y1: y, y2: y, stroke: it.c, 'stroke-width': it.dash ? 1.5 : 2.5, 'stroke-dasharray': it.dash ? '5 4' : 'none' }, G.legend);
+      const t = el('text', { x: PL + 10 + padX + 26, y: y + 4, class: 'axis-title', fill: 'var(--ink)' }, G.legend); t.textContent = it.n;
+    });
+  }
+  function cursorDone() { return !steps[step].series || STATIC(steps[step].series) || cursor >= N - 1; }
+  function render() {
+    const s = steps[step].series;
+    drawOutputs(s, cursor);
+    drawCursor(s, cursor);
+    setWeights(s, cursor);
+  }
+  function finish() {
+    const s = steps[step].series;
+    cursor = N - 1;
+    stopPlay();
+    drawOutputs(s, cursor);
+    G.win.innerHTML = '';
+    setWeights(STATIC(s) ? s : null, 0);
+    G.wbars.style.opacity = 1;
+    if (s && !STATIC(s)) {
+      // leave the final weight shape parked at the center so the kernel stays visible
+      setWeights(s, Math.floor(N / 2));
+      G.wbars.style.opacity = 0.35;
+    } else G.wbars.style.opacity = 1;
+  }
+  function tick(t) {
+    if (!playing) return;
+    const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+    acc += dt * speed;
+    while (acc >= 1 && cursor < N - 1) { cursor++; acc -= 1; }
+    G.wbars.style.opacity = 1;
+    render();
+    if (cursor >= N - 1) { finish(); return; }
+    raf = requestAnimationFrame(tick);
+  }
+  function startPlay() {
+    if (cursorDone()) return;
+    playing = true; lastT = performance.now(); acc = 0;
+    $('play').textContent = 'Pause';
+    raf = requestAnimationFrame(tick);
+  }
+  function stopPlay() { playing = false; cancelAnimationFrame(raf); $('play').textContent = 'Play'; }
+
+  function next() {
+    if (!cursorDone()) { finish(); return; }
+    if (step < steps.length - 1) enterStep(step + 1);
+  }
+  function prev() { if (step > 0) enterStep(step - 1, false, true); }
+  function restart() { enterStep(step); }
+
+  // ------------------------------------------------------------ wiring
+  $('next').addEventListener('click', e => { e.stopPropagation(); next(); });
+  $('prev').addEventListener('click', e => { e.stopPropagation(); prev(); });
+  $('restart').addEventListener('click', e => { e.stopPropagation(); restart(); });
+  $('play').addEventListener('click', e => {
+    e.stopPropagation();
+    if (playing) stopPlay();
+    else if (cursorDone()) { if (steps[step].series && !STATIC(steps[step].series)) restart(); else next(); }
+    else startPlay();
+  });
+  $('slide').addEventListener('click', e => { if (e.target.closest('.notes')) return; next(); });
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'SELECT') return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
+    else if (e.key === 'r' || e.key === 'R') restart();
+  });
+  $('scenario').addEventListener('change', e => { scenario = e.target.value; rebuild(); });
+  $('win').addEventListener('input', e => { w = parseInt(e.target.value, 10); $('winVal').textContent = w; rebuild(); });
+  $('reset').addEventListener('click', e => { e.stopPropagation(); scenario = 'combo'; w = 9; alphaMode = 'auto'; speed = 14; $('scenario').value = 'combo'; $('win').value = 9; $('winVal').textContent = 9; $('alpha').value = 'auto'; $('speed').value = '14'; rebuild(); });
+  $('alpha').addEventListener('change', e => { alphaMode = e.target.value; rebuild(); });
+  $('speed').addEventListener('change', e => { speed = parseInt(e.target.value, 10); });
+  chart.addEventListener('mousemove', hover);
+  chart.addEventListener('mouseleave', unhover);
+
+  const h = parseInt((location.hash || '').replace('#', ''), 10);
+  if (h >= 1 && h <= 7) step = h - 1;
+  rebuild(true);
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Growing a Decision Tree</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff; --ink: #222222; --ink-2: #666666; --ink-3: #9a9a9a;
+    --rule: #dcdcdc; --grid: #ececec; --raw: #b4b4b4; --raw-dot: #8c8c8c; --clean: #444444;
+    --ma: #2a78d6; --med: #1baf7a; --wm: #4a3aa7; --ewma: #eb6834;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.4; padding-block: 18px 28px; padding-inline: 16px; -webkit-font-smoothing: antialiased; }
+  .stage { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
+  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; min-height: 560px; position: relative; outline: none; cursor: pointer; user-select: none; }
+  .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
+  .head h1 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .chart-wrap { position: relative; min-height: 0; }
+  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt .row { display: flex; gap: 10px; justify-content: space-between; }
+  .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot .ctr { font-family: var(--mono); }
+  .bar { display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center; padding:14px 18px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
+  .group { display:flex; align-items:center; gap:8px; }
+  .group label { font-size:13px; font-weight:700; color:var(--ink); }
+  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
+  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  button:hover, select:hover { border-color:var(--ink); }
+  button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
+  button:focus-visible, select:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
+  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
+  .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
+  svg text { white-space: pre; }
+  .grid line { stroke: var(--grid); stroke-width: 1; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .box { fill: #fafafa; stroke: var(--ink-3); stroke-width: 1; }
+  .box.win { stroke: var(--ma); stroke-width: 2; fill: #eef4fc; }
+  .pid { font-family: var(--mono); font-size: 11px; font-weight: 700; fill: #fff; text-anchor: middle; pointer-events: none; }
+  .lab { font-family: var(--sans); font-size: 14px; fill: var(--ink); }
+  .lab.b { font-weight: 700; }
+  .lab.sub { fill: var(--ink-2); font-size: 13px; }
+  .num { font-family: var(--mono); font-size: 14px; fill: var(--ink); }
+  .formula { font-family: var(--mono); font-size: 17px; fill: var(--ink); }
+  .formula.hi { fill: var(--ma); font-weight: 700; }
+  .q { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ma); text-anchor: middle; }
+  .branch { stroke: var(--ink-3); stroke-width: 1.2; fill: none; }
+  .node-new { stroke: var(--ma); stroke-width: 3; }
+  .curve { fill: none; stroke: var(--ink); stroke-width: 2; }
+  .ptitle { font-family: var(--sans); font-size: 13px; font-weight: 700; fill: var(--ink); }
+  @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
+</style>
+
+<div class="stage">
+  <section class="slide" id="slide" tabindex="0" aria-live="polite">
+    <div class="head">
+      <h1 id="title">Depth 1: the root split</h1>
+      <p id="subtitle"></p>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 1200 560" role="img" aria-label="Decision regions in the feature plane and the tree being grown"></svg>
+      <div class="tt" id="tt"></div>
+    </div>
+    <div class="foot">
+      <span>CS328 &nbsp;·&nbsp; Decision Trees</span>
+      <span class="ctr" id="counter"></span>
+    </div>
+  </section>
+
+  <div class="bar">
+    <div class="group">
+      <button id="prev" title="Previous (←)">‹ Prev</button>
+      <button id="play" class="primary" title="Play / pause (space)">Play</button>
+      <button id="next" title="Next (→)">Next ›</button>
+      <button id="restart" title="Restart this step (r)">Restart</button>
+      <button id="reset" title="Reset all dials to defaults">Reset dials</button>
+    </div>
+    <div class="group">
+      <label for="depth">max_depth</label>
+      <input type="range" id="depth" min="1" max="15" step="1" value="1">
+      <span class="val" id="depthVal">1</span>
+    </div>
+    <div class="group">
+      <label for="minleaf">min_samples_leaf</label>
+      <input type="range" id="minleaf" min="1" max="20" step="1" value="1">
+      <span class="val" id="minleafVal">1</span>
+    </div>
+    <div class="group">
+      <label for="minsplit">min_samples_split</label>
+      <input type="range" id="minsplit" min="2" max="40" step="1" value="2">
+      <span class="val" id="minsplitVal">2</span>
+    </div>
+    <div class="group">
+      <label for="crit">criterion</label>
+      <select id="crit">
+        <option value="gini">gini</option>
+        <option value="entropy">entropy</option>
+      </select>
+    </div>
+    <div class="group">
+      <label for="speed">Speed</label>
+      <select id="speed">
+        <option value="0.25">very slow</option>
+        <option value="0.5">slow</option>
+        <option value="1" selected>normal</option>
+        <option value="2">fast</option>
+        <option value="0">instant</option>
+      </select>
+    </div>
+    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ------------------------------------------------------------ data: 150 windows from HAR-data/dataset1.csv
+  // [mean of a_y, std of a_y, class]  classes: 0 Walking, 1 Upstairs, 2 Downstairs  (same subsample as the chapter figure)
+  const TRAIN = [[9.495,1.982,1],[9.331,2.358,1],[9.662,1.558,2],[9.384,1.842,0],[9.593,1.652,0],[9.73,1.783,0],[9.431,1.415,0],[9.553,1.646,0],[9.666,1.654,0],[9.53,2.302,0],[9.242,2.334,1],[9.677,1.342,0],[9.17,5.845,1],[9.709,1.832,0],[9.621,3.906,2],[9.708,1.703,0],[8.715,6.786,2],[9.596,1.762,1],[9.105,3.78,2],[8.797,1.188,2],[8.622,5.586,2],[9.049,1.794,1],[9.447,1.83,0],[9.373,2.792,0],[9.043,4.309,2],[9.649,1.582,0],[9.83,3.61,2],[9.858,4.076,2],[9.526,1.604,0],[9.125,2.282,1],[9.55,2.182,0],[9.299,1.765,1],[9.557,1.968,0],[9.112,2.409,1],[8.703,7.552,1],[9.683,1.572,0],[9.405,2.468,1],[9.555,7.307,1],[9.304,2.524,0],[9.7,1.306,2],[9.362,1.323,1],[9.702,1.613,0],[9.313,1.367,2],[9.45,1.142,0],[9.947,5.842,1],[8.577,6.004,2],[9.724,1.695,0],[9.646,2.677,0],[9.707,1.53,0],[9.479,3.242,2],[9.68,1.461,0],[9.333,5.626,2],[9.621,5.527,2],[9.359,1.46,1],[9.802,2.642,1],[9.373,2.347,1],[9.368,1.256,1],[9.39,2.009,0],[9.67,1.597,0],[9.677,1.761,2],[9.379,2.098,0],[9.686,5.163,2],[9.531,1.979,0],[9.18,5.338,1],[9.195,6.529,2],[9.515,1.818,0],[9.748,5.724,1],[9.905,3.186,2],[9.541,3.217,1],[9.704,1.385,0],[9.475,2.023,0],[9.193,2.391,1],[9.723,1.99,0],[9.022,6.675,2],[9.57,1.934,1],[9.335,2.869,0],[8.732,3.187,2],[9.671,4.788,1],[9.474,4.379,2],[9.631,2.0,0],[9.711,2.678,2],[9.491,2.105,0],[9.479,3.709,2],[9.432,2.604,0],[9.507,2.7,2],[9.715,1.455,0],[9.471,3.449,1],[9.718,1.601,0],[9.511,2.28,1],[9.068,2.411,1],[9.499,2.321,1],[9.461,2.707,0],[9.191,2.558,1],[9.251,4.738,2],[9.705,2.148,2],[9.425,2.011,0],[9.471,1.374,0],[9.276,4.99,2],[9.443,1.959,1],[9.444,1.804,0],[9.053,1.696,2],[9.385,1.477,0],[9.509,1.798,0],[9.258,3.728,1],[9.214,3.166,2],[9.432,2.078,0],[9.818,4.335,2],[9.204,2.155,1],[8.901,3.629,2],[9.413,1.648,0],[9.553,1.623,0],[9.138,4.308,2],[9.285,2.601,1],[9.639,1.588,0],[9.44,5.959,1],[9.432,2.178,0],[9.357,6.49,2],[9.315,2.598,1],[9.453,1.959,2],[9.432,1.974,2],[9.755,1.645,0],[8.974,5.557,2],[9.239,2.686,1],[9.356,3.676,2],[9.596,1.409,1],[9.397,2.89,0],[9.711,1.639,0],[9.164,2.895,2],[9.667,1.336,0],[9.435,4.617,2],[9.344,2.254,0],[9.306,1.676,0],[9.333,2.295,1],[9.711,1.593,0],[9.196,3.093,2],[9.757,1.42,0],[9.506,1.619,2],[9.49,2.023,0],[9.54,2.675,1],[9.647,1.558,0],[9.189,2.958,1],[9.351,2.194,1],[9.671,1.719,0],[9.616,1.397,0],[9.69,1.769,0],[9.804,1.471,0],[9.254,2.078,0],[9.575,1.334,2],[9.42,2.98,0],[9.652,4.185,1]];
+  const CLS = ['Walking', 'Upstairs', 'Downstairs'];
+  const CCOL = ['#2a78d6', '#eb6834', '#1baf7a'];
+  const X = TRAIN.map(d => [d[0], d[1]]), Y = TRAIN.map(d => d[2]);
+  const BOX = [8.4, 10.3, 0.5, 8];   // x0, x1, y0, y1 of the feature plane
+  // ------------------------------------------------------------ CART (binary splits at midpoints, like sklearn)
+  function impurityOf(ct, crit) { const n = ct[0] + ct[1] + ct[2]; if (!n) return 0; let s = 0; for (let k = 0; k < 3; k++) { if (!ct[k]) continue; const p = ct[k] / n; s += crit === 'entropy' ? -p * Math.log2(p) : p * p; } return crit === 'entropy' ? s : 1 - s; }
+  function growTree(X, y, opts) {
+    const { crit, maxDepth, minLeaf, minSplit } = opts;
+    let id = 0;
+    function make(idx, depth, box) {
+      const ct = [0, 0, 0]; idx.forEach(i => ct[y[i]]++);
+      const node = { id: id++, idx, n: idx.length, ct, depth, box, imp: impurityOf(ct, crit), cls: ct.indexOf(Math.max(...ct)) };
+      if (node.imp === 0 || node.n < minSplit || node.n < 2 * minLeaf || depth >= maxDepth) return node;
+      let best = null;
+      for (let f = 0; f < 2; f++) {
+        const s = idx.slice().sort((a, b) => X[a][f] - X[b][f]);
+        const lc = [0, 0, 0], rc = ct.slice();
+        for (let j = 0; j < s.length - 1; j++) {
+          lc[y[s[j]]]++; rc[y[s[j]]]--;
+          if (X[s[j]][f] === X[s[j + 1]][f]) continue;
+          const nl = j + 1, nr = s.length - nl;
+          if (nl < minLeaf || nr < minLeaf) continue;
+          const avg = (nl * impurityOf(lc, crit) + nr * impurityOf(rc, crit)) / s.length;
+          if (!best || avg < best.avg - 1e-12) best = { f, t: (X[s[j]][f] + X[s[j + 1]][f]) / 2, avg };
+        }
+      }
+      if (!best || node.imp - best.avg <= 1e-12) return node;
+      node.split = { f: best.f, t: best.t, gain: node.imp - best.avg };
+      const L = idx.filter(i => X[i][best.f] <= best.t), R = idx.filter(i => X[i][best.f] > best.t);
+      const bl = box.slice(), br = box.slice();
+      if (best.f === 0) { bl[1] = best.t; br[0] = best.t; } else { bl[3] = best.t; br[2] = best.t; }
+      node.kids = [make(L, depth + 1, bl), make(R, depth + 1, br)];
+      return node;
+    }
+    return make(X.map((_, i) => i), 0, opts.box.slice());
+  }
+  // breadth-first list of internal nodes (the order in which splits are revealed)
+  function bfs(root) { const out = [], q = [root]; while (q.length) { const n = q.shift(); out.push(n); if (n.kids) q.push(...n.kids); } return out; }
+  function predict(root, x, cutDepth = Infinity, shownIds = null) {
+    let n = root;
+    while (n.kids && n.depth < cutDepth && (!shownIds || shownIds.has(n.id))) n = x[n.split.f] <= n.split.t ? n.kids[0] : n.kids[1];
+    return n.cls;
+  }
+  function leavesAt(root, cutDepth = Infinity, shownIds = null) { const out = []; (function walk(n) { if (n.kids && n.depth < cutDepth && (!shownIds || shownIds.has(n.id))) n.kids.forEach(walk); else out.push(n); })(root); return out; }
+  function treeDepth(root, cutDepth = Infinity, shownIds = null) { return Math.max(...leavesAt(root, cutDepth, shownIds).map(l => l.depth)); }
+
+
+  // ------------------------------------------------------------ state
+  const $ = id => document.getElementById(id);
+  const chart = $('chart');
+  let maxDepth = 1, minLeaf = 1, minSplit = 2, crit = 'gini', speed = 1;
+  const dirty = {};
+  let steps = [], step = 0, cursor = 0, playing = false, raf = 0, lastT = 0;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let tree = null, order = [];
+
+  const f3 = v => v.toFixed(3);
+  function fit() {
+    tree = growTree(X, Y, { crit, maxDepth, minLeaf, minSplit, box: BOX });
+    order = bfs(tree).filter(n => n.kids);   // internal nodes in the order their splits are revealed
+  }
+  function trainAcc(shown) { let ok = 0; X.forEach((x, i) => { if (predict(tree, x, Infinity, shown) === Y[i]) ok++; }); return ok / X.length; }
+
+  const STEP_DEFS = [
+    { depth: 1, title: 'Depth 1: the root split', subtitle: 'How the root split divides the feature plane into two regions.' },
+    { depth: 2, title: 'Depth 2: each side splits again', subtitle: 'How each side of the root split is split again.' },
+    { depth: 3, title: 'Depth 3: the chapter\'s pruned tree', subtitle: 'Growing the tree to max_depth = 3 and the regions it produces.' },
+    { depth: 4, title: 'Depth 4: thin bands appear', subtitle: 'How one more level adds thin regions around small groups of windows.' },
+    { depth: 15, title: 'No depth cap: every leaf pure', subtitle: 'How the tree splits until every leaf is pure when max_depth is unlimited.' }
+  ];
+  function buildSteps() {
+    return STEP_DEFS.map(s => Object.assign({}, s, { presets: { depth: s.depth }, frames: order.length, rate: Math.max(1.2, order.length / 10) }));
+  }
+  function tagText(shown) {
+    const leaves = leavesAt(tree, Infinity, shown), dep = treeDepth(tree, Infinity, shown);
+    return `max_depth = ${maxDepth >= 15 ? 'none' : maxDepth} · depth ${dep} · ${leaves.length} ${leaves.length === 1 ? 'leaf' : 'leaves'} · train acc ${trainAcc(shown).toFixed(2)}`;
+  }
+
+  // ------------------------------------------------------------ layout
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+  const txt = (x, y, s, cls, attrs = {}, parent) => { const t = el('text', Object.assign({ x, y, class: cls }, attrs), parent); t.textContent = s; return t; };
+  const SX0 = 60, SX1 = 560, SY0 = 36, SY1 = 476;
+  const TX0 = 620, TX1 = 1180, TY0 = 30, TY1 = 520;
+  const xs = v => SX0 + (v - BOX[0]) / (BOX[1] - BOX[0]) * (SX1 - SX0);
+  const ys = v => SY1 - (v - BOX[2]) / (BOX[3] - BOX[2]) * (SY1 - SY0);
+  let G = {};
+  function drawStatic() {
+    chart.innerHTML = '';
+    G.regions = el('g', {}, chart); G.back = el('g', {}, chart); G.lines = el('g', {}, chart); G.pts = el('g', {}, chart); G.tree = el('g', {}, chart); G.legend = el('g', {}, chart);
+    const g = el('g', { class: 'grid' }, G.back), a = el('g', { class: 'axis' }, G.back);
+    for (let v = 8.5; v <= BOX[1] + 1e-9; v += 0.5) { el('line', { x1: xs(v), x2: xs(v), y1: SY0, y2: SY1 }, g); txt(xs(v), SY1 + 18, v.toFixed(1), '', { 'text-anchor': 'middle' }, a); }
+    for (let v = 1; v <= BOX[3] + 1e-9; v += 1) { el('line', { x1: SX0, x2: SX1, y1: ys(v), y2: ys(v) }, g); txt(SX0 - 8, ys(v) + 4, v.toFixed(0), '', { 'text-anchor': 'end' }, a); }
+    el('path', { d: `M${SX0},${SY0}V${SY1}H${SX1}` }, a);
+    txt((SX0 + SX1) / 2, SY1 + 40, 'mean of a_y  (2-second windows)', 'axis-title', { 'text-anchor': 'middle' }, G.back);
+    txt(SX0 - 40, SY0 - 12, 'std of a_y', 'axis-title', {}, G.back);
+    TRAIN.forEach((d, i) => { el('circle', { cx: xs(d[0]), cy: ys(d[1]), r: 4.5, fill: CCOL[d[2]], stroke: '#fff', 'stroke-width': 1, 'data-i': i }, G.pts); });
+    // legend
+    const rowH = 18, padX = 10, padY = 8, items = CLS.map((c, k) => ({ c: CCOL[k], n: `${c} (window)` })).concat(CLS.map((c, k) => ({ c: CCOL[k], n: `${c} region`, rect: true })), [{ c: '#444', n: 'split boundary', line: true }]);
+    const wdt = 172, x0 = SX1 - wdt - 8, y0 = SY0 + 8;
+    el('rect', { x: x0, y: y0, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, G.legend);
+    items.forEach((it, j) => {
+      const y = y0 + padY + j * rowH + 6;
+      if (it.rect) el('rect', { x: x0 + padX, y: y - 7, width: 18, height: 14, fill: it.c, opacity: .25 }, G.legend);
+      else if (it.line) el('line', { x1: x0 + padX, x2: x0 + padX + 18, y1: y, y2: y, stroke: it.c, 'stroke-width': 2 }, G.legend);
+      else el('circle', { cx: x0 + padX + 9, cy: y, r: 5, fill: it.c, stroke: '#fff' }, G.legend);
+      txt(x0 + padX + 26, y + 4, it.n, 'axis-title', { fill: 'var(--ink)' }, G.legend);
+    });
+    txt(TX0, TY0 - 8, 'the tree (each box: test, n, class counts)', 'axis-title', {}, G.back);
+  }
+
+  // ------------------------------------------------------------ render
+  function render() {
+    const k = Math.min(order.length, Math.floor(cursor + 1e-9));
+    const shown = new Set(order.slice(0, k).map(n => n.id));
+    const newest = k > 0 && cursor < order.length ? order[k - 1] : null;
+    G.regions.innerHTML = ''; G.lines.innerHTML = ''; G.tree.innerHTML = '';
+    // regions of the current leaves
+    leavesAt(tree, Infinity, shown).forEach(l => {
+      const b = l.box;
+      el('rect', { x: xs(b[0]), y: ys(b[3]), width: xs(b[1]) - xs(b[0]), height: ys(b[2]) - ys(b[3]), fill: CCOL[l.cls], opacity: .25 }, G.regions);
+    });
+    // boundaries
+    order.slice(0, k).forEach((n, j) => {
+      const b = n.box, s = n.split, isNew = newest && n.id === newest.id;
+      if (s.f === 0) el('line', { x1: xs(s.t), x2: xs(s.t), y1: ys(b[3]), y2: ys(b[2]), stroke: isNew ? 'var(--ma)' : '#444', 'stroke-width': isNew ? 3 : 1.5 }, G.lines);
+      else el('line', { x1: xs(b[0]), x2: xs(b[1]), y1: ys(s.t), y2: ys(s.t), stroke: isNew ? 'var(--ma)' : '#444', 'stroke-width': isNew ? 3 : 1.5 }, G.lines);
+    });
+    if (newest) {
+      const s = newest.split, b = newest.box;
+      const lx = s.f === 0 ? xs(s.t) + 6 : xs(b[0]) + 6, ly = s.f === 0 ? ys(b[3]) + 16 : ys(s.t) - 6;
+      txt(lx, ly, `${s.f === 0 ? 'mean' : 'std'} ≤ ${s.t.toFixed(2)}`, 'num', { 'font-size': 13, 'font-weight': 700, fill: 'var(--ma)' }, G.lines);
+    }
+    drawTree(shown, newest);
+    $('title').innerHTML = steps[step].title + `<span class="tag">${tagText(shown)}</span>`;
+  }
+
+  function drawTree(shown, newest) {
+    // leaf-ordered layout: each visible leaf gets a column; internal nodes sit over the middle of their leaves
+    const leaves = leavesAt(tree, Infinity, shown), dep = Math.max(1, treeDepth(tree, Infinity, shown));
+    const colW = (TX1 - TX0) / leaves.length, rowH = Math.min(78, (TY1 - TY0) / (dep + 1));
+    const big = leaves.length <= 16, mid = leaves.length <= 32;
+    const NW = Math.min(150, colW * 0.92 * (big ? 1 : 1)), NH = big ? 44 : mid ? 26 : 14;
+    let col = 0;
+    const pos = new Map();
+    (function place(n) {
+      if (n.kids && shown.has(n.id)) { place(n.kids[0]); place(n.kids[1]); pos.set(n.id, (pos.get(n.kids[0].id) + pos.get(n.kids[1].id)) / 2); }
+      else pos.set(n.id, TX0 + (col++ + 0.5) * colW);
+    })(tree);
+    (function draw(n, parent) {
+      const x = pos.get(n.id), y = TY0 + n.depth * rowH, isLeaf = !(n.kids && shown.has(n.id));
+      const pure = n.imp === 0;
+      const isNew = newest && n.id === newest.id;
+      if (parent) {
+        const px_ = pos.get(parent.id), py_ = TY0 + parent.depth * rowH + NH;
+        el('line', { class: 'branch', x1: px_, y1: py_, x2: x, y2: y, stroke: isNew ? 'var(--ma)' : undefined }, G.tree);
+      }
+      const w = isLeaf ? Math.min(NW, colW * 0.92) : Math.min(NW, Math.max(colW * 0.92, big ? 150 : 60));
+      el('rect', { x: x - w / 2, y, width: w, height: NH, rx: 4, fill: isLeaf ? CCOL[n.cls] : '#fff', 'fill-opacity': isLeaf ? (pure ? .55 : .22) : 1, stroke: isNew ? 'var(--ma)' : isLeaf ? CCOL[n.cls] : 'var(--ink-3)', 'stroke-width': isNew ? 3 : 1.2 }, G.tree);
+      if (big) {
+        if (isLeaf) { txt(x, y + 18, CLS[n.cls], 'lab b', { 'text-anchor': 'middle', 'font-size': w < 80 ? 11 : 13 }, G.tree); txt(x, y + 35, w < 80 ? `n=${n.n}` : `n=${n.n} (${n.ct.join('·')})`, 'num', { 'text-anchor': 'middle', 'font-size': w < 80 ? 10 : 11 }, G.tree); }
+        else { txt(x, y + 18, `${n.split.f === 0 ? 'mean' : 'std'} ≤ ${n.split.t.toFixed(2)}`, 'q', { 'font-size': w < 100 ? 11 : 14 }, G.tree); txt(x, y + 35, w < 100 ? `n=${n.n}` : `n=${n.n} (${n.ct.join('·')})`, 'num', { 'text-anchor': 'middle', 'font-size': 11 }, G.tree); }
+      } else if (mid) {
+        txt(x, y + 17, isLeaf ? `n=${n.n}` : `${n.split.f === 0 ? 'm' : 's'}≤${n.split.t.toFixed(1)}`, 'num', { 'text-anchor': 'middle', 'font-size': 10, fill: isLeaf ? 'var(--ink)' : 'var(--ma)' }, G.tree);
+      }
+      if (!isLeaf) { draw(n.kids[0], n); draw(n.kids[1], n); }
+    })(tree, null);
+    txt(TX0, TY1 + 26, `${leaves.length} ${leaves.length === 1 ? 'leaf' : 'leaves'} · depth ${dep} · ${leaves.filter(l => l.imp === 0).length} pure`, 'num', { 'font-size': 13 }, G.tree);
+  }
+
+  // ------------------------------------------------------------ hover
+  const tt = $('tt');
+  chart.addEventListener('mousemove', evt => {
+    const c = evt.target.closest('[data-i]');
+    if (!c) { tt.style.display = 'none'; return; }
+    const d = TRAIN[parseInt(c.getAttribute('data-i'), 10)];
+    const shown = new Set(order.slice(0, Math.min(order.length, Math.floor(cursor + 1e-9))).map(n => n.id));
+    const pr = predict(tree, [d[0], d[1]], Infinity, shown);
+    tt.innerHTML = `<div class="row"><span>mean a_y</span><span>${d[0].toFixed(2)}</span></div><div class="row"><span>std a_y</span><span>${d[1].toFixed(2)}</span></div><div class="row"><span><i class="sw" style="background:${CCOL[d[2]]}"></i>label</span><span>${CLS[d[2]]}</span></div><div class="row"><span><i class="sw" style="background:${CCOL[pr]}"></i>tree says</span><span>${CLS[pr]}</span></div>`;
+    tt.style.display = 'block';
+    const wrap = chart.parentElement.getBoundingClientRect();
+    const x = evt.clientX - wrap.left, y = evt.clientY - wrap.top;
+    tt.style.left = (x + 16 + tt.offsetWidth > wrap.width ? x - tt.offsetWidth - 12 : x + 16) + 'px';
+    tt.style.top = Math.max(0, y - 10) + 'px';
+  });
+  chart.addEventListener('mouseleave', () => { tt.style.display = 'none'; });
+
+  // ------------------------------------------------------------ step control
+  function applyPresets(d) { if (!dirty.depth) { maxDepth = d.depth; $('depth').value = maxDepth; $('depthVal').textContent = maxDepth >= 15 ? 'none' : maxDepth; } }
+  function setHead() { const d = steps[step]; $('subtitle').textContent = d.subtitle; $('counter').textContent = `${step + 1} / ${steps.length}`; }
+  function enterStep(k, completed = false) {
+    step = Math.max(0, Math.min(STEP_DEFS.length - 1, k));
+    applyPresets(STEP_DEFS[step]);
+    fit(); steps = buildSteps();
+    drawStatic(); setHead();
+    try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {}
+    stopPlay(); cursor = 0;
+    if (completed || speed === 0 || reduceMotion || steps[step].frames === 0) finish();
+    else { render(); startPlay(); }
+  }
+  function liveRedraw() { fit(); steps = buildSteps(); cursor = Math.min(cursor, steps[step].frames); drawStatic(); setHead(); render(); }
+  const cursorDone = () => cursor >= steps[step].frames;
+  function finish() { cursor = steps[step].frames; stopPlay(); render(); }
+  function tick(t) {
+    if (!playing) return;
+    const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+    cursor += dt * speed * steps[step].rate;
+    if (cursorDone()) { finish(); return; }
+    render(); raf = requestAnimationFrame(tick);
+  }
+  function startPlay() { if (cursorDone()) return; playing = true; lastT = performance.now(); $('play').textContent = 'Pause'; raf = requestAnimationFrame(tick); }
+  function stopPlay() { playing = false; cancelAnimationFrame(raf); $('play').textContent = 'Play'; }
+  function next() { if (!cursorDone()) { finish(); return; } if (step < steps.length - 1) enterStep(step + 1); }
+  function prev() { if (step > 0) enterStep(step - 1, true); }
+  function restart() { enterStep(step); }
+
+  // ------------------------------------------------------------ wiring
+  $('next').addEventListener('click', e => { e.stopPropagation(); next(); });
+  $('prev').addEventListener('click', e => { e.stopPropagation(); prev(); });
+  $('restart').addEventListener('click', e => { e.stopPropagation(); restart(); });
+  $('play').addEventListener('click', e => { e.stopPropagation(); if (playing) stopPlay(); else if (cursorDone()) restart(); else startPlay(); });
+  $('slide').addEventListener('click', () => next());
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
+    else if (e.key === 'r' || e.key === 'R') restart();
+  });
+  $('depth').addEventListener('input', e => { dirty.depth = true; maxDepth = parseInt(e.target.value, 10); $('depthVal').textContent = maxDepth >= 15 ? 'none' : maxDepth; liveRedraw(); });
+  $('minleaf').addEventListener('input', e => { dirty.minleaf = true; minLeaf = parseInt(e.target.value, 10); $('minleafVal').textContent = minLeaf; liveRedraw(); });
+  $('minsplit').addEventListener('input', e => { dirty.minsplit = true; minSplit = parseInt(e.target.value, 10); $('minsplitVal').textContent = minSplit; liveRedraw(); });
+  $('crit').addEventListener('change', e => { dirty.crit = true; crit = e.target.value; liveRedraw(); });
+  $('speed').addEventListener('change', e => { speed = parseFloat(e.target.value); });
+  $('reset').addEventListener('click', e => {
+    e.stopPropagation();
+    for (const k in dirty) delete dirty[k];
+    minLeaf = 1; minSplit = 2; crit = 'gini'; speed = 1;
+    $('minleaf').value = 1; $('minleafVal').textContent = 1; $('minsplit').value = 2; $('minsplitVal').textContent = 2; $('crit').value = 'gini'; $('speed').value = '1';
+    enterStep(step);
+  });
+
+  const h = parseInt((location.hash || '').replace('#', ''), 10);
+  enterStep(h >= 1 ? h - 1 : 0);
+})();
+</script>
+</body>
+</html>

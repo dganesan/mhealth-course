@@ -1,0 +1,768 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>From Three Axes to a Filtered Magnitude</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff; --ink: #222222; --ink-2: #666666; --ink-3: #9a9a9a;
+    --rule: #dcdcdc; --grid: #ececec; --raw: #b4b4b4; --raw-dot: #8c8c8c; --clean: #444444;
+    --window: rgba(34, 34, 34, 0.06); --window-edge: #222222;
+    --ma: #2a78d6; --med: #1baf7a; --wm: #4a3aa7; --ewma: #eb6834;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.4; padding-block: 18px 28px; padding-inline: 16px; -webkit-font-smoothing: antialiased; }
+  .stage { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
+  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; min-height: 560px; position: relative; outline: none; cursor: pointer; user-select: none; }
+  .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
+  .head h1 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .chart-wrap { position: relative; min-height: 0; }
+  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt .row { display: flex; gap: 10px; justify-content: space-between; }
+  .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot .ctr { font-family: var(--mono); }
+  .bar { display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center; padding:14px 18px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
+  .group { display:flex; align-items:center; gap:8px; }
+  .group[hidden] { display:none; }
+  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
+  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
+  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  button:hover, select:hover { border-color:var(--ink); }
+  button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
+  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
+  .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
+  .grid line { stroke: var(--grid); stroke-width: 1; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .ptitle { font-family: var(--sans); font-size: 13px; font-weight: 700; fill: var(--ink); }
+  .raw-line { fill: none; stroke: var(--raw); stroke-width: 1.5; }
+  .out-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .thin-line { fill: none; stroke-width: 1.4; stroke-linejoin: round; }
+  .dash { stroke-dasharray: 5 4; }
+  .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
+  .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
+  .mono { font-family: var(--mono); }
+  .big { font-family: var(--mono); font-size: 22px; font-weight: 700; }
+  .badge { font-family: var(--mono); font-size: 15px; font-weight: 700; fill: var(--ink); }
+  .kept { fill: none; stroke: var(--ewma); stroke-width: 2.2; }
+  .cross { stroke: var(--raw-dot); stroke-width: 1.6; }
+  .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
+  @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
+</style>
+
+<div class="stage">
+  <section class="slide" id="slide" tabindex="0" aria-live="polite">
+    <div class="head">
+      <h1 id="title"></h1>
+      <p id="subtitle"></p>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 1200 640" role="img" aria-label="From Three Axes to a Filtered Magnitude"></svg>
+      <div class="tt" id="tt"></div>
+    </div>
+    <div class="foot">
+      <span>CS328 &nbsp;·&nbsp; Counting: Steps and Repetitions</span>
+      <span class="ctr" id="counter"></span>
+    </div>
+  </section>
+
+  <div class="bar">
+    <div class="group">
+      <button id="prev" title="Previous (←)">‹ Prev</button>
+      <button id="play" class="primary" title="Play / pause (space)">Play</button>
+      <button id="next" title="Next (→)">Next ›</button>
+      <button id="restart" title="Restart this step (r)">Restart</button>
+      <button id="reset" title="Reset dials to this step's presets">Reset dials</button>
+    </div>
+    <div class="group">
+      <label for="rx">Rotate about x</label>
+      <input type="range" id="rx" min="-180" max="180" step="5" value="0" style="width:130px">
+      <span class="val" id="rxVal">0°</span>
+    </div>
+    <div class="group">
+      <label for="ry">about y</label>
+      <input type="range" id="ry" min="-180" max="180" step="5" value="0" style="width:130px">
+      <span class="val" id="ryVal">0°</span>
+    </div>
+    <div class="group">
+      <label for="rz">about z</label>
+      <input type="range" id="rz" min="-180" max="180" step="5" value="0" style="width:130px">
+      <span class="val" id="rzVal">0°</span>
+    </div>
+    <div class="group">
+      <label for="lo">Low cutoff</label>
+      <input type="range" id="lo" min="0.2" max="1.5" step="0.1" value="0.5" style="width:130px">
+      <span class="val" id="loVal">0.5 Hz</span>
+    </div>
+    <div class="group">
+      <label for="hi">High cutoff</label>
+      <input type="range" id="hi" min="2" max="10" step="0.5" value="4" style="width:130px">
+      <span class="val" id="hiVal">4.0 Hz</span>
+    </div>
+
+    <div class="group">
+      <label for="speed">Speed</label>
+      <select id="speed">
+        <option value="0.25">very slow</option>
+        <option value="0.5">slow</option>
+        <option value="1" selected>normal</option>
+        <option value="2.5">fast</option>
+        <option value="0">instant</option>
+      </select>
+    </div>
+    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play &nbsp; <kbd>r</kbd> restart</span>
+  </div>
+</div>
+
+<script>
+(() => {
+// Butterworth IIR design + filtering, mirroring scipy.signal.butter / lfilter / filtfilt.
+// Design path: analog Butterworth prototype (zpk) -> lp2lp / lp2hp / lp2bp / lp2bs -> bilinear -> SOS.
+// Usage:
+//   const sos = butter(4, 100, 1000, 'lowpass');            // cutoff Hz, fs Hz
+//   const sos = butter(4, [58, 62], 1000, 'bandstop');
+//   const y = sosfilt(sos, x);                              // causal (lfilter)
+//   const y = sosfiltfilt(sos, x);                          // zero-phase (filtfilt)
+//   const mag = sosFreqz(sos, fHz, fs);                     // |H| at one frequency
+(function (global) {
+  // ---- minimal complex arithmetic
+  const C = (re, im = 0) => ({ re, im });
+  const cadd = (a, b) => C(a.re + b.re, a.im + b.im);
+  const csub = (a, b) => C(a.re - b.re, a.im - b.im);
+  const cmul = (a, b) => C(a.re * b.re - a.im * b.im, a.re * b.im + a.im * b.re);
+  const cdiv = (a, b) => { const d = b.re * b.re + b.im * b.im; return C((a.re * b.re + a.im * b.im) / d, (a.im * b.re - a.re * b.im) / d); };
+  const csqrt = a => { const r = Math.hypot(a.re, a.im); const re = Math.sqrt(Math.max(0, (r + a.re) / 2)); const im = Math.sign(a.im || 1) * Math.sqrt(Math.max(0, (r - a.re) / 2)); return C(re, im); };
+  const cscale = (a, s) => C(a.re * s, a.im * s);
+
+  function buttap(N) { // analog prototype poles, unit cutoff
+    const p = [];
+    for (let k = 1; k <= N; k++) { const th = Math.PI * (2 * k - 1) / (2 * N); p.push(C(-Math.sin(th), Math.cos(th))); }
+    return { z: [], p, k: 1 };
+  }
+  function lp2lp(zpk, wo) { return { z: zpk.z.map(v => cscale(v, wo)), p: zpk.p.map(v => cscale(v, wo)), k: zpk.k * Math.pow(wo, zpk.p.length - zpk.z.length) }; }
+  function lp2hp(zpk, wo) {
+    const z = zpk.z.map(v => cdiv(C(wo), v)), p = zpk.p.map(v => cdiv(C(wo), v));
+    const deg = zpk.p.length - zpk.z.length;
+    for (let i = 0; i < deg; i++) z.push(C(0));
+    let num = C(1), den = C(1);
+    zpk.z.forEach(v => { num = cmul(num, cscale(v, -1)); });
+    zpk.p.forEach(v => { den = cmul(den, cscale(v, -1)); });
+    const kk = cdiv(num, den);
+    return { z, p, k: zpk.k * kk.re };
+  }
+  function lp2bp(zpk, wo, bw) {
+    const deg = zpk.p.length - zpk.z.length;
+    const tr = v => { const s = cscale(v, bw / 2); const r = csqrt(csub(cmul(s, s), C(wo * wo))); return [cadd(s, r), csub(s, r)]; };
+    const z = [], p = [];
+    zpk.z.forEach(v => z.push(...tr(v)));
+    zpk.p.forEach(v => p.push(...tr(v)));
+    for (let i = 0; i < deg; i++) z.push(C(0));
+    return { z, p, k: zpk.k * Math.pow(bw, deg) };
+  }
+  function lp2bs(zpk, wo, bw) {
+    const deg = zpk.p.length - zpk.z.length;
+    const tr = v => { const s = cdiv(C(bw / 2), v); const r = csqrt(csub(cmul(s, s), C(wo * wo))); return [cadd(s, r), csub(s, r)]; };
+    const z = [], p = [];
+    zpk.z.forEach(v => z.push(...tr(v)));
+    zpk.p.forEach(v => p.push(...tr(v)));
+    for (let i = 0; i < deg; i++) { z.push(C(0, wo)); z.push(C(0, -wo)); }
+    let num = C(1), den = C(1);
+    zpk.z.forEach(v => { num = cmul(num, cscale(v, -1)); });
+    zpk.p.forEach(v => { den = cmul(den, cscale(v, -1)); });
+    const kk = cdiv(num, den);
+    return { z, p, k: zpk.k * kk.re };
+  }
+  function bilinear(zpk, fs) {
+    const fs2 = 2 * fs;
+    const deg = zpk.p.length - zpk.z.length;
+    const tr = v => cdiv(cadd(C(fs2), v), csub(C(fs2), v));
+    const z = zpk.z.map(tr), p = zpk.p.map(tr);
+    for (let i = 0; i < deg; i++) z.push(C(-1));
+    let num = C(1), den = C(1);
+    zpk.z.forEach(v => { num = cmul(num, csub(C(fs2), v)); });
+    zpk.p.forEach(v => { den = cmul(den, csub(C(fs2), v)); });
+    const kk = cdiv(num, den);
+    return { z, p, k: zpk.k * kk.re };
+  }
+  // pair conjugates -> second-order sections [b0,b1,b2,a0,a1,a2]
+  function zpk2sos(zpk) {
+    const pairUp = arr => {
+      const rest = arr.slice(); const pairs = [];
+      while (rest.length) {
+        const a = rest.shift();
+        if (Math.abs(a.im) < 1e-9) { // real: pair with the nearest real
+          let j = rest.findIndex(v => Math.abs(v.im) < 1e-9);
+          if (j >= 0) { pairs.push([a, rest.splice(j, 1)[0]]); } else pairs.push([a]);
+        } else {
+          let j = rest.findIndex(v => Math.abs(v.re - a.re) < 1e-7 && Math.abs(v.im + a.im) < 1e-7);
+          if (j >= 0) { pairs.push([a, rest.splice(j, 1)[0]]); } else pairs.push([a, C(a.re, -a.im)]);
+        }
+      }
+      return pairs;
+    };
+    const poly = pr => { // (x - r1)(x - r2) -> real coefficients [1, c1, c2]
+      if (pr.length === 1) return [1, -pr[0].re, 0];
+      const s = cadd(pr[0], pr[1]), m = cmul(pr[0], pr[1]);
+      return [1, -s.re, m.re];
+    };
+    // sort poles by closeness to the unit circle so each section pairs zeros nearby (stability of cascade)
+    const P = zpk.p.slice().sort((a, b) => Math.hypot(b.re, b.im) - Math.hypot(a.re, a.im));
+    const Z = zpk.z.slice();
+    const pp = pairUp(P);
+    const sos = [];
+    pp.forEach((pair, idx) => {
+      // choose the zero(s) nearest this pole pair
+      const zs = [];
+      for (let n = 0; n < pair.length && Z.length; n++) {
+        let best = 0, bd = Infinity;
+        Z.forEach((v, j) => { const d = Math.hypot(v.re - pair[0].re, Math.abs(v.im) - Math.abs(pair[0].im)); if (d < bd) { bd = d; best = j; } });
+        const zz = Z.splice(best, 1)[0];
+        zs.push(zz);
+        if (Math.abs(zz.im) > 1e-9) { // also remove its conjugate
+          const cj = Z.findIndex(v => Math.abs(v.re - zz.re) < 1e-7 && Math.abs(v.im + zz.im) < 1e-7);
+          if (cj >= 0) { zs.push(Z.splice(cj, 1)[0]); n++; }
+        }
+      }
+      const b = zs.length ? poly(zs) : [1, 0, 0];
+      const a = poly(pair);
+      const g = idx === 0 ? zpk.k : 1;
+      sos.push([b[0] * g, b[1] * g, b[2] * g, a[0], a[1], a[2]]);
+    });
+    return sos;
+  }
+
+  function butter(N, cutoffHz, fs, btype = 'lowpass') {
+    const warp = f => 2 * fs * Math.tan(Math.PI * f / fs);
+    let zpk = buttap(N);
+    if (btype === 'lowpass') zpk = lp2lp(zpk, warp(cutoffHz));
+    else if (btype === 'highpass') zpk = lp2hp(zpk, warp(cutoffHz));
+    else {
+      const w1 = warp(cutoffHz[0]), w2 = warp(cutoffHz[1]);
+      const bw = w2 - w1, wo = Math.sqrt(w1 * w2);
+      zpk = btype === 'bandpass' ? lp2bp(zpk, wo, bw) : lp2bs(zpk, wo, bw);
+    }
+    return zpk2sos(bilinear(zpk, fs));
+  }
+
+  function sosfilt(sos, x, zi) { // direct form II transposed, per section
+    let y = Float64Array.from(x);
+    const st = zi || sos.map(() => [0, 0]);
+    sos.forEach(([b0, b1, b2, a0, a1, a2], s) => {
+      const z = st[s]; const out = new Float64Array(y.length);
+      for (let n = 0; n < y.length; n++) {
+        const xn = y[n];
+        const yn = b0 * xn + z[0];
+        z[0] = b1 * xn - a1 * yn + z[1];
+        z[1] = b2 * xn - a2 * yn;
+        out[n] = yn;
+      }
+      y = out;
+    });
+    return y;
+  }
+  // steady-state initial conditions for a step of amplitude 1 (like scipy sosfilt_zi)
+  function sosfiltZi(sos) {
+    let scale = 1;
+    return sos.map(([b0, b1, b2, a0, a1, a2]) => {
+      // solve for zi such that output is constant for constant input (scale)
+      const g = (b0 + b1 + b2) / (1 + a1 + a2); // dc gain of this section
+      const z0 = scale * ((b1 - a1 * b0) + (b2 - a2 * b0)) / (1 + a1 + a2) * 1; // approx via steady state
+      // exact: z1 = scale*(b2 - a2*b0)... use the standard linear solve
+      // Steady state: y = g*scale; z0 = y - b0*scale; z1 = z0 - (b1*scale - a1*y)
+      const y = g * scale;
+      const zz0 = y - b0 * scale;
+      const zz1 = zz0 - (b1 * scale - a1 * y);
+      scale = y;
+      return [zz0, zz1];
+    });
+  }
+  function sosfiltfilt(sos, x) {
+    const n = x.length;
+    const pad = Math.min(n - 1, 3 * (2 * sos.length + 1)); // ~ 3 * (order) samples (scipy: 3*max(len(a),len(b)))
+    // odd extension
+    const ext = new Float64Array(n + 2 * pad);
+    for (let i = 0; i < pad; i++) ext[i] = 2 * x[0] - x[pad - i];
+    for (let i = 0; i < n; i++) ext[pad + i] = x[i];
+    for (let i = 0; i < pad; i++) ext[pad + n + i] = 2 * x[n - 1] - x[n - 2 - i];
+    const zi = sosfiltZi(sos);
+    let y = sosfilt(sos, ext, zi.map(z => [z[0] * ext[0], z[1] * ext[0]]));
+    y.reverse();
+    y = sosfilt(sos, y, zi.map(z => [z[0] * y[0], z[1] * y[0]]));
+    y.reverse();
+    return y.slice(pad, pad + n);
+  }
+  function sosFreqz(sos, fHz, fs) { // magnitude response at a frequency (Hz)
+    const w = 2 * Math.PI * fHz / fs;
+    const e1 = C(Math.cos(-w), Math.sin(-w)), e2 = C(Math.cos(-2 * w), Math.sin(-2 * w));
+    let H = C(1);
+    sos.forEach(([b0, b1, b2, a0, a1, a2]) => {
+      const num = cadd(C(b0), cadd(cscale(e1, b1), cscale(e2, b2)));
+      const den = cadd(C(a0), cadd(cscale(e1, a1), cscale(e2, a2)));
+      H = cmul(H, cdiv(num, den));
+    });
+    return Math.hypot(H.re, H.im);
+  }
+  function sosPhase(sos, fHz, fs) {
+    const w = 2 * Math.PI * fHz / fs;
+    const e1 = C(Math.cos(-w), Math.sin(-w)), e2 = C(Math.cos(-2 * w), Math.sin(-2 * w));
+    let H = C(1);
+    sos.forEach(([b0, b1, b2, a0, a1, a2]) => {
+      const num = cadd(C(b0), cadd(cscale(e1, b1), cscale(e2, b2)));
+      const den = cadd(C(a0), cadd(cscale(e1, a1), cscale(e2, a2)));
+      H = cmul(H, cdiv(num, den));
+    });
+    return Math.atan2(H.im, H.re);
+  }
+
+  // ---- real FFT magnitude (radix-2, zero-padded), returns {f, mag} one-sided, mag scaled 2/N
+  function rfftMag(x, fs) {
+    let N = 1; while (N < x.length) N <<= 1;
+    const re = new Float64Array(N), im = new Float64Array(N);
+    for (let i = 0; i < x.length; i++) re[i] = x[i];
+    for (let i = 1, j = 0; i < N; i++) { // bit reversal
+      let bit = N >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit;
+      if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; }
+    }
+    for (let len = 2; len <= N; len <<= 1) {
+      const ang = -2 * Math.PI / len, wr = Math.cos(ang), wi = Math.sin(ang);
+      for (let i = 0; i < N; i += len) {
+        let cr = 1, ci = 0;
+        for (let j = 0; j < len / 2; j++) {
+          const ur = re[i + j], ui = im[i + j];
+          const vr = re[i + j + len / 2] * cr - im[i + j + len / 2] * ci;
+          const vi = re[i + j + len / 2] * ci + im[i + j + len / 2] * cr;
+          re[i + j] = ur + vr; im[i + j] = ui + vi;
+          re[i + j + len / 2] = ur - vr; im[i + j + len / 2] = ui - vi;
+          const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t;
+        }
+      }
+    }
+    const half = N / 2 + 1, f = new Float64Array(half), mag = new Float64Array(half);
+    for (let k = 0; k < half; k++) { f[k] = k * fs / N; mag[k] = 2 * Math.hypot(re[k], im[k]) / x.length; }
+    return { f, mag };
+  }
+
+  const api = { butter, sosfilt, sosfiltfilt, sosFreqz, sosPhase, rfftMag };
+  if (typeof module !== 'undefined') module.exports = api;
+  global.Butter = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+const DATA={"ax":[2.263,4.289,11.335,9.616,-0.365,-11.074,-8.194,-0.231,4.744,5.601,4.634,2.351,0.647,-0.003,0.985,-1.343,-3.7,-4.837,-3.9,-2.812,-3.164,-6.794,-7.056,-5.561,-5.104,-6.932,-11.231,-9.327,-2.902,2.732,7.388,9.326,6.534,3.301,1.235,0.499,2.304,3.482,2.213,0.818,2.427,3.844,3.827,2.354,-0.867,-0.879,7.048,7.124,-4.497,-14.683,-7.232,6.788,14.065,10.937,5.379,-1.788,-3.297,-1.798,-1.874,-3.228,-3.821,-4.487,-3.988,-2.143,-2.514,-5.973,-8.253,-5.58,-2.652,-2.476,-10.562,-11.605,-1.343,5.405,5.543,4.184,2.385,2.473,3.127,1.48,-0.053,-0.1,1.925,2.492,2.718,3.068,4.053,3.104,1.437,-0.779,3.165,9.004,2.868,-10.534,-7.406,3.96,14.267,11.221,4.129,0.952,0.564,0.797,-1.519,-4.821,-7.399,-4.79,-2.398,-1.931,-6.154,-6.654,-4.928,-4.059,-4.416,-4.073,-9.036,-8.032,-1.743,4.746,8.512,6.503,5.846,6.798,6.039,3.063,1.19,-0.222,-0.541,1.761,4.184,5.039,3.12,0.718,-0.331,2.547,8.852,3.465,-9.222,-11.909,-5.071,4.886,9.997,6.803,1.897,-1.267,-2.126,-2.931,-4.38,-5.892,-6.123,-4.033,-1.391,-2.497,-6.594,-8.132,-5.823,-2.686,-1.372,-9.446,-12.029,-4.518,1.68,3.218,3.413,3.753,5.108,6.11,4.115,2.142,0.692,0.873,2.475,4.158,5.039,5.041,1.266,-0.588,1.851,10.971,10.418,-4.154,-17.075,-7.456,7.819,14.094,8.85,3.634,0.152,-1.56,-1.5,-2.062,-3.952,-4.937,-4.464,-3.602,-3.338,-3.757,-5.849,-7.215,-6.506,-1.167,-2.017,-6.863,-8.62,-1.874,2.83,5.886,5.008,4.782,6.234,6.127,3.203,1.014,0.278,1.302,1.937,2.316,1.58,1.604,0.878,-0.662,1.697,6.312,6.493,-2.421,-7.227,1.294,11.778,13.432,8.148,1.509,-2.617,-2.148,1.149,3.632,-0.465,-4.868,-5.156,-2.557,-1.938,-3.826,-6.561,-7.294,-6.059,-2.945,-1.41,-4.823,-5.447,-1.555,-0.612,-1.284,0.109,1.556,1.64,1.973,3.832,3.641,1.233,-1.305,-0.522,2.263,2.432,-0.612,-1.876,0.033,3.175,0.597,-4.761,-5.194,11.194,12.427,-7.039,-14.045,-4.199,10.814,14.96,13.151,5.52,-2.417,-4.69,-3.331,-2.79,-2.383,-2.24,-2.302,-0.9,0.011,-0.15,-1.069,-1.805,-0.343,1.809,1.656,-0.929,-0.793,1.075,2.235,2.532,1.916,0.702,0.59,0.747,-0.065,0.268,1.637,2.566,2.349,1.549,2.297,1.078,3.125,4.075,1.104,1.935],"ay":[-5.707,-5.269,0.141,2.922,-7.012,-12.317,-6.505,2.558,7.385,6.768,5.895,4.819,4.012,4.11,4.869,2.972,2.429,2.631,4.169,6.63,7.202,4.155,3.403,4.462,6.809,8.011,1.213,-6.081,-5.272,-2.682,1.025,3.983,2.384,-0.506,-2.536,-3.065,-2.277,-1.187,-2.053,-3.615,-3.11,-2.648,-3.37,-5.0,-7.354,-6.983,0.465,7.352,-4.25,-11.337,-4.715,6.554,11.053,7.187,3.45,0.091,0.46,2.777,2.972,2.743,3.143,3.148,4.369,6.723,7.244,4.809,2.603,3.469,6.678,11.136,1.444,-6.331,-3.441,1.141,2.305,1.679,0.234,-0.197,-0.646,-2.127,-3.491,-3.174,-1.67,-0.996,-1.365,-2.651,-3.327,-3.403,-4.305,-5.46,-3.267,2.765,-6.098,-14.448,-9.054,2.577,10.394,7.363,3.822,3.712,5.188,5.902,4.024,1.06,0.996,3.555,6.616,8.439,4.307,2.417,3.179,3.824,5.157,6.223,-0.542,-8.111,-7.945,-4.617,0.322,1.591,-0.444,-1.218,-0.808,-2.158,-3.31,-5.148,-5.341,-3.167,-1.999,-1.994,-4.284,-6.519,-7.264,-4.645,4.764,0.637,-9.97,-10.087,-1.239,7.647,9.337,7.214,5.309,3.824,3.752,3.219,2.377,1.26,1.47,4.136,7.44,7.69,4.943,2.465,3.188,7.021,12.193,3.764,-6.319,-5.988,-2.908,-0.549,-1.361,-1.541,-2.194,-1.411,-1.558,-2.575,-3.798,-4.019,-3.384,-2.986,-2.572,-2.858,-5.65,-7.997,-7.247,2.265,4.797,-9.344,-15.262,-6.04,6.992,10.641,6.095,4.229,2.71,2.31,2.903,2.962,2.481,2.231,4.21,6.261,7.314,6.909,5.485,2.698,2.707,8.808,12.196,1.086,-5.16,-3.622,-1.399,-0.028,0.294,-1.353,-1.063,-0.818,-3.174,-4.776,-4.536,-3.155,-2.694,-2.798,-4.05,-3.85,-4.086,-5.505,-4.584,2.677,1.558,-8.645,-13.048,-4.265,7.344,8.918,4.169,1.179,-0.016,1.651,3.507,4.84,2.66,0.829,1.605,4.774,6.899,6.249,3.971,2.529,2.781,6.697,10.237,4.94,-1.832,-2.998,-3.765,-5.555,-4.35,-2.446,-2.006,-1.044,0.499,0.965,-0.416,-1.81,-1.618,-0.154,0.501,-1.62,-2.675,-1.287,0.784,-1.396,-5.707,-4.757,7.221,14.369,-3.703,-15.683,-12.234,-1.077,6.138,7.725,4.528,0.92,0.979,2.743,2.869,2.012,1.801,1.272,2.612,3.667,3.16,1.501,0.515,1.641,2.4,1.222,-0.318,-0.38,0.851,1.51,1.884,1.755,1.674,1.791,1.92,1.184,0.76,1.301,1.967,1.827,1.079,2.907,-1.482,1.353,2.391,2.446,1.717],"az":[8.478,9.163,6.514,7.802,19.306,19.306,19.306,16.54,11.053,12.131,11.979,9.387,7.311,4.36,4.114,6.945,7.863,6.371,2.972,-0.325,1.722,7.375,11.267,13.614,11.275,12.757,19.306,19.306,19.306,16.378,9.772,5.966,5.021,5.554,5.312,4.326,1.641,0.072,-0.544,1.539,1.739,1.71,1.705,4.131,9.175,12.415,10.065,10.953,19.306,19.306,19.306,12.779,8.766,9.265,8.032,8.347,4.881,5.076,6.573,8.649,8.861,6.564,2.869,-0.063,2.084,6.814,12.296,17.725,14.402,12.081,19.306,19.306,19.306,15.773,7.149,4.336,1.513,1.26,3.326,5.802,6.987,5.114,1.601,0.948,1.348,3.6,5.854,4.702,5.89,9.073,13.688,12.058,19.306,19.306,19.306,10.548,11.353,19.008,17.975,12.531,5.038,2.443,3.717,9.896,9.511,5.745,0.796,-0.694,5.126,8.801,11.708,14.393,12.572,12.319,19.306,19.306,19.306,17.39,7.14,4.362,5.842,8.071,6.097,3.498,2.091,2.905,3.117,2.648,-0.394,-1.341,0.668,7.292,11.175,10.891,6.085,14.75,19.306,19.306,18.751,11.132,12.869,12.422,11.482,9.537,4.99,2.831,5.043,7.128,5.571,2.046,0.294,1.817,7.678,14.193,16.488,12.677,9.427,19.306,19.306,19.306,19.306,8.37,6.711,5.155,6.307,2.827,0.91,1.929,2.924,2.439,1.32,0.07,-1.191,0.601,5.576,8.728,9.658,6.618,9.37,19.306,19.306,19.306,18.542,16.585,15.014,10.353,7.973,4.219,3.074,3.284,3.479,3.643,1.832,1.929,2.465,5.65,10.925,17.813,17.247,12.153,16.388,19.306,19.306,19.306,10.775,6.19,2.165,1.801,3.2,2.162,2.531,3.246,2.589,1.936,1.391,0.525,1.891,2.148,4.567,7.092,10.051,8.792,18.054,19.306,19.306,19.306,12.386,12.393,14.095,14.467,9.649,1.753,0.394,3.186,6.071,6.245,2.669,-0.551,-1.361,1.244,6.849,11.953,16.069,14.186,13.36,19.306,19.306,19.306,19.306,18.682,11.336,6.43,6.35,5.704,5.681,6.152,5.05,1.81,1.336,-0.042,0.91,2.112,1.617,-0.256,-1.425,1.553,10.813,14.133,8.413,7.24,19.306,19.306,19.306,19.306,5.516,3.584,7.03,13.731,13.341,9.589,9.642,11.272,9.142,8.83,6.183,4.233,5.676,7.744,7.049,2.781,4.205,7.74,9.411,9.125,9.256,9.82,10.146,9.306,7.606,7.794,9.058,11.417,12.322,11.077,8.766,7.89,10.134,-2.065,19.306,14.502,12.396,4.479,12.131]};
+
+// SciPy-faithful scipy.signal.find_peaks subset: local maxima with plateau handling,
+// height, distance, prominence (wlen = whole signal), width (rel_height 0.5).
+function localMaxima(x) {
+  const n = x.length, out = [];
+  let i = 1;
+  while (i < n - 1) {
+    if (x[i - 1] < x[i]) {
+      let ahead = i + 1;
+      while (ahead < n - 1 && x[ahead] === x[i]) ahead++;
+      if (x[ahead] < x[i]) { out.push(Math.floor((i + ahead - 1) / 2)); i = ahead; }
+      else i = ahead;
+    } else i++;
+  }
+  return out;
+}
+function prominences(x, peaks) {
+  const n = x.length;
+  return peaks.map(p => {
+    let lm = x[p], lb = p, i = p;
+    while (i >= 0 && x[i] <= x[p]) { if (x[i] < lm) { lm = x[i]; lb = i; } i--; }
+    let rm = x[p], rb = p; i = p;
+    while (i < n && x[i] <= x[p]) { if (x[i] < rm) { rm = x[i]; rb = i; } i++; }
+    return { prom: x[p] - Math.max(lm, rm), lb, rb, lm, rm };
+  });
+}
+function widths(x, peaks, pr, rel = 0.5) {
+  return peaks.map((p, k) => {
+    const h = x[p] - pr[k].prom * rel;
+    let i = p; while (pr[k].lb < i && h < x[i]) i--;
+    let lip = i; if (x[i] < h) lip += (h - x[i]) / (x[i + 1] - x[i]);
+    i = p; while (i < pr[k].rb && h < x[i]) i++;
+    let rip = i; if (x[i] < h) rip -= (h - x[i]) / (x[i - 1] - x[i]);
+    return { width: rip - lip, h, lip, rip };
+  });
+}
+function selectByDistance(peaks, priority, distance) {
+  const n = peaks.length, keep = new Array(n).fill(true), killedBy = new Array(n).fill(-1);
+  const order = priority.map((v, i) => i).sort((a, b) => priority[a] - priority[b]);
+  const d = Math.ceil(distance);
+  for (let j = n - 1; j >= 0; j--) {
+    const i = order[j]; if (!keep[i]) continue;
+    let k = i - 1; while (k >= 0 && peaks[i] - peaks[k] < d) { if (keep[k]) { keep[k] = false; killedBy[k] = i; } k--; }
+    k = i + 1; while (k < n && peaks[k] - peaks[i] < d) { if (keep[k]) { keep[k] = false; killedBy[k] = i; } k++; }
+  }
+  return { keep, killedBy };
+}
+// Returns every local maximum annotated with which criteria it passes, plus the kept subset.
+// opts: { height, distance (samples), prominence, width (samples) } -- undefined means inactive.
+function findPeaks(x, opts = {}) {
+  let peaks = localMaxima(x);
+  const all = peaks.map(p => ({ i: p, v: x[p], pass: {} }));
+  let alive = all.slice();
+  if (opts.height != null) { alive.forEach(a => a.pass.height = a.v >= opts.height); alive = alive.filter(a => a.pass.height); }
+  if (opts.distance != null) {
+    const sel = selectByDistance(alive.map(a => a.i), alive.map(a => a.v), opts.distance);
+    alive.forEach((a, k) => { a.pass.distance = sel.keep[k]; a.killedBy = sel.killedBy[k] >= 0 ? alive[sel.killedBy[k]].i : -1; });
+    alive = alive.filter(a => a.pass.distance);
+  }
+  // prominence and width evaluated on the survivors (as scipy does), but also on every maximum for display
+  const prAll = prominences(x, all.map(a => a.i)); const wAll = widths(x, all.map(a => a.i), prAll);
+  all.forEach((a, k) => { a.prom = prAll[k].prom; a.lb = prAll[k].lb; a.rb = prAll[k].rb; a.base = Math.max(prAll[k].lm, prAll[k].rm); a.width = wAll[k].width; a.wh = wAll[k].h; a.lip = wAll[k].lip; a.rip = wAll[k].rip; });
+  if (opts.prominence != null) { alive.forEach(a => a.pass.prominence = a.prom >= opts.prominence); alive = alive.filter(a => a.pass.prominence); }
+  if (opts.width != null) { alive.forEach(a => a.pass.width = a.width >= opts.width); alive = alive.filter(a => a.pass.width); }
+  return { all, kept: alive.map(a => a.i) };
+}
+
+// ------------------------------------------------------------ shared helpers
+const $ = id => document.getElementById(id);
+const svgNS = 'http://www.w3.org/2000/svg';
+const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+const txt = (parent, x, y, s, attrs = {}) => { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; };
+const chart = $('chart'), tt = $('tt');
+const C = { blue: '#2a78d6', green: '#1baf7a', violet: '#4a3aa7', red: '#eb6834', grey: '#b4b4b4', greyDot: '#8c8c8c', ink: '#222', ink2: '#666', ink3: '#9a9a9a' };
+const fmt = (v, d = 2) => (Math.round(v * Math.pow(10, d)) / Math.pow(10, d)).toFixed(d);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+function niceTicks(lo, hi, n = 6) {
+  const span = hi - lo, raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => span / s <= n) || mag * 10;
+  const out = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(6)); return out;
+}
+// A panel: axes + grid + clip; returns scales and a content group.
+function panel(parent, box, xd, yd, o = {}) {
+  const { x, y, w, h } = box;
+  const sx = v => x + (v - xd[0]) / (xd[1] - xd[0]) * w;
+  const sy = v => y + h - (v - yd[0]) / (yd[1] - yd[0]) * h;
+  const grid = el('g', { class: 'grid' }, parent), axis = el('g', { class: 'axis' }, parent);
+  const xt = o.xt || niceTicks(xd[0], xd[1], o.nx || 8), yt = o.yt || niceTicks(yd[0], yd[1], o.ny || 5);
+  xt.forEach(v => { el('line', { x1: sx(v), x2: sx(v), y1: y, y2: y + h }, grid); txt(axis, sx(v), y + h + 17, o.xf ? o.xf(v) : v, { 'text-anchor': 'middle' }); });
+  yt.forEach(v => { el('line', { x1: x, x2: x + w, y1: sy(v), y2: sy(v) }, grid); txt(axis, x - 8, sy(v) + 4, o.yf ? o.yf(v) : v, { 'text-anchor': 'end' }); });
+  el('path', { d: `M${x},${y}V${y + h}H${x + w}` }, axis);
+  if (o.xlabel) txt(parent, x + w, y + h + 34, o.xlabel, { class: 'axis-title', 'text-anchor': 'end' });
+  if (o.ylabel) { const t = txt(parent, 0, 0, o.ylabel, { class: 'axis-title', 'text-anchor': 'middle' }); t.setAttribute('transform', `translate(${x - (o.ylx || 46)},${y + h / 2}) rotate(-90)`); }
+  if (o.title) txt(parent, x, y - 8, o.title, { class: 'ptitle' });
+  const id = 'clip' + Math.random().toString(36).slice(2, 8);
+  const cp = el('clipPath', { id }, parent); el('rect', { x, y: y - 2, width: w, height: h + 4 }, cp);
+  const g = el('g', { 'clip-path': `url(#${id})` }, parent);
+  const top = el('g', {}, parent);
+  return { sx, sy, g, top, box, xd, yd };
+}
+function pathOf(xs, ys, upto) { let d = ''; const n = upto == null ? xs.length : upto; for (let i = 0; i < n; i++) d += (i ? 'L' : 'M') + xs[i].toFixed(1) + ',' + ys[i].toFixed(1); return d; }
+function legend(parent, x, y, items) {
+  const rowH = 18, padX = 10, padY = 8;
+  const wdt = Math.max(...items.map(i => i.n.length)) * 7.1 + 2 * padX + 30;
+  el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, parent);
+  items.forEach((it, j) => {
+    const cy = y + padY + j * rowH + 6, cx = x + padX + 9;
+    if (it.k === 'cross') { el('line', { x1: cx - 5, x2: cx + 5, y1: cy - 5, y2: cy + 5, class: 'cross' }, parent); el('line', { x1: cx - 5, x2: cx + 5, y1: cy + 5, y2: cy - 5, class: 'cross' }, parent); }
+    else if (it.k === 'circle') el('circle', { cx, cy, r: 5.5, class: 'kept', stroke: it.c || C.red }, parent);
+    else if (it.k === 'rect') el('rect', { x: x + padX, y: cy - 6, width: 18, height: 12, class: 'win-rect' }, parent);
+    else if (it.k === 'dot') el('circle', { cx, cy, r: 4.5, fill: it.c }, parent);
+    else el('line', { x1: x + padX, x2: x + padX + 18, y1: cy, y2: cy, stroke: it.c, 'stroke-width': it.k === 'dash' ? 1.5 : 2.5, 'stroke-dasharray': it.k === 'dash' ? '5 4' : 'none' }, parent);
+    txt(parent, x + padX + 26, cy + 4, it.n, { class: 'axis-title', fill: 'var(--ink)' });
+  });
+  return wdt;
+}
+function cross(parent, x, y, s = 5, attrs = {}) { const g = el('g', Object.assign({ class: 'cross' }, attrs), parent); el('line', { x1: x - s, x2: x + s, y1: y - s, y2: y + s }, g); el('line', { x1: x - s, x2: x + s, y1: y + s, y2: y - s }, g); return g; }
+function badge(parent, x, y, s, color) { const g = el('g', {}, parent); const w = s.length * 9.4 + 18; el('rect', { x, y: y - 17, width: w, height: 24, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g); txt(g, x + 9, y, s, { class: 'badge', fill: color || 'var(--ink)' }); return g; }
+function tipAt(evt, html) {
+  tt.innerHTML = html; tt.style.display = 'block';
+  const wrap = chart.parentElement.getBoundingClientRect();
+  const px = evt.clientX - wrap.left, py = evt.clientY - wrap.top;
+  tt.style.left = (px + 16 + tt.offsetWidth > wrap.width ? px - tt.offsetWidth - 12 : px + 16) + 'px';
+  tt.style.top = Math.max(0, py - 10) + 'px';
+}
+function svgPoint(evt) { const pt = chart.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY; return pt.matrixTransform(chart.getScreenCTM().inverse()); }
+
+// ------------------------------------------------------------ dials (persist unless the user touched them)
+// defs: { id: { val: id of readout span, parse, fmt } }
+const dials = {}, dirty = {};
+function defDial(id, o) {
+  dials[id] = o; dirty[id] = false;
+  const inp = $(id);
+  const ev = inp.tagName === 'SELECT' ? 'change' : 'input';
+  inp.addEventListener(ev, e => { e.stopPropagation(); dirty[id] = true; showDial(id); onDial(id); });
+  inp.addEventListener('click', e => e.stopPropagation());
+  showDial(id);
+}
+function dial(id) { const v = $(id).value; return dials[id].parse ? dials[id].parse(v) : v; }
+function showDial(id) { const o = dials[id]; if (o.val) $(o.val).textContent = o.fmt ? o.fmt(dial(id)) : $(id).value; }
+function applyPresets(p, force = false) { for (const id in p || {}) if (force || !dirty[id]) { $(id).value = p[id]; showDial(id); } }
+
+// ------------------------------------------------------------ step machine
+let step = 0, progress = 0, playing = false, raf = 0, lastT = 0;
+const speedMult = () => parseFloat($('speed').value);
+function cur() { return STEPS[step]; }
+function updateHead() {
+  const d = cur();
+  $('title').innerHTML = d.title + (d.tag ? `<span class="tag">${d.tag()}</span>` : '');
+  $('subtitle').textContent = d.subtitle;
+  $('counter').textContent = `${step + 1} / ${STEPS.length}`;
+  const use = d.dials || Object.keys(dials); for (const id in dials) $(id).closest('.group').hidden = !use.includes(id);
+}
+function enterStep(k, completed = false) {
+  step = clamp(k, 0, STEPS.length - 1); stopPlay();
+  applyPresets(cur().presets);
+  try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {}
+  progress = 0; cur().setup();
+  if (!cur().dur || completed || speedMult() === 0) { progress = 1; cur().draw(1); updateHead(); }
+  else { cur().draw(0); updateHead(); startPlay(); }
+}
+function redraw() { cur().setup(); cur().draw(progress); updateHead(); }
+function onDial() { redraw(); }
+function tick(t) {
+  if (!playing) return;
+  const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+  progress = Math.min(1, progress + dt * speedMult() / cur().dur);
+  cur().draw(progress); updateHead();
+  if (progress >= 1) { stopPlay(); return; }
+  raf = requestAnimationFrame(tick);
+}
+function startPlay() { if (progress >= 1 || !cur().dur) return; playing = true; lastT = performance.now(); $('play').textContent = 'Pause'; raf = requestAnimationFrame(tick); }
+function stopPlay() { playing = false; cancelAnimationFrame(raf); $('play').textContent = 'Play'; }
+function finish() { stopPlay(); progress = 1; cur().draw(1); updateHead(); }
+function next() { if (progress < 1) { finish(); return; } if (step < STEPS.length - 1) enterStep(step + 1); }
+function prev() { if (step > 0) enterStep(step - 1, true); }
+function restart() { enterStep(step); }
+function wire() {
+  $('next').addEventListener('click', e => { e.stopPropagation(); next(); });
+  $('prev').addEventListener('click', e => { e.stopPropagation(); prev(); });
+  $('restart').addEventListener('click', e => { e.stopPropagation(); restart(); });
+  $('reset').addEventListener('click', e => { e.stopPropagation(); for (const id in dirty) dirty[id] = false; applyPresets(cur().presets, true); restart(); });
+  $('play').addEventListener('click', e => { e.stopPropagation(); if (playing) stopPlay(); else if (progress >= 1) restart(); else startPlay(); });
+  $('speed').addEventListener('click', e => e.stopPropagation());
+  $('speed').addEventListener('change', e => { e.stopPropagation(); if (speedMult() === 0) finish(); });
+  $('slide').addEventListener('click', () => next());
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
+    else if (e.key === 'r' || e.key === 'R') restart();
+  });
+  chart.addEventListener('mouseleave', () => { tt.style.display = 'none'; if (typeof unhover === 'function') unhover(); });
+  const h = parseInt((location.hash || '').replace('#', ''), 10);
+  enterStep(h >= 1 && h <= STEPS.length ? h - 1 : 0);
+}
+
+// ------------------------------------------------------------ data: inPocket-Steps accelerometer.csv, samples 2000-2499, 50 Hz
+const N = DATA.ax.length, FS = 50, T = Array.from({ length: N }, (_, i) => i / FS), TEND = (N - 1) / FS;
+const B = window.Butter;
+const W = 1200, H = 640;
+const SINGLE = { x: 70, y: 22, w: 1080, h: 540 };
+const TOP = { x: 70, y: 22, w: 1080, h: 240 }, BOT = { x: 70, y: 338, w: 1080, h: 240 };
+const SINGLE_L = { x: 70, y: 22, w: 760, h: 540 }, TOP_L = { x: 70, y: 22, w: 760, h: 240 }, BOT_L = { x: 70, y: 338, w: 760, h: 240 };
+const PHONE = { x: 870, y: 22, w: 310, h: 540 };
+const AX = [{ k: 'ax', n: 'x', c: C.blue }, { k: 'ay', n: 'y', c: C.green }, { k: 'az', n: 'z', c: C.violet }];
+
+function mm(A, B) { return [0, 1, 2].map(i => [0, 1, 2].map(j => A[i][0] * B[0][j] + A[i][1] * B[1][j] + A[i][2] * B[2][j])); }
+function rotMatrix(r) { // rotate the phone about its own x, then y, then z axis (degrees): v' = Rz Ry Rx v
+  const d = Math.PI / 180;
+  return mm(rodrigues([0, 0, 1], r.rz * d), mm(rodrigues([0, 1, 0], r.ry * d), rodrigues([1, 0, 0], r.rx * d)));
+}
+function rotate(r) { // every sample re-expressed in the rotated sensor frame
+  const M = rotMatrix(r), ax = [], ay = [], az = [];
+  for (let i = 0; i < N; i++) { const v = mv(M, [DATA.ax[i], DATA.ay[i], DATA.az[i]]); ax.push(v[0]); ay.push(v[1]); az.push(v[2]); }
+  return { ax, ay, az };
+}
+const MAG = DATA.ax.map((_, i) => Math.hypot(DATA.ax[i], DATA.ay[i], DATA.az[i]));
+const MEAN = MAG.reduce((a, b) => a + b, 0) / N;
+const MAGC = MAG.map(v => v - MEAN);
+let FILT = [], rawMax = [], filtMax = [];
+function computeFilter() {
+  const lo = dial('lo'), hi = Math.max(dial('hi'), lo + 0.5);
+  FILT = Array.from(B.sosfiltfilt(B.butter(3, [lo, hi], FS, 'bandpass'), MAGC));
+  rawMax = localMaxima(MAGC); filtMax = localMaxima(FILT);
+}
+
+['rx', 'ry', 'rz'].forEach(id => defDial(id, { val: id + 'Val', parse: parseFloat, fmt: v => v + '°' }));
+const rotDial = (f = 1) => ({ rx: f * dial('rx'), ry: f * dial('ry'), rz: f * dial('rz') });
+const rotText = r => `x ${fmt(r.rx, 0)}° y ${fmt(r.ry, 0)}° z ${fmt(r.rz, 0)}°`;
+defDial('lo', { val: 'loVal', parse: parseFloat, fmt: v => v.toFixed(1) + ' Hz' });
+defDial('hi', { val: 'hiVal', parse: parseFloat, fmt: v => v.toFixed(1) + ' Hz' });
+
+// ------------------------------------------------------------ drawing
+let G = {};
+function axesDomain(sets) { let lo = Infinity, hi = -Infinity; sets.forEach(s => AX.forEach(a => s[a.k].forEach(v => { lo = Math.min(lo, v); hi = Math.max(hi, v); }))); const pad = 0.08 * (hi - lo); return [Math.floor(lo - pad), Math.ceil(hi + pad + 0.28 * (hi - lo))]; }
+function magDomain(arr, sym) { let lo = Math.min(...arr), hi = Math.max(...arr); if (sym) { hi = Math.max(Math.abs(lo), hi); lo = -hi; } const pad = 0.12 * (hi - lo); return [lo - pad, hi + pad + 0.22 * (hi - lo)]; }
+function drawAxesPanel(box, rot, upto, opts = {}) {
+  const R = rotate(rot);
+  const dom = opts.dom || axesDomain([R]);
+  const P = panel(chart, box, [0, TEND], dom, { xlabel: 'time (seconds)', ylabel: 'acceleration (m/s²)', ny: 5 });
+  AX.forEach(a => el('path', { class: 'out-line', d: pathOf(T.map(P.sx), R[a.k].map(P.sy), upto), stroke: a.c, 'stroke-width': 1.6 }, P.g));
+  legend(P.top, box.x + 10, box.y + 8, AX.map(a => ({ c: a.c, n: a.n + ' axis' })));
+  P.R = R; return P;
+}
+function drawMagPanel(box, arr, upto, name, color, opts = {}) {
+  const dom = opts.dom || magDomain(arr, opts.sym);
+  const P = panel(chart, box, [0, TEND], dom, { xlabel: 'time (seconds)', ylabel: opts.ylabel || '|a| (m/s²)', ny: 5, yf: v => fmt(v, opts.sym ? 1 : 0) });
+  if (opts.zero) el('line', { x1: box.x, x2: box.x + box.w, y1: P.sy(0), y2: P.sy(0), stroke: 'var(--ink-3)', 'stroke-width': 1 }, P.g);
+  el('path', { class: 'out-line', d: pathOf(T.map(P.sx), arr.map(P.sy), upto), stroke: color, 'stroke-width': 1.8 }, P.g);
+  P.items = [{ c: color, n: name }];
+  return P;
+}
+// ------------------------------------------------------------ phone drawing
+// 3-D helpers (column-vector convention). Sensor frame: x across the screen, y along the length, z out of the screen.
+function rodrigues(k, th) { const c = Math.cos(th), s = Math.sin(th), t = 1 - c, [x, y, z] = k;
+  return [[c + x * x * t, x * y * t - z * s, x * z * t + y * s], [y * x * t + z * s, c + y * y * t, y * z * t - x * s], [z * x * t - y * s, z * y * t + x * s, c + z * z * t]]; }
+function mv(M, v) { return [M[0][0] * v[0] + M[0][1] * v[1] + M[0][2] * v[2], M[1][0] * v[0] + M[1][1] * v[1] + M[1][2] * v[2], M[2][0] * v[0] + M[2][1] * v[1] + M[2][2] * v[2]]; }
+function mt(M) { return [[M[0][0], M[1][0], M[2][0]], [M[0][1], M[1][1], M[2][1]], [M[0][2], M[1][2], M[2][2]]]; }
+// Q takes the sensor frame to the world frame so that the mean acceleration (the reaction to gravity) points straight up.
+const Q = (() => { const m = [DATA.ax, DATA.ay, DATA.az].map(a => a.reduce((u, v) => u + v, 0) / N); const L = Math.hypot(...m); const a = m.map(v => v / L), b = [0, 1, 0];
+  const k = [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; const kl = Math.hypot(...k); const d = clamp(a[0] * b[0] + a[1] * b[1] + a[2] * b[2], -1, 1);
+  return kl < 1e-9 ? [[1, 0, 0], [0, 1, 0], [0, 0, 1]] : rodrigues(k.map(v => v / kl), Math.acos(d)); })();
+const VIEW = (() => { const a = rodrigues([0, 1, 0], -32 * Math.PI / 180), b = rodrigues([1, 0, 0], 18 * Math.PI / 180); return [0, 1, 2].map(i => [0, 1, 2].map(j => b[i][0] * a[0][j] + b[i][1] * a[1][j] + b[i][2] * a[2][j])); })();
+function arrow2d(g, x1, y1, x2, y2, color, w = 2.2) {
+  const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L, hl = 9, hw = 5;
+  el('line', { x1, y1, x2: x2 - ux * hl * 0.6, y2: y2 - uy * hl * 0.6, stroke: color, 'stroke-width': w }, g);
+  el('polygon', { points: `${x2},${y2} ${x2 - ux * hl - uy * hw},${y2 - uy * hl + ux * hw} ${x2 - ux * hl + uy * hw},${y2 - uy * hl - ux * hw}`, fill: color }, g);
+}
+function drawPhone(parent, box, r) {
+  const g = el('g', {}, parent);
+  txt(g, box.x, box.y + 14, 'phone orientation', { class: 'ptitle' });
+  const Rt = mt(rotMatrix(r));                        // new sensor axes expressed in the original sensor frame
+  const cx = box.x + box.w / 2, cy = box.y + 235, sc = 1.0;
+  const world = p => mv(Q, mv(Rt, p));
+  const proj = p => { const v = mv(VIEW, world(p)); return { x: cx + sc * v[0], y: cy - sc * v[1], z: v[2] }; };
+  const hw = 34, hh = 72, hd = 6;                     // half-width (x), half-height (y), half-depth (z) in px
+  const V = [[-hw, -hh, -hd], [hw, -hh, -hd], [hw, hh, -hd], [-hw, hh, -hd], [-hw, -hh, hd], [hw, -hh, hd], [hw, hh, hd], [-hw, hh, hd]].map(proj);
+  const faces = [{ i: [0, 1, 2, 3], f: '#d9d9d9' }, { i: [4, 5, 6, 7], f: '#f4f7fb', screen: true }, { i: [0, 1, 5, 4], f: '#e4e4e4' }, { i: [3, 2, 6, 7], f: '#e4e4e4' }, { i: [0, 3, 7, 4], f: '#ececec' }, { i: [1, 2, 6, 5], f: '#ececec' }];
+  faces.map(f => ({ ...f, z: f.i.reduce((a, k) => a + V[k].z, 0) / 4 })).sort((a, b) => a.z - b.z).forEach(f => {
+    el('polygon', { points: f.i.map(k => `${V[k].x.toFixed(1)},${V[k].y.toFixed(1)}`).join(' '), fill: f.f, stroke: '#555', 'stroke-width': 1.2, 'stroke-linejoin': 'round' }, g);
+    if (f.screen) {                                   // screen inset and home button on the +z face
+      const S = [[-hw + 5, -hh + 12, hd + 0.1], [hw - 5, -hh + 12, hd + 0.1], [hw - 5, hh - 16, hd + 0.1], [-hw + 5, hh - 16, hd + 0.1]].map(proj);
+      el('polygon', { points: S.map(q => `${q.x.toFixed(1)},${q.y.toFixed(1)}`).join(' '), fill: '#cfe0f5', stroke: 'none' }, g);
+      const b = proj([0, hh - 8, hd + 0.1]); el('circle', { cx: b.x, cy: b.y, r: 3, fill: 'none', stroke: '#777', 'stroke-width': 1 }, g);
+    }
+  });
+  const o = proj([0, 0, hd]);
+  [[C.blue, 'x', [1, 0, 0]], [C.green, 'y', [0, 1, 0]], [C.violet, 'z', [0, 0, 1]]].forEach(([c, n, e]) => {
+    const t = proj(e.map(v => v * 105)); arrow2d(g, o.x, o.y, t.x, t.y, c);
+    const lx = o.x + (t.x - o.x) * 1.12, ly = o.y + (t.y - o.y) * 1.12;
+    txt(g, lx, ly + 5, n, { fill: c, 'text-anchor': 'middle', style: 'font: 700 15px var(--mono)' });
+  });
+  const gx = box.x + box.w - 34;
+  arrow2d(g, gx, cy - 40, gx, cy + 40, '#444', 2.4); txt(g, gx, cy + 60, 'gravity', { class: 'axis-title', 'text-anchor': 'middle' });
+  const R = rotate(r), means = AX.map(a => R[a.k].reduce((u, v) => u + v, 0) / N);
+  const y0 = box.y + 400;
+  txt(g, box.x, y0, 'average reading on each axis (m/s²)', { class: 'axis-title' });
+  AX.forEach((a, k) => { txt(g, box.x + 8, y0 + 28 + k * 26, a.n, { fill: a.c, style: 'font: 700 15px var(--mono)' }); txt(g, box.x + 34, y0 + 28 + k * 26, fmt(means[k], 2).padStart(6), { fill: a.c, style: 'font: 700 15px var(--mono); white-space: pre' }); });
+  txt(g, box.x, y0 + 116, 'x, y, z change with the angle', { class: 'axis-title' });
+  txt(g, box.x, y0 + 134, `average |a| stays ${fmt(MEAN, 2)} m/s²`, { class: 'axis-title' });
+  return g;
+}
+function cursorLine(P, i) { el('line', { x1: P.sx(T[i]), x2: P.sx(T[i]), y1: P.box.y, y2: P.box.y + P.box.h, stroke: 'var(--ink-2)', 'stroke-width': 1, 'stroke-dasharray': '3 3' }, P.top); }
+
+const STEPS = [
+  {
+    title: 'Three accelerometer axes during walking', dur: 8, presets: { rx: 0, ry: 0, rz: 0 },
+    tag: () => `50 Hz · rotation ${rotText(rotDial())}`,
+    dials: ['rx', 'ry', 'rz'],
+    subtitle: 'How the angle of the phone sets the reading on each accelerometer axis.',
+    setup() { chart.innerHTML = ''; }, draw(p) { chart.innerHTML = ''; G.top = drawAxesPanel(SINGLE_L, rotDial(), Math.max(2, Math.round(p * N))); drawPhone(chart, PHONE, rotDial()); }
+  },
+  {
+    title: 'Effect of rotating the phone', dur: 8, presets: { rx: 90, ry: 0, rz: 0 },
+    tag: () => `rotation ${rotText(rotDial(progress))}`,
+    dials: ['rx', 'ry', 'rz'],
+    subtitle: 'Turning the phone moves the signal between the axes, but the magnitude stays the same.',
+    setup() { G.dom = axesDomain([0, 0.25, 0.5, 0.75, 1].map(f => rotate(rotDial(f)))); },
+    draw(p) {
+      chart.innerHTML = '';
+      G.top = drawAxesPanel(TOP_L, rotDial(p), N, { dom: G.dom });
+      G.bot = drawMagPanel(BOT_L, MAG, N, 'magnitude |a| = √(x² + y² + z²)', C.violet);
+      legend(G.bot.top, BOT_L.x + 10, BOT_L.y + 8, G.bot.items);
+      drawPhone(chart, PHONE, rotDial(p));
+    }
+  },
+  {
+    title: 'Collapsing the three axes into one magnitude', dur: 12, presets: { rx: 0, ry: 0, rz: 0 },
+    tag: () => `|a| = √(x² + y² + z²)`,
+    dials: ['rx', 'ry', 'rz'],
+    subtitle: 'Combining the three axes into one magnitude that does not depend on the phone angle.',
+    setup() {},
+    draw(p) {
+      chart.innerHTML = '';
+      const i = Math.max(1, Math.round(p * (N - 1)));
+      G.top = drawAxesPanel(TOP, rotDial(), N);
+      G.bot = drawMagPanel(BOT, MAG, i + 1, 'magnitude |a|', C.violet);
+      legend(G.bot.top, BOT.x + 10, BOT.y + 8, G.bot.items);
+      cursorLine(G.top, i); cursorLine(G.bot, i);
+      const R = G.top.R;
+      AX.forEach(a => el('circle', { cx: G.top.sx(T[i]), cy: G.top.sy(R[a.k][i]), r: 4.5, fill: a.c, stroke: '#fff', 'stroke-width': 1.5 }, G.top.top));
+      el('circle', { cx: G.bot.sx(T[i]), cy: G.bot.sy(MAG[i]), r: 5.5, fill: C.violet, stroke: '#fff', 'stroke-width': 2 }, G.bot.top);
+      const s = `√(${fmt(R.ax[i], 2)}² + ${fmt(R.ay[i], 2)}² + ${fmt(R.az[i], 2)}²) = ${fmt(MAG[i], 2)} m/s²`;
+      txt(G.bot.top, BOT.x + BOT.w - 12, BOT.y + 24, s, { class: 'big', fill: C.violet, 'text-anchor': 'end', 'font-size': 18 });
+    }
+  },
+  {
+    title: 'Band-pass filtering the magnitude', dur: 12, presets: { rx: 0, ry: 0, rz: 0, lo: 0.5, hi: 4 },
+    tag: () => `butter(3, [${fmt(dial('lo'), 1)}, ${fmt(dial('hi'), 1)}] Hz) · filtfilt`,
+    dials: ['lo', 'hi'],
+    subtitle: 'Filtering the magnitude to keep only walking frequencies.',
+    setup() { computeFilter(); },
+    draw(p) {
+      chart.innerHTML = '';
+      const i = Math.max(1, Math.round(p * (N - 1)));
+      G.top = drawMagPanel(TOP, MAGC, N, 'magnitude − mean', C.violet, { sym: true, zero: true, ylabel: '|a| − mean (m/s²)' });
+      legend(G.top.top, TOP.x + 10, TOP.y + 8, G.top.items);
+      G.bot = drawMagPanel(BOT, FILT, i + 1, `filtered ${fmt(dial('lo'), 1)}–${fmt(dial('hi'), 1)} Hz`, C.blue, { sym: true, zero: true, ylabel: 'filtered (m/s²)', dom: G.top.yd });
+      legend(G.bot.top, BOT.x + 10, BOT.y + 8, G.bot.items);
+      cursorLine(G.top, i); cursorLine(G.bot, i);
+      el('circle', { cx: G.bot.sx(T[i]), cy: G.bot.sy(FILT[i]), r: 5.5, fill: C.blue, stroke: '#fff', 'stroke-width': 2 }, G.bot.top);
+    }
+  },
+  {
+    title: 'Every local maximum of the filtered signal', dur: 10, presets: { rx: 0, ry: 0, rz: 0, lo: 0.5, hi: 4 },
+    tag: () => `find_peaks(filtered) → ${filtMax.filter(k => k <= progress * (N - 1)).length} peaks`,
+    dials: ['lo', 'hi'],
+    subtitle: 'Every local maximum found by find_peaks, before and after filtering.',
+    setup() { computeFilter(); },
+    draw(p) {
+      chart.innerHTML = '';
+      const i = Math.round(p * (N - 1));
+      G.top = drawMagPanel(TOP, MAGC, N, 'magnitude − mean', C.violet, { sym: true, zero: true, ylabel: '|a| − mean (m/s²)' });
+      G.bot = drawMagPanel(BOT, FILT, N, `filtered ${fmt(dial('lo'), 1)}–${fmt(dial('hi'), 1)} Hz`, C.blue, { sym: true, zero: true, ylabel: 'filtered (m/s²)', dom: G.top.yd });
+      legend(G.top.top, TOP.x + 10, TOP.y + 8, [G.top.items[0], { k: 'cross', n: 'local maxima' }]);
+      legend(G.bot.top, BOT.x + 10, BOT.y + 8, [G.bot.items[0], { k: 'circle', n: 'find_peaks(filtered)' }]);
+      const rm = rawMax.filter(k => k <= i), fm = filtMax.filter(k => k <= i);
+      rm.forEach(k => cross(G.top.top, G.top.sx(T[k]), G.top.sy(MAGC[k]), 5));
+      fm.forEach(k => el('circle', { cx: G.bot.sx(T[k]), cy: G.bot.sy(FILT[k]), r: 7, class: 'kept' }, G.bot.top));
+      cursorLine(G.top, i); cursorLine(G.bot, i);
+      badge(G.top.top, TOP.x + TOP.w - 250, TOP.y + 26, `local maxima: ${rm.length}`, C.greyDot);
+      badge(G.bot.top, BOT.x + BOT.w - 250, BOT.y + 26, `peaks: ${fm.length}`, C.red);
+    }
+  }
+];
+
+// ------------------------------------------------------------ hover
+chart.addEventListener('mousemove', evt => {
+  const pt = svgPoint(evt), P = G.top; if (!P) return;
+  const i = clamp(Math.round((pt.x - P.box.x) / P.box.w * (N - 1)), 0, N - 1);
+  const R = P.R || rotate(rotDial());
+  let html = `<div class="row"><span>t</span><b>${fmt(T[i], 2)} s</b></div>`;
+  AX.forEach(a => html += `<div class="row"><span><i class="sw" style="background:${a.c}"></i>${a.n}</span><span>${fmt(R[a.k][i], 2)}</span></div>`);
+  html += `<div class="row"><span><i class="sw" style="background:${C.violet}"></i>|a|</span><span>${fmt(MAG[i], 2)}</span></div>`;
+  if (step >= 3 && FILT.length) html += `<div class="row"><span><i class="sw" style="background:${C.blue}"></i>filtered</span><span>${fmt(FILT[i], 2)}</span></div>`;
+  tipAt(evt, html);
+});
+wire();
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Holding Out Data and Cross-Validation</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff;
+    --ink: #222222;
+    --ink-2: #666666;
+    --ink-3: #9a9a9a;
+    --rule: #dcdcdc;
+    --grid: #ececec;
+    --raw: #b4b4b4;
+    --raw-dot: #8c8c8c;
+    --clean: #444444;
+    --ma: #2a78d6;
+    --med: #1baf7a;
+    --wm: #4a3aa7;
+    --ewma: #eb6834;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans);
+    font-size: 15px; line-height: 1.4; padding-block: 18px 28px; padding-inline: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .stage { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
+  .slide {
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 6px;
+    padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px;
+    min-height: 560px; position: relative; outline: none; cursor: pointer; user-select: none;
+  }
+  .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
+  .head h1 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .chart-wrap { position: relative; min-height: 0; }
+  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt .row { display: flex; gap: 10px; justify-content: space-between; }
+  .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot .ctr { font-family: var(--mono); }
+  .bar { display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center; padding:14px 18px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
+  .group { display:flex; align-items:center; gap:8px; }
+  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
+  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
+  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  button:hover, select:hover { border-color:var(--ink); }
+  button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
+  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
+  .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
+  .grid line { stroke: var(--grid); stroke-width: 1; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .out-line { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+  .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
+  .mono { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
+  .mono-big { font-family: var(--mono); font-size: 16px; fill: var(--ink); }
+  .blk-text { font-family: var(--sans); font-size: 12px; font-weight: 700; fill: #fff; pointer-events: none; }
+  .label { font-family: var(--sans); font-size: 13px; fill: var(--ink-2); }
+  .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
+  @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
+</style>
+
+<div class="stage">
+  <section class="slide" id="slide" tabindex="0" aria-live="polite">
+    <div class="head">
+      <h1 id="title">Holding out data</h1>
+      <p id="subtitle"></p>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 1200 660" role="img" aria-label="Data splitting and cross-validation"></svg>
+      <div class="tt" id="tt"></div>
+    </div>
+    <div class="foot">
+      <span>CS328 &nbsp;·&nbsp; Tuning and Evaluating Classifiers</span>
+      <span class="ctr" id="counter"></span>
+    </div>
+  </section>
+
+  <div class="bar">
+    <div class="group">
+      <button id="prev" title="Previous (←)">‹ Prev</button>
+      <button id="play" class="primary" title="Play / pause (space)">Play</button>
+      <button id="next" title="Next (→)">Next ›</button>
+      <button id="restart" title="Restart this step (r)">Restart</button>
+      <button id="reset" title="Reset all dials to the step presets">Reset dials</button>
+    </div>
+    <div class="group">
+      <label for="valPct">Validation share</label>
+      <input type="range" id="valPct" min="10" max="30" step="5" value="20">
+      <span class="val" id="valPctVal">20%</span>
+    </div>
+    <div class="group">
+      <label for="testPct">Test share</label>
+      <input type="range" id="testPct" min="10" max="30" step="5" value="20">
+      <span class="val" id="testPctVal">20%</span>
+    </div>
+    <div class="group">
+      <label for="kfold">Folds K</label>
+      <select id="kfold">
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5" selected>5</option>
+        <option value="6">6</option>
+        <option value="8">8</option>
+        <option value="10">10</option>
+      </select>
+    </div>
+    <div class="group">
+      <label for="depth">max_depth</label>
+      <input type="range" id="depth" min="1" max="15" step="1" value="5">
+      <span class="val" id="depthVal">5</span>
+    </div>
+    <div class="group">
+      <label for="speed">Speed</label>
+      <select id="speed">
+        <option value="3">very slow</option>
+        <option value="6">slow</option>
+        <option value="14" selected>normal</option>
+        <option value="30">fast</option>
+        <option value="0">instant</option>
+      </select>
+    </div>
+    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ------------------------------------------------------------ data
+  // Activity-recognition windows (HAR-data/dataset1.csv, 2 s windows, 6 activities):
+  // decision-tree accuracies computed with scikit-learn for every dial setting.
+  const D = {"N":1605,"split":{"10|10":{"n":[1284,160,161],"train":[0.3855,0.7025,0.8349,0.9393,0.9782,0.9899,0.9977,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],"val":[0.3875,0.6937,0.8063,0.9062,0.9313,0.9437,0.925,0.925,0.925,0.925,0.925,0.925,0.925,0.925,0.925],"test":[0.3851,0.7143,0.8758,0.9752,1.0,0.9876,0.9752,0.9752,0.9752,0.9752,0.9752,0.9752,0.9752,0.9752,0.9752]},"10|15":{"n":[1203,160,242],"train":[0.3857,0.7024,0.8238,0.9485,0.9842,0.9967,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],"val":[0.3875,0.7,0.825,0.9563,0.9625,0.9625,0.9688,0.9688,0.9688,0.9688,0.9688,0.9688,0.9688,0.9688,0.9688],"test":[0.3843,0.7066,0.7603,0.9256,0.9628,0.9587,0.9545,0.9545,0.9545,0.9545,0.9545,0.9545,0.9545,0.9545,0.9545]},"10|20":{"n":[1123,160,322],"train":[0.3856,0.6999,0.8246,0.9466,0.984,0.9964,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],"val":[0.3875,0.6937,0.7812,0.9187,0.9437,0.9437,0.9437,0.9437,0.9437,0.9437,0.9437,0.9437,0.9437,0.9437,0.9437],"test":[0.3851,0.7174,0.795,0.9565,0.9783,0.9752,0.9658,0.9658,0.9658,0.9658,0.9658,0.9658,0.9658,0.9658,0.9658]},"10|25":{"n":[1043,160,402],"train":[0.3854,0.6989,0.8236,0.9463,0.9837,0.9962,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],"val":[0.3875,0.725,0.8125,0.95,0.9625,0.9563,0.9437,0.9437,0.9437,0.9437,0.9437,0.9437,0.9437,0.9437,0.9437],"test":[0.3856,0.704,0.7886,0.9403,0.9677,0.9726,0.9677,0.9677,0.9677,0.9677,0.9677,0.9677,0.9677,0.9677,0.9677]},"10|30":{"n":[963,160,482],"train":[0.3853,0.6978,0.8235,0.946,0.9834,0.9958,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],"val":[0.3812,0.7063,0.775,0.925,0.9375,0.9313,0.9187,0.9187,0.9187,0.9187,0.9187,0.9187,0.9187,0.9187,0.9187],"test":[0.3859,0.7095,0.8029,0.944,0.971,0.9772,0.9751,0.9751,0.9751,0.9751,0.9751,0.9751,0.9751,0.9751,0.9751]},"15|10":{"n":[1203,241,161],"train":[0.3857,0.7024,0.8238,0.9485,0.9842,0.9967,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],"val":[0.3859,0.6971,0.7967,0.9544,0.9668,0.9668,0.971,0.971,0.971,0.971,0.971,0.971,0.971,0.971,0.971],"test":[0.3851,0.7143,0.7702,0.913,0.9565,0.9503,0.9441,0.9441,0.9441,0.9441,0.9441,0.9441,0.9441,0.9441,0.9441]},"15|15":{"n":[1123,241,241],"train":[0.3856,0.6999,0.8246,0.9466,0.984,0.9964,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],"val":[0.3859,0.7012,0.7925,0.9295,0.9502,0.9502,0.9419,0.9419,0.9419,0.9419,0.9419,0.9419,0.9419,0.9419,0.9419],"test":[0.3859,0.7178,0.7884,0.9585,0.9834,0.9793,0.9751,0.9751,0.9751,0.9751,0.9751,0.9751,0.9751,0.9751,0.9751]},"15|20":{"n":[1043,240,322],"train":[0.3854,0.6989,0.8236,0.9463,0.9837,0.9962,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],"val":[0.3875,0.725,0.8083,0.9458,0.9625,0.9583,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95],"test":[0.3851,0.6988,0.7857,0.941,0.9689,0.9752,0.9689,0.9689,0.9689,0.9689,0.9689,0.9689,0.9689,0.9689,0.9689]},"15|25":{"n":[963,240,402],"train":[0.3853,0.6978,0.8235,0.946,0.9834,0.9958,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],"val":[0.3833,0.7,0.7708,0.9292,0.95,0.95,0.9417,0.9417,0.9417,0.9417,0.9417,0.9417,0.9417,0.9417,0.9417],"test":[0.3856,0.7139,0.8109,0.9453,0.9701,0.9751,0.9726,0.9726,0.9726,0.9726,0.9726,0.9726,0.9726,0.9726,0.9726]},"15|30":{"n":[882,241,482],"train":[0.3855,0.7018,0.8299,0.9524,0.9864,0.9977,0.9989,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],"val":[0.3817,0.6971,0.7842,0.9419,0.9502,0.9668,0.9419,0.9502,0.9502,0.9502,0.9502,0.9502,0.9502,0.9502,0.9502],"test":[0.3859,0.7054,0.7946,0.9274,0.9585,0.9585,0.9647,0.9689,0.9689,0.9689,0.9689,0.9689,0.9689,0.9689,0.9689]},"20|10":{"n":[1123,321,161],"train":[0.3856,0.6999,0.8246,0.9466,0.984,0.9964,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],"val":[0.3863,0.7009,0.7788,0.9346,0.9595,0.9595,0.9502,0.9502,0.9502,0.9502,0.9502,0.9502,0.9502,0.9502,0.9502],"test":[0.3851,0.7267,0.8137,0.9627,0.9814,0.9752,0.9752,0.9752,0.9752,0.9752,0.9752,0.9752,0.9752,0.9752,0.9752]},"20|15":{"n":[1043,321,241],"train":[0.3854,0.6989,0.8236,0.9463,0.9837,0.9962,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],"val":[0.3863,0.7134,0.7944,0.9315,0.9533,0.9533,0.947,0.947,0.947,0.947,0.947,0.947,0.947,0.947,0.947],"test":[0.3859,0.7054,0.7967,0.9585,0.9834,0.9876,0.9793,0.9793,0.9793,0.9793,0.9793,0.9793,0.9793,0.9793,0.9793]},"20|20":{"n":[963,321,321],"train":[0.3853,0.6978,0.8235,0.946,0.9834,0.9958,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],"val":[0.3832,0.7103,0.7788,0.9315,0.9533,0.9533,0.947,0.947,0.947,0.947,0.947,0.947,0.947,0.947,0.947],"test":[0.3863,0.7072,0.8131,0.947,0.972,0.9782,0.9751,0.9751,0.9751,0.9751,0.9751,0.9751,0.9751,0.9751,0.9751]},"20|25":{"n":[882,321,402],"train":[0.3855,0.7018,0.8299,0.9524,0.9864,0.9977,0.9989,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],"val":[0.3832,0.704,0.7819,0.9408,0.9595,0.972,0.9564,0.9626,0.9626,0.9626,0.9626,0.9626,0.9626,0.9626,0.9626],"test":[0.3856,0.7015,0.7985,0.9254,0.9527,0.9527,0.9577,0.9627,0.9627,0.9627,0.9627,0.9627,0.9627,0.9627,0.9627]},"20|30":{"n":[802,321,482],"train":[0.3853,0.6995,0.8267,0.9439,0.985,0.9963,0.9988,0.9988,1.0,1.0,1.0,1.0,1.0,1.0,1.0],"val":[0.3863,0.7103,0.7882,0.9221,0.9502,0.9564,0.9502,0.9533,0.9502,0.9502,0.9502,0.9502,0.9502,0.9502,0.9502],"test":[0.3838,0.7012,0.7946,0.9274,0.9544,0.9544,0.9523,0.9523,0.9502,0.9502,0.9502,0.9502,0.9502,0.9502,0.9502]},"25|10":{"n":[1043,401,161],"train":[0.3854,0.6989,0.8236,0.9463,0.9837,0.9962,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],"val":[0.3865,0.7107,0.798,0.9401,0.9576,0.9601,0.9526,0.9526,0.9526,0.9526,0.9526,0.9526,0.9526,0.9526,0.9526],"test":[0.3851,0.7081,0.7888,0.9503,0.9876,0.9876,0.9814,0.9814,0.9814,0.9814,0.9814,0.9814,0.9814,0.9814,0.9814]},"25|15":{"n":[963,401,241],"train":[0.3853,0.6978,0.8235,0.946,0.9834,0.9958,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],"val":[0.384,0.7132,0.788,0.9377,0.9551,0.9601,0.9551,0.9551,0.9551,0.9551,0.9551,0.9551,0.9551,0.9551,0.9551],"test":[0.3859,0.7012,0.8091,0.9419,0.9751,0.9751,0.971,0.971,0.971,0.971,0.971,0.971,0.971,0.971,0.971]},"25|20":{"n":[882,401,322],"train":[0.3855,0.7018,0.8299,0.9524,0.9864,0.9977,0.9989,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],"val":[0.384,0.7082,0.788,0.9401,0.9626,0.9726,0.9601,0.9676,0.9676,0.9676,0.9676,0.9676,0.9676,0.9676,0.9676],"test":[0.3851,0.6957,0.795,0.9224,0.9472,0.9472,0.9534,0.9565,0.9565,0.9565,0.9565,0.9565,0.9565,0.9565,0.9565]},"25|25":{"n":[802,401,402],"train":[0.3853,0.6995,0.8267,0.9439,0.985,0.9963,0.9988,0.9988,1.0,1.0,1.0,1.0,1.0,1.0,1.0],"val":[0.3865,0.7057,0.7855,0.9177,0.9451,0.9476,0.9451,0.9476,0.9451,0.9451,0.9451,0.9451,0.9451,0.9451,0.9451],"test":[0.3831,0.704,0.7985,0.9328,0.9602,0.9627,0.9577,0.9577,0.9552,0.9552,0.9552,0.9552,0.9552,0.9552,0.9552]},"25|30":{"n":[722,401,482],"train":[0.385,0.7008,0.8269,0.9488,0.9861,0.9958,0.9986,0.9986,1.0,1.0,1.0,1.0,1.0,1.0,1.0],"val":[0.3865,0.7007,0.8155,0.9377,0.9601,0.9676,0.9601,0.9576,0.9551,0.9551,0.9551,0.9551,0.9551,0.9551,0.9551],"test":[0.3838,0.7054,0.7863,0.9232,0.9502,0.9585,0.9502,0.9481,0.9481,0.9481,0.9481,0.9481,0.9481,0.9481,0.9481]},"30|10":{"n":[963,481,161],"train":[0.3853,0.6978,0.8235,0.946,0.9834,0.9958,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],"val":[0.3846,0.711,0.7921,0.9356,0.9543,0.9584,0.9543,0.9543,0.9543,0.9543,0.9543,0.9543,0.9543,0.9543,0.9543],"test":[0.3851,0.7019,0.8075,0.9503,0.9876,0.9876,0.9814,0.9814,0.9814,0.9814,0.9814,0.9814,0.9814,0.9814,0.9814]},"30|15":{"n":[882,482,241],"train":[0.3855,0.7018,0.8299,0.9524,0.9864,0.9977,0.9989,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],"val":[0.3838,0.7075,0.7967,0.9398,0.9544,0.9627,0.9564,0.9627,0.9627,0.9627,0.9627,0.9627,0.9627,0.9627,0.9627],"test":[0.3859,0.6929,0.7801,0.917,0.9585,0.9585,0.9585,0.9627,0.9627,0.9627,0.9627,0.9627,0.9627,0.9627,0.9627]},"30|20":{"n":[802,481,322],"train":[0.3853,0.6995,0.8267,0.9439,0.985,0.9963,0.9988,0.9988,1.0,1.0,1.0,1.0,1.0,1.0,1.0],"val":[0.3867,0.7069,0.7859,0.9231,0.9501,0.9543,0.9522,0.9543,0.9522,0.9522,0.9522,0.9522,0.9522,0.9522,0.9522],"test":[0.382,0.7019,0.8012,0.9286,0.9565,0.9565,0.9503,0.9503,0.9472,0.9472,0.9472,0.9472,0.9472,0.9472,0.9472]},"30|25":{"n":[722,481,402],"train":[0.385,0.7008,0.8269,0.9488,0.9861,0.9958,0.9986,0.9986,1.0,1.0,1.0,1.0,1.0,1.0,1.0],"val":[0.3846,0.6965,0.8129,0.9314,0.9563,0.9667,0.9543,0.9501,0.9501,0.9501,0.9501,0.9501,0.9501,0.9501,0.9501],"test":[0.3856,0.7114,0.7836,0.9279,0.9527,0.9577,0.9552,0.9552,0.9527,0.9527,0.9527,0.9527,0.9527,0.9527,0.9527]},"30|30":{"n":[642,481,482],"train":[0.3847,0.704,0.8302,0.9533,0.9891,0.9984,0.9984,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],"val":[0.3846,0.6985,0.8025,0.9314,0.9543,0.9501,0.9563,0.9501,0.9501,0.9501,0.9501,0.9501,0.9501,0.9501,0.9501],"test":[0.3859,0.7033,0.7988,0.9315,0.9647,0.9668,0.9627,0.9585,0.9585,0.9585,0.9585,0.9585,0.9585,0.9585,0.9585]}},"cv":{"2":{"sizes":[803,802],"folds":[[0.3836,0.3865],[0.6974,0.7007],[0.8107,0.8279],[0.9029,0.9264],[0.944,0.9576],[0.9552,0.9564],[0.9502,0.9551],[0.9601,0.9539],[0.9601,0.9539],[0.9601,0.9539],[0.9601,0.9539],[0.9601,0.9539],[0.9601,0.9539],[0.9601,0.9539],[0.9601,0.9539]]},"3":{"sizes":[535,535,535],"folds":[[0.3832,0.385,0.3869],[0.6916,0.7084,0.6972],[0.8131,0.8112,0.828],[0.9196,0.9103,0.9215],[0.9533,0.9551,0.9607],[0.9589,0.9514,0.9664],[0.9607,0.9626,0.9664],[0.9533,0.9701,0.9664],[0.9533,0.9664,0.9664],[0.9533,0.9682,0.9664],[0.9533,0.9682,0.9664],[0.9533,0.9682,0.9664],[0.9533,0.9682,0.9664],[0.9533,0.9682,0.9664],[0.9533,0.9682,0.9664]]},"4":{"sizes":[402,401,401,401],"folds":[[0.3856,0.3815,0.3865,0.3865],[0.6866,0.7082,0.7057,0.6958],[0.8184,0.8105,0.8279,0.8279],[0.9204,0.9002,0.9202,0.9252],[0.9552,0.9551,0.9526,0.9626],[0.9602,0.9526,0.9601,0.9676],[0.9602,0.9576,0.9626,0.9651],[0.9652,0.9551,0.9676,0.9651],[0.9652,0.9551,0.9676,0.9651],[0.9652,0.9551,0.9676,0.9651],[0.9652,0.9551,0.9676,0.9651],[0.9652,0.9551,0.9676,0.9651],[0.9652,0.9551,0.9676,0.9651],[0.9652,0.9551,0.9676,0.9651],[0.9652,0.9551,0.9676,0.9651]]},"5":{"sizes":[321,321,321,321,321],"folds":[[0.3863,0.3832,0.3832,0.3863,0.3863],[0.6885,0.7134,0.6947,0.7009,0.6947],[0.8037,0.8287,0.8318,0.8318,0.8193],[0.9065,0.9346,0.9346,0.919,0.9097],[0.9502,0.9564,0.9688,0.947,0.9533],[0.9626,0.9595,0.972,0.9502,0.9688],[0.9657,0.9751,0.972,0.9439,0.9688],[0.972,0.9533,0.972,0.9533,0.9688],[0.972,0.9533,0.9657,0.9533,0.9688],[0.972,0.9533,0.972,0.9533,0.9688],[0.972,0.9533,0.972,0.9533,0.9688],[0.972,0.9533,0.972,0.9533,0.9688],[0.972,0.9533,0.972,0.9533,0.9688],[0.972,0.9533,0.972,0.9533,0.9688],[0.972,0.9533,0.972,0.9533,0.9688]]},"6":{"sizes":[268,268,268,267,267,267],"folds":[[0.3843,0.3843,0.3843,0.3858,0.3858,0.3858],[0.6903,0.694,0.7052,0.7079,0.6891,0.7079],[0.8172,0.8246,0.8358,0.839,0.824,0.8277],[0.9179,0.9366,0.9328,0.9438,0.9026,0.9176],[0.959,0.9552,0.9664,0.985,0.9401,0.9625],[0.9664,0.9664,0.9664,0.9888,0.9438,0.97],[0.9627,0.9701,0.9701,0.9888,0.9401,0.97],[0.9664,0.959,0.9664,0.985,0.9401,0.97],[0.9664,0.959,0.9664,0.985,0.9401,0.97],[0.9664,0.959,0.9701,0.985,0.9401,0.97],[0.9664,0.959,0.9701,0.985,0.9401,0.97],[0.9664,0.959,0.9701,0.985,0.9401,0.97],[0.9664,0.959,0.9701,0.985,0.9401,0.97],[0.9664,0.959,0.9701,0.985,0.9401,0.97],[0.9664,0.959,0.9701,0.985,0.9401,0.97]]},"8":{"sizes":[201,201,201,201,201,200,200,200],"folds":[[0.3831,0.3831,0.3781,0.3781,0.3831,0.385,0.38,0.385],[0.7015,0.6816,0.7164,0.6965,0.7065,0.705,0.7,0.69],[0.8209,0.8209,0.8358,0.8358,0.8358,0.825,0.835,0.82],[0.9204,0.9254,0.9502,0.9254,0.9453,0.905,0.94,0.91],[0.9701,0.9502,0.9602,0.9652,0.9801,0.925,0.965,0.96],[0.9652,0.9652,0.9502,0.9701,0.9801,0.945,0.965,0.965],[0.9751,0.9701,0.9652,0.9652,0.9851,0.945,0.96,0.965],[0.9701,0.9701,0.9701,0.9701,0.9801,0.95,0.96,0.965],[0.9701,0.9701,0.9552,0.9701,0.99,0.95,0.96,0.965],[0.9701,0.9701,0.9552,0.9701,0.99,0.95,0.96,0.965],[0.9701,0.9701,0.9552,0.9701,0.99,0.95,0.96,0.965],[0.9701,0.9701,0.9552,0.9701,0.99,0.95,0.96,0.965],[0.9701,0.9701,0.9552,0.9701,0.99,0.95,0.96,0.965],[0.9701,0.9701,0.9552,0.9701,0.99,0.95,0.96,0.965],[0.9701,0.9701,0.9552,0.9701,0.99,0.95,0.96,0.965]]},"10":{"sizes":[161,161,161,161,161,160,160,160,160,160],"folds":[[0.3851,0.3851,0.3851,0.3789,0.3789,0.3875,0.3875,0.3875,0.3875,0.3875],[0.6894,0.6832,0.6957,0.7205,0.6894,0.7063,0.7312,0.6875,0.7063,0.6875],[0.8199,0.8137,0.8261,0.8385,0.8261,0.8438,0.85,0.8313,0.825,0.8187],[0.9193,0.9255,0.9379,0.9565,0.913,0.95,0.9313,0.9313,0.925,0.9],[0.9627,0.9689,0.9565,0.9565,0.9627,0.9812,0.95,0.9437,0.95,0.9625],[0.9627,0.9876,0.9627,0.9752,0.9689,0.9938,0.9688,0.9563,0.9563,0.975],[0.9689,0.9814,0.9689,0.9503,0.9689,0.9938,0.9625,0.9625,0.95,0.975],[0.9689,0.9752,0.9627,0.9565,0.9689,0.9812,0.9688,0.9563,0.95,0.975],[0.9689,0.9752,0.9627,0.9441,0.9689,0.9812,0.9688,0.9625,0.95,0.975],[0.9689,0.9752,0.9627,0.9441,0.9627,0.9812,0.9688,0.9625,0.95,0.975],[0.9689,0.9752,0.9627,0.9441,0.9627,0.9812,0.9688,0.9625,0.95,0.975],[0.9689,0.9752,0.9627,0.9441,0.9627,0.9812,0.9688,0.9625,0.95,0.975],[0.9689,0.9752,0.9627,0.9441,0.9627,0.9812,0.9688,0.9625,0.95,0.975],[0.9689,0.9752,0.9627,0.9441,0.9627,0.9812,0.9688,0.9625,0.95,0.975],[0.9689,0.9752,0.9627,0.9441,0.9627,0.9812,0.9688,0.9625,0.95,0.975]]}}};
+  const N = D.N;                 // 1605 windows
+  const DEPTHS = 15;
+
+  function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+  function shuffled(n, seed) { const r = rng(seed), a = Array.from({ length: n }, (_, i) => i); for (let i = n - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  const ORDER = shuffled(N, 328);   // one fixed random permutation for the split
+
+  // ------------------------------------------------------------ svg helpers
+  const W = 1200, H = 660;
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+  const text = (x, y, s, attrs = {}, parent) => { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; };
+  const $ = id => document.getElementById(id);
+  const chart = $('chart');
+  const C = { train: '#2a78d6', val: '#eb6834', test: '#ffffff', testEdge: '#444444', none: '#b4b4b4', ink: '#222222', ink2: '#666666', ink3: '#9a9a9a' };
+  const pct = v => (100 * v).toFixed(1) + '%';
+  const f3 = v => v.toFixed(3);
+
+  function legend(parent, x, y, items) {
+    const rowH = 18, padX = 10, padY = 8;
+    const wdt = Math.max(...items.map(i => i.n.length)) * 7.2 + 2 * padX + 34;
+    const g = el('g', {}, parent);
+    el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
+    items.forEach((it, j) => {
+      const cy = y + padY + j * rowH + 6;
+      if (it.sq) el('rect', { x: x + padX + 3, y: cy - 6, width: 12, height: 12, rx: 2, fill: it.c, stroke: it.edge || 'none', 'stroke-width': 1.2 }, g);
+      else if (it.dot) el('circle', { cx: x + padX + 9, cy, r: it.r || 4, fill: it.c, stroke: it.edge || 'none', 'stroke-width': 1.5 }, g);
+      else el('line', { x1: x + padX, x2: x + padX + 18, y1: cy, y2: cy, stroke: it.c, 'stroke-width': it.wd || 2.5, 'stroke-dasharray': it.dash ? '5 4' : 'none' }, g);
+      text(x + padX + 26, cy + 4, it.n, { class: 'axis-title', fill: 'var(--ink)' }, g);
+    });
+    return g;
+  }
+
+  // ------------------------------------------------------------ dials (persist unless the user touched them)
+  const state = { val: 20, test: 20, K: 5, depth: 5, speed: 14 };
+  const dirty = {};
+  const DIALS = {
+    val:   { id: 'valPct',  out: 'valPctVal',  parse: v => parseInt(v, 10), fmt: v => v + '%' },
+    test:  { id: 'testPct', out: 'testPctVal', parse: v => parseInt(v, 10), fmt: v => v + '%' },
+    K:     { id: 'kfold',   parse: v => parseInt(v, 10) },
+    depth: { id: 'depth',   out: 'depthVal',   parse: v => parseInt(v, 10), fmt: v => String(v) },
+  };
+  function setDial(name, value) { state[name] = value; const d = DIALS[name]; $(d.id).value = value; if (d.out) $(d.out).textContent = d.fmt(value); }
+  function applyPresets(p) { for (const k in p) if (!dirty[k]) setDial(k, p[k]); }
+  for (const name in DIALS) {
+    const d = DIALS[name];
+    $(d.id).addEventListener(d.out ? 'input' : 'change', e => { dirty[name] = true; setDial(name, d.parse(e.target.value)); rebuild(); });
+  }
+
+  // ------------------------------------------------------------ derived data
+  const splitKey = () => `${state.val}|${state.test}`;
+  const split = () => D.split[splitKey()];
+  const cvK = () => D.cv[String(state.K)];
+
+  // ------------------------------------------------------------ steps
+  const steps = [
+    {
+      id: 'data',
+      title: () => 'The data set: labeled windows',
+      tag: () => `N = ${N} windows · 6 activities`,
+      subtitle: () => 'The labeled windows of sensor data before anything is held out.',
+      presets: {},
+      frames: () => N, rate: 22,
+      draw: drawData,
+    },
+    {
+      id: 'split',
+      title: () => 'Splitting into training, validation and test sets',
+      tag: () => { const s = split(); return `train ${s.n[0]} · validation ${s.n[1]} · test ${s.n[2]}`; },
+      subtitle: () => 'Shuffling the windows and assigning each to the training, validation or test set.',
+      presets: { val: 20, test: 20 },
+      frames: () => N, rate: 22,
+      draw: drawSplit,
+    },
+    {
+      id: 'loop',
+      title: () => 'The train/validate loop over max_depth',
+      tag: () => { const s = split(); return `train ${s.n[0]} · validation ${s.n[1]} · test ${s.n[2]}`; },
+      subtitle: () => 'Scoring each candidate max_depth on the validation set to choose the best one.',
+      presets: { val: 20, test: 20 },
+      frames: () => DEPTHS * 3 + 6, rate: 0.55,
+      draw: drawLoop,
+    },
+    {
+      id: 'kfold',
+      title: () => `${state.K}-fold cross-validation`,
+      tag: () => `K = ${state.K} · max_depth = ${state.depth}`,
+      subtitle: () => 'How each fold serves as the validation set once and the K scores are averaged.',
+      presets: { K: 5, depth: 5 },
+      frames: () => state.K * 3 + 3, rate: 0.6,
+      draw: drawKfold,
+    },
+    {
+      id: 'subject',
+      title: () => 'Random split versus split by subject (GroupKFold)',
+      tag: () => `K = ${state.K} · fold 1 held out`,
+      subtitle: () => 'Comparing a random split with GroupKFold, which keeps each subject on one side.',
+      presets: { K: 5 },
+      frames: () => 240 / state.K + 10 * 24 / state.K + 6, rate: 4,
+      draw: drawSubject,
+    },
+  ];
+
+  // ------------------------------------------------------------ window grid (steps 1-2)
+  const COLS = 73, CELL = 15, GX = 52, GY = 44;
+  const cellX = i => GX + (i % COLS) * CELL, cellY = i => GY + Math.floor(i / COLS) * CELL;
+  const gridBottom = GY + Math.ceil(N / COLS) * CELL;
+
+  function drawWindowGrid(parent, roleOf) {
+    const g = el('g', {}, parent);
+    for (let i = 0; i < N; i++) {
+      const r = roleOf(i);
+      if (r === 'hidden') continue;
+      el('rect', { x: cellX(i) + 1, y: cellY(i) + 1, width: CELL - 2, height: CELL - 2, rx: 1.5,
+        fill: r === 'train' ? C.train : r === 'val' ? C.val : r === 'test' ? C.test : C.none,
+        stroke: r === 'test' ? C.testEdge : 'none', 'stroke-width': 1, 'data-tt': `window ${i} · ${r === 'none' ? 'not yet assigned' : r === 'train' ? 'training' : r === 'val' ? 'validation' : 'test'}` }, g);
+    }
+    return g;
+  }
+
+  function drawData(cur) {
+    const g = el('g', {}, chart);
+    text(GX, GY - 14, 'windows in recording order  →', { class: 'label' }, g);
+    drawWindowGrid(g, i => i < cur ? 'none' : 'hidden');
+    text(GX, gridBottom + 34, `${Math.min(cur, N)} of ${N} windows`, { class: 'mono-big' }, g);
+    text(W - 60, gridBottom + 34, 'one square = one 2 s window', { class: 'label', 'text-anchor': 'end' }, g);
+  }
+
+  function roleAt(i, cur) {
+    // i-th window in shuffled order gets a role once cur passes it
+    const s = split();
+    const pos = POS[i];
+    if (pos >= cur) return 'none';
+    return pos < s.n[0] ? 'train' : pos < s.n[0] + s.n[1] ? 'val' : 'test';
+  }
+  const POS = []; ORDER.forEach((i, p) => POS[i] = p);
+
+  function drawSplit(cur) {
+    const s = split();
+    const g = el('g', {}, chart);
+    drawWindowGrid(g, i => roleAt(i, cur));
+    // live counts bar
+    const nTr = Math.min(cur, s.n[0]), nVa = Math.max(0, Math.min(cur - s.n[0], s.n[1])), nTe = Math.max(0, Math.min(cur - s.n[0] - s.n[1], s.n[2]));
+    const by = gridBottom + 40, bh = 46, bx = GX, bw = COLS * CELL;
+    el('rect', { x: bx, y: by, width: bw, height: bh, fill: '#f4f4f4', stroke: 'var(--rule)' }, g);
+    let x = bx;
+    [[nTr, C.train, 'training', s.n[0]], [nVa, C.val, 'validation', s.n[1]], [nTe, C.test, 'test', s.n[2]]].forEach(([n, c, name, tot]) => {
+      const w = bw * n / N;
+      el('rect', { x, y: by, width: w, height: bh, fill: c, stroke: c === C.test ? C.testEdge : 'none' }, g);
+      const wfull = bw * tot / N;
+      if (wfull > 60) text(x + wfull / 2, by + bh + 22, `${name}  ${n} / ${tot}  (${Math.round(100 * tot / N)}%)`, { class: 'mono', 'text-anchor': 'middle' }, g);
+      x += wfull;
+    });
+    text(bx, by - 8, 'roles assigned so far', { class: 'label' }, g);
+    legend(g, bx, by + bh + 40, [
+      { c: C.train, n: 'training window', sq: true }, { c: C.val, n: 'validation window', sq: true },
+      { c: C.test, n: 'test window (locked away)', sq: true, edge: C.testEdge }, { c: C.none, n: 'not yet assigned', sq: true }]);
+  }
+
+  // ------------------------------------------------------------ train/validate loop (step 3)
+  function roleBar(parent, y, s, active) {
+    const bx = GX, bw = COLS * CELL, bh = 34;
+    let x = bx;
+    [['train', s.n[0], 'training set', C.train], ['val', s.n[1], 'validation set', C.val], ['test', s.n[2], 'test set (locked)', C.test]].forEach(([k, n, name, c]) => {
+      const w = bw * n / N;
+      const on = active === k;
+      el('rect', { x, y, width: w, height: bh, fill: c, stroke: k === 'test' ? C.testEdge : (on ? C.ink : 'none'), 'stroke-width': on ? 3 : 1, 'stroke-dasharray': k === 'test' && active !== 'test' ? '6 4' : 'none', opacity: on || k === 'test' ? 1 : 0.55 }, parent);
+      text(x + w / 2, y + bh / 2 + 5, `${name} · ${n}`, { class: 'blk-text', 'text-anchor': 'middle', style: `fill:${k === 'test' ? C.ink : '#fff'}` }, parent);
+      x += w;
+    });
+  }
+
+  const LP = { x0: 70, x1: 1120, y0: 136, y1: 580 };
+  const xd = d => LP.x0 + ((d - 1) / (DEPTHS - 1)) * (LP.x1 - LP.x0);
+  const ACC0 = 0.3, ACC1 = 1.0;
+  const ya = a => LP.y1 - ((a - ACC0) / (ACC1 - ACC0)) * (LP.y1 - LP.y0);
+
+  function accAxes(parent, p, ylo, yhi) {
+    const yv = v => p.y1 - ((v - ylo) / (yhi - ylo)) * (p.y1 - p.y0);
+    const grid = el('g', { class: 'grid' }, parent), axis = el('g', { class: 'axis' }, parent);
+    for (let v = ylo; v <= yhi + 1e-9; v += 0.1) {
+      el('line', { x1: p.x0, x2: p.x1, y1: yv(v), y2: yv(v) }, grid);
+      text(p.x0 - 10, yv(v) + 4, v.toFixed(1), { 'text-anchor': 'end' }, axis);
+    }
+    for (let d = 1; d <= DEPTHS; d++) {
+      const x = p.x0 + ((d - 1) / (DEPTHS - 1)) * (p.x1 - p.x0);
+      el('line', { x1: x, x2: x, y1: p.y0, y2: p.y1 }, grid);
+      text(x, p.y1 + 18, d, { 'text-anchor': 'middle' }, axis);
+    }
+    el('path', { d: `M${p.x0},${p.y0}V${p.y1}H${p.x1}` }, axis);
+    text((p.x0 + p.x1) / 2, p.y1 + 40, 'max_depth', { class: 'axis-title', 'text-anchor': 'middle' }, parent);
+    text(p.x0 - 10, p.y0 - 20, 'accuracy', { class: 'axis-title', 'text-anchor': 'end' }, parent);
+    return yv;
+  }
+
+  function drawLoop(cur) {
+    const s = split();
+    const g = el('g', {}, chart);
+    const F = steps[2].frames();
+    const dIdx = Math.min(DEPTHS - 1, Math.floor(cur / 3));   // candidate under consideration
+    const phase = cur % 3;                                     // 0 train, 1 evaluate, 2 record
+    const sweeping = cur < DEPTHS * 3;
+    const shown = sweeping ? dIdx + (phase === 2 ? 1 : 0) : DEPTHS;
+    const bestI = s.val.indexOf(Math.max(...s.val));
+    const tail = cur - DEPTHS * 3;   // 0..6 after the sweep
+    const active = sweeping ? (phase === 0 ? 'train' : phase === 1 ? 'val' : null) : (tail >= 3 ? 'test' : null);
+    roleBar(g, 40, s, active);
+    const status = sweeping
+      ? (phase === 0 ? `fit tree, max_depth = ${dIdx + 1}` : phase === 1 ? `score on validation set` : `validation accuracy = ${f3(s.val[dIdx])}`)
+      : (tail < 3 ? `best validation depth = ${bestI + 1}` : `score the chosen tree on the test set once`);
+    text(W - 60, 100, status, { class: 'mono-big', 'text-anchor': 'end' }, g);
+    text(GX, 100, 'candidate settings: max_depth = 1 … 15', { class: 'label' }, g);
+
+    accAxes(g, LP, ACC0, ACC1);
+    legend(g, LP.x1 - 250, LP.y1 - 84, [
+      { c: C.train, n: 'training accuracy' }, { c: C.val, n: 'validation accuracy' },
+      { c: C.ink, n: 'test accuracy (scored once)', dot: true, r: 5 }]);
+    const path = (arr, upto, col) => {
+      if (upto <= 0) return;
+      let d = ''; for (let i = 0; i < upto; i++) d += (i ? 'L' : 'M') + xd(i + 1).toFixed(1) + ',' + ya(arr[i]).toFixed(1);
+      el('path', { class: 'out-line', d, stroke: col }, g);
+      for (let i = 0; i < upto; i++) el('circle', { cx: xd(i + 1), cy: ya(arr[i]), r: 4, fill: col, 'data-tt': `max_depth ${i + 1} · ${col === C.train ? 'training' : 'validation'} ${f3(arr[i])}` }, g);
+    };
+    path(s.train, shown, C.train); path(s.val, shown, C.val);
+    if (sweeping && phase < 2) {
+      // candidate marker
+      el('line', { x1: xd(dIdx + 1), x2: xd(dIdx + 1), y1: LP.y0, y2: LP.y1, stroke: C.ink3, 'stroke-dasharray': '3 3' }, g);
+    }
+    if (!sweeping) {
+      el('circle', { cx: xd(bestI + 1), cy: ya(s.val[bestI]), r: 11, fill: 'none', stroke: C.ink, 'stroke-width': 2 }, g);
+      text(xd(bestI + 1) + 16, ya(s.val[bestI]) + 28, `best validation depth = ${bestI + 1}  (${f3(s.val[bestI])})`, { class: 'mono' }, g);
+      if (tail >= 5) {
+        el('circle', { cx: xd(bestI + 1), cy: ya(s.test[bestI]), r: 7, fill: C.ink, stroke: '#fff', 'stroke-width': 2, 'data-tt': `test accuracy ${f3(s.test[bestI])}` }, g);
+        text(xd(bestI + 1) + 16, ya(s.test[bestI]) - 14, `test accuracy = ${f3(s.test[bestI])}`, { class: 'mono-big', 'font-weight': 700 }, g);
+      }
+    }
+  }
+
+  // ------------------------------------------------------------ K-fold (step 4)
+  function drawKfold(cur) {
+    const K = state.K, cv = cvK(), scores = cv.folds[state.depth - 1];
+    const g = el('g', {}, chart);
+    el('defs', {}, g).innerHTML = `<pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="${C.val}"/><line x1="0" y1="0" x2="0" y2="7" stroke="#fff" stroke-width="2.2"/></pattern>`;
+    legend(g, W - 240, 20, [{ c: C.train, n: 'training folds', sq: true }, { c: 'url(#hatch)', n: 'validation fold', sq: true }]);
+    text(GX, 44, `the ${N} windows, shuffled, in ${K} folds of about ${cv.sizes[0]} windows`, { class: 'label' }, g);
+    const top = 84, bottom = 560, rowH = Math.min(92, (bottom - top) / K), bh = Math.min(62, rowH - 10);
+    const bx = 150, bw = 720, gap = 5;
+    const iter = Math.min(K - 1, Math.floor(cur / 3)), phase = cur % 3, done = cur >= K * 3;
+    for (let r = 0; r < K; r++) {
+      if (!done && r > iter) break;
+      const y = top + r * rowH;
+      const isNow = !done && r === iter;
+      text(bx - 14, y + bh / 2 + 5, `iteration ${r + 1}`, { class: 'mono', 'text-anchor': 'end', 'font-weight': isNow ? 700 : 400 }, g);
+      for (let f = 0; f < K; f++) {
+        const x = bx + f * bw / K;
+        const isVal = f === r;
+        const rect = el('rect', { x: x + gap / 2, y, width: bw / K - gap, height: bh, rx: 3, fill: isVal ? 'url(#hatch)' : C.train,
+          opacity: isNow && phase === 0 && isVal ? 0.35 : (isNow && phase === 1 && !isVal ? 0.35 : 1),
+          stroke: isNow ? C.ink : 'none', 'stroke-width': 1.5,
+          'data-tt': `fold ${f + 1} · ${isVal ? 'validation' : 'training'} · ${cv.sizes[f]} windows` }, g);
+        if (bw / K > 60) text(x + bw / (2 * K), y + bh / 2 + 4, isVal ? 'VAL' : 'TRAIN', { class: 'blk-text', 'text-anchor': 'middle', 'font-size': bh > 30 ? 12 : 10 }, g);
+        void rect;
+      }
+      const showScore = done || r < iter || phase === 2;
+      const tx = bx + bw + 24;
+      if (showScore) text(tx, y + bh / 2 + 5, `→ acc${sub(r + 1)} = ${f3(scores[r])}`, { class: 'mono' }, g);
+      else if (isNow) text(tx, y + bh / 2 + 5, phase === 0 ? `→ fit on folds ≠ ${r + 1}` : `→ score fold ${r + 1}`, { class: 'mono', fill: C.ink2 }, g);
+    }
+    if (done) {
+      const mean = scores.reduce((a, b) => a + b, 0) / K;
+      const sd = Math.sqrt(scores.reduce((a, b) => a + (b - mean) ** 2, 0) / K);
+      const y = top + K * rowH + 26;
+      el('line', { x1: bx, x2: W - 60, y1: y - 22, y2: y - 22, stroke: 'var(--rule)' }, g);
+      const sum = K <= 6 ? `(${scores.map(f3).join(' + ')})` : `(acc₁ + … + acc${sub(K)})`;
+      text(bx, y + 4, `mean CV accuracy = 1/${K} · ${sum} = ${f3(mean)}`, { class: 'mono-big' }, g);
+      text(bx, y + 30, `std across folds = ${f3(sd)}   ·   max_depth = ${state.depth}   ·   ${K} trees trained`, { class: 'mono', fill: C.ink2 }, g);
+    }
+  }
+  const SUBS = '₀₁₂₃₄₅₆₇₈₉';
+  const sub = n => String(n).split('').map(c => SUBS[+c]).join('');
+
+  // ------------------------------------------------------------ split by subject (step 5, schematic: 10 subjects × 24 windows)
+  const NS = 10, NW = 24, SUBJ_ORDER = shuffled(NS * NW, 17);
+  function drawSubject(cur) {
+    const K = state.K;
+    const g = el('g', {}, chart);
+    legend(g, W - 330, 8, [{ c: C.train, n: 'training window', sq: true }, { c: C.val, n: 'validation window (fold 1)', sq: true }]);
+    const nValRand = Math.round(NS * NW / K);
+    const nSubjVal = Math.max(1, Math.round(NS / K));
+    const f1 = Math.min(cur, nValRand);                       // random panel progress
+    const f2 = Math.max(0, Math.min(cur - nValRand, nSubjVal * NW)); // subject panel progress
+    const panels = [
+      { x: 60, title: `random ${K}-fold split (train_test_split / KFold)`, isVal: i => { const p = RPOS[i]; return p < f1; } },
+      { x: 690, title: `split by subject (GroupKFold, ${nSubjVal} subject${nSubjVal > 1 ? 's' : ''} held out)`, isVal: i => i < f2 },
+    ];
+    const cell = 20, top = 92, pitch = 13;
+    panels.forEach(p => {
+      text(p.x, 72, p.title, { class: 'dlabel', fill: C.ink }, g);
+      let both = 0;
+      for (let s = 0; s < NS; s++) {
+        const y = top + s * (cell + pitch);
+        text(p.x - 8, y + cell / 2 + 4, `subject ${s + 1}`, { class: 'mono', 'text-anchor': 'end', fill: C.ink2 }, g);
+        let nv = 0;
+        for (let w = 0; w < NW; w++) {
+          const i = s * NW + w, v = p.isVal(i); if (v) nv++;
+          el('rect', { x: p.x + w * cell + 1, y: y + 1, width: cell - 2, height: cell - 2, rx: 2, fill: v ? C.val : C.train, 'data-tt': `subject ${s + 1} · window ${w + 1} · ${v ? 'validation' : 'training'}` }, g);
+        }
+        if (nv > 0 && nv < NW) both++;
+        el('rect', { x: p.x - 2, y: y - 2, width: NW * cell + 4, height: cell + 4, rx: 3, fill: 'none', stroke: C.ink3, 'stroke-dasharray': '3 3' }, g);
+      }
+      const yb = top + NS * (cell + pitch) + 14;
+      text(p.x, yb + 8, `subjects with windows in both sets: ${both} of ${NS}`, { class: 'mono-big', 'font-weight': 700 }, g);
+    });
+    text(60, 44, 'ten subjects, 24 windows each; dashed boxes mark one subject’s recording', { class: 'label' }, g);
+  }
+  const RPOS = []; SUBJ_ORDER.forEach((i, p) => RPOS[i] = p);
+
+  // ------------------------------------------------------------ hover
+  const tt = $('tt');
+  chart.addEventListener('mousemove', evt => {
+    const t = evt.target.closest('[data-tt]');
+    if (!t) { tt.style.display = 'none'; return; }
+    tt.textContent = t.getAttribute('data-tt'); tt.style.display = 'block';
+    const wrap = chart.parentElement.getBoundingClientRect();
+    const px = evt.clientX - wrap.left, py = evt.clientY - wrap.top;
+    tt.style.left = (px + 16 + tt.offsetWidth > wrap.width ? px - tt.offsetWidth - 12 : px + 16) + 'px';
+    tt.style.top = Math.max(0, py - 10) + 'px';
+  });
+  chart.addEventListener('mouseleave', () => { tt.style.display = 'none'; });
+
+  // ------------------------------------------------------------ step machinery
+  let step = 0, cursor = 0, playing = false, raf = 0, lastT = 0, acc = 0;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const frames = () => steps[step].frames();
+  const done = () => cursor >= frames();
+
+  function render() {
+    const d = steps[step];
+    chart.innerHTML = '';
+    d.draw(cursor);
+    $('title').innerHTML = d.title() + `<span class="tag">${d.tag()}</span>`;
+    $('subtitle').textContent = d.subtitle();
+    $('counter').textContent = `${step + 1} / ${steps.length}`;
+  }
+  function rebuild() { cursor = Math.min(cursor, frames()); render(); }
+  function enterStep(k, completed = false) {
+    step = k;
+    applyPresets(steps[step].presets);
+    try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {}
+    stopPlay();
+    cursor = 0;
+    if (completed || state.speed === 0 || reduceMotion) { cursor = frames(); render(); }
+    else { render(); startPlay(); }
+  }
+  function finish() { stopPlay(); cursor = frames(); render(); }
+  function tick(t) {
+    if (!playing) return;
+    const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+    acc += dt * state.speed * steps[step].rate;
+    let moved = false;
+    while (acc >= 1 && cursor < frames()) { cursor++; acc -= 1; moved = true; }
+    if (moved) render();
+    if (done()) { stopPlay(); return; }
+    raf = requestAnimationFrame(tick);
+  }
+  function startPlay() { if (done()) return; playing = true; lastT = performance.now(); acc = 0; $('play').textContent = 'Pause'; raf = requestAnimationFrame(tick); }
+  function stopPlay() { playing = false; cancelAnimationFrame(raf); $('play').textContent = 'Play'; }
+  function next() { if (!done()) { finish(); return; } if (step < steps.length - 1) enterStep(step + 1); }
+  function prev() { if (step > 0) enterStep(step - 1, true); }
+  function restart() { enterStep(step); }
+
+  $('next').addEventListener('click', e => { e.stopPropagation(); next(); });
+  $('prev').addEventListener('click', e => { e.stopPropagation(); prev(); });
+  $('restart').addEventListener('click', e => { e.stopPropagation(); restart(); });
+  $('play').addEventListener('click', e => { e.stopPropagation(); if (playing) stopPlay(); else if (done()) restart(); else startPlay(); });
+  $('reset').addEventListener('click', e => { e.stopPropagation(); for (const k in dirty) delete dirty[k]; setDial('val', 20); setDial('test', 20); setDial('K', 5); setDial('depth', 5); restart(); });
+  $('speed').addEventListener('change', e => { state.speed = parseInt(e.target.value, 10); });
+  $('slide').addEventListener('click', () => next());
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
+    else if (e.key === 'r' || e.key === 'R') restart();
+  });
+
+  const h = parseInt((location.hash || '').replace('#', ''), 10);
+  enterStep(h >= 1 && h <= steps.length ? h - 1 : 0);
+})();
+</script>
+</body>
+</html>

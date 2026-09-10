@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Feature Families for Exercise Sequences</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff; --ink: #222222; --ink-2: #666666; --ink-3: #9a9a9a;
+    --rule: #dcdcdc; --grid: #ececec; --raw: #b4b4b4; --raw-dot: #8c8c8c; --clean: #444444;
+    --ma: #2a78d6; --med: #1baf7a; --wm: #4a3aa7; --ewma: #eb6834;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.4; padding-block: 18px 28px; padding-inline: 16px; -webkit-font-smoothing: antialiased; }
+  .stage { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
+  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; min-height: 560px; position: relative; outline: none; cursor: pointer; user-select: none; }
+  .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
+  .head h1 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .chart-wrap { position: relative; min-height: 0; }
+  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt .row { display: flex; gap: 10px; justify-content: space-between; }
+  .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot .ctr { font-family: var(--mono); }
+  .bar { display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center; padding:14px 18px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
+  .group { display:flex; align-items:center; gap:8px; }
+  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
+  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
+  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  button:hover, select:hover { border-color:var(--ink); }
+  button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
+  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
+  .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
+  .grid line { stroke: var(--grid); stroke-width: 1; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .ptitle { font-family: var(--sans); font-size: 14px; font-weight: 700; fill: var(--ink); }
+  .mono { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
+  .big { font-family: var(--mono); font-size: 22px; font-weight: 700; }
+  .trace { fill: none; stroke-width: 1.6; stroke-linejoin: round; }
+  .legend text { font-family: var(--sans); font-size: 12px; fill: var(--ink); }
+  .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
+  @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
+</style>
+
+<div class="stage">
+  <section class="slide" id="slide" tabindex="0" aria-live="polite">
+    <div class="head">
+      <h1 id="title">Feature families</h1>
+      <p id="subtitle"></p>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 1200 640" role="img" aria-label="Exercise feature spaces"></svg>
+      <div class="tt" id="tt"></div>
+    </div>
+    <div class="foot">
+      <span>CS328 &nbsp;·&nbsp; Case Studies in Activity Recognition</span>
+      <span class="ctr" id="counter"></span>
+    </div>
+  </section>
+
+  <div class="bar">
+    <div class="group">
+      <button id="prev" title="Previous (←)">‹ Prev</button>
+      <button id="play" class="primary" title="Play / pause (space)">Play</button>
+      <button id="next" title="Next (→)">Next ›</button>
+      <button id="restart" title="Restart this step (r)">Restart</button>
+      <button id="reset" title="Reset all dials to the step presets">Reset dials</button>
+    </div>
+    <div class="group">
+      <label for="space">Feature space</label>
+      <select id="space">
+        <option value="T">time-domain (mean, std)</option>
+        <option value="F">frequency-domain (dominant freq, energy)</option>
+        <option value="D">DTW similarity (2-D MDS)</option>
+      </select>
+    </div>
+    <div class="group">
+      <label for="hl">Highlight class</label>
+      <select id="hl">
+        <option value="all">all three</option>
+        <option value="lateral_raise">lateral raise</option>
+        <option value="bicep_curl">bicep curl</option>
+        <option value="crunch">crunch</option>
+      </select>
+    </div>
+    <div class="group">
+      <label for="speed">Speed</label>
+      <select id="speed">
+        <option value="0.25">very slow</option>
+        <option value="0.5">slow</option>
+        <option value="1" selected>normal</option>
+        <option value="2.5">fast</option>
+        <option value="0">instant</option>
+      </select>
+    </div>
+    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ------------------------------------------------------------ data (RecoFit-Exercises, gyroscope magnitude, 50 Hz)
+  const DATA = {"seqs":[{"cls":"lateral_raise","seq":0,"subject":0,"mean":3.2944,"std":1.574,"dom_freq":1.1379,"energy":2514381.2,"dur":28.98,"spr":1.932,"reps":15,"mds":[14.3,43.2]},{"cls":"lateral_raise","seq":1,"subject":6,"mean":1.1837,"std":0.8392,"dom_freq":0.2506,"energy":3623557.4,"dur":67.82,"spr":3.391,"reps":20,"mds":[-6.9,-8.2]},{"cls":"lateral_raise","seq":2,"subject":13,"mean":1.7031,"std":0.8804,"dom_freq":0.7848,"energy":655269.8,"dur":26.74,"spr":2.674,"reps":10,"mds":[-16.3,6.3]},{"cls":"lateral_raise","seq":3,"subject":14,"mean":2.0253,"std":0.9611,"dom_freq":1.0853,"energy":791982.7,"dur":26.7,"spr":1.907,"reps":14,"mds":[-8.4,9.1]},{"cls":"lateral_raise","seq":4,"subject":32,"mean":2.4399,"std":1.1789,"dom_freq":1.2175,"energy":981770.2,"dur":24.62,"spr":1.641,"reps":15,"mds":[-2.8,19.5]},{"cls":"lateral_raise","seq":5,"subject":52,"mean":0.9532,"std":0.8038,"dom_freq":0.2432,"energy":4260662.6,"dur":73.98,"spr":4.11,"reps":18,"mds":[-13.1,-10.7]},{"cls":"lateral_raise","seq":6,"subject":53,"mean":1.3129,"std":0.9179,"dom_freq":0.8946,"energy":2951528.0,"dur":60.34,"spr":3.017,"reps":20,"mds":[2.1,-11.3]},{"cls":"lateral_raise","seq":7,"subject":54,"mean":0.8621,"std":0.5118,"dom_freq":0.432,"energy":19086.9,"dur":9.24,"spr":9.24,"reps":1,"mds":[-35.9,-2.9]},{"cls":"lateral_raise","seq":8,"subject":54,"mean":0.9608,"std":0.9717,"dom_freq":0.2342,"energy":7059008.1,"dur":89.66,"spr":4.483,"reps":20,"mds":[1.4,-6.0]},{"cls":"lateral_raise","seq":9,"subject":56,"mean":1.9688,"std":0.8699,"dom_freq":1.0504,"energy":1306953.8,"dur":38.06,"spr":1.903,"reps":20,"mds":[-0.9,2.4]},{"cls":"lateral_raise","seq":10,"subject":56,"mean":1.6784,"std":0.7199,"dom_freq":0.9838,"energy":491288.1,"dur":28.44,"spr":2.031,"reps":14,"mds":[-19.0,1.0]},{"cls":"lateral_raise","seq":11,"subject":64,"mean":0.8199,"std":0.4294,"dom_freq":0.2822,"energy":68711.0,"dur":17.7,"spr":3.54,"reps":5,"mds":[-40.9,-7.8]},{"cls":"lateral_raise","seq":12,"subject":65,"mean":0.7613,"std":0.5533,"dom_freq":0.4062,"energy":1816459.2,"dur":76.3,"spr":5.087,"reps":15,"mds":[-26.8,-13.9]},{"cls":"lateral_raise","seq":13,"subject":66,"mean":1.6776,"std":1.3904,"dom_freq":0.3906,"energy":6130729.0,"dur":51.18,"spr":2.559,"reps":20,"mds":[12.8,18.0]},{"cls":"lateral_raise","seq":14,"subject":67,"mean":1.5031,"std":1.0862,"dom_freq":0.3827,"energy":3896908.4,"dur":52.24,"spr":2.612,"reps":20,"mds":[3.4,3.3]},{"cls":"lateral_raise","seq":15,"subject":68,"mean":1.3401,"std":0.9459,"dom_freq":0.6237,"energy":2258684.1,"dur":49.68,"spr":3.549,"reps":14,"mds":[-13.1,2.5]},{"cls":"lateral_raise","seq":16,"subject":69,"mean":2.0034,"std":1.0927,"dom_freq":1.189,"energy":357675.4,"dur":15.96,"spr":1.773,"reps":9,"mds":[-20.5,12.5]},{"cls":"lateral_raise","seq":17,"subject":69,"mean":1.9298,"std":1.0385,"dom_freq":1.2516,"energy":289516.7,"dur":15.16,"spr":1.684,"reps":9,"mds":[-21.5,9.2]},{"cls":"lateral_raise","seq":18,"subject":70,"mean":1.5265,"std":1.2759,"dom_freq":0.3245,"energy":4201626.3,"dur":46.2,"spr":3.08,"reps":15,"mds":[-1.4,15.2]},{"cls":"lateral_raise","seq":19,"subject":71,"mean":1.2727,"std":0.8055,"dom_freq":0.3864,"energy":1189419.1,"dur":38.8,"spr":2.587,"reps":15,"mds":[-17.4,-2.4]},{"cls":"lateral_raise","seq":20,"subject":72,"mean":1.8798,"std":1.1065,"dom_freq":0.7184,"energy":2626421.8,"dur":41.74,"spr":2.783,"reps":15,"mds":[-5.4,16.4]},{"cls":"lateral_raise","seq":21,"subject":73,"mean":1.3092,"std":0.9062,"dom_freq":0.2457,"energy":2085673.6,"dur":48.82,"spr":3.255,"reps":15,"mds":[-13.5,-1.2]},{"cls":"lateral_raise","seq":22,"subject":74,"mean":2.1484,"std":1.1562,"dom_freq":1.0993,"energy":1275817.3,"dur":28.18,"spr":1.879,"reps":15,"mds":[-2.3,15.0]},{"cls":"lateral_raise","seq":23,"subject":75,"mean":2.7205,"std":1.1827,"dom_freq":1.2971,"energy":960518.5,"dur":23.88,"spr":1.592,"reps":15,"mds":[1.7,21.2]},{"cls":"lateral_raise","seq":24,"subject":76,"mean":1.5455,"std":1.163,"dom_freq":0.2681,"energy":4315539.1,"dur":52.2,"spr":3.48,"reps":15,"mds":[-7.5,19.2]},{"cls":"lateral_raise","seq":25,"subject":77,"mean":1.5227,"std":0.8782,"dom_freq":0.6643,"energy":758035.5,"dur":28.58,"spr":2.858,"reps":10,"mds":[-18.9,4.1]},{"cls":"lateral_raise","seq":26,"subject":77,"mean":1.6492,"std":0.9637,"dom_freq":0.7225,"energy":848961.3,"dur":27.66,"spr":2.766,"reps":10,"mds":[-16.1,8.0]},{"cls":"lateral_raise","seq":27,"subject":78,"mean":2.0272,"std":1.0209,"dom_freq":1.022,"energy":1774778.0,"dur":38.14,"spr":1.907,"reps":20,"mds":[5.0,8.9]},{"cls":"lateral_raise","seq":28,"subject":79,"mean":1.2659,"std":0.6985,"dom_freq":0.7769,"energy":853254.6,"dur":39.88,"spr":2.659,"reps":15,"mds":[-15.7,-5.8]},{"cls":"lateral_raise","seq":29,"subject":80,"mean":2.0026,"std":1.0675,"dom_freq":0.8456,"energy":1029117.9,"dur":27.18,"spr":2.265,"reps":12,"mds":[-13.7,14.4]},{"cls":"lateral_raise","seq":30,"subject":80,"mean":1.9239,"std":1.0041,"dom_freq":0.4808,"energy":527649.3,"dur":20.78,"spr":2.078,"reps":10,"mds":[-18.7,11.5]},{"cls":"lateral_raise","seq":31,"subject":81,"mean":1.8585,"std":1.1608,"dom_freq":0.702,"energy":4007299.9,"dur":49.84,"spr":2.623,"reps":19,"mds":[8.2,14.1]},{"cls":"lateral_raise","seq":32,"subject":82,"mean":0.8925,"std":0.6563,"dom_freq":0.2306,"energy":2150418.1,"dur":65.04,"spr":4.336,"reps":15,"mds":[-25.3,-8.6]},{"cls":"lateral_raise","seq":33,"subject":84,"mean":1.7605,"std":0.8405,"dom_freq":0.7208,"energy":1179331.4,"dur":37.44,"spr":2.674,"reps":14,"mds":[-12.8,6.3]},{"cls":"lateral_raise","seq":34,"subject":87,"mean":1.4531,"std":0.7798,"dom_freq":0.8741,"energy":877115.0,"dur":34.3,"spr":2.287,"reps":15,"mds":[-16.5,-1.2]},{"cls":"bicep_curl","seq":0,"subject":0,"mean":1.7446,"std":1.0814,"dom_freq":1.0816,"energy":2698937.9,"dur":57.3,"spr":2.204,"reps":26,"mds":[14.4,2.4]},{"cls":"bicep_curl","seq":1,"subject":1,"mean":2.213,"std":1.0306,"dom_freq":0.8389,"energy":4606657.8,"dur":59.58,"spr":2.383,"reps":25,"mds":[21.9,5.7]},{"cls":"bicep_curl","seq":2,"subject":2,"mean":2.2082,"std":1.0007,"dom_freq":0.9393,"energy":4486402.7,"dur":64.92,"spr":2.239,"reps":29,"mds":[23.4,-2.4]},{"cls":"bicep_curl","seq":3,"subject":3,"mean":2.4674,"std":1.089,"dom_freq":1.1127,"energy":3878564.2,"dur":57.5,"spr":1.917,"reps":30,"mds":[27.3,10.9]},{"cls":"bicep_curl","seq":4,"subject":4,"mean":2.2882,"std":0.9299,"dom_freq":1.221,"energy":2397013.3,"dur":49.12,"spr":1.637,"reps":30,"mds":[20.0,-1.8]},{"cls":"bicep_curl","seq":5,"subject":5,"mean":2.3204,"std":1.1718,"dom_freq":0.948,"energy":6080971.6,"dur":65.38,"spr":2.179,"reps":30,"mds":[30.9,9.1]},{"cls":"bicep_curl","seq":6,"subject":6,"mean":1.3932,"std":0.6994,"dom_freq":0.6783,"energy":4556007.1,"dur":88.44,"spr":2.948,"reps":30,"mds":[0.8,-20.5]},{"cls":"bicep_curl","seq":7,"subject":7,"mean":2.2319,"std":1.0327,"dom_freq":1.2966,"energy":2922653.7,"dur":49.34,"spr":1.645,"reps":30,"mds":[22.3,2.3]},{"cls":"bicep_curl","seq":8,"subject":8,"mean":1.7572,"std":1.2665,"dom_freq":0.7967,"energy":12491287.6,"dur":82.82,"spr":2.672,"reps":31,"mds":[38.7,-9.9]},{"cls":"bicep_curl","seq":9,"subject":9,"mean":3.1319,"std":1.2159,"dom_freq":1.3567,"energy":1391477.3,"dur":30.2,"spr":1.51,"reps":20,"mds":[13.8,28.9]},{"cls":"bicep_curl","seq":10,"subject":10,"mean":2.8119,"std":1.3907,"dom_freq":1.397,"energy":18600520.7,"dur":103.06,"spr":1.69,"reps":61,"mds":[66.5,34.0]},{"cls":"bicep_curl","seq":11,"subject":11,"mean":2.4867,"std":1.2561,"dom_freq":0.9792,"energy":7352233.9,"dur":63.3,"spr":2.11,"reps":30,"mds":[38.8,11.6]},{"cls":"bicep_curl","seq":12,"subject":12,"mean":2.4659,"std":1.3184,"dom_freq":0.9507,"energy":19018534.7,"dur":95.7,"spr":2.08,"reps":46,"mds":[66.1,-2.5]},{"cls":"bicep_curl","seq":13,"subject":13,"mean":2.5049,"std":1.1995,"dom_freq":0.8417,"energy":8498044.7,"dur":70.08,"spr":2.336,"reps":30,"mds":[41.5,9.3]},{"cls":"bicep_curl","seq":14,"subject":14,"mean":1.7149,"std":0.9141,"dom_freq":0.6744,"energy":7090319.9,"dur":85.98,"spr":3.071,"reps":28,"mds":[19.4,-11.8]},{"cls":"bicep_curl","seq":15,"subject":15,"mean":1.936,"std":1.0111,"dom_freq":0.7782,"energy":8243441.4,"dur":82.22,"spr":2.741,"reps":30,"mds":[27.0,-6.6]},{"cls":"bicep_curl","seq":16,"subject":16,"mean":2.0158,"std":1.1975,"dom_freq":0.9773,"energy":6047884.0,"dur":70.58,"spr":2.353,"reps":30,"mds":[28.0,1.3]},{"cls":"bicep_curl","seq":17,"subject":17,"mean":1.0521,"std":0.7035,"dom_freq":0.2604,"energy":3182432.2,"dur":72.94,"spr":3.647,"reps":20,"mds":[-16.5,1.4]},{"cls":"bicep_curl","seq":18,"subject":18,"mean":2.2197,"std":1.0143,"dom_freq":1.0755,"energy":2391946.6,"dur":45.54,"spr":1.822,"reps":25,"mds":[13.0,9.6]},{"cls":"bicep_curl","seq":19,"subject":19,"mean":1.2803,"std":0.9598,"dom_freq":0.2961,"energy":7661460.9,"dur":101.3,"spr":3.377,"reps":30,"mds":[14.6,-4.7]},{"cls":"bicep_curl","seq":20,"subject":24,"mean":2.7501,"std":1.4766,"dom_freq":1.1773,"energy":6925758.9,"dur":59.44,"spr":1.917,"reps":31,"mds":[41.3,24.0]},{"cls":"bicep_curl","seq":21,"subject":25,"mean":1.4234,"std":0.6901,"dom_freq":0.71,"energy":4120708.8,"dur":85.9,"spr":2.962,"reps":29,"mds":[1.7,-20.6]},{"cls":"bicep_curl","seq":22,"subject":26,"mean":2.0425,"std":1.2379,"dom_freq":0.8146,"energy":10506054.6,"dur":74.86,"spr":2.495,"reps":30,"mds":[38.0,-2.0]},{"cls":"bicep_curl","seq":23,"subject":27,"mean":1.7486,"std":0.8399,"dom_freq":0.9592,"energy":3103085.1,"dur":64.62,"spr":2.154,"reps":30,"mds":[12.1,-10.6]},{"cls":"bicep_curl","seq":24,"subject":28,"mean":2.4618,"std":1.0872,"dom_freq":0.7613,"energy":9146189.1,"dur":85.36,"spr":2.845,"reps":30,"mds":[38.4,4.3]},{"cls":"crunch","seq":0,"subject":0,"mean":1.1325,"std":0.6202,"dom_freq":0.9615,"energy":852041.2,"dur":43.66,"spr":2.183,"reps":20,"mds":[-18.7,-11.1]},{"cls":"crunch","seq":1,"subject":6,"mean":0.6612,"std":0.554,"dom_freq":0.5281,"energy":3740504.5,"dur":113.6,"spr":3.787,"reps":30,"mds":[-22.9,-29.9]},{"cls":"crunch","seq":2,"subject":13,"mean":1.3523,"std":1.0671,"dom_freq":0.4368,"energy":4010153.4,"dur":54.92,"spr":2.197,"reps":25,"mds":[8.7,3.5]},{"cls":"crunch","seq":3,"subject":14,"mean":1.4597,"std":0.7886,"dom_freq":1.0238,"energy":862836.8,"dur":36.12,"spr":1.901,"reps":19,"mds":[-4.5,-4.5]},{"cls":"crunch","seq":4,"subject":32,"mean":1.6064,"std":1.1285,"dom_freq":1.1342,"energy":4001384.9,"dur":52.0,"spr":1.733,"reps":30,"mds":[18.4,-24.9]},{"cls":"crunch","seq":5,"subject":52,"mean":0.5904,"std":0.6586,"dom_freq":0.5797,"energy":6014219.8,"dur":110.38,"spr":3.679,"reps":30,"mds":[-11.4,-27.5]},{"cls":"crunch","seq":6,"subject":53,"mean":0.8896,"std":0.9804,"dom_freq":0.6327,"energy":3893718.5,"dur":63.2,"spr":3.16,"reps":20,"mds":[-1.1,-14.0]},{"cls":"crunch","seq":7,"subject":54,"mean":1.4491,"std":1.0354,"dom_freq":1.1159,"energy":8031254.2,"dur":96.76,"spr":1.935,"reps":50,"mds":[22.4,19.7]},{"cls":"crunch","seq":8,"subject":56,"mean":1.0803,"std":0.793,"dom_freq":0.3404,"energy":5429135.7,"dur":85.18,"spr":2.937,"reps":29,"mds":[2.3,-15.2]},{"cls":"crunch","seq":9,"subject":56,"mean":1.1769,"std":0.9805,"dom_freq":0.3867,"energy":8501086.1,"dur":85.32,"spr":2.585,"reps":33,"mds":[15.0,-16.4]},{"cls":"crunch","seq":10,"subject":64,"mean":0.5025,"std":0.3825,"dom_freq":0.4116,"energy":826810.9,"dur":70.44,"spr":4.696,"reps":15,"mds":[-37.9,-14.0]},{"cls":"crunch","seq":11,"subject":65,"mean":1.9446,"std":1.5787,"dom_freq":1.1825,"energy":3121431.6,"dur":32.96,"spr":1.648,"reps":20,"mds":[2.7,36.6]},{"cls":"crunch","seq":12,"subject":66,"mean":1.4798,"std":1.5456,"dom_freq":0.2713,"energy":15448403.4,"dur":73.7,"spr":2.948,"reps":25,"mds":[29.3,40.5]},{"cls":"crunch","seq":13,"subject":67,"mean":0.7318,"std":0.6404,"dom_freq":0.4351,"energy":1348533.5,"dur":59.74,"spr":2.213,"reps":27,"mds":[-22.2,-16.6]},{"cls":"crunch","seq":14,"subject":68,"mean":0.8714,"std":0.7761,"dom_freq":0.2509,"energy":7679900.0,"dur":103.62,"spr":4.145,"reps":25,"mds":[-3.2,-22.7]},{"cls":"crunch","seq":15,"subject":69,"mean":0.7172,"std":0.4819,"dom_freq":1.2211,"energy":68164.0,"dur":15.54,"spr":1.554,"reps":10,"mds":[-36.8,-6.3]},{"cls":"crunch","seq":16,"subject":69,"mean":0.9852,"std":0.8592,"dom_freq":1.3858,"energy":197584.1,"dur":18.02,"spr":1.802,"reps":10,"mds":[-32.3,0.9]},{"cls":"crunch","seq":17,"subject":70,"mean":1.1874,"std":0.6263,"dom_freq":1.2655,"energy":915851.2,"dur":45.02,"spr":1.501,"reps":30,"mds":[-15.9,-14.9]},{"cls":"crunch","seq":18,"subject":71,"mean":0.9637,"std":0.4928,"dom_freq":1.1458,"energy":699769.6,"dur":50.6,"spr":1.687,"reps":30,"mds":[-22.3,-10.7]},{"cls":"crunch","seq":19,"subject":72,"mean":1.1423,"std":0.6978,"dom_freq":0.9473,"energy":1510923.4,"dur":53.82,"spr":2.153,"reps":25,"mds":[-13.0,-15.5]},{"cls":"crunch","seq":20,"subject":73,"mean":1.6147,"std":0.8114,"dom_freq":1.1956,"energy":2051674.4,"dur":51.0,"spr":1.7,"reps":30,"mds":[6.0,-5.2]},{"cls":"crunch","seq":21,"subject":74,"mean":1.6005,"std":0.8839,"dom_freq":1.6794,"energy":1010791.4,"dur":33.92,"spr":1.131,"reps":30,"mds":[2.4,-4.0]},{"cls":"crunch","seq":22,"subject":75,"mean":2.3843,"std":1.729,"dom_freq":0.6205,"energy":2881087.8,"dur":30.6,"spr":1.611,"reps":19,"mds":[8.8,43.2]},{"cls":"crunch","seq":23,"subject":76,"mean":1.3079,"std":0.7861,"dom_freq":0.9918,"energy":2378069.4,"dur":58.46,"spr":1.949,"reps":30,"mds":[-4.2,-1.6]},{"cls":"crunch","seq":24,"subject":77,"mean":1.4898,"std":0.956,"dom_freq":1.0823,"energy":4763706.1,"dur":65.58,"spr":1.822,"reps":36,"mds":[17.2,-8.0]},{"cls":"crunch","seq":25,"subject":78,"mean":1.6363,"std":0.8057,"dom_freq":0.7774,"energy":415843.4,"dur":24.42,"spr":1.221,"reps":20,"mds":[-11.0,3.5]},{"cls":"crunch","seq":26,"subject":79,"mean":0.8805,"std":0.7697,"dom_freq":0.9929,"energy":1144072.1,"dur":45.3,"spr":2.265,"reps":20,"mds":[-22.3,-21.9]},{"cls":"crunch","seq":27,"subject":80,"mean":0.9916,"std":0.5744,"dom_freq":1.8669,"energy":1074530.0,"dur":54.08,"spr":1.104,"reps":49,"mds":[-13.5,-22.7]},{"cls":"crunch","seq":28,"subject":80,"mean":1.0144,"std":0.6093,"dom_freq":1.8938,"energy":1505197.7,"dur":59.12,"spr":1.095,"reps":54,"mds":[-8.9,-23.6]},{"cls":"crunch","seq":29,"subject":81,"mean":0.6327,"std":0.4288,"dom_freq":0.6535,"energy":1785922.2,"dur":91.8,"spr":3.06,"reps":30,"mds":[-33.6,-21.5]},{"cls":"crunch","seq":30,"subject":82,"mean":0.6424,"std":0.5002,"dom_freq":0.6592,"energy":1943066.6,"dur":80.38,"spr":2.772,"reps":29,"mds":[-25.1,-20.7]},{"cls":"crunch","seq":31,"subject":84,"mean":0.7118,"std":0.3388,"dom_freq":1.0061,"energy":233854.8,"dur":42.72,"spr":1.857,"reps":23,"mds":[-35.3,-14.3]},{"cls":"crunch","seq":32,"subject":87,"mean":1.0726,"std":0.6636,"dom_freq":1.0669,"energy":1500658.0,"dur":56.22,"spr":1.874,"reps":30,"mds":[-18.3,-22.6]}],"pace":{"slow":{"seq":15,"spr":3.55,"reps":14,"dur":49.7,"fs":25,"x":[3.045,2.943,2.963,2.897,3.035,3.046,2.72,2.215,2.177,1.941,1.631,1.419,0.956,0.968,0.82,0.441,0.435,0.314,0.331,0.52,0.502,0.548,0.627,0.554,0.775,0.793,0.911,1.054,1.121,1.407,1.534,1.629,1.738,1.799,1.807,1.868,1.99,2.141,2.013,2.072,1.985,1.867,1.817,1.768,1.927,1.747,1.828,1.815,2.081,1.818,1.942,1.93,2.053,1.632,1.458,1.207,0.993,1.008,0.544,0.671,0.219,0.378,0.176,0.121,0.159,0.108,0.191,0.246,0.465,0.272,0.703,0.653,0.912,1.18,1.651,2.148,2.419,2.726,2.943,3.017,3.06,2.951,3.111,2.954,3.101,2.899,2.829,2.901,2.541,2.476,2.36,1.812,1.689,1.415,1.169,0.688,0.847,0.589,0.461,0.486,0.368,0.591,0.635,0.672,0.607,0.835,1.075,1.17,1.285,1.533,1.644,1.642,1.867,1.925,2.079,1.976,2.095,2.289,2.159,2.335,1.931,2.142,1.906,2.04,1.968,2.003,1.987,2.266,2.075,2.118,1.983,1.77,1.545,1.301,0.884,0.651,0.427,0.299,0.048,0.082,0.426,0.366,0.273,0.063,0.377,0.077,0.242,0.423,0.611,0.952,1.395,1.87,2.415,2.612,2.922,3.041,3.019,3.055,2.985,3.093,3.035,3.191,2.794,3.088,2.738,2.44,2.457,2.034,1.796,1.673,1.482,1.109,0.845,0.794,0.722,0.63,0.511,0.652,0.527,0.607,0.462,0.416,0.392,0.382,0.443,0.439,0.506,0.827,0.988,0.943,1.396,1.338,1.597,1.695,1.83,2.193,1.908,1.851,1.952,1.91,1.961,2.15,2.055,2.016,2.013,2.023,2.019,2.058,2.175,2.1,2.051,2.112,2.014,1.695,1.591,1.447,1.112,0.764,0.847,0.503,0.151,0.396,0.216,0.293,0.32,0.085,0.428,0.496,0.667,0.732,1.107,1.783,2.02,2.586,2.661,2.763,2.823,2.957,3.019,3.025,2.938,3.038,2.794,2.715,2.712,2.853,2.265,2.436,2.167,1.65,1.485,0.996,0.818,0.452,0.463,0.432,0.646,0.676,0.531,0.403,0.426,0.367,0.406,0.294,0.413,0.587,0.994,0.985,0.983,1.214,1.216,1.312,1.455,1.464,1.814,1.927,1.947,2.127,1.94,1.935,2.077,2.001,2.122,2.191,1.941,2.283,1.84,2.089,1.81,1.995,1.876,1.776,1.696,1.452,1.319,1.013,0.768,0.542,0.325,0.221,0.286,0.244,0.152,0.322,0.379,0.605,0.741,0.757,0.963,1.182,1.708,2.106,2.499,2.729,2.849,3.02,3.107,3.091,3.124,3.021,3.063,2.76,2.712,2.687,2.238,2.422,2.141,2.354,2.05,1.827,1.177,0.611,0.602,0.327,0.557,0.637,0.318,0.425,0.474,0.569,0.436,0.46,0.479,0.321,0.362,0.674,0.86,0.866,0.899,1.13,1.192,1.256,1.302,1.4,1.644,1.677,1.967,2.023,2.296,2.251,2.283,2.324,2.532,2.285,2.349,2.236,2.268,2.168,2.069,2.142,1.854,1.984,1.865,1.742,1.398,1.219,0.927,0.587,0.413,0.225,0.255,0.214,0.568,0.501,0.593,0.701,0.644,0.842,1.333,1.645,2.068,2.388,2.748,3.073,3.196,3.33,3.325,3.29,3.447,3.12,3.107,2.627,2.903,2.743,2.028,2.123,1.711,1.803,1.246,1.083,0.874,0.783,0.547,0.747,0.384,0.327,0.363,0.523,0.528,0.515,0.385,0.334,0.462,0.598,0.812,0.947,0.882,0.933,1.073,1.256,1.531,1.585,1.747,1.786,1.998,2.034,2.16,2.148,2.177,2.492,2.219,2.246,2.385,2.163,2.221,2.292,2.223,2.094,1.986,1.857,1.645,1.407,1.134,0.922,0.792,0.804,0.363,0.263,0.234,0.271,0.336,0.221,0.338,0.539,0.883,1.053,2.171,2.111,2.345,2.608,2.783,2.896,2.953,3.006,3.051,3.0,2.901,2.843,2.671,2.542,2.331,2.315,2.253,2.118,2.002,1.617,1.346,1.095,0.9,0.686,0.457,0.424,0.468,0.473,0.342,0.45,0.245,0.393,0.255,0.471,0.511,0.804,1.0,0.971,1.127,1.272,1.461,1.615,1.846,2.0,2.006,2.074,2.193,2.19,2.137,2.201,2.211,2.213,2.241,2.144,2.086,1.986,2.017,2.051,2.047,1.919,1.7,1.585,1.515,1.171,0.971,0.692,0.464,0.344,0.266,0.164,0.088,0.117,0.196,0.229,0.308,0.395,0.545,0.845,1.227,1.64,2.048,2.285,2.537,2.627,2.977,3.074,3.234,3.223,3.397,3.153,3.163,2.871,2.729,2.578,2.386,2.555,2.219,2.326,1.839,1.7,1.307,0.702,0.472,0.555,0.502,0.462,0.386,0.606,0.437,0.44,0.381,0.267,0.323,0.187,0.287,0.285,0.703,0.88,1.043,1.135,1.256,1.374,1.459,1.58,1.792,1.998,2.148,2.313,2.423,2.249,2.35,2.375,2.48,2.248,2.316,2.086,2.186,2.001,1.922,1.907,1.929,1.906,1.751,1.456,1.258,1.044,1.011,0.878,0.754,0.687,0.452,0.314,0.23,0.103,0.08,0.207,0.357,0.266,0.462,0.55,0.663,1.029,1.344,1.591,2.251,2.48,2.778,2.953,3.062,3.147,3.1,3.152,3.018,3.027,2.672,2.678,2.39,2.122,2.131,2.485,2.352,2.749,2.068,2.234,2.096,1.965,1.703,1.059,0.56,0.519,0.237,0.376,0.246,0.354,0.538,0.409,0.487,0.326,0.461,0.531,0.593,0.659,0.791,0.988,1.382,1.287,1.357,1.433,1.64,1.584,1.771,1.901,2.052,1.993,2.187,2.234,2.362,2.154,2.193,2.302,2.424,2.404,2.369,2.347,2.352,2.302,2.135,2.02,1.837,1.517,1.134,0.933,0.672,0.372,0.637,0.591,0.463,0.24,0.209,0.193,0.444,0.572,0.959,1.413,1.64,1.874,2.173,2.431,2.765,2.87,3.058,3.08,3.035,3.051,2.902,2.811,2.6,2.481,2.389,2.25,2.567,2.254,2.276,2.058,1.703,1.503,1.14,0.791,0.64,0.314,0.268,0.326,0.516,0.423,0.407,0.446,0.49,0.625,0.798,1.122,1.215,1.287,1.344,1.341,1.454,1.643,1.745,1.851,1.959,2.01,1.918,2.031,1.941,2.106,2.072,2.314,2.221,2.166,2.229,2.055,2.294,2.169,2.267,1.957,1.785,1.455,1.084,0.791,0.622,0.459,0.34,0.2,0.134,0.147,0.134,0.13,0.07,0.11,0.15,0.333,0.462,1.21,1.287,1.206,1.516,1.911,2.1,2.443,2.731,3.006,3.113,3.175,3.135,3.15,2.972,2.865,2.71,2.373,2.26,2.402,2.096,2.023,2.112,1.81,1.523,1.403,1.268,1.149,0.857,0.563,0.308,0.266,0.261,0.459,0.456,0.497,0.49,0.462,0.585,0.614,0.728,0.944,1.224,1.358,1.502,1.602,1.54,1.686,1.819,1.954,2.009,2.095,2.274,2.304,2.286,2.264,2.335,2.403,2.458,2.306,2.325,2.333,2.117,1.92,1.756,1.687,1.373,1.123,0.818,0.665,0.46,0.32,0.28,0.209,0.186,0.093,0.137,0.214,0.34,0.52,0.597,0.856,1.19,1.609,1.851,1.965,2.151,2.294,2.359,2.583,2.585,2.823,2.839,2.962,2.841,2.842,2.719,2.469,2.489,2.267,2.204,2.021,1.866,1.701,1.428,1.159,0.983,0.498,0.502,0.365,0.262,0.448,0.35,0.566,0.508,0.534,0.58,0.742,0.885,1.187,1.249,1.233,1.333,1.442,1.52,1.55,1.644,1.738,1.953,2.006,2.161,2.238,2.292,2.113,2.273,2.101,2.243,2.173,2.261,2.424,2.405,2.445,2.158,1.777,1.496,1.263,1.002,0.708,0.46,0.167,0.259,0.213,0.216,0.18,0.127,0.131,0.136,0.105,0.124,0.066,0.106,0.127,0.153,0.156,0.128,0.135,0.13,0.123,0.108,0.127,0.185,0.265,0.318,0.253,0.283,0.228,0.194,0.158,0.091,0.11,0.056,0.06,0.075,0.1,0.096,0.078,0.053,0.073,0.078,0.087,0.112,0.108,0.141,0.111,0.145,0.158,0.094,0.077,0.079,0.074,0.072,0.089,0.094,0.092,0.085,0.075,0.079,0.056,0.043,0.042,0.064,0.064,0.059,0.035,0.042,0.068,0.093,0.107,0.092,0.08,0.117,0.15,0.166,0.062,0.065,0.071,0.084,0.063,0.071,0.146,0.318,1.069,1.321,1.599,1.646,1.858,2.046,2.206,2.303,2.451,2.529,2.607,2.633,2.675,2.768,2.797,2.7,2.703,2.407,2.363,2.159,2.216,1.913,1.8,1.663,1.417,0.956,1.063,1.003,0.75,0.423,0.321,0.154,0.141,0.364,0.433,0.526,0.592,0.714,0.682,0.821,0.895,0.909,0.983,1.164,1.257,1.388,1.528,1.719,1.86,1.909,1.989,1.978,2.117,2.151,2.19,2.133,2.303,2.107,2.17,1.976,1.931,1.893,1.88,1.826,1.639,1.532,1.223,1.018,0.718,0.473,0.39,0.372,0.282,0.25,0.221,0.158,0.214,0.077,0.055,0.116,0.139,0.149,0.096,0.168,0.086,0.119,0.101,0.07,0.158,0.177,0.201,0.18,0.155,0.179,0.14,0.112,0.112,0.077,0.105,0.116,0.142,0.109,0.085,0.079,0.059,0.096,0.081,0.087,0.058,0.064,0.058,0.045,0.113,0.075,0.084,0.057,0.016,0.054,0.047,0.084,0.095,0.086,0.119,0.151,0.162,0.147,0.109,0.074,0.122,0.102,0.096,0.111,0.101,0.064,0.069,0.102,0.16,0.168,0.118,0.342,0.472,0.871,1.824,2.073,1.561,1.659,1.763,1.978,2.209,2.304,2.533,2.689,2.73,2.697,2.65,2.69,2.686,2.669,2.61,2.508,2.227,2.069,1.854,1.714,1.421,1.428,1.197,0.901,0.711,0.449,0.255,0.321,0.215,0.327,0.319,0.687,0.523,0.727,0.498,0.494,0.47,0.463,0.419,0.457,0.513,0.654,0.646,0.771,0.857,1.015,1.112,1.182,1.258,1.444,1.426,1.572,1.604,1.759,1.96,2.009,2.104,2.2,2.403,2.348,2.49,2.338,2.45,2.383,2.236,2.0,1.704,1.344,1.17,0.926,0.719,0.624,0.465,0.375,0.467,0.331,0.343,0.355,0.486,0.597,0.822,0.609]},"fast":{"seq":23,"spr":1.59,"reps":15,"dur":23.9,"fs":25,"x":[1.395,0.193,0.538,1.002,1.382,1.732,2.294,2.578,3.029,3.406,3.733,4.001,4.155,4.243,4.396,4.097,3.73,3.159,2.578,2.144,1.867,1.103,0.087,0.701,1.445,1.947,2.637,3.235,3.893,3.891,4.183,4.171,4.167,3.875,3.816,3.511,3.236,2.958,2.272,1.699,1.343,1.001,0.209,1.103,1.577,1.521,1.927,2.18,2.313,2.742,3.085,3.758,3.697,3.941,3.9,3.788,3.577,3.579,3.473,3.311,2.947,2.435,1.715,0.663,0.699,1.442,2.347,3.073,3.274,3.536,3.498,3.39,3.208,3.425,3.34,3.272,3.12,3.075,2.895,2.623,2.427,1.77,1.453,1.029,0.513,0.438,0.702,1.121,1.509,1.926,2.463,2.894,3.553,3.869,4.087,4.329,4.118,4.045,3.866,3.678,3.393,3.134,2.753,2.361,1.366,0.512,0.841,2.035,2.422,3.127,3.694,4.282,4.282,4.151,3.994,3.956,3.798,3.455,3.272,2.902,2.34,2.133,1.453,1.119,0.684,0.502,0.606,0.971,1.148,1.551,2.04,2.706,3.336,3.627,3.995,4.08,3.945,3.995,3.957,3.827,3.843,3.871,3.328,2.701,1.885,1.246,0.482,1.047,1.754,2.473,2.843,3.384,3.899,4.279,4.346,4.405,4.108,4.031,3.759,3.477,3.082,2.839,2.384,2.055,1.2,0.851,0.382,0.837,1.212,1.811,2.386,2.901,3.558,3.816,4.043,4.009,3.944,4.094,4.115,3.995,3.9,3.634,3.211,2.43,1.721,0.603,1.062,1.893,2.289,3.022,3.649,4.157,4.325,4.255,4.027,3.974,3.93,3.523,3.209,2.907,2.544,2.138,1.837,1.244,0.91,0.585,0.538,0.946,1.472,2.139,2.392,2.776,3.317,3.452,3.632,3.692,3.783,3.747,3.828,3.857,3.941,3.716,3.275,2.264,1.618,0.502,1.006,1.867,2.511,3.198,3.629,4.024,4.343,4.373,4.18,4.039,3.797,3.627,3.057,2.767,2.393,1.781,1.582,1.155,0.822,1.092,1.709,1.921,2.478,2.909,3.221,3.527,3.711,3.617,3.592,3.758,3.792,3.88,3.94,3.599,3.33,2.232,1.156,0.514,1.276,2.403,3.218,3.557,3.856,3.959,4.044,4.109,4.123,3.931,3.713,3.524,3.053,2.657,2.174,1.55,1.114,0.582,0.481,0.963,1.358,1.93,2.595,3.109,3.458,3.58,3.671,3.804,3.956,3.942,3.921,3.883,3.75,3.446,2.231,1.188,0.659,1.159,1.881,2.693,2.875,3.241,3.82,4.245,4.232,3.855,3.879,3.785,3.517,3.174,2.668,2.253,1.836,1.311,0.726,0.401,0.657,1.307,1.764,2.074,2.451,2.914,3.293,3.568,3.592,3.72,3.879,3.94,4.031,3.943,3.602,3.095,2.654,1.824,0.668,0.627,1.537,2.648,3.35,3.578,3.9,4.252,4.098,3.863,3.894,3.79,3.457,2.917,2.564,2.302,1.795,1.185,0.967,0.411,0.805,1.383,1.782,2.351,2.812,3.17,3.384,3.551,3.373,3.644,3.66,3.579,3.473,3.465,3.13,2.642,2.141,1.353,0.314,0.97,2.228,2.742,3.159,3.455,3.771,4.004,4.139,4.056,4.067,4.115,3.44,2.805,2.502,2.061,1.591,1.063,0.791,0.537,0.86,1.33,1.667,2.134,2.659,3.145,3.358,3.476,3.603,3.717,3.911,3.936,3.921,3.962,3.677,2.93,2.009,1.174,0.397,1.149,1.971,2.817,3.376,3.78,3.947,4.194,4.424,4.118,3.885,3.807,3.525,2.774,2.475,2.116,1.67,0.893,0.446,0.675,0.889,1.519,1.861,2.579,3.129,3.309,3.682,4.071,3.863,3.783,4.005,3.77,3.964,3.877,3.203,2.726,1.967,1.181,0.454,0.664,1.621,2.414,3.019,3.565,3.984,4.23,4.433,4.477,4.422,4.279,3.938,3.418,3.07,2.599,1.989,1.553,0.99,0.345,0.372,0.985,1.418,1.935,2.386,2.877,3.366,3.725,3.697,3.711,3.758,3.725,3.746,4.051,3.991,3.664,2.961,2.347,1.625,0.991,0.387,0.904,1.688,2.375,2.932,3.49,3.859,4.242,4.502,4.407,4.301,3.925,3.666,3.459,2.835,2.511,2.106,1.86,1.18,0.572,1.038,1.061,1.476,1.892,2.356,3.024,3.288,3.391,3.675,3.74,3.827,3.937,4.016,3.864,3.76,3.237,2.882,2.285,1.628,0.786,0.691,1.697,2.425,2.849,3.309,3.759,3.95,4.14,4.211,4.229,4.083,3.893,3.483,3.076,2.747,2.274,1.561,1.165,0.607,0.659,0.999,1.547,2.109,2.609,3.052,3.376,3.485,3.675,3.694,3.622,3.619,3.704,3.789,3.439,3.351,2.546,1.915,1.467,0.755,0.943,1.591,2.239,2.922,3.142,3.377,3.645,3.636,3.731,3.589,3.28,2.93,2.547,2.336,1.925,1.397,1.427,0.882,0.441,0.622,1.027,1.221,1.529,1.812,2.067,1.913,1.725]}}};
+  const SEQ = DATA.seqs;            // 93 sequences: cls, seq, subject, mean, std, dom_freq, energy, spr, mds
+  const PACE = DATA.pace;           // two lateral-raise traces at 25 Hz (slow, fast)
+  const CLASSES = ['lateral_raise', 'bicep_curl', 'crunch'];
+  const CL = {
+    lateral_raise: { name: 'lateral raise', color: '#2a78d6', marker: 'circle', n: 35 },
+    bicep_curl:    { name: 'bicep curl',    color: '#eb6834', marker: 'triangle', n: 25 },
+    crunch:        { name: 'crunch',        color: '#1baf7a', marker: 'square', n: 33 },
+  };
+  // confusion matrices from the chapter (rows true, cols predicted, order lateral raise / bicep curl / crunch)
+  const CM = [
+    { key: 'T', name: 'Time-domain (T)', sub: 'mean, std', acc: 54, m: [[14, 8, 13], [10, 14, 1], [10, 1, 22]] },
+    { key: 'F', name: 'Frequency-domain (F)', sub: 'dominant freq, energy', acc: 52, m: [[17, 3, 15], [2, 18, 5], [14, 6, 13]] },
+    { key: 'D', name: 'DTW similarity (D)', sub: 'distance to every other sequence', acc: 81, m: [[27, 1, 7], [1, 20, 4], [4, 1, 28]] },
+    { key: 'A', name: 'Stacked (T + F + D)', sub: 'all features in one vector', acc: 82, m: [[28, 1, 6], [1, 20, 4], [4, 1, 28]] },
+  ];
+  function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+  const r = rng(328);
+  const ORDER = SEQ.map((_, i) => i); for (let i = ORDER.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [ORDER[i], ORDER[j]] = [ORDER[j], ORDER[i]]; }
+  const APPEAR = new Array(SEQ.length); ORDER.forEach((idx, k) => APPEAR[idx] = k);
+
+  // ------------------------------------------------------------ svg helpers
+  const W = 1200, H = 640;
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+  const txt = (x, y, s, attrs = {}, parent) => { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; };
+  const $ = id => document.getElementById(id);
+  const chart = $('chart');
+  const fmt = (v, d = 2) => v.toFixed(d);
+  const ease = p => p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+
+  function marker(cls, x, y, rad, attrs, parent) {
+    const c = CL[cls];
+    const a = Object.assign({ fill: c.color, stroke: '#fff', 'stroke-width': 1 }, attrs);
+    if (c.marker === 'circle') return el('circle', Object.assign({ cx: x, cy: y, r: rad }, a), parent);
+    if (c.marker === 'square') return el('rect', Object.assign({ x: x - rad, y: y - rad, width: 2 * rad, height: 2 * rad, rx: 1 }, a), parent);
+    const h = rad * 1.25;
+    return el('path', Object.assign({ d: `M${x},${y - h}L${x + h * 0.95},${y + h * 0.7}L${x - h * 0.95},${y + h * 0.7}Z` }, a), parent);
+  }
+
+  function legend(items, x, y, parent) {
+    const g = el('g', { class: 'legend' }, parent);
+    const rowH = 18, padX = 10, padY = 8;
+    const wdt = Math.max(...items.map(i => i.n.length)) * 6.9 + 2 * padX + 34;
+    el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
+    items.forEach((it, j) => {
+      const yy = y + padY + j * rowH + 6;
+      if (it.cls) marker(it.cls, x + padX + 9, yy, 5.5, {}, g);
+      else el('line', { x1: x + padX, x2: x + padX + 18, y1: yy, y2: yy, stroke: it.c, 'stroke-width': it.dash ? 1.5 : 2.5, 'stroke-dasharray': it.dash ? '5 4' : 'none' }, g);
+      txt(x + padX + 26, yy + 4, it.n, {}, g);
+    });
+    return g;
+  }
+
+  // linear / log scales
+  function axisX(g, sx, ticks, y0, y1, fmtf, yLab) {
+    const grid = el('g', { class: 'grid' }, g), ax = el('g', { class: 'axis' }, g);
+    ticks.forEach(v => { const x = sx(v); el('line', { x1: x, x2: x, y1: y0, y2: y1 }, grid); txt(x, y1 + 18, fmtf(v), { 'text-anchor': 'middle' }, ax); });
+    return ax;
+  }
+  function axisY(g, sy, ticks, x0, x1, fmtf) {
+    const grid = el('g', { class: 'grid' }, g), ax = el('g', { class: 'axis' }, g);
+    ticks.forEach(v => { const y = sy(v); el('line', { x1: x0, x2: x1, y1: y, y2: y }, grid); txt(x0 - 8, y + 4, fmtf(v), { 'text-anchor': 'end' }, ax); });
+    return ax;
+  }
+
+  // ------------------------------------------------------------ feature spaces
+  const PL = 90, PR = 40, PT = 30, PB = 70;
+  const plotW = W - PL - PR, plotH = H - PT - PB;
+  const SPACES = {
+    T: {
+      name: 'time-domain', xLab: 'mean |ω| (rad/s)', yLab: 'std |ω| (rad/s)',
+      x: s => s.mean, y: s => s.std,
+      sx: v => PL + (v - 0.3) / (3.5 - 0.3) * plotW, sy: v => PT + plotH - (v - 0.25) / (1.85 - 0.25) * plotH,
+      xt: [0.5, 1, 1.5, 2, 2.5, 3, 3.5], yt: [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75], xf: v => fmt(v, 1), yf: v => fmt(v, 2),
+    },
+    F: {
+      name: 'frequency-domain', xLab: 'dominant frequency (Hz)', yLab: 'band energy (0.2–3 Hz), log scale',
+      x: s => s.dom_freq, y: s => s.energy,
+      sx: v => PL + (v - 0.1) / (2.0 - 0.1) * plotW, sy: v => PT + plotH - (Math.log10(v) - 4) / (7.6 - 4) * plotH,
+      xt: [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2], yt: [1e4, 1e5, 1e6, 1e7], xf: v => fmt(v, 2), yf: v => '10' + ['⁴','⁵','⁶','⁷'][Math.round(Math.log10(v)) - 4],
+    },
+    D: {
+      name: 'DTW similarity', xLab: 'MDS dimension 1', yLab: 'MDS dimension 2',
+      x: s => s.mds[0], y: s => s.mds[1],
+      sx: v => PL + (v + 50) / 130 * plotW, sy: v => PT + plotH - (v + 40) / 95 * plotH,
+      xt: [], yt: [], xf: v => '', yf: v => '',
+    },
+  };
+
+  // ------------------------------------------------------------ state
+  const dirty = {};
+  let space = 'T', hl = 'all', speed = 1;
+  let step = 0, prog = 0, playing = false, raf = 0, lastT = 0;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const STEPS = [
+    { id: 'pace', dur: 12,
+      title: () => 'The same exercise performed at two paces', tag: () => `lateral raise · ${PACE.slow.spr} s/rep vs ${PACE.fast.spr} s/rep`,
+      subtitle: () => 'Comparing the gyroscope traces of the same exercise performed at two paces.',
+      presets: {} },
+    { id: 'T', dur: 10, presets: { space: 'T' },
+      title: () => 'Time-domain features: mean and std of |ω|', tag: () => '93 sequences · 35 / 25 / 33',
+      subtitle: () => 'The sequences plotted by the mean and standard deviation of their gyroscope magnitude.' },
+    { id: 'F', dur: 8, presets: { space: 'F' },
+      title: () => 'Frequency-domain features: dominant frequency, band energy', tag: () => '93 sequences · 0.2–3 Hz band',
+      subtitle: () => 'The same sequences plotted by dominant frequency and band energy.' },
+    { id: 'D', dur: 8, presets: { space: 'D' },
+      title: () => 'DTW similarity: 2-D MDS of the pairwise distances', tag: () => '93 × 93 DTW distances',
+      subtitle: () => 'The same sequences placed so that distance on the map matches DTW distance.' },
+    { id: 'cm', dur: 12, presets: {},
+      title: () => 'Confusion matrices under each feature family', tag: () => 'leave-one-subject-out · random forest',
+      subtitle: () => 'Filling the confusion matrix for each feature family in turn.' },
+  ];
+
+  function applyPresets(k) { const p = STEPS[k].presets; if (p.space !== undefined && !dirty.space) { space = p.space; $('space').value = space; } }
+
+  // ------------------------------------------------------------ drawing
+  let G = {};
+  function drawPace(p) {
+    chart.innerHTML = '';
+    const rows = [{ k: 'slow', y0: PT, name: 'A: slow set', color: '#2a78d6' }, { k: 'fast', y0: PT + 300, name: 'B: fast set', color: '#eb6834' }];
+    const ph = 230, tMax = 50, yMax = 6;
+    const sx = t => PL + t / tMax * plotW;
+    const tNow = tMax * p;
+    rows.forEach(rw => {
+      const d = PACE[rw.k];
+      const g = el('g', {}, chart);
+      const sy = v => rw.y0 + ph - v / yMax * ph;
+      axisY(g, sy, [0, 2, 4, 6], PL, W - PR, v => v);
+      const ax = axisX(g, sx, [0, 10, 20, 30, 40, 50], rw.y0, rw.y0 + ph, v => v);
+      el('path', { d: `M${PL},${rw.y0}V${rw.y0 + ph}H${W - PR}` }, ax);
+      txt(W - PR + 4, rw.y0 + ph + 18, 'time (s)', { class: 'axis-title' }, g);
+      txt(PL - 60, rw.y0 + ph / 2, 'rad/s', { class: 'axis-title', transform: `rotate(-90 ${PL - 60} ${rw.y0 + ph / 2})`, 'text-anchor': 'middle' }, g);
+      txt(PL, rw.y0 - 10, `${rw.name}: ${d.spr} s per repetition, ${d.reps} reps in ${d.dur} s`, { class: 'ptitle' }, g);
+      // trace up to tNow
+      const n = Math.min(d.x.length, Math.floor(tNow * d.fs) + 1);
+      let path = '';
+      for (let i = 0; i < n; i++) path += (i ? 'L' : 'M') + sx(i / d.fs).toFixed(1) + ',' + sy(Math.min(d.x[i], yMax)).toFixed(1);
+      if (path) el('path', { class: 'trace', d: path, stroke: rw.color }, g);
+      if (p < 1 && tNow <= d.x.length / d.fs) el('line', { x1: sx(tNow), x2: sx(tNow), y1: rw.y0, y2: rw.y0 + ph, class: 'crosshair' }, g);
+      // repetition-length bar
+      const y = rw.y0 + 14;
+      el('line', { x1: sx(0), x2: sx(d.spr), y1: y, y2: y, stroke: rw.color, 'stroke-width': 3 }, g);
+      el('line', { x1: sx(0), x2: sx(0), y1: y - 5, y2: y + 5, stroke: rw.color, 'stroke-width': 1.5 }, g);
+      el('line', { x1: sx(d.spr), x2: sx(d.spr), y1: y - 5, y2: y + 5, stroke: rw.color, 'stroke-width': 1.5 }, g);
+      txt(sx(d.spr) + 8, y + 4, `one repetition ≈ ${d.spr} s`, { class: 'mono', fill: rw.color }, g);
+    });
+    legend([{ c: '#2a78d6', n: `A: slow set, ${PACE.slow.spr} s per repetition` }, { c: '#eb6834', n: `B: fast set, ${PACE.fast.spr} s per repetition` }], W - PR - 300, PT + 4, chart);
+  }
+
+  function drawScatter(fromKey, toKey, p, appearFrac) {
+    chart.innerHTML = '';
+    const S = SPACES[toKey], F = SPACES[fromKey];
+    const g = el('g', {}, chart);
+    axisY(g, S.sy, S.yt, PL, W - PR, S.yf);
+    const ax = axisX(g, S.sx, S.xt, PT, PT + plotH, S.xf);
+    el('path', { d: `M${PL},${PT}V${PT + plotH}H${W - PR}` }, ax);
+    txt(PL + plotW / 2, PT + plotH + 44, S.xLab, { class: 'axis-title', 'text-anchor': 'middle' }, g);
+    txt(PL - 52, PT + plotH / 2, S.yLab, { class: 'axis-title', transform: `rotate(-90 ${PL - 52} ${PT + plotH / 2})`, 'text-anchor': 'middle' }, g);
+    const pts = el('g', {}, chart);
+    G.pts = [];
+    const q = ease(p);
+    SEQ.forEach((s, i) => {
+      if (appearFrac !== null && APPEAR[i] / SEQ.length >= appearFrac) return;
+      const x1 = S.sx(S.x(s)), y1 = S.sy(S.y(s));
+      let x = x1, y = y1;
+      if (fromKey !== toKey) { const x0 = F.sx(F.x(s)), y0 = F.sy(F.y(s)); x = x0 + (x1 - x0) * q; y = y0 + (y1 - y0) * q; }
+      const dim = hl !== 'all' && s.cls !== hl;
+      const m = marker(s.cls, x, y, 6.5, { opacity: dim ? 0.15 : 0.9 }, pts);
+      G.pts.push({ x, y, i });
+    });
+    legend(CLASSES.map(c => ({ cls: c, n: `${CL[c].name} (${CL[c].n} sequences)` })), toKey === 'F' ? PL + 14 : W - PR - 224, PT + 10, chart);
+    G.hit = el('rect', { x: PL, y: PT, width: plotW, height: plotH, fill: 'transparent' }, chart);
+  }
+
+  function blues(f) { // 0..1 -> light-to-dark blue (like matplotlib Blues)
+    const a = [247, 251, 255], b = [8, 48, 107];
+    const c = a.map((v, i) => Math.round(v + (b[i] - v) * Math.pow(f, 0.85)));
+    return `rgb(${c[0]},${c[1]},${c[2]})`;
+  }
+
+  function drawCM(p) {
+    chart.innerHTML = '';
+    const names = CLASSES.map(c => CL[c].name);
+    const pw = 240, cell = 68, gap = 42, x0 = (W - (4 * pw + 3 * gap)) / 2 + 40, y0 = 150;
+    CM.forEach((cm, k) => {
+      const t = Math.max(0, Math.min(1, (p * 4 - k)));
+      const gx = x0 + k * (pw + gap);
+      const g = el('g', {}, chart);
+      txt(gx + 1.5 * cell, y0 - 44, cm.name, { class: 'ptitle', 'text-anchor': 'middle' }, g);
+      txt(gx + 1.5 * cell, y0 - 27, cm.sub, { class: 'axis-title', 'text-anchor': 'middle' }, g);
+      const accNow = Math.round(cm.acc * t);
+      txt(gx + 1.5 * cell, y0 - 6, t > 0 ? `accuracy = ${accNow}%` : 'accuracy = —', { class: 'mono', 'text-anchor': 'middle', 'font-weight': 700, fill: t >= 1 ? 'var(--ink)' : 'var(--ink-2)' }, g);
+      for (let i = 0; i < 3; i++) {
+        const rowSum = cm.m[i].reduce((a, b) => a + b, 0);
+        for (let j = 0; j < 3; j++) {
+          const v = Math.round(cm.m[i][j] * t);
+          const f = v / rowSum;
+          el('rect', { x: gx + j * cell, y: y0 + i * cell, width: cell, height: cell, fill: t > 0 ? blues(f) : '#fbfcfe', stroke: '#fff' }, g);
+          if (t > 0) txt(gx + j * cell + cell / 2, y0 + i * cell + cell / 2 + 6, v, { class: 'big', 'text-anchor': 'middle', fill: f > 0.5 ? '#fff' : 'var(--ink)', 'font-size': 20 }, g);
+        }
+      }
+      el('rect', { x: gx, y: y0, width: 3 * cell, height: 3 * cell, fill: 'none', stroke: 'var(--ink-3)' }, g);
+      names.forEach((n, i) => {
+        txt(gx + i * cell + cell / 2, y0 + 3 * cell + 18, n, { class: 'axis-title', 'text-anchor': 'middle' }, g);
+        if (k === 0) txt(gx - 8, y0 + i * cell + cell / 2 + 4, n, { class: 'axis-title', 'text-anchor': 'end' }, g);
+      });
+      txt(gx + 1.5 * cell, y0 + 3 * cell + 38, 'predicted', { class: 'axis-title', 'text-anchor': 'middle' }, g);
+      if (k === 0) txt(gx - 96, y0 + 1.5 * cell, 'true exercise', { class: 'axis-title', 'text-anchor': 'middle', transform: `rotate(-90 ${gx - 96} ${y0 + 1.5 * cell})` }, g);
+    });
+    // colour key
+    const kx = x0, ky = y0 + 3 * cell + 70;
+    for (let i = 0; i < 40; i++) el('rect', { x: kx + i * 4, y: ky, width: 4, height: 12, fill: blues(i / 39) }, chart);
+    txt(kx, ky + 28, '0', { class: 'axis', 'font-family': 'var(--mono)', 'font-size': 11, fill: 'var(--ink-2)' }, chart);
+    txt(kx + 160, ky + 28, '1', { 'font-family': 'var(--mono)', 'font-size': 11, fill: 'var(--ink-2)', 'text-anchor': 'end' }, chart);
+    txt(kx + 172, ky + 11, 'fraction of the true class', { class: 'axis-title' }, chart);
+  }
+
+  function render() {
+    const d = STEPS[step];
+    if (d.id === 'pace') drawPace(prog);
+    else if (d.id === 'T') drawScatter(space, space, 1, prog);
+    else if (d.id === 'F' || d.id === 'D') {
+      const from = dirty.space ? (step > 1 ? prevSpace : space) : (d.id === 'F' ? 'T' : 'F');
+      drawScatter(from, space, prog, null);
+    }
+    else drawCM(prog);
+  }
+  let prevSpace = 'T';
+
+  // ------------------------------------------------------------ hover
+  const tt = $('tt');
+  chart.addEventListener('mousemove', evt => {
+    if (!G.pts || !G.pts.length) return;
+    const pt = chart.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+    const q = pt.matrixTransform(chart.getScreenCTM().inverse());
+    let best = null, bd = 1e9;
+    G.pts.forEach(o => { const dd = (o.x - q.x) ** 2 + (o.y - q.y) ** 2; if (dd < bd) { bd = dd; best = o; } });
+    if (!best || bd > 14 * 14) { tt.style.display = 'none'; return; }
+    const s = SEQ[best.i];
+    tt.innerHTML = `<div class="row"><span><i class="sw" style="background:${CL[s.cls].color}"></i>${CL[s.cls].name}</span><span>subject ${s.subject}</span></div>` +
+      `<div class="row"><span>mean |ω|</span><span>${fmt(s.mean)} rad/s</span></div><div class="row"><span>std |ω|</span><span>${fmt(s.std)} rad/s</span></div>` +
+      `<div class="row"><span>dominant freq</span><span>${fmt(s.dom_freq)} Hz</span></div><div class="row"><span>band energy</span><span>${s.energy.toExponential(2)}</span></div>` +
+      (s.spr ? `<div class="row"><span>pace</span><span>${fmt(s.spr, 2)} s/rep</span></div>` : '');
+    tt.style.display = 'block';
+    const wrap = chart.parentElement.getBoundingClientRect();
+    const px = evt.clientX - wrap.left, py = evt.clientY - wrap.top;
+    tt.style.left = (px + 16 + tt.offsetWidth > wrap.width ? px - tt.offsetWidth - 12 : px + 16) + 'px';
+    tt.style.top = Math.max(0, py - 10) + 'px';
+  });
+  chart.addEventListener('mouseleave', () => { tt.style.display = 'none'; });
+
+  // ------------------------------------------------------------ step machinery
+  function enterStep(k, completed = false) {
+    stopPlay();
+    if (k !== step && STEPS[k].id !== 'pace' && STEPS[k].id !== 'cm') prevSpace = space;
+    step = k;
+    applyPresets(k);
+    const d = STEPS[k];
+    $('title').innerHTML = d.title() + `<span class="tag">${d.tag()}</span>`;
+    $('subtitle').textContent = d.subtitle();
+    $('counter').textContent = `${step + 1} / ${STEPS.length}`;
+    try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {}
+    prog = 0;
+    if (completed || speed === 0 || reduceMotion) { prog = 1; render(); }
+    else { render(); startPlay(); }
+  }
+  function tick(t) {
+    if (!playing) return;
+    const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+    prog = Math.min(1, prog + dt * speed / STEPS[step].dur);
+    render();
+    if (prog >= 1) { stopPlay(); return; }
+    raf = requestAnimationFrame(tick);
+  }
+  function startPlay() { if (prog >= 1) return; playing = true; lastT = performance.now(); $('play').textContent = 'Pause'; raf = requestAnimationFrame(tick); }
+  function stopPlay() { playing = false; cancelAnimationFrame(raf); $('play').textContent = 'Play'; }
+  function finish() { stopPlay(); prog = 1; render(); }
+  function next() { if (prog < 1) { finish(); return; } if (step < STEPS.length - 1) enterStep(step + 1); }
+  function prev() { if (step > 0) enterStep(step - 1, true); }
+  function restart() { enterStep(step); }
+
+  $('next').addEventListener('click', e => { e.stopPropagation(); next(); });
+  $('prev').addEventListener('click', e => { e.stopPropagation(); prev(); });
+  $('restart').addEventListener('click', e => { e.stopPropagation(); restart(); });
+  $('play').addEventListener('click', e => { e.stopPropagation(); if (playing) stopPlay(); else if (prog >= 1) restart(); else startPlay(); });
+  $('slide').addEventListener('click', () => next());
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
+    else if (e.key === 'r' || e.key === 'R') restart();
+  });
+  $('space').addEventListener('change', e => { dirty.space = true; prevSpace = space; space = e.target.value; render(); });
+  $('hl').addEventListener('change', e => { dirty.hl = true; hl = e.target.value; render(); });
+  $('speed').addEventListener('change', e => { speed = parseFloat(e.target.value); });
+  $('reset').addEventListener('click', e => { e.stopPropagation(); for (const k in dirty) delete dirty[k]; hl = 'all'; $('hl').value = 'all'; enterStep(step); });
+
+  const h = parseInt((location.hash || '').replace('#', ''), 10);
+  enterStep(h >= 1 && h <= STEPS.length ? h - 1 : 0);
+})();
+</script>
+</body>
+</html>

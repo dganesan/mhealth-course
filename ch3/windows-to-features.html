@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>From Windows to a Feature Table</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff;
+    --ink: #222222;
+    --ink-2: #666666;
+    --ink-3: #9a9a9a;
+    --rule: #dcdcdc;
+    --grid: #ececec;
+    --raw: #b4b4b4;
+    --raw-dot: #8c8c8c;
+    --clean: #444444;
+    --window: rgba(34, 34, 34, 0.06);
+    --window-edge: #222222;
+    --ma: #2a78d6;
+    --med: #1baf7a;
+    --wm: #4a3aa7;
+    --ewma: #eb6834;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.4;
+    padding-block: 18px 28px;
+    padding-inline: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .stage { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
+
+  /* ---------- slide frame ---------- */
+  .slide {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 26px 34px 16px;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 10px;
+    min-height: 560px;
+    position: relative;
+    outline: none;
+    cursor: pointer;
+    user-select: none;
+  }
+  .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
+  .head h1 {
+    margin: 0;
+    font-size: clamp(22px, 2.6vw, 30px);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+    line-height: 1.15;
+  }
+  .head h1 .tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-weight: 400;
+    font-size: 0.6em;
+    color: var(--ink-2);
+    margin-left: 10px;
+    vertical-align: middle;
+    background: #f4f4f4;
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+
+  .chart-wrap { position: relative; min-height: 0; }
+  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  .tt {
+    position: absolute; pointer-events: none; display: none;
+    background: #fff; border: 1px solid var(--rule); border-radius: 4px;
+    padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink);
+    box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2;
+  }
+  .tt .row { display: flex; gap: 10px; justify-content: space-between; }
+  .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+  .foot {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 12px; color: var(--ink-3); padding-top: 4px;
+  }
+  .foot .ctr { font-family: var(--mono); }
+
+  /* ---------- control bar ---------- */
+  .bar { display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center; padding:14px 18px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
+  .group { display:flex; align-items:center; gap:8px; }
+  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
+  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
+  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  button:hover, select:hover { border-color:var(--ink); }
+  button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
+  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
+  .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
+
+  /* ---------- svg parts ---------- */
+  .grid line { stroke: var(--grid); stroke-width: 1; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .raw-line { fill: none; stroke: var(--raw); stroke-width: 1.5; }
+  .out-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .thin-line { fill: none; stroke-width: 1.3; stroke-linejoin: round; }
+  .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
+  .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
+  .mono { font-family: var(--mono); font-size: 12px; fill: var(--ink); }
+  .mono-2 { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
+  .note { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
+  .cursor-line { stroke: var(--ink); stroke-width: 1; stroke-dasharray: 3 3; opacity: .7; }
+
+  @media (max-width: 720px) {
+    .slide { padding: 18px 16px 12px; min-height: 0; }
+    .hint { display: none; }
+  }
+
+  .cell { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
+  .th { font-family: var(--sans); font-size: 13px; font-weight: 700; fill: var(--ink); }
+</style>
+
+<div class="stage">
+  <section class="slide" id="slide" tabindex="0" aria-live="polite">
+    <div class="head">
+      <h1 id="title"></h1>
+      <p id="subtitle"></p>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 1200 620" role="img" aria-label="Windows of a signal becoming rows of a feature table"></svg>
+      <div class="tt" id="tt"></div>
+    </div>
+    <div class="foot">
+      <span>CS328 &nbsp;·&nbsp; The Activity Recognition Pipeline</span>
+      <span class="ctr" id="counter"></span>
+    </div>
+  </section>
+
+  <div class="bar">
+    <div class="group">
+      <button id="prev" title="Previous (←)">‹ Prev</button>
+      <button id="play" class="primary" title="Play / pause (space)">Play</button>
+      <button id="next" title="Next (→)">Next ›</button>
+      <button id="restart" title="Restart this step (r)">Restart</button>
+      <button id="reset" title="Reset all dials to the step's presets">Reset dials</button>
+    </div>
+    <div class="group">
+      <label for="win">Window length</label>
+      <input type="range" id="win" min="0" max="3" step="1" value="1">
+      <span class="val" id="winVal">2 s</span>
+    </div>
+    <div class="group">
+      <label for="speed">Speed</label>
+      <select id="speed">
+        <option value="vslow">very slow</option>
+        <option value="slow">slow</option>
+        <option value="normal" selected>normal</option>
+        <option value="fast">fast</option>
+        <option value="instant">instant</option>
+      </select>
+    </div>
+    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+  </div>
+</div>
+
+<script>
+(() => {
+const AX = [0.33,0.22,0.14,-0.1,-0.15,-0.31,0.01,0.1,-0.15,-2.4,-2.89,-2.89,-1.73,-1.54,-2.51,-2.45,-2.03,-1.99,-2.12,-1.96,-1.83,-1.38,-1.06,-0.98,-0.93,-0.23,0.18,1.17,1.81,1.48,1.36,1.96,3,1.81,-0.05,-0.76,-0.41,0.61,-1.1,-2.38,-2.86,-1.43,-0.61,-0.27,-0.25,0.23,0.67,0.71,0.75,0.41,0.16,-0.03,-0.48,-0.54,-0.14,0.18,0.1,-0.35,-1.93,-2.03,-2.08,-2.08,-2.86,-2.49,-2.19,-1.2,-0.83,-1.08,-1.47,-1.58,-1.44,-1.46,-1.04,-0.54,0.25,1.32,1.76,1.96,1.61,1.62,2.81,2.25,0.99,-1.02,-1.12,-0.59,-1.05,-2.64,-3.19,-2.36,-0.67,-0.31,-0.12,0.45,0.72,0.72,0.42,0.2,0.03,-0.12,-0.1,-0.05,0.25,0.44,-0.79,-1.35,-1.68,-1.23,-1.81,-2.55,-2.55,-2.29,-0.83,-0.61,-0.41,-0.48,-0.72,-0.94,-0.99,-0.74,-0.23,0.34,1.25,1.42,2.38,3.17,3,2.06,0.23,-2.53,-3.24,-3.69,-3.31,-2.19,-2.9,-3.28,-2.63,-0.97,0.45,0.6,0.97,1.12,1.29,1.83,1.78,1.72,1.48,0.15,-1.32,-1.4,-1.18,-1.68,-2.94,-3.39,-2.19,-2.23,-2.82,-3.08,-2,-1.74,-1.74,-1.76,-2.17,-2.17,-1.89,-1.18,-0.5,-0.15,0.03,0.74,1.18,1.5,1.33,1.59,1.65,0.67,-0.41,-0.34,0.1,-0.14,-1.8,-2.96,-2.74,-1.84,-0.72,-0.29,-0.29,-0.07,1.01,1.38,1.59,1.87,1.87,1.61,0.5,0.14,-0.34,-0.78,-1.42,-2.51,-4.29,-4.02,-1.88,-1.38,-1.5,-1.04,-0.38,-0.38,-0.45,-1.23,-1.99,-1.99,-1.78,-1.78,-1.08,-0.83,0.15,0.89,1.63,1.77,2.42,2.66,1.54,0.01,-0.76,-1.68,-1.39,-0.48,-1.18,-1.99,-2.14,-1.99,-1.47,-0.79,-0.12,-0.12,0.22,0.45,0.8,1.4,1.62,1.69,1.44,0.52,0.22,-0.03,-0.64,-2.79,-3.12,-2,-1.58,-1.91,-1.91,-0.9,0.03,0.1,-0.53,-1.35,-1.87,-1.87,-1.51,-1.13,-0.78,-0.04,0.5,1.09,0.95,0.61,1.18,1.18,0.74,-0.03,-0.25,-0.01,1.02,0.82,-1.65,-2.29,-2.08,-1.54,-1.06,-0.52,-0.1,0.03,0.41,0.79,1.08,1.27,1.12,-0.03,-0.39,-0.41,-0.04,-0.11,-1.12,-2.08,-2.18,-1.23,-0.9,-1.02,-1.2,-1.21,-1.38,-1.57,-2.04,-2.22,-2.12,-1.35,-1.17,-1.09,-0.67,-0.18,0.64,0.86,0.71,0.98,1.12,1.47,1.63,1.53,0.99,0.89,1.74,1.23,-1.47,-3.64,-3.01,-2.62,-2.04,-1.68,-1.53,-1.02,-0.64,-0.18,0.39,0.94,1.06,1.09,0.69,0.5,0.61,0.83,0.63,-0.5,-1.78,-1.97,-1.85,-2.85,-3.23,-3.2,-2.26,-1.21,-0.89,-0.71,-0.74,-0.69,-0.86,-0.93,-0.65,-0.23,0.75,1.48,2,2.04,1.89,2.47,2.19,1.54,0.27,-0.26,-0.03,1.16,-0.42,-2.27,-3.04,-2.67,-1.7,-0.83,-0.38,-0.18,0.11,0.64,0.91,0.99,1.06,1.2,1.2,0.8,0.25,0.34,0.29,-1.66,-2.38,-2.52,-1.46,-1.08,-1.73,-1.47,-0.8,1.23,6.35,6.46,6.44,6.4,6.35,6.39,6.52,6.43,6.4,6.4,6.42,6.42,6.4,6.32,6.39,6.4,6.31,6.39,6.4,6.43,6.46,6.42,6.35,6.42,6.37,6.35,6.37,6.35,6.42,6.36,6.31,6.39,6.51,6.47,6.44,6.36,6.35,6.32,6.35,6.32,6.35,6.37,6.47,6.44,6.35,6.37,6.32,6.39,6.4,6.4,6.42,6.35,6.42,6.37,6.4,6.4,6.37,6.39,6.4,6.31,6.31,6.35,6.42,6.5,6.42,6.37,6.29,6.29,6.33,6.29,6.42,6.4,6.44,6.35,6.37,6.42,6.46,6.37,6.35,6.32,6.4,6.51,6.39,6.37,6.44,6.39,6.37,6.43,6.35,6.33,6.35,6.37,6.42,6.48,6.48,6.44,6.36,6.32,6.35,6.36,6.35,6.32,6.42,6.4,6.43,6.37,6.42,6.36,6.37,6.29,6.29,6.51,6.44,6.44,6.39,6.37,6.35,6.4,6.36,6.35,6.35,6.35,6.39,6.48,6.48,6.39,6.33,6.33,6.32,6.33,6.33,6.36,6.42,6.44,6.47,6.37,6.35,6.37,6.31,6.33,6.35,6.39,6.44,6.44,6.37,6.35,6.37,6.35,6.36,6.35,6.31,6.39,6.51,6.51,6.37,6.35,6.31,6.33,6.42,6.37,6.39,6.39,6.46,6.43,6.43,6.42,6.44,6.32,6.37,6.37,6.36,6.37,6.46,6.39,6.39,6.37,6.44,6.44,6.44,6.35,6.29,6.36,6.51,6.48,6.35,6.35,6.33,6.37,6.32,6.35,6.31,6.37,6.4,6.4,6.37,6.37,6.35,6.35,6.37,6.42];
+const AY = [7.27,8.44,9.03,9.68,9.93,9.64,9.13,8.98,8.76,8.96,9.22,9.22,12.12,10.91,10.86,11.6,12.97,13.14,13.35,12.5,10.99,8.35,6.81,5.78,6.07,7.75,8.38,9.22,9.49,9.48,9.47,9.7,11.41,10.66,9.67,10.56,12,10.23,8.51,8.73,10.42,12.33,11.36,8.85,8.01,7.04,6.99,6.96,7.07,7.82,8.35,9.41,10.17,9.93,9.25,9.22,9.3,9.56,10.42,12.57,12.03,12.03,10,10.16,10.65,11.55,12.16,11.66,9.64,8.14,7.03,6.7,6.48,7.38,8.24,8.96,9.3,9.32,9.64,9.86,11.4,11.35,10.65,10.41,11.65,12.31,9.6,9.86,11.06,12.31,11.39,9.85,8.99,7.14,6.84,6.77,7.1,7.55,8.79,9.79,10.11,10.11,9.86,9.86,9.83,9.94,11.09,12.57,11.28,10.38,10.38,10.6,11.13,11.24,10.73,10.22,8.73,7.42,6.96,7.04,8.01,9.15,10.01,10.38,10.12,10.09,9.93,9.97,10.51,9.56,8.76,9.86,10.27,10.95,12.12,13.39,13.87,12.15,8.89,7.82,6.8,6.7,6.78,6.97,7.22,7.57,8.44,9.08,9.28,9.58,9.87,9.66,9.41,9.34,12.54,11.41,10.37,10.05,11.8,12.27,12.27,12.45,11.35,7.97,7.29,6.44,6.67,7.29,7.76,8.91,9.41,9.51,9.67,10.15,10.84,11.06,10.27,11.48,12.09,10.32,8.04,8.06,10.02,12.26,11.35,9.29,8.47,7.48,7,7.12,7.45,8.25,8.55,8.54,8.89,8.92,9.07,9.44,9.51,9.56,9.82,11.17,12,11.05,10.68,11.32,11.97,12.45,13.12,12.24,10.04,8.09,6.96,6.96,6.44,6.81,7.91,8.88,9.44,9.53,9.51,10.66,11.13,10.34,9.94,9.06,9.52,9.85,9.26,9.77,11.96,12.11,11.3,9.94,8.08,7.4,6.61,6.96,7.48,8.38,9.03,9.48,9.71,9.43,9.38,9.52,9.74,9.82,10.38,12.64,11.84,10.92,10.83,11.3,11.89,12.57,12.74,11.48,9.49,7.67,6.71,6.02,6.42,7.6,8.72,9.58,9.92,9.83,9.78,10.64,10.8,9.98,9.58,10.91,11.48,10.46,8.42,10.37,11.95,11.7,10.47,8.32,7.07,6.97,7.53,7.83,8.16,8.4,8.51,9.07,9.3,9.4,9.44,9.51,9.67,9.86,10.38,12.59,11.6,11.51,11.67,12.29,13.09,13.66,12.93,12.03,9.32,6.85,5.84,5.76,6.29,7.25,8.32,9.02,9.4,8.61,9.07,10.12,10.71,10.73,10.35,11.1,13.02,11.8,8.27,8.96,11.65,11.99,10.92,9.08,8.24,6.77,6.74,7.12,7.83,8.79,9.17,9.9,9.98,9.81,9.25,9.07,9.08,9.21,9.58,11.06,11.95,11.09,11.13,12.41,13.27,13.66,13.48,11.37,10.31,7.57,6.25,5.78,5.94,6.4,7.68,8.54,9.3,9.68,9.55,9.89,10.71,10.83,10,9.41,10.49,11.82,9.41,8.69,10.19,12.12,11.96,10.17,9.28,7.57,7.12,7.3,7.6,7.9,8.02,8.73,8.99,8.96,8.51,9.13,9.83,10.01,10.08,11.21,12.44,11.52,9.87,9.55,9.93,12.35,6.12,6.14,6.13,6.1,6.13,6.07,6.07,6.09,6.07,6.18,6.13,6.09,6.16,6.09,6.16,6.12,6.16,6.07,6.13,6.13,6.16,6.16,6.13,6.14,6.09,6.16,6.13,6.12,6.13,6.07,6.13,6.12,6.18,6.16,6.09,6.12,6.14,6.07,6.09,6.07,6.14,6.16,6.12,6.16,6.16,6.16,6.13,6.13,6.1,6.09,6.16,6.16,6.13,6.13,6.12,6.21,6.13,6.13,6.13,6.12,6.16,6.06,6.2,6.21,6.14,6.14,6.12,6.07,6.02,6.12,6.13,6.16,6.13,6.12,6.16,6.14,6.09,6.14,6.13,6.1,6.09,6.13,6.2,6.17,6.13,6.13,6.13,6.14,6.09,6.12,6.1,6.07,6.13,6.25,6.25,6.17,6.12,6.06,6.07,6.1,6.09,6.16,6.13,6.13,6.16,6.13,6.12,6.14,6.13,6.24,6.24,6.17,6.1,6.1,6.09,6.09,6.2,6.16,6.12,6.06,6.09,6.09,6.09,6.16,6.17,6.1,6.06,6.09,6.13,6.03,6.09,6.17,6.13,6.13,6.12,6.12,6.07,6.16,6.09,6.06,6.09,6.14,6.16,6.16,6.12,6.16,6.13,6.09,6.1,6.13,6.09,6.12,6.17,6.21,6.1,6.12,6.06,6.1,6.1,6.09,6.16,6.16,6.13,6.13,6.13,6.16,6.14,6.13,6.14,6.13,6.16,6.16,6.16,6.16,6.13,6.17,6.16,6.07,6.09,6.07,6.07,6.09,6.25,6.18,6.16,6.16,6.06,6.09,6.1,6.09,6.16,6.16,6.13,6.13,6.16,6.12,6.12,6.16,6.13,6.18];
+const AZ = [0.9,1.73,2.12,2.34,2.48,2.94,2.86,2.45,2.12,1.63,1.66,1.66,-0.67,-0.08,0.22,-0.03,-0.04,0.52,1.23,2.1,2.63,2.22,1.84,1.02,0.35,-0.08,-0.1,0.15,1.16,1.35,1.68,1.89,1.08,1.8,2.93,2.87,4.18,4.96,5.33,4.32,3.2,2.85,2.75,1.89,1.63,1.18,1.02,0.89,0.9,1.38,1.65,2.06,2.45,2.6,2.7,2.29,2.19,2.18,1.85,0.5,0.12,0.12,0.86,0.57,0.35,0.35,1.02,1.62,1.93,1.36,1.16,1.06,0.31,-0.01,-0.04,0.35,0.71,1.09,1.5,1.73,1.12,1.04,1.5,1.95,2.19,2.83,4.55,3.83,2.98,2.93,2.32,1.77,1.42,0.64,0.64,0.54,0.87,0.86,1.35,1.8,1.93,2.72,3.45,3.46,2.72,2.53,1.73,0.48,0.26,0.54,0.54,0.25,0.25,0.49,1.91,2.15,1.97,1.59,0.99,0.61,0.42,0.31,0.52,0.83,1.68,1.43,0.76,0.64,0.94,2.79,3.43,4.06,4.45,4.58,3.84,3.46,3.09,3.04,2.93,2.74,2.03,1.95,2.04,2.1,2.42,2.76,2.97,3.19,3.75,3.51,2.76,2.68,2.63,2.51,0.48,0.78,0.99,0.86,0.31,0.23,0.23,0.94,1.89,2.34,2.18,1.46,0.5,0.07,0.07,0.45,0.64,1.42,1.69,1.88,2.11,2.78,3.46,3.19,3.19,4.44,5.03,4.17,2.86,1.78,2.78,2.34,2.02,1.81,1.47,1.44,1.46,1.58,2.21,2.47,2.81,2.96,2.9,2.49,2.22,2.07,1.99,0.89,-0.48,0.08,0.45,0.12,-0.05,-0.1,1.12,1.93,1.99,1.69,1.47,1.47,0.45,0.23,0.05,0.35,0.75,1.54,1.93,1.68,2.08,3.02,3.27,3.31,3.19,4.4,4.77,4.4,2.6,2.57,2.67,2.68,2.11,1.81,1.68,1.59,1.47,1.73,1.96,2.29,2.55,2.56,2.36,1.97,1.5,1.87,1.38,-0.27,0.2,0.76,0.76,0.5,0.1,0.07,0.6,1.31,1.61,1.24,1.04,0.74,0.19,-0.14,0.03,0.54,0.93,1.24,1.31,0.78,1.24,2.6,2.91,3.19,4.41,5.11,5.16,3.21,2.23,2.32,2.37,1.83,1.48,1.43,1.12,1.16,1.43,1.58,1.92,2.41,2.51,2.76,2.3,2.07,1.61,1.54,1.12,-0.78,0.03,0.22,-0.15,-0.48,-0.14,0.18,1.16,1.58,1.68,1.44,0.72,0.45,-0.14,-0.08,-0.12,0.25,0.48,0.9,0.52,0.9,2.03,2.56,3.6,3.6,4.09,4.75,5.41,3.43,1.61,1.42,1.44,1.27,1.12,1.28,1.47,1.23,1.28,1.61,1.84,2.45,2.56,2.67,2.71,1.97,1.91,1.73,1.25,0.48,-0.33,0.56,0.65,0.25,0.1,0.64,1.47,2.55,2.55,1.96,1.51,1.18,0.42,0.12,-0.11,0.05,0.52,0.61,1.31,1.25,1.32,1.84,2.74,3.02,2.96,3.62,5.19,4.96,3.21,2.27,2.48,2.07,1.65,1.5,1.35,1.04,0.97,1.32,1.42,1.76,2.06,2.44,2.82,2.67,1.96,2.15,2.23,1.63,0.75,1.25,1.5,1.38,0.9,0.52,3.99,4.07,3.92,3.92,4.09,3.95,4.09,4.09,4.11,3.96,4.13,4.07,4.03,4.15,4.03,4.05,4.06,3.95,3.94,3.98,3.98,4.07,3.96,3.98,4.11,3.9,3.99,4.05,4.02,3.99,4.07,3.99,4.05,3.99,4.05,4.03,3.95,3.9,3.9,4.03,4.07,3.99,4.03,4.06,4,4.06,4,3.96,3.91,4.03,4.11,4.03,4.06,3.92,4.03,4.06,3.91,3.94,4.03,4.06,3.95,3.98,3.95,3.94,4.06,3.95,4,3.95,4.03,3.99,4.03,3.96,3.98,4,3.96,3.98,3.99,3.91,4.02,3.96,4.06,3.94,4.06,4.05,3.98,4.03,3.98,4.06,3.98,4.03,3.98,3.99,3.92,4.07,4.07,4.07,4.02,4.05,3.94,3.96,3.92,4.09,4.05,4.05,4.06,3.98,3.85,4.09,3.96,3.9,4.09,4.09,4.07,4.07,4.03,3.99,4.11,4,4.13,4.02,3.99,3.99,3.92,3.99,4.03,3.99,4.05,3.99,3.94,4,4.02,4.03,4.13,4.09,4.03,4.03,3.98,3.96,3.99,3.99,4.06,4.02,4.05,4.05,4.02,4.02,4.03,4.06,4.05,4,4.02,3.98,4.06,4.03,4.05,4.03,3.96,3.9,4.02,3.96,4.03,4.03,4.09,4.02,4.02,3.94,4,4.03,4,3.96,3.99,4.03,4.05,4.09,3.98,3.99,4,3.99,3.99,3.92,3.91,4.06,4.06,4.06,4.03,4.03,4.05,3.9,3.99,3.96,4.1,3.99,4.03,4.03,3.99,3.99,3.88,3.94,3.99,3.98];
+const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1.645,2.147,2.761,3.401,3.952,4.271,4.215,3.69,2.7,1.37,-0.066,-1.332,-2.195,-2.539,-2.385,-1.87,-1.179,-0.486,0.097,0.52,0.786,0.927,0.989,1.018,1.052,1.108,1.182,1.248,1.251,1.108,0.733,0.097,-0.742,-1.641,-2.418,-2.916,-3.05,-2.829,-2.343,-1.737,-1.157,-0.707,-0.42,-0.254,-0.124,0.052,0.308,0.622,0.934,1.187,1.359,1.463,1.515,1.498,1.35,0.993,0.387,-0.428,-1.324,-2.127,-2.673,-2.863,-2.687,-2.218,-1.575,-0.884,-0.243,0.289,0.688,0.96,1.134,1.26,1.386,1.543,1.729,1.906,1.998,1.909,1.552,0.892,-0.014,-1.021,-1.934,-2.569,-2.81,-2.637,-2.13,-1.433,-0.709,-0.09,0.356,0.631,0.784,0.882,0.972,1.071,1.172,1.261,1.327,1.355,1.31,1.138,0.784,0.23,-0.48,-1.227,-1.851,-2.199,-2.186,-1.826,-1.232,-0.57,-0.005,0.348,0.46,0.379,0.219,0.118,0.203,0.548,1.144,1.891,2.61,3.084,3.122,2.625,1.635,0.334,-1.013,-2.146,-2.881,-3.147,-2.984,-2.504,-1.857,-1.186,-0.6,-0.161,0.124,0.291,0.399,0.51,0.663,0.879,1.16,1.492,1.832,2.099,2.174,1.944,1.353,0.445,-0.633,-1.669,-2.453,-2.846,-2.811,-2.41,-1.77,-1.031,-0.313,0.309,0.796,1.137,1.338,1.415,1.394,1.313,1.218,1.144,1.086,0.988,0.761,0.342,-0.26,-0.95,-1.585,-2.031,-2.209,-2.121,-1.834,-1.448,-1.054,-0.711,-0.431,-0.198,0.021,0.253,0.506,0.775,1.048,1.325,1.615,1.924,2.218,2.414,2.391,2.042,1.327,0.318,-0.818,-1.86,-2.604,-2.92,-2.781,-2.261,-1.506,-0.688,0.034,0.549,0.807,0.828,0.691,0.519,0.438,0.531,0.807,1.191,1.537,1.676,1.478,0.905,0.043,-0.923,-1.769,-2.309,-2.451,-2.222,-1.738,-1.163,-0.642,-0.26,-0.025,0.112,0.227,0.382,0.602,0.875,1.172,1.468,1.755,2.022,2.226,2.283,2.085,1.553,0.691,-0.39,-1.489,-2.377,-2.873,-2.902,-2.511,-1.847,-1.093,-0.412,0.099,0.417,0.582,0.666,0.748,0.883,1.086,1.328,1.55,1.677,1.628,1.335,0.775,-0,-0.86,-1.633,-2.17,-2.392,-2.307,-1.992,-1.557,-1.109,-0.727,-0.45,-0.271,-0.153,-0.038,0.125,0.373,0.717,1.149,1.65,2.188,2.701,3.083,3.195,2.908,2.157,0.997,-0.394,-1.753,-2.817,-3.409,-3.487,-3.138,-2.526,-1.825,-1.161,-0.587,-0.096,0.342,0.754,1.147,1.506,1.8,1.997,2.076,2.031,1.847,1.494,0.938,0.186,-0.685,-1.527,-2.169,-2.477,-2.402,-1.995,-1.393,-0.769,-0.277,-0.012,0.017,-0.118,-0.299,-0.397,-0.315,-0.006,0.519,1.206,1.97,2.7,3.261,3.504,3.301,2.598,1.445,0.011,-1.452,-2.677,-3.45,-3.67,-3.365,-2.672,-1.785,-0.898,-0.158,0.361,0.652,0.76,0.764,0.75,0.793,0.929,1.151,1.411,1.629,1.705,1.545,1.1,0.398,-0.444,-1.261,-1.894,-2.244,-2.295,-2.105,-1.769,-1.384,-1.013,-0.676,-0.354,-0.018,0.348,0.728,1.071,1.317,1.419,1.37,1.204,0.977,0.739,0.511,0.305,0.127,-0.012,-0.102,-0.145,-0.15,-0.131,-0.101,-0.075,-0.057,-0.051,-0.054,-0.065,-0.078,-0.09,-0.098,-0.099,-0.093,-0.082,-0.069,-0.058,-0.053,-0.054,-0.06,-0.069,-0.077,-0.08,-0.076,-0.064,-0.046,-0.026,-0.008,0.001,-0.003,-0.019,-0.042,-0.065,-0.079,-0.078,-0.063,-0.038,-0.012,0.009,0.019,0.019,0.011,0.001,-0.005,-0.004,0.003,0.012,0.022,0.028,0.029,0.025,0.016,0.006,-0.003,-0.007,-0.005,0.002,0.013,0.021,0.021,0.012,-0.006,-0.025,-0.038,-0.041,-0.033,-0.018,-0.001,0.011,0.017,0.015,0.008,-0.001,-0.007,-0.007,0.001,0.015,0.03,0.041,0.044,0.037,0.022,0.002,-0.015,-0.025,-0.024,-0.008,0.017,0.044,0.062,0.064,0.048,0.019,-0.013,-0.038,-0.048,-0.044,-0.03,-0.013,-0,0.005,0.004,0.001,-0,0.004,0.014,0.027,0.037,0.042,0.04,0.031,0.019,0.005,-0.009,-0.019,-0.024,-0.022,-0.015,-0.007,-0.002,-0.005,-0.017,-0.033,-0.045,-0.048,-0.038,-0.018,0.006,0.025,0.033,0.028,0.01,-0.011,-0.028,-0.034,-0.028,-0.012,0.008,0.025,0.033,0.03,0.019,0.006,-0.004,-0.005,0.003,0.017,0.032,0.041,0.037,0.021,-0.001,-0.02,-0.03,-0.026,-0.011,0.01,0.031,0.045,0.049,0.044,0.031,0.016,0.004,-0.001,0.001,0.009,0.019,0.027,0.029,0.022,0.008,-0.011,-0.028,-0.038,-0.037,-0.026,-0.01,0.003,0.006,-0.005,-0.027,-0.051,-0.07,-0.079,-0.078,-0.069,-0.059,-0.055,-0.057,-0.065,-0.073,-0.074,-0.064,-0.044,-0.016];
+
+  // ------------------------------------------------------------ shared kit
+  const $ = id => document.getElementById(id);
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+  const txt = (parent, x, y, s, attrs = {}) => { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; };
+  const fmt = (v, d = 2) => (Math.round(v * Math.pow(10, d)) / Math.pow(10, d)).toFixed(d);
+  const COL = { blue: '#2a78d6', red: '#eb6834', green: '#1baf7a', violet: '#4a3aa7', raw: '#b4b4b4', ink: '#222222', ink2: '#666666', ink3: '#9a9a9a' };
+  const ACT_COL = { Walking: COL.blue, Sitting: COL.red };
+
+  // axes: thin grid, mono ticks, 12 px sans titles
+  function drawAxes(parent, o) {
+    const grid = el('g', { class: 'grid' }, parent);
+    const axis = el('g', { class: 'axis' }, parent);
+    o.yTicks.forEach(v => {
+      const y = o.ys(v);
+      el('line', { x1: o.x0, x2: o.x1, y1: y, y2: y }, grid);
+      txt(axis, o.x0 - 8, y + 4, o.yFmt ? o.yFmt(v) : v, { 'text-anchor': 'end' });
+    });
+    o.xTicks.forEach(v => {
+      const x = o.xs(v);
+      el('line', { x1: x, x2: x, y1: o.y0, y2: o.y1 }, grid);
+      txt(axis, x, o.y1 + 17, o.xFmt ? o.xFmt(v) : v, { 'text-anchor': 'middle' });
+    });
+    el('path', { d: `M${o.x0},${o.y0}V${o.y1}H${o.x1}` }, axis);
+    if (o.xTitle) txt(parent, o.x1, o.y1 + 34, o.xTitle, { class: 'axis-title', 'text-anchor': 'end' });
+    if (o.yTitle) txt(parent, o.x0 - 44, o.y0 - 10, o.yTitle, { class: 'axis-title', 'text-anchor': 'start' });
+  }
+  // conventional legend on a white 90 % rounded rect
+  function drawLegend(parent, x, y, items) {
+    const rowH = 18, padX = 10, padY = 8;
+    const wdt = Math.max(...items.map(i => i.n.length)) * 7.2 + 2 * padX + 40;
+    const g = el('g', {}, parent);
+    el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
+    items.forEach((it, j) => {
+      const yy = y + padY + j * rowH + 6;
+      if (it.fill) el('rect', { x: x + padX, y: yy - 6, width: 18, height: 12, fill: it.c, 'fill-opacity': it.op == null ? .35 : it.op, stroke: it.stroke || 'none', 'stroke-dasharray': it.dash ? '3 3' : 'none' }, g);
+      else el('line', { x1: x + padX, x2: x + padX + 18, y1: yy, y2: yy, stroke: it.c, 'stroke-width': it.w || 2.5, 'stroke-dasharray': it.dash ? '5 4' : 'none' }, g);
+      txt(g, x + padX + 26, yy + 4, it.n, { class: 'axis-title', fill: 'var(--ink)' });
+    });
+    return g;
+  }
+
+  // ------------------------------------------------------------ dials (persist unless the step presets them; dirty on user input)
+  const DIALS = {};
+  function dial(id, o) {
+    const inp = $(id), val = o.valId ? $(o.valId) : null;
+    const d = { id, dirty: false, list: o.list || null, fmt: o.fmt || (v => v),
+      get() { const raw = inp.tagName === 'SELECT' ? inp.value : parseFloat(inp.value); return d.list ? d.list[raw | 0] : (inp.tagName === 'SELECT' ? raw : raw); },
+      set(v) { if (d.list) { const i = d.list.indexOf(v); inp.value = i < 0 ? 0 : i; } else inp.value = v; d.show(); },
+      show() { if (val) val.textContent = d.fmt(d.get()); } };
+    inp.addEventListener(inp.tagName === 'SELECT' ? 'change' : 'input', () => { d.dirty = true; d.show(); if (ENG.ready) ENG.onDial(); });
+    DIALS[id] = d; d.show();
+    return d;
+  }
+  function applyPresets(step, force) {
+    const p = Object.assign({}, PAGE.defaults, step.presets || {});
+    for (const id in p) if (DIALS[id] && (force || !DIALS[id].dirty)) DIALS[id].set(p[id]);
+  }
+
+  // ------------------------------------------------------------ step engine
+  const ENG = { step: 0, t: 0, playing: false, raf: 0, lastT: 0, ready: false };
+  const SPEED = { vslow: 0.25, slow: 0.5, normal: 1, fast: 2.5, instant: 0 };
+  const speedFactor = () => SPEED[$('speed').value];
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const cur = () => PAGE.steps[ENG.step];
+  const span = () => cur().span();
+  const done = () => cur().static || ENG.t >= span() - 1e-9;
+
+  function enterStep(k, completed = false) {
+    ENG.step = k;
+    const d = cur();
+    stopPlay();
+    applyPresets(d, false);
+    ENG.t = 0;
+    setup();
+    if (d.static || completed || speedFactor() === 0 || reduceMotion) finish();
+    else { render(); startPlay(); }
+  }
+  function setup() {
+    const d = cur();
+    PAGE.setup(d);   // page computes its live quantities first, so the tag below reads them
+    $('title').innerHTML = d.title() + (d.tag ? `<span class="tag">${d.tag()}</span>` : '');
+    $('subtitle').textContent = typeof d.subtitle === 'function' ? d.subtitle() : d.subtitle;
+    $('counter').textContent = `${ENG.step + 1} / ${PAGE.steps.length}`;
+    try { history.replaceState(null, '', '#' + (ENG.step + 1)); } catch (_) {}
+  }
+  function render() { PAGE.draw(cur(), Math.min(ENG.t, span())); }
+  function finish() { ENG.t = span(); stopPlay(); render(); }
+  function tick(now) {
+    if (!ENG.playing) return;
+    const dt = Math.min(0.1, (now - ENG.lastT) / 1000); ENG.lastT = now;
+    ENG.t += dt * speedFactor() * span() / (PAGE.durNormal || 6);
+    if (ENG.t >= span()) { finish(); return; }
+    render();
+    ENG.raf = requestAnimationFrame(tick);
+  }
+  function startPlay() {
+    if (done()) return;
+    ENG.playing = true; ENG.lastT = performance.now();
+    $('play').textContent = 'Pause';
+    ENG.raf = requestAnimationFrame(tick);
+  }
+  function stopPlay() { ENG.playing = false; cancelAnimationFrame(ENG.raf); $('play').textContent = 'Play'; }
+  function next() { if (!done()) { finish(); return; } if (ENG.step < PAGE.steps.length - 1) enterStep(ENG.step + 1); }
+  function prev() { if (ENG.step > 0) enterStep(ENG.step - 1, true); }
+  function restart() { enterStep(ENG.step); }
+  // a dial moved: recompute from live values, redraw at the current progress
+  ENG.onDial = () => { const was = ENG.playing; stopPlay(); setup(); ENG.t = Math.min(ENG.t, span()); render(); if (was && !done()) startPlay(); };
+
+  $('next').addEventListener('click', e => { e.stopPropagation(); next(); });
+  $('prev').addEventListener('click', e => { e.stopPropagation(); prev(); });
+  $('restart').addEventListener('click', e => { e.stopPropagation(); restart(); });
+  $('reset').addEventListener('click', e => { e.stopPropagation(); for (const id in DIALS) DIALS[id].dirty = false; $('speed').value = 'normal'; applyPresets(cur(), true); restart(); });
+  $('play').addEventListener('click', e => { e.stopPropagation(); if (ENG.playing) stopPlay(); else if (done()) { if (cur().static) next(); else restart(); } else startPlay(); });
+  $('slide').addEventListener('click', () => next());
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
+    else if (e.key === 'r' || e.key === 'R') restart();
+  });
+  function boot() {
+    ENG.ready = true;
+    const h = parseInt((location.hash || '').replace('#', ''), 10);
+    enterStep(h >= 1 && h <= PAGE.steps.length ? h - 1 : 0);
+  }
+  // hover tooltip helper: returns svg coords of the mouse
+  const tt = $('tt');
+  function svgPoint(chart, evt) { const pt = chart.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY; return pt.matrixTransform(chart.getScreenCTM().inverse()); }
+  function showTip(chart, evt, html) {
+    tt.innerHTML = html; tt.style.display = 'block';
+    const wrap = chart.parentElement.getBoundingClientRect();
+    const px = evt.clientX - wrap.left, py = evt.clientY - wrap.top;
+    tt.style.left = (px + 16 + tt.offsetWidth > wrap.width ? px - tt.offsetWidth - 12 : px + 16) + 'px';
+    tt.style.top = Math.max(0, py - 10) + 'px';
+  }
+  function hideTip() { tt.style.display = 'none'; }
+
+
+  // ------------------------------------------------------------ page
+  const FS = 50, N = AX.length, DUR = N / FS;                       // 8 s walking then 4 s sitting
+  const MAG = AX.map((v, i) => Math.sqrt(v * v + AY[i] * AY[i] + AZ[i] * AZ[i]));
+  const LABELS = [{ name: 'Walking', t0: 0, t1: 8 }, { name: 'Sitting', t0: 8, t1: 12 }];
+  const labelAt = t => t < 8 ? 'Walking' : 'Sitting';
+  const WINS = [1, 2, 3, 4];
+  const chart = $('chart');
+  const w = () => DIALS.win.get();
+  // features of one window: mean, variance, dominant frequency of the FFT (0.3–8 Hz, no peak below amplitude 0.3 -> none)
+  function features(i0, i1) {
+    const n = i1 - i0; let m = 0; for (let i = i0; i < i1; i++) m += MAG[i]; m /= n;
+    let v = 0; for (let i = i0; i < i1; i++) v += (MAG[i] - m) ** 2; v /= n;
+    let best = -1, bestF = null;
+    for (let k = 1; k <= n / 2; k++) {
+      const f = k * FS / n; if (f < 0.3 || f > 8) continue;
+      let re = 0, im = 0; for (let i = 0; i < n; i++) { const ph = 2 * Math.PI * k * i / n; re += (MAG[i0 + i] - m) * Math.cos(ph); im -= (MAG[i0 + i] - m) * Math.sin(ph); }
+      const amp = 2 * Math.hypot(re, im) / n; if (amp > best) { best = amp; bestF = f; }
+    }
+    return { mean: m, var: v, fdom: best >= 0.3 ? bestF : null };
+  }
+  function windows() {
+    const out = [], ww = w();
+    for (let a = 0; a + ww <= DUR + 1e-9; a += ww) { const i0 = Math.round(a * FS), i1 = Math.round((a + ww) * FS); out.push(Object.assign({ k: out.length + 1, a, b: a + ww, label: labelAt(a) }, features(i0, i1))); }
+    return out;
+  }
+  let WS = [];
+  const tagTxt = () => `w = ${w()} s = ${w() * FS} samples · ${WS.length} windows`;
+
+  const PAGE = {
+    defaults: { win: 2 },
+    durNormal: 6,
+    steps: [
+      { id: 'cut', title: () => `The stream cut into ${w()}-second windows`, tag: tagTxt, span: () => DUR,
+        subtitle: 'The acceleration magnitude cut into windows, each labeled by its activity.' },
+      { id: 'rows', title: () => 'One row of features per window', tag: () => `${WS.length} rows × 3 features + label`, span: () => DUR,
+        subtitle: 'How each completed window becomes one row of mean, variance and dominant frequency.' },
+      { id: 'table', static: true, title: () => 'The feature table is the input to the classifier', tag: () => `${WS.length} rows × 3 features + label`, span: () => DUR,
+        subtitle: 'The feature table of three features and one activity label per window.' }
+    ],
+    setup(step) {
+      WS = windows();
+      chart.innerHTML = ''; G = {};
+      drawAxes(chart, { x0: P.x0, x1: P.x1, y0: P.y0, y1: P.yAx, xs, ys, xTicks: [0, 2, 4, 6, 8, 10, 12], yTicks: [0, 5, 10, 15], xTitle: 'time (seconds)', yTitle: '|a| (m/s²)' });
+      LABELS.forEach(l => { const a = xs(l.t0), b = xs(l.t1); el('rect', { x: a, y: P.y1 + 6, width: b - a, height: P.yAx - P.y1 - 10, fill: ACT_COL[l.name], 'fill-opacity': .35 }, chart); txt(chart, (a + b) / 2, P.yAx - 9, `label: ${l.name}`, { class: 'dlabel', 'text-anchor': 'middle', fill: 'var(--ink)' }); });
+      el('path', { class: 'thin-line', d: path(), stroke: COL.ink2, 'stroke-width': 1.1 }, chart);
+      G.wins = el('g', {}, chart);
+      G.arrow = el('g', {}, chart);
+      G.rows = el('g', {}, chart);
+      G.brk = el('g', {}, chart);
+      drawLegend(chart, P.x0 + 8, P.y1 - 98, [{ c: COL.ink2, n: 'acceleration magnitude |a|', w: 1.5 }, { c: ACT_COL.Walking, n: 'label: Walking', fill: true }, { c: ACT_COL.Sitting, n: 'label: Sitting', fill: true }, { c: '#8c8c8c', n: 'window', fill: true, op: .18, stroke: 'var(--ink-2)', dash: true }]);
+      drawTableHead();
+      G.hover = el('g', {}, chart);
+      el('rect', { x: P.x0, y: P.y0, width: P.x1 - P.x0, height: P.y1 - P.y0, fill: 'transparent' }, chart);
+    },
+    draw(step, t) {
+      G.wins.innerHTML = ''; G.rows.innerHTML = ''; G.arrow.innerHTML = ''; G.brk.innerHTML = '';
+      const rh = rowH();
+      let active = -1;
+      WS.forEach((win, j) => {
+        if (win.a >= t && step.id !== 'table') return;
+        const doneW = win.b <= t + 1e-9 || step.id === 'table';
+        const xa = xs(win.a), xb = xs(doneW ? win.b : t), xe = xs(win.b);
+        if (j % 2 === 0) el('rect', { x: xa, y: P.y0, width: xb - xa, height: P.y1 - P.y0, fill: '#8c8c8c', 'fill-opacity': .18 }, G.wins);
+        if (!doneW) el('rect', { x: xa, y: P.y0, width: xb - xa, height: P.y1 - P.y0, fill: COL.blue, 'fill-opacity': .12 }, G.wins);
+        el('line', { x1: xa, x2: xa, y1: P.y0, y2: P.y1, stroke: 'var(--ink-2)', 'stroke-width': .8, 'stroke-dasharray': '4 3' }, G.wins);
+        if (doneW) el('line', { x1: xe, x2: xe, y1: P.y0, y2: P.y1, stroke: 'var(--ink-2)', 'stroke-width': .8, 'stroke-dasharray': '4 3' }, G.wins);
+        if (doneW) {
+          txt(G.wins, (xa + xe) / 2, P.y0 + 74, `window ${win.k}`, { class: 'dlabel', 'text-anchor': 'middle', fill: 'var(--ink)' });
+          txt(G.wins, (xa + xe) / 2, P.y0 + 89, win.label, { class: 'mono', 'text-anchor': 'middle', fill: ACT_COL[win.label] });
+          if (step.id !== 'cut') { drawRow(win, j, rh, t); if (win.b > t - w() * 0.6 && step.id === 'rows') active = j; }
+        }
+      });
+      if (active >= 0 && t < DUR - 1e-9) {
+        const win = WS[active], y = TB.y + 30 + (active + 0.5) * rh;
+        const x0 = xs(win.b) + 4, y0 = P.y0 + 84;
+        el('rect', { x: x0 - (xs(win.b) - xs(win.a)) - 8, y: P.y0, width: xs(win.b) - xs(win.a) + 8, height: P.y1 - P.y0, fill: 'none', stroke: COL.blue, 'stroke-width': 2 }, G.arrow);
+        el('path', { d: `M${x0},${y0}C${x0 + 40},${y0} ${TB.x - 50},${y} ${TB.x - 8},${y}`, fill: 'none', stroke: COL.blue, 'stroke-width': 1.6, 'marker-end': 'url(#arr)' }, G.arrow);
+        txt(G.arrow, (x0 + TB.x) / 2, Math.min(y0, y) - 8, 'extract', { class: 'dlabel', 'text-anchor': 'middle', fill: COL.blue });
+      }
+      if (step.id === 'table') {
+        const yb = TB.y - 22;
+        const b1 = TB.x + CW[0] + 4, b2 = TB.x + CW[0] + CW[1] + CW[2] + CW[3] - 4, b3 = b2 + 8, b4 = TB.x + CW.reduce((a, c) => a + c, 0) - 4;
+        el('path', { d: `M${b1},${yb + 8}V${yb}H${b2}V${yb + 8}`, fill: 'none', stroke: COL.blue, 'stroke-width': 1.5 }, G.brk);
+        txt(G.brk, (b1 + b2) / 2, yb - 6, 'feature vector (one per window)', { class: 'dlabel', 'text-anchor': 'middle', fill: COL.blue });
+        el('path', { d: `M${b3},${yb + 8}V${yb}H${b4}V${yb + 8}`, fill: 'none', stroke: COL.violet, 'stroke-width': 1.5 }, G.brk);
+        txt(G.brk, (b3 + b4) / 2, yb - 6, 'label', { class: 'dlabel', 'text-anchor': 'middle', fill: COL.violet });
+      }
+    }
+  };
+  let G = {};
+  const P = { x0: 60, x1: 640, y0: 40, y1: 470, yAx: 502 };
+  const TB = { x: 700, y: 62, w: 480 }, CW = [70, 105, 105, 105, 95];
+  const HEAD = ['window', 'mean', 'var', 'f_dom', 'label'];
+  const rowH = () => Math.min(48, (P.yAx - TB.y - 34) / WS.length);
+  const xs = t => P.x0 + (t / DUR) * (P.x1 - P.x0);
+  const ys = v => P.y1 - (v / 16) * (P.y1 - P.y0);
+  function path() { let d = ''; for (let i = 0; i < N; i++) d += (i ? 'L' : 'M') + xs(i / FS).toFixed(1) + ',' + ys(MAG[i]).toFixed(1); return d; }
+  function drawTableHead() {
+    const defs = el('defs', {}, chart);
+    const m = el('marker', { id: 'arr', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: 'auto' }, defs);
+    el('path', { d: 'M0,0L10,5L0,10z', fill: COL.blue }, m);
+    let x = TB.x;
+    HEAD.forEach((h, i) => { txt(chart, x + CW[i] / 2, TB.y + 18, h, { class: 'th', 'text-anchor': 'middle' }); x += CW[i]; });
+    el('line', { x1: TB.x, x2: TB.x + TB.w, y1: TB.y + 28, y2: TB.y + 28, stroke: 'var(--ink)', 'stroke-width': 1 }, chart);
+    el('line', { x1: TB.x, x2: TB.x + TB.w, y1: TB.y, y2: TB.y, stroke: 'var(--ink)', 'stroke-width': 1 }, chart);
+    txt(chart, TB.x, TB.y - 10, '', { class: 'note' });
+    const rh = rowH();
+    // empty row slots so the table's shape is visible from the first frame
+    WS.forEach((win, j) => { const y = TB.y + 30 + j * rh; el('line', { x1: TB.x, x2: TB.x + TB.w, y1: y + rh, y2: y + rh, stroke: 'var(--rule)' }, chart); txt(chart, TB.x + CW[0] / 2, y + rh / 2 + 5, `w${win.k}`, { class: 'cell', 'text-anchor': 'middle', fill: 'var(--ink-3)' }); });
+  }
+  function drawRow(win, j, rh, t) {
+    const y = TB.y + 30 + j * rh, vals = [`w${win.k}`, fmt(win.mean, 1), fmt(win.var, 1), win.fdom == null ? '—' : fmt(win.fdom, 1), win.label];
+    const fresh = t < DUR - 1e-9 && win.b > t - w() * 0.6;
+    if (fresh) el('rect', { x: TB.x, y, width: TB.w, height: rh, fill: COL.blue, 'fill-opacity': .1 }, G.rows);
+    let x = TB.x;
+    vals.forEach((v, i) => { txt(G.rows, x + CW[i] / 2, y + rh / 2 + 5, v, { class: 'cell', 'text-anchor': 'middle', fill: i === 4 ? ACT_COL[win.label] : 'var(--ink)', 'font-weight': i === 4 ? 700 : 400 }); x += CW[i]; });
+  }
+
+  chart.addEventListener('mousemove', evt => {
+    const p = svgPoint(chart, evt);
+    if (p.x < P.x0 || p.x > P.x1) { hideTip(); G.hover.innerHTML = ''; return; }
+    const t = Math.max(0, Math.min(DUR, (p.x - P.x0) / (P.x1 - P.x0) * DUR)), i = Math.min(N - 1, Math.round(t * FS));
+    G.hover.innerHTML = '';
+    el('line', { class: 'crosshair', x1: xs(i / FS), x2: xs(i / FS), y1: P.y0, y2: P.y1 }, G.hover);
+    const win = WS.find(x => x.a <= t && t < x.b);
+    showTip(chart, evt, `<div class="row"><span>t</span><b>${fmt(i / FS, 2)} s</b></div><div class="row"><span>|a|</span><span>${fmt(MAG[i])}</span></div>` + (win ? `<div class="row"><span>window</span><span>${win.k} · ${win.label}</span></div>` : ''));
+  });
+  chart.addEventListener('mouseleave', () => { hideTip(); if (G.hover) G.hover.innerHTML = ''; });
+
+  dial('win', { valId: 'winVal', list: WINS, fmt: v => v + ' s' });
+  boot();
+})();
+</script>
+</body>
+</html>

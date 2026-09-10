@@ -1,0 +1,626 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Moving Average versus Band-Stop Filter</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff;
+    --ink: #222222;
+    --ink-2: #666666;
+    --ink-3: #9a9a9a;
+    --rule: #dcdcdc;
+    --grid: #ececec;
+    --raw: #b4b4b4;
+    --raw-dot: #8c8c8c;
+    --clean: #444444;
+    --ma: #2a78d6;
+    --notch: #1baf7a;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--sans); font-size: 15px; line-height: 1.4;
+    padding-block: 18px 28px; padding-inline: 16px; -webkit-font-smoothing: antialiased;
+  }
+  .stage { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
+  .slide {
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 6px;
+    padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px;
+    min-height: 640px; position: relative; outline: none; cursor: pointer; user-select: none;
+  }
+  .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
+  .head h1 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+
+  .chart-wrap { position: relative; min-height: 0; }
+  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  .tt {
+    position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px;
+    padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2;
+  }
+  .tt .row { display: flex; gap: 12px; justify-content: space-between; }
+  .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot .ctr { font-family: var(--mono); }
+
+  .bar { display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center; padding:14px 18px;
+         border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
+  .group { display:flex; align-items:center; gap:8px; }
+  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
+  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
+  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a;
+                   border-radius:5px; padding:7px 13px; cursor:pointer; }
+  button:hover, select:hover { border-color:var(--ink); }
+  button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
+  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  input[type=range].narrow { width: 150px; }
+  .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
+  .hint kbd { font-family: var(--mono); background: #fff; border: 1px solid var(--rule); border-radius: 3px; padding: 0 5px; font-size: 11px; }
+
+  .grid line { stroke: var(--grid); stroke-width: 1; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 11.5px; fill: var(--ink-2); }
+  .ptitle { font-family: var(--sans); font-size: 13px; fill: var(--ink); font-weight: 700; }
+  .axis-title { font-family: var(--sans); font-size: 11.5px; fill: var(--ink-2); }
+  .raw-line { fill: none; stroke: var(--raw); stroke-width: 1.5; }
+  .clean-line { fill: none; stroke: var(--clean); stroke-width: 1.4; stroke-dasharray: 5 4; opacity: .75; }
+  .out-line { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+  .dot { stroke: #fff; stroke-width: 1.4; }
+  .legend rect.bg { fill: #fff; fill-opacity: .9; stroke: var(--rule); }
+  .legend text { font-family: var(--sans); font-size: 12.5px; fill: var(--ink); }
+  .legend line { stroke-width: 3; }
+  .anno { font-family: var(--mono); font-size: 12.5px; fill: var(--ink); }
+  .anno.muted { fill: var(--ink-3); }
+  .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
+
+  @media (max-width: 720px) {
+    .slide { padding: 18px 16px 12px; min-height: 0; }
+    .hint { display: none; }
+    input[type=range], input[type=range].narrow { width: 120px; }
+  }
+</style>
+
+<div class="stage">
+  <section class="slide" id="slide" tabindex="0" aria-live="polite">
+    <div class="head">
+      <h1 id="title"></h1>
+      <p id="subtitle"></p>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 1200 720" role="img" aria-label="Moving average and band-stop filter outputs on a signal with 60 Hz powerline noise"></svg>
+      <div class="tt" id="tt"></div>
+    </div>
+    <div class="foot">
+      <span>CS328 &nbsp;·&nbsp; Sensor Data Smoothing and Filtering</span>
+      <span class="ctr" id="counter"></span>
+    </div>
+  </section>
+
+  <div class="bar">
+    <div class="group">
+      <button id="prev" title="Previous (←)">‹ Prev</button>
+      <button id="play" class="primary" title="Play / pause (space)">Play</button>
+      <button id="next" title="Next (→)">Next ›</button>
+      <button id="restart" title="Restart this step (r)">Restart</button>
+      <button id="reset" title="Clear your dial changes and use the presets">Reset dials</button>
+    </div>
+    <div class="group">
+      <label for="win">Window w</label>
+      <input type="range" id="win" class="narrow" min="3" max="41" step="2" value="9">
+      <span class="val" id="winval">9</span>
+    </div>
+    <div class="group">
+      <label for="centre">Band-stop centre</label>
+      <input type="range" id="centre" class="narrow" min="30" max="200" step="1" value="60">
+      <span class="val" id="centreval">60 Hz</span>
+    </div>
+    <div class="group">
+      <label for="width">Band-stop width</label>
+      <input type="range" id="width" class="narrow" min="2" max="40" step="1" value="10">
+      <span class="val" id="widthval">10 Hz</span>
+    </div>
+    <div class="group">
+      <label for="speed">Speed</label>
+      <select id="speed">
+        <option value="0.25">very slow</option>
+        <option value="0.5">slow</option>
+        <option value="1" selected>normal</option>
+        <option value="2.5">fast</option>
+        <option value="0">instant</option>
+      </select>
+    </div>
+    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play &nbsp; <kbd>r</kbd> restart</span>
+  </div>
+</div>
+
+<script>
+// Butterworth IIR design + filtering, mirroring scipy.signal.butter / lfilter / filtfilt.
+// Design path: analog Butterworth prototype (zpk) -> lp2lp / lp2hp / lp2bp / lp2bs -> bilinear -> SOS.
+// Usage:
+//   const sos = butter(4, 100, 1000, 'lowpass');            // cutoff Hz, fs Hz
+//   const sos = butter(4, [58, 62], 1000, 'bandstop');
+//   const y = sosfilt(sos, x);                              // causal (lfilter)
+//   const y = sosfiltfilt(sos, x);                          // zero-phase (filtfilt)
+//   const mag = sosFreqz(sos, fHz, fs);                     // |H| at one frequency
+(function (global) {
+  // ---- minimal complex arithmetic
+  const C = (re, im = 0) => ({ re, im });
+  const cadd = (a, b) => C(a.re + b.re, a.im + b.im);
+  const csub = (a, b) => C(a.re - b.re, a.im - b.im);
+  const cmul = (a, b) => C(a.re * b.re - a.im * b.im, a.re * b.im + a.im * b.re);
+  const cdiv = (a, b) => { const d = b.re * b.re + b.im * b.im; return C((a.re * b.re + a.im * b.im) / d, (a.im * b.re - a.re * b.im) / d); };
+  const csqrt = a => { const r = Math.hypot(a.re, a.im); const re = Math.sqrt(Math.max(0, (r + a.re) / 2)); const im = Math.sign(a.im || 1) * Math.sqrt(Math.max(0, (r - a.re) / 2)); return C(re, im); };
+  const cscale = (a, s) => C(a.re * s, a.im * s);
+
+  function buttap(N) { // analog prototype poles, unit cutoff
+    const p = [];
+    for (let k = 1; k <= N; k++) { const th = Math.PI * (2 * k - 1) / (2 * N); p.push(C(-Math.sin(th), Math.cos(th))); }
+    return { z: [], p, k: 1 };
+  }
+  function lp2lp(zpk, wo) { return { z: zpk.z.map(v => cscale(v, wo)), p: zpk.p.map(v => cscale(v, wo)), k: zpk.k * Math.pow(wo, zpk.p.length - zpk.z.length) }; }
+  function lp2hp(zpk, wo) {
+    const z = zpk.z.map(v => cdiv(C(wo), v)), p = zpk.p.map(v => cdiv(C(wo), v));
+    const deg = zpk.p.length - zpk.z.length;
+    for (let i = 0; i < deg; i++) z.push(C(0));
+    let num = C(1), den = C(1);
+    zpk.z.forEach(v => { num = cmul(num, cscale(v, -1)); });
+    zpk.p.forEach(v => { den = cmul(den, cscale(v, -1)); });
+    const kk = cdiv(num, den);
+    return { z, p, k: zpk.k * kk.re };
+  }
+  function lp2bp(zpk, wo, bw) {
+    const deg = zpk.p.length - zpk.z.length;
+    const tr = v => { const s = cscale(v, bw / 2); const r = csqrt(csub(cmul(s, s), C(wo * wo))); return [cadd(s, r), csub(s, r)]; };
+    const z = [], p = [];
+    zpk.z.forEach(v => z.push(...tr(v)));
+    zpk.p.forEach(v => p.push(...tr(v)));
+    for (let i = 0; i < deg; i++) z.push(C(0));
+    return { z, p, k: zpk.k * Math.pow(bw, deg) };
+  }
+  function lp2bs(zpk, wo, bw) {
+    const deg = zpk.p.length - zpk.z.length;
+    const tr = v => { const s = cdiv(C(bw / 2), v); const r = csqrt(csub(cmul(s, s), C(wo * wo))); return [cadd(s, r), csub(s, r)]; };
+    const z = [], p = [];
+    zpk.z.forEach(v => z.push(...tr(v)));
+    zpk.p.forEach(v => p.push(...tr(v)));
+    for (let i = 0; i < deg; i++) { z.push(C(0, wo)); z.push(C(0, -wo)); }
+    let num = C(1), den = C(1);
+    zpk.z.forEach(v => { num = cmul(num, cscale(v, -1)); });
+    zpk.p.forEach(v => { den = cmul(den, cscale(v, -1)); });
+    const kk = cdiv(num, den);
+    return { z, p, k: zpk.k * kk.re };
+  }
+  function bilinear(zpk, fs) {
+    const fs2 = 2 * fs;
+    const deg = zpk.p.length - zpk.z.length;
+    const tr = v => cdiv(cadd(C(fs2), v), csub(C(fs2), v));
+    const z = zpk.z.map(tr), p = zpk.p.map(tr);
+    for (let i = 0; i < deg; i++) z.push(C(-1));
+    let num = C(1), den = C(1);
+    zpk.z.forEach(v => { num = cmul(num, csub(C(fs2), v)); });
+    zpk.p.forEach(v => { den = cmul(den, csub(C(fs2), v)); });
+    const kk = cdiv(num, den);
+    return { z, p, k: zpk.k * kk.re };
+  }
+  // pair conjugates -> second-order sections [b0,b1,b2,a0,a1,a2]
+  function zpk2sos(zpk) {
+    const pairUp = arr => {
+      const rest = arr.slice(); const pairs = [];
+      while (rest.length) {
+        const a = rest.shift();
+        if (Math.abs(a.im) < 1e-9) { // real: pair with the nearest real
+          let j = rest.findIndex(v => Math.abs(v.im) < 1e-9);
+          if (j >= 0) { pairs.push([a, rest.splice(j, 1)[0]]); } else pairs.push([a]);
+        } else {
+          let j = rest.findIndex(v => Math.abs(v.re - a.re) < 1e-7 && Math.abs(v.im + a.im) < 1e-7);
+          if (j >= 0) { pairs.push([a, rest.splice(j, 1)[0]]); } else pairs.push([a, C(a.re, -a.im)]);
+        }
+      }
+      return pairs;
+    };
+    const poly = pr => { // (x - r1)(x - r2) -> real coefficients [1, c1, c2]
+      if (pr.length === 1) return [1, -pr[0].re, 0];
+      const s = cadd(pr[0], pr[1]), m = cmul(pr[0], pr[1]);
+      return [1, -s.re, m.re];
+    };
+    // sort poles by closeness to the unit circle so each section pairs zeros nearby (stability of cascade)
+    const P = zpk.p.slice().sort((a, b) => Math.hypot(b.re, b.im) - Math.hypot(a.re, a.im));
+    const Z = zpk.z.slice();
+    const pp = pairUp(P);
+    const sos = [];
+    pp.forEach((pair, idx) => {
+      // choose the zero(s) nearest this pole pair
+      const zs = [];
+      for (let n = 0; n < pair.length && Z.length; n++) {
+        let best = 0, bd = Infinity;
+        Z.forEach((v, j) => { const d = Math.hypot(v.re - pair[0].re, Math.abs(v.im) - Math.abs(pair[0].im)); if (d < bd) { bd = d; best = j; } });
+        const zz = Z.splice(best, 1)[0];
+        zs.push(zz);
+        if (Math.abs(zz.im) > 1e-9) { // also remove its conjugate
+          const cj = Z.findIndex(v => Math.abs(v.re - zz.re) < 1e-7 && Math.abs(v.im + zz.im) < 1e-7);
+          if (cj >= 0) { zs.push(Z.splice(cj, 1)[0]); n++; }
+        }
+      }
+      const b = zs.length ? poly(zs) : [1, 0, 0];
+      const a = poly(pair);
+      const g = idx === 0 ? zpk.k : 1;
+      sos.push([b[0] * g, b[1] * g, b[2] * g, a[0], a[1], a[2]]);
+    });
+    return sos;
+  }
+
+  function butter(N, cutoffHz, fs, btype = 'lowpass') {
+    const warp = f => 2 * fs * Math.tan(Math.PI * f / fs);
+    let zpk = buttap(N);
+    if (btype === 'lowpass') zpk = lp2lp(zpk, warp(cutoffHz));
+    else if (btype === 'highpass') zpk = lp2hp(zpk, warp(cutoffHz));
+    else {
+      const w1 = warp(cutoffHz[0]), w2 = warp(cutoffHz[1]);
+      const bw = w2 - w1, wo = Math.sqrt(w1 * w2);
+      zpk = btype === 'bandpass' ? lp2bp(zpk, wo, bw) : lp2bs(zpk, wo, bw);
+    }
+    return zpk2sos(bilinear(zpk, fs));
+  }
+
+  function sosfilt(sos, x, zi) { // direct form II transposed, per section
+    let y = Float64Array.from(x);
+    const st = zi || sos.map(() => [0, 0]);
+    sos.forEach(([b0, b1, b2, a0, a1, a2], s) => {
+      const z = st[s]; const out = new Float64Array(y.length);
+      for (let n = 0; n < y.length; n++) {
+        const xn = y[n];
+        const yn = b0 * xn + z[0];
+        z[0] = b1 * xn - a1 * yn + z[1];
+        z[1] = b2 * xn - a2 * yn;
+        out[n] = yn;
+      }
+      y = out;
+    });
+    return y;
+  }
+  // steady-state initial conditions for a step of amplitude 1 (like scipy sosfilt_zi)
+  function sosfiltZi(sos) {
+    let scale = 1;
+    return sos.map(([b0, b1, b2, a0, a1, a2]) => {
+      // solve for zi such that output is constant for constant input (scale)
+      const g = (b0 + b1 + b2) / (1 + a1 + a2); // dc gain of this section
+      const z0 = scale * ((b1 - a1 * b0) + (b2 - a2 * b0)) / (1 + a1 + a2) * 1; // approx via steady state
+      // exact: z1 = scale*(b2 - a2*b0)... use the standard linear solve
+      // Steady state: y = g*scale; z0 = y - b0*scale; z1 = z0 - (b1*scale - a1*y)
+      const y = g * scale;
+      const zz0 = y - b0 * scale;
+      const zz1 = zz0 - (b1 * scale - a1 * y);
+      scale = y;
+      return [zz0, zz1];
+    });
+  }
+  function sosfiltfilt(sos, x) {
+    const n = x.length;
+    const pad = Math.min(n - 1, 3 * 3 * sos.length); // ~ 3 * (order) samples (scipy: 3*max(len(a),len(b)))
+    // odd extension
+    const ext = new Float64Array(n + 2 * pad);
+    for (let i = 0; i < pad; i++) ext[i] = 2 * x[0] - x[pad - i];
+    for (let i = 0; i < n; i++) ext[pad + i] = x[i];
+    for (let i = 0; i < pad; i++) ext[pad + n + i] = 2 * x[n - 1] - x[n - 2 - i];
+    const zi = sosfiltZi(sos);
+    let y = sosfilt(sos, ext, zi.map(z => [z[0] * ext[0], z[1] * ext[0]]));
+    y.reverse();
+    y = sosfilt(sos, y, zi.map(z => [z[0] * y[0], z[1] * y[0]]));
+    y.reverse();
+    return y.slice(pad, pad + n);
+  }
+  function sosFreqz(sos, fHz, fs) { // magnitude response at a frequency (Hz)
+    const w = 2 * Math.PI * fHz / fs;
+    const e1 = C(Math.cos(-w), Math.sin(-w)), e2 = C(Math.cos(-2 * w), Math.sin(-2 * w));
+    let H = C(1);
+    sos.forEach(([b0, b1, b2, a0, a1, a2]) => {
+      const num = cadd(C(b0), cadd(cscale(e1, b1), cscale(e2, b2)));
+      const den = cadd(C(a0), cadd(cscale(e1, a1), cscale(e2, a2)));
+      H = cmul(H, cdiv(num, den));
+    });
+    return Math.hypot(H.re, H.im);
+  }
+  function sosPhase(sos, fHz, fs) {
+    const w = 2 * Math.PI * fHz / fs;
+    const e1 = C(Math.cos(-w), Math.sin(-w)), e2 = C(Math.cos(-2 * w), Math.sin(-2 * w));
+    let H = C(1);
+    sos.forEach(([b0, b1, b2, a0, a1, a2]) => {
+      const num = cadd(C(b0), cadd(cscale(e1, b1), cscale(e2, b2)));
+      const den = cadd(C(a0), cadd(cscale(e1, a1), cscale(e2, a2)));
+      H = cmul(H, cdiv(num, den));
+    });
+    return Math.atan2(H.im, H.re);
+  }
+
+  // ---- real FFT magnitude (radix-2, zero-padded), returns {f, mag} one-sided, mag scaled 2/N
+  function rfftMag(x, fs) {
+    let N = 1; while (N < x.length) N <<= 1;
+    const re = new Float64Array(N), im = new Float64Array(N);
+    for (let i = 0; i < x.length; i++) re[i] = x[i];
+    for (let i = 1, j = 0; i < N; i++) { // bit reversal
+      let bit = N >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit;
+      if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; }
+    }
+    for (let len = 2; len <= N; len <<= 1) {
+      const ang = -2 * Math.PI / len, wr = Math.cos(ang), wi = Math.sin(ang);
+      for (let i = 0; i < N; i += len) {
+        let cr = 1, ci = 0;
+        for (let j = 0; j < len / 2; j++) {
+          const ur = re[i + j], ui = im[i + j];
+          const vr = re[i + j + len / 2] * cr - im[i + j + len / 2] * ci;
+          const vi = re[i + j + len / 2] * ci + im[i + j + len / 2] * cr;
+          re[i + j] = ur + vr; im[i + j] = ui + vi;
+          re[i + j + len / 2] = ur - vr; im[i + j + len / 2] = ui - vi;
+          const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t;
+        }
+      }
+    }
+    const half = N / 2 + 1, f = new Float64Array(half), mag = new Float64Array(half);
+    for (let k = 0; k < half; k++) { f[k] = k * fs / N; mag[k] = 2 * Math.hypot(re[k], im[k]) / x.length; }
+    return { f, mag };
+  }
+
+  const api = { butter, sosfilt, sosfiltfilt, sosFreqz, sosPhase, rfftMag };
+  if (typeof module !== 'undefined') module.exports = api;
+  global.Butter = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+(() => {
+  // ------------------------------------------------------------ signal
+  const FS = 1000, N = 1000;
+  const T = Array.from({ length: N }, (_, i) => i / FS);
+  const CLEAN = T.map(t => Math.sin(2 * Math.PI * 50 * t) + Math.sin(2 * Math.PI * 120 * t));
+  const X = CLEAN.map((c, i) => c + Math.sin(2 * Math.PI * 60 * T[i]));
+  const WIN = [100, 200];           // samples shown: 0.10–0.20 s
+  const YR = 3.4;                   // y range ±
+
+  function movavg(x, w) {
+    const M = (w - 1) / 2, out = new Array(x.length);
+    for (let i = 0; i < x.length; i++) {
+      const lo = Math.max(0, i - M), hi = Math.min(x.length - 1, i + M);
+      let s = 0; for (let k = lo; k <= hi; k++) s += x[k];
+      out[i] = s / (hi - lo + 1);
+    }
+    return out;
+  }
+  function bandstop(x, centre, width) {
+    const lo = Math.max(1, centre - width / 2), hi = Math.min(FS / 2 - 1, centre + width / 2);
+    const sos = Butter.butter(4, [lo, hi], FS, 'bandstop');
+    return Array.from(Butter.sosfiltfilt(sos, x));
+  }
+  function rmsErr(out) {
+    let s = 0; for (let i = WIN[0]; i < WIN[1]; i++) s += (out[i] - CLEAN[i]) ** 2;
+    return Math.sqrt(s / (WIN[1] - WIN[0]));
+  }
+
+  // ------------------------------------------------------------ layout
+  const W = 1200, H = 720;
+  const TOP = { x0: 56, x1: 1050, y0: 36, y1: 328 };
+  const BOT = { x0: 56, x1: 1050, y0: 404, y1: 696 };
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+  const px = (P, i) => P.x0 + ((i - WIN[0]) / (WIN[1] - 1 - WIN[0])) * (P.x1 - P.x0);
+  const py = (P, v) => { const mid = (P.y0 + P.y1) / 2; return mid - (v / YR) * (P.y1 - P.y0) / 2; };
+  const path = pts => pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join('');
+  const fmt3 = v => v.toFixed(3);
+
+  // ------------------------------------------------------------ state
+  const $ = id => document.getElementById(id);
+  const chart = $('chart');
+  const PRESET = { win: 9, centre: 60, width: 10 };
+  let w = 9, centre = 60, width = 10, speedMult = 1;
+  const dirty = { win: false, centre: false, width: false };
+  let step = 0, progress = 0, playing = false, raf = 0, lastT = 0, acc = 0;
+  let ma = movavg(X, w), bs = bandstop(X, centre, width);
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const SPAN = WIN[1] - WIN[0];     // samples drawn per animated step
+
+  const bandText = () => `${Math.max(1, centre - width / 2)}–${Math.min(FS / 2 - 1, centre + width / 2)} Hz`;
+  const STEPS = [
+    {
+      id: 'input', title: 'The input: powerline noise between two signal tones', tag: () => 'fs = 1000 Hz',
+      subtitle: () => 'The noisy input with 60 Hz powerline noise and the clean signal it should match.',
+    },
+    {
+      id: 'ma', title: 'Moving average output', tag: () => `w = ${w}`,
+      subtitle: () => `How the moving average output compares with the clean signal.`,
+    },
+    {
+      id: 'bs', title: 'Band-stop filter output', tag: () => `band-stop ${bandText()} · order 4`,
+      subtitle: () => `How the band-stop (notch) filter output compares with the moving average.`,
+    },
+  ];
+
+  // ------------------------------------------------------------ drawing
+  let G = {};
+  function drawFrame() {
+    chart.innerHTML = '';
+    [[TOP, 'moving average'], [BOT, 'band-stop (notch) filter']].forEach(([P, title]) => {
+      const grid = el('g', { class: 'grid' }, chart), axis = el('g', { class: 'axis' }, chart);
+      el('text', { x: P.x0, y: P.y0 - 12, class: 'ptitle' }, chart).textContent = title;
+      [-3, -2, -1, 0, 1, 2, 3].forEach(v => {
+        el('line', { x1: P.x0, x2: P.x1, y1: py(P, v), y2: py(P, v) }, grid);
+        el('text', { x: P.x0 - 8, y: py(P, v) + 4, 'text-anchor': 'end' }, axis).textContent = v;
+      });
+      for (let i = WIN[0]; i <= WIN[1] - 1; i += 20) {
+        el('line', { x1: px(P, i), x2: px(P, i), y1: P.y0, y2: P.y1 }, grid);
+        el('text', { x: px(P, i), y: P.y1 + 16, 'text-anchor': 'middle' }, axis).textContent = (i / FS).toFixed(2);
+      }
+      el('path', { d: `M${P.x0},${P.y0}V${P.y1}H${P.x1}` }, axis);
+      el('text', { x: P.x1 + 8, y: P.y1 + 16, class: 'axis-title' }, chart).textContent = 'time (s)';
+    });
+    G.top = el('g', {}, chart); G.bot = el('g', {}, chart);
+    G.legTop = el('g', { class: 'legend' }, chart); G.legBot = el('g', { class: 'legend' }, chart);
+    G.annoTop = el('g', {}, chart); G.annoBot = el('g', {}, chart);
+    G.hover = el('g', {}, chart);
+    el('rect', { x: 0, y: 0, width: W, height: H, fill: 'transparent' }, chart);
+  }
+
+  // conventional legend, drawn at step entry, static for the step
+  function drawLegend(g, P, items) {
+    g.innerHTML = '';
+    const x = P.x0 + 12, y = P.y0 + 10, rowH = 18, wBox = 230, hBox = 10 + items.length * rowH;
+    el('rect', { class: 'bg', x, y, width: wBox, height: hBox, rx: 4 }, g);
+    items.forEach((it, i) => {
+      const cy = y + 14 + i * rowH;
+      const ln = el('line', { x1: x + 10, x2: x + 26, y1: cy - 1, y2: cy - 1, stroke: it.color }, g);
+      if (it.dashed) { ln.setAttribute('stroke-dasharray', '4 3'); ln.setAttribute('stroke-width', '2'); }
+      el('text', { x: x + 34, y: cy + 3 }, g).textContent = it.name;
+    });
+  }
+  function legendItems(panel) {
+    const items = [{ name: 'input (noisy, with 60 Hz powerline noise)', color: 'var(--raw)' }, { name: 'clean signal (50 + 120 Hz)', color: 'var(--clean)', dashed: true }];
+    if (panel === 'top' && step >= 1) items.push({ name: `moving average w=${w}`, color: 'var(--ma)' });
+    if (panel === 'bot' && step >= 2) items.push({ name: `band-stop ${bandText()}`, color: 'var(--notch)' });
+    return items;
+  }
+  function refreshLegends() {
+    drawLegend(G.legTop, TOP, legendItems('top'));
+    drawLegend(G.legBot, BOT, legendItems('bot'));
+  }
+
+  function series(P, arr, upto) {
+    const pts = []; for (let i = WIN[0]; i < Math.min(WIN[1], WIN[0] + upto); i++) pts.push([px(P, i), py(P, arr[i])]);
+    return pts;
+  }
+  // one panel: input + target drawn up to `base` samples, output up to `outUpto` samples
+  function drawPanel(g, P, base, out, outUpto, color) {
+    g.innerHTML = '';
+    if (base > 1) {
+      el('path', { class: 'clean-line', d: path(series(P, CLEAN, base)) }, g);
+      el('path', { class: 'raw-line', d: path(series(P, X, base)) }, g);
+      if (base < SPAN) el('circle', { class: 'dot', cx: px(P, WIN[0] + base - 1), cy: py(P, X[WIN[0] + base - 1]), r: 4.5, fill: 'var(--raw-dot)' }, g);
+    }
+    if (out && outUpto > 1) {
+      el('path', { class: 'out-line', d: path(series(P, out, outUpto)), stroke: color }, g);
+      if (outUpto < SPAN) el('circle', { class: 'dot', cx: px(P, WIN[0] + outUpto - 1), cy: py(P, out[WIN[0] + outUpto - 1]), r: 5, fill: color }, g);
+    }
+  }
+  function annotateRms(g, P, out, label, color, show) {
+    g.innerHTML = '';
+    if (!show) return;
+    // on the panel-title row, right-aligned, so it never sits on top of a trace
+    const t = el('text', { x: P.x1, y: P.y0 - 12, class: 'anno', 'text-anchor': 'end', fill: color, 'font-weight': '700' }, g);
+    t.textContent = `${label}: rms error vs clean signal = ${fmt3(rmsErr(out))}`;
+  }
+
+  function render() {
+    const d = STEPS[step];
+    const p = Math.min(progress, SPAN);
+    const baseTop = step === 0 ? p : SPAN, baseBot = baseTop;
+    const maUpto = step === 1 ? p : step > 1 ? SPAN : 0;
+    const bsUpto = step === 2 ? p : 0;
+    drawPanel(G.top, TOP, baseTop, step >= 1 ? ma : null, maUpto, 'var(--ma)');
+    drawPanel(G.bot, BOT, baseBot, step >= 2 ? bs : null, bsUpto, 'var(--notch)');
+    annotateRms(G.annoTop, TOP, ma, `moving average w=${w}`, 'var(--ma)', step >= 1 && maUpto >= SPAN);
+    annotateRms(G.annoBot, BOT, bs, `band-stop ${bandText()}`, 'var(--notch)', step >= 2 && bsUpto >= SPAN);
+    $('title').innerHTML = d.title + `<span class="tag">${d.tag()}</span>`;
+    $('subtitle').textContent = d.subtitle();
+  }
+
+  // ------------------------------------------------------------ dials
+  function setDials() {
+    $('win').value = w; $('winval').textContent = w;
+    $('centre').value = centre; $('centreval').textContent = `${centre} Hz`;
+    $('width').value = width; $('widthval').textContent = `${width} Hz`;
+  }
+  function recomputeMA() { ma = movavg(X, w); }
+  function recomputeBS() { bs = bandstop(X, centre, width); }
+
+  // ------------------------------------------------------------ step control
+  function enterStep(k, completed = false) {
+    step = Math.max(0, Math.min(STEPS.length - 1, k));
+    stopPlay();
+    if (!dirty.win) w = PRESET.win;
+    if (!dirty.centre) centre = PRESET.centre;
+    if (!dirty.width) width = PRESET.width;
+    setDials(); recomputeMA(); recomputeBS();
+    progress = 0; acc = 0;
+    drawFrame(); refreshLegends();
+    $('counter').textContent = `${step + 1} / ${STEPS.length}`;
+    $('prev').disabled = step === 0;
+    try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {}
+    if (completed || speedMult === 0 || reduceMotion) finish(); else { render(); startPlay(); }
+  }
+  const isDone = () => progress >= SPAN;
+  function finish() { stopPlay(); progress = SPAN; render(); }
+  function tick(t) {
+    if (!playing) return;
+    const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+    acc += dt * 25 * speedMult;
+    let adv = false;
+    while (acc >= 1 && progress < SPAN) { progress++; acc -= 1; adv = true; }
+    if (adv) render();
+    if (isDone()) { finish(); return; }
+    raf = requestAnimationFrame(tick);
+  }
+  function startPlay() { if (isDone()) return; playing = true; lastT = performance.now(); $('play').textContent = 'Pause'; raf = requestAnimationFrame(tick); }
+  function stopPlay() { playing = false; cancelAnimationFrame(raf); $('play').textContent = 'Play'; }
+  function next() { if (!isDone()) { finish(); return; } if (step < STEPS.length - 1) enterStep(step + 1); }
+  function prev() { if (step > 0) enterStep(step - 1, true); }
+  function restart() { enterStep(step); }
+
+  // ------------------------------------------------------------ hover
+  const tt = $('tt');
+  function hover(evt) {
+    const pt = chart.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+    const p = pt.matrixTransform(chart.getScreenCTM().inverse());
+    G.hover.innerHTML = '';
+    const P = p.y >= TOP.y0 && p.y <= TOP.y1 ? TOP : p.y >= BOT.y0 && p.y <= BOT.y1 ? BOT : null;
+    if (!P || p.x < P.x0 || p.x > P.x1) { tt.style.display = 'none'; return; }
+    const i = Math.max(WIN[0], Math.min(WIN[1] - 1, Math.round(WIN[0] + (p.x - P.x0) / (P.x1 - P.x0) * (SPAN - 1))));
+    [TOP, BOT].forEach(Q => el('line', { class: 'crosshair', x1: px(Q, i), x2: px(Q, i), y1: Q.y0, y2: Q.y1 }, G.hover));
+    let html = `<div class="row"><span>t</span><b>${(i / FS).toFixed(3)} s</b></div>` +
+      `<div class="row"><span><i class="sw" style="background:var(--raw)"></i>input</span><span>${fmt3(X[i])}</span></div>` +
+      `<div class="row"><span><i class="sw" style="background:var(--clean)"></i>clean signal</span><span>${fmt3(CLEAN[i])}</span></div>`;
+    if (step >= 1) html += `<div class="row"><span><i class="sw" style="background:var(--ma)"></i>moving average</span><span>${fmt3(ma[i])}</span></div>`;
+    if (step >= 2) html += `<div class="row"><span><i class="sw" style="background:var(--notch)"></i>band-stop</span><span>${fmt3(bs[i])}</span></div>`;
+    tt.innerHTML = html; tt.style.display = 'block';
+    const wrap = chart.parentElement.getBoundingClientRect();
+    const cx = evt.clientX - wrap.left, cy = evt.clientY - wrap.top;
+    tt.style.left = (cx + 16 + tt.offsetWidth > wrap.width ? cx - tt.offsetWidth - 12 : cx + 16) + 'px';
+    tt.style.top = Math.max(0, cy - 10) + 'px';
+  }
+  function unhover() { tt.style.display = 'none'; if (G.hover) G.hover.innerHTML = ''; }
+
+  // ------------------------------------------------------------ wiring
+  $('next').addEventListener('click', e => { e.stopPropagation(); next(); });
+  $('prev').addEventListener('click', e => { e.stopPropagation(); prev(); });
+  $('restart').addEventListener('click', e => { e.stopPropagation(); restart(); });
+  $('reset').addEventListener('click', e => { e.stopPropagation(); dirty.win = dirty.centre = dirty.width = false; enterStep(step); });
+  $('play').addEventListener('click', e => { e.stopPropagation(); if (playing) stopPlay(); else if (isDone()) restart(); else startPlay(); });
+  $('slide').addEventListener('click', () => next());
+  document.addEventListener('keydown', e => {
+    if (['SELECT', 'INPUT'].includes(e.target.tagName)) return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
+    else if (e.key === 'r' || e.key === 'R') restart();
+  });
+  // sliders: recompute their panel and redraw at the current progress; no replay
+  $('win').addEventListener('input', e => { dirty.win = true; w = parseInt(e.target.value, 10) | 1; setDials(); recomputeMA(); refreshLegends(); render(); });
+  $('centre').addEventListener('input', e => { dirty.centre = true; centre = parseInt(e.target.value, 10); setDials(); recomputeBS(); refreshLegends(); render(); });
+  $('width').addEventListener('input', e => { dirty.width = true; width = parseInt(e.target.value, 10); setDials(); recomputeBS(); refreshLegends(); render(); });
+  $('speed').addEventListener('change', e => { speedMult = parseFloat(e.target.value); });
+  chart.addEventListener('mousemove', hover);
+  chart.addEventListener('mouseleave', unhover);
+
+  const h = parseInt((location.hash || '').replace('#', ''), 10);
+  enterStep(h >= 1 && h <= STEPS.length ? h - 1 : 0);
+})();
+</script>
+
+</body>
+</html>

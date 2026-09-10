@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sensors, Direction and Class Count in Exercise Recognition</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff; --ink: #222222; --ink-2: #666666; --ink-3: #9a9a9a;
+    --rule: #dcdcdc; --grid: #ececec; --raw: #b4b4b4; --raw-dot: #8c8c8c; --clean: #444444;
+    --ma: #2a78d6; --med: #1baf7a; --wm: #4a3aa7; --ewma: #eb6834;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.4; padding-block: 18px 28px; padding-inline: 16px; -webkit-font-smoothing: antialiased; }
+  .stage { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
+  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; min-height: 560px; position: relative; outline: none; cursor: pointer; user-select: none; }
+  .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
+  .head h1 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .chart-wrap { position: relative; min-height: 0; }
+  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt .row { display: flex; gap: 10px; justify-content: space-between; }
+  .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
+  .foot .ctr { font-family: var(--mono); }
+  .bar { display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center; padding:14px 18px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
+  .group { display:flex; align-items:center; gap:8px; }
+  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
+  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
+  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  button:hover, select:hover { border-color:var(--ink); }
+  button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
+  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
+  .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
+  .grid line { stroke: var(--grid); stroke-width: 1; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .ptitle { font-family: var(--sans); font-size: 14px; font-weight: 700; fill: var(--ink); }
+  .mono { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
+  .big { font-family: var(--mono); font-weight: 700; }
+  .legend text { font-family: var(--sans); font-size: 12px; fill: var(--ink); }
+  @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
+</style>
+
+<div class="stage">
+  <section class="slide" id="slide" tabindex="0" aria-live="polite">
+    <div class="head">
+      <h1 id="title">Adding dimensions</h1>
+      <p id="subtitle"></p>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 1200 640" role="img" aria-label="Exercise recognition results"></svg>
+      <div class="tt" id="tt"></div>
+    </div>
+    <div class="foot">
+      <span>CS328 &nbsp;·&nbsp; Case Studies in Activity Recognition</span>
+      <span class="ctr" id="counter"></span>
+    </div>
+  </section>
+
+  <div class="bar">
+    <div class="group">
+      <button id="prev" title="Previous (←)">‹ Prev</button>
+      <button id="play" class="primary" title="Play / pause (space)">Play</button>
+      <button id="next" title="Next (→)">Next ›</button>
+      <button id="restart" title="Restart this step (r)">Restart</button>
+      <button id="reset" title="Reset all dials to the step presets">Reset dials</button>
+    </div>
+    <div class="group">
+      <label for="fam">Feature family</label>
+      <select id="fam">
+        <option value="all">all four</option>
+        <option value="T">T (time-domain)</option>
+        <option value="F">F (frequency-domain)</option>
+        <option value="D">DTW</option>
+        <option value="A">T+F+D</option>
+      </select>
+    </div>
+    <div class="group">
+      <label for="pair">Variant pair</label>
+      <select id="pair">
+        <option value="-1">all six</option>
+        <option value="0">pushups / pushup (var)</option>
+        <option value="1">squat / squat (arms front)</option>
+        <option value="2">bicep curl (band) / two-arm curl</option>
+        <option value="3">OH triceps ext / lying triceps ext</option>
+        <option value="4">crunch / sit-up (head)</option>
+        <option value="5">walking lunge / lunge</option>
+      </select>
+    </div>
+    <div class="group">
+      <label for="speed">Speed</label>
+      <select id="speed">
+        <option value="0.25">very slow</option>
+        <option value="0.5">slow</option>
+        <option value="1" selected>normal</option>
+        <option value="2.5">fast</option>
+        <option value="0">instant</option>
+      </select>
+    </div>
+    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ------------------------------------------------------------ data (chapter 8 tables and figures; RecoFit-Exercises)
+  const DATA = {"pairs_cm":[[3,17,0,0,0,0,0,0,0,0,0,1],[10,27,0,0,0,0,0,0,0,0,0,0],[0,0,8,10,0,0,0,0,0,0,0,0],[0,0,6,31,0,0,0,0,0,0,0,0],[0,0,0,0,14,7,0,0,0,0,0,0],[0,0,0,0,1,34,0,0,0,1,0,0],[0,0,0,0,0,0,36,2,0,2,0,0],[0,0,0,0,0,0,5,21,0,1,0,0],[0,0,1,1,0,0,0,0,19,7,0,0],[0,0,0,0,0,1,4,1,4,28,0,0],[0,0,0,0,0,0,0,0,0,0,11,9],[0,0,0,0,0,0,0,0,0,0,6,29]],"progression":[["gyro, T+F (base)",32.0],["+ DTW shape",40.4],["+ accelerometer",54.6],["+ direction (3-axis)",70.5]]};
+  // Table: leave-one-subject-out accuracy (%) on the three exercises
+  const FAM = [{ k: 'T', n: 'T' }, { k: 'F', n: 'F' }, { k: 'D', n: 'DTW' }, { k: 'A', n: 'T+F+D' }];
+  const STREAMS = [
+    { k: 'gyro', name: 'gyroscope', color: '#2a78d6', v: { T: 54, F: 52, D: 81, A: 82 } },
+    { k: 'accel', name: 'accelerometer', color: '#eb6834', v: { T: 65, F: 34, D: 83, A: 80 } },
+    { k: 'both', name: 'both stacked', color: '#1baf7a', v: { T: 80, F: 47, D: 85, A: 84 } },
+  ];
+  // Stacked T+F+D on both sensors: DTW on magnitudes vs on the three axes
+  const CLS3 = ['lateral raise', 'bicep curl', 'crunch'];
+  const DIR = [
+    { name: 'DTW on the 1-D magnitudes', acc: 84, m: [[25, 1, 9], [2, 22, 1], [2, 0, 31]] },
+    { name: 'DTW on the three axes of each sensor', acc: 97, m: [[35, 0, 0], [1, 23, 1], [1, 0, 32]] },
+  ];
+  // All 39 exercises, adding one dimension at a time
+  const PROG = DATA.progression.map(([label, v]) => ({ label, v }));
+  const CHANCE39 = 2.6;
+  // Confusable variant pairs (rows true, cols predicted), best representation, subject-grouped 5-fold
+  const PAIR_NAMES = ['pushups', 'pushup (var)', 'squat', 'squat (arms front)', 'bicep curl (band)', 'two-arm curl',
+    'OH triceps ext', 'lying triceps ext', 'crunch', 'sit-up (head)', 'walking lunge', 'lunge'];
+  const PCM = DATA.pairs_cm;
+
+  // ------------------------------------------------------------ svg helpers
+  const W = 1200, H = 640;
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+  const txt = (x, y, s, attrs = {}, parent) => { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; };
+  const $ = id => document.getElementById(id);
+  const chart = $('chart');
+  const clamp01 = v => Math.max(0, Math.min(1, v));
+  function blues(f) { const a = [247, 251, 255], b = [8, 48, 107]; const c = a.map((v, i) => Math.round(v + (b[i] - v) * Math.pow(f, 0.85))); return `rgb(${c[0]},${c[1]},${c[2]})`; }
+  function legend(items, x, y, parent) {
+    const g = el('g', { class: 'legend' }, parent);
+    const rowH = 18, padX = 10, padY = 8;
+    const wdt = Math.max(...items.map(i => i.n.length)) * 6.9 + 2 * padX + 34;
+    el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
+    items.forEach((it, j) => {
+      const yy = y + padY + j * rowH + 6;
+      if (it.box) el('rect', { x: x + padX + 2, y: yy - 6, width: 14, height: 12, fill: it.c, rx: 1 }, g);
+      else el('line', { x1: x + padX, x2: x + padX + 18, y1: yy, y2: yy, stroke: it.c, 'stroke-width': it.dash ? 1.5 : 2.5, 'stroke-dasharray': it.dash ? '5 4' : 'none' }, g);
+      txt(x + padX + 26, yy + 4, it.n, {}, g);
+    });
+  }
+
+  // ------------------------------------------------------------ state
+  const dirty = {};
+  let fam = 'all', pair = -1, speed = 1;
+  let step = 0, prog = 0, playing = false, raf = 0, lastT = 0;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const STEPS = [
+    { id: 'streams', dur: 10, presets: { fam: 'all' },
+      title: () => 'Three exercises: accuracy by sensor stream and feature family', tag: () => 'leave-one-subject-out · 93 sequences',
+      subtitle: () => 'Comparing accuracy across feature families for the gyroscope, the accelerometer and both.' },
+    { id: 'dir', dur: 10, presets: {},
+      title: () => 'Magnitude versus three-axis DTW on both sensors', tag: () => 'stacked T+F+D · 84% → 97%',
+      subtitle: () => 'Comparing DTW computed on the magnitude signal with DTW computed on all three axes.' },
+    { id: 'prog', dur: 10, presets: {},
+      title: () => 'All 39 exercises: adding one dimension at a time', tag: () => '1284 sequences · chance 2.6%',
+      subtitle: () => 'How accuracy on all 39 exercises rises as each new dimension is added.' },
+    { id: 'pairs', dur: 12, presets: { pair: -1 },
+      title: () => 'Residual errors: confusable variant pairs', tag: () => '39-class model · subject-grouped 5-fold',
+      subtitle: () => 'The confusion matrix of the 39-class model, with the confusable exercise pairs outlined.' },
+  ];
+  function applyPresets(k) {
+    const p = STEPS[k].presets;
+    if (p.fam !== undefined && !dirty.fam) { fam = p.fam; $('fam').value = fam; }
+    if (p.pair !== undefined && !dirty.pair) { pair = p.pair; $('pair').value = String(pair); }
+  }
+
+  // ------------------------------------------------------------ drawing
+  function drawStreams(p) {
+    chart.innerHTML = '';
+    const PL = 90, PR = 40, PT = 40, PB = 80;
+    const pw = W - PL - PR, ph = H - PT - PB;
+    const sy = v => PT + ph - v / 100 * ph;
+    const g = el('g', {}, chart);
+    const grid = el('g', { class: 'grid' }, g), ax = el('g', { class: 'axis' }, g);
+    for (let v = 0; v <= 100; v += 20) { el('line', { x1: PL, x2: W - PR, y1: sy(v), y2: sy(v) }, grid); txt(PL - 8, sy(v) + 4, v, { 'text-anchor': 'end' }, ax); }
+    el('path', { d: `M${PL},${PT}V${PT + ph}H${W - PR}` }, ax);
+    txt(PL - 56, PT + ph / 2, 'accuracy (%)', { class: 'axis-title', transform: `rotate(-90 ${PL - 56} ${PT + ph / 2})`, 'text-anchor': 'middle' }, g);
+    const gw = pw / FAM.length, bw = 56, gap = 10;
+    FAM.forEach((f, i) => {
+      const cx = PL + gw * (i + 0.5);
+      const t = clamp01(p * FAM.length - i);
+      const dim = fam !== 'all' && fam !== f.k;
+      txt(cx, PT + ph + 24, f.n, { class: 'ptitle', 'text-anchor': 'middle', fill: dim ? 'var(--ink-3)' : 'var(--ink)' }, g);
+      txt(cx, PT + ph + 42, f.k === 'T' ? 'mean, std' : f.k === 'F' ? 'dominant freq, energy' : f.k === 'D' ? 'distance to every sequence' : 'all stacked', { class: 'axis-title', 'text-anchor': 'middle' }, g);
+      STREAMS.forEach((s, j) => {
+        const x = cx + (j - 1) * (bw + gap) - bw / 2;
+        const v = s.v[f.k] * t;
+        el('rect', { x, y: sy(v), width: bw, height: sy(0) - sy(v), fill: s.color, opacity: dim ? 0.25 : 0.9, rx: 2 }, g);
+        if (t > 0) txt(x + bw / 2, sy(v) - 8, `${Math.round(v)}`, { class: 'big', 'font-size': 17, 'text-anchor': 'middle', fill: dim ? 'var(--ink-3)' : s.color }, g);
+      });
+    });
+    el('line', { x1: PL, x2: W - PR, y1: sy(33.3), y2: sy(33.3), stroke: 'var(--ink-3)', 'stroke-dasharray': '6 4' }, g);
+    txt(W - PR - 4, sy(33.3) - 6, 'chance for three classes (33%)', { class: 'axis-title', 'text-anchor': 'end' }, g);
+    legend(STREAMS.map(s => ({ c: s.color, n: s.name, box: true })).concat([{ c: 'var(--ink-3)', n: 'chance (33%)', dash: true }]), PL + 14, PT + 8, chart);
+    txt(W - PR, PT + 14, 'stacked T+F+D, both sensors: 84%', { class: 'mono', 'text-anchor': 'end', fill: 'var(--ink-2)' }, g);
+  }
+
+  function cmPanel(g, gx, gy, cell, m, names, t, opts = {}) {
+    for (let i = 0; i < m.length; i++) {
+      const rowSum = m[i].reduce((a, b) => a + b, 0);
+      for (let j = 0; j < m.length; j++) {
+        const v = Math.round(m[i][j] * t), f = rowSum ? v / rowSum : 0;
+        el('rect', { x: gx + j * cell, y: gy + i * cell, width: cell, height: cell, fill: t > 0 ? blues(f) : '#fbfcfe', stroke: '#fff' }, g);
+        if (t > 0 && (opts.showZero || v > 0)) txt(gx + j * cell + cell / 2, gy + i * cell + cell / 2 + (opts.fs || 20) * 0.35, v, { class: 'big', 'font-size': opts.fs || 20, 'text-anchor': 'middle', fill: f > 0.5 ? '#fff' : 'var(--ink)' }, g);
+      }
+    }
+    el('rect', { x: gx, y: gy, width: m.length * cell, height: m.length * cell, fill: 'none', stroke: 'var(--ink-3)' }, g);
+  }
+
+  function drawDir(p) {
+    chart.innerHTML = '';
+    const cell = 84, y0 = 140, gap = 190, x0 = (W - (2 * 3 * cell + gap)) / 2 + 30;
+    DIR.forEach((d, k) => {
+      const t = clamp01(p * 2 - k);
+      const gx = x0 + k * (3 * cell + gap);
+      const g = el('g', {}, chart);
+      txt(gx + 1.5 * cell, y0 - 46, 'Stacked T+F+D, both sensors', { class: 'ptitle', 'text-anchor': 'middle' }, g);
+      txt(gx + 1.5 * cell, y0 - 28, d.name, { class: 'axis-title', 'text-anchor': 'middle' }, g);
+      txt(gx + 1.5 * cell, y0 - 6, t > 0 ? `accuracy = ${Math.round(d.acc * t)}%` : 'accuracy = —', { class: 'mono', 'text-anchor': 'middle', 'font-weight': 700 }, g);
+      cmPanel(g, gx, y0, cell, d.m, CLS3, t, { showZero: true });
+      // outline the lateral-raise / crunch cross cells
+      [[0, 2], [2, 0]].forEach(([i, j]) => el('rect', { x: gx + j * cell + 2, y: y0 + i * cell + 2, width: cell - 4, height: cell - 4, fill: 'none', stroke: '#eb6834', 'stroke-width': 2.5, 'stroke-dasharray': '5 3' }, g));
+      CLS3.forEach((n, i) => {
+        txt(gx + i * cell + cell / 2, y0 + 3 * cell + 18, n, { class: 'axis-title', 'text-anchor': 'middle' }, g);
+        if (k === 0) txt(gx - 8, y0 + i * cell + cell / 2 + 4, n, { class: 'axis-title', 'text-anchor': 'end' }, g);
+      });
+      txt(gx + 1.5 * cell, y0 + 3 * cell + 38, 'predicted', { class: 'axis-title', 'text-anchor': 'middle' }, g);
+      if (k === 0) txt(gx - 100, y0 + 1.5 * cell, 'true exercise', { class: 'axis-title', 'text-anchor': 'middle', transform: `rotate(-90 ${gx - 100} ${y0 + 1.5 * cell})` }, g);
+      const errs = Math.round((d.m[0][2] + d.m[2][0]) * t);
+      txt(gx + 1.5 * cell, y0 + 3 * cell + 78, t > 0 ? `lateral raise ↔ crunch errors: ${errs}` : '', { class: 'mono', 'text-anchor': 'middle', fill: '#eb6834', 'font-weight': 700 }, g);
+    });
+    // arrow between the panels
+    const ax = x0 + 3 * cell + 40, ay = y0 + 1.5 * cell;
+    el('path', { d: `M${ax},${ay}H${ax + gap - 80}`, stroke: 'var(--ink-2)', 'stroke-width': 2, fill: 'none' }, chart);
+    el('path', { d: `M${ax + gap - 80},${ay}l-10,-6v12z`, fill: 'var(--ink-2)' }, chart);
+    txt(ax + (gap - 80) / 2, ay - 12, 'add direction', { class: 'axis-title', 'text-anchor': 'middle' }, chart);
+    legend([{ c: '#eb6834', n: 'lateral raise ↔ crunch cells', dash: true }], PL_KEY(), H - 60, chart);
+    function PL_KEY() { return x0; }
+  }
+
+  function drawProg(p) {
+    chart.innerHTML = '';
+    const PL = 90, PR = 40, PT = 40, PB = 80;
+    const pw = W - PL - PR, ph = H - PT - PB;
+    const sy = v => PT + ph - v / 80 * ph;
+    const g = el('g', {}, chart);
+    const grid = el('g', { class: 'grid' }, g), ax = el('g', { class: 'axis' }, g);
+    for (let v = 0; v <= 80; v += 10) { el('line', { x1: PL, x2: W - PR, y1: sy(v), y2: sy(v) }, grid); txt(PL - 8, sy(v) + 4, v, { 'text-anchor': 'end' }, ax); }
+    el('path', { d: `M${PL},${PT}V${PT + ph}H${W - PR}` }, ax);
+    txt(PL - 56, PT + ph / 2, '39-class accuracy (%)', { class: 'axis-title', transform: `rotate(-90 ${PL - 56} ${PT + ph / 2})`, 'text-anchor': 'middle' }, g);
+    const gw = pw / PROG.length, bw = 150;
+    PROG.forEach((b, i) => {
+      const t = clamp01(p * PROG.length - i);
+      const cx = PL + gw * (i + 0.5), v = b.v * t;
+      el('rect', { x: cx - bw / 2, y: sy(v), width: bw, height: sy(0) - sy(v), fill: '#2a78d6', opacity: 0.9, rx: 2 }, g);
+      if (t > 0) txt(cx, sy(v) - 10, `${Math.round(v)}%`, { class: 'big', 'font-size': 20, 'text-anchor': 'middle', fill: '#2a78d6' }, g);
+      txt(cx, PT + ph + 24, b.label, { class: 'ptitle', 'text-anchor': 'middle' }, g);
+      txt(cx, PT + ph + 42, ['gyroscope magnitude, T+F', 'gyroscope magnitude, T+F+D', 'both magnitudes, T+F+D', 'both sensors, 3-axis DTW'][i], { class: 'axis-title', 'text-anchor': 'middle' }, g);
+      if (i > 0 && t >= 1) txt(cx, sy(v) - 34, `+${(b.v - PROG[i - 1].v).toFixed(0)} points`, { class: 'mono', 'text-anchor': 'middle', fill: 'var(--ink-2)' }, g);
+      if (i === 1 && t >= 1) txt(cx, sy(v) + 24, 'same features on 3 exercises: 82%', { class: 'axis-title', 'text-anchor': 'middle', fill: '#fff' }, g);
+    });
+    el('line', { x1: PL, x2: W - PR, y1: sy(CHANCE39), y2: sy(CHANCE39), stroke: 'var(--ink-3)', 'stroke-dasharray': '6 4' }, g);
+    txt(W - PR - 4, sy(CHANCE39) - 6, `chance (${CHANCE39}%)`, { class: 'axis-title', 'text-anchor': 'end' }, g);
+    txt(W - PR, PT + 14, 'final: 70.5% accuracy · 69.1% balanced accuracy', { class: 'mono', 'text-anchor': 'end', fill: 'var(--ink-2)' }, g);
+    legend([{ c: '#2a78d6', n: 'accuracy on all 39 exercises', box: true }, { c: 'var(--ink-3)', n: 'chance (2.6%)', dash: true }], PL + 14, PT + 8, chart);
+  }
+
+  function drawPairs(p) {
+    chart.innerHTML = '';
+    const n = PAIR_NAMES.length, cell = 40, x0 = 250, y0 = 24;
+    const g = el('g', {}, chart);
+    for (let i = 0; i < n; i++) {
+      const rowSum = PCM[i].reduce((a, b) => a + b, 0);
+      for (let j = 0; j < n; j++) {
+        const blk = Math.floor(i / 2), inBlock = Math.floor(j / 2) === blk;
+        const t = clamp01(p * 6 - blk);
+        const v = Math.round(PCM[i][j] * t), f = rowSum ? v / rowSum : 0;
+        const dimmed = pair >= 0 && blk !== pair;
+        el('rect', { x: x0 + j * cell, y: y0 + i * cell, width: cell, height: cell, fill: t > 0 && v > 0 ? blues(f) : '#f8fafc', stroke: '#fff', opacity: dimmed ? 0.3 : 1 }, g);
+        if (v > 0) txt(x0 + j * cell + cell / 2, y0 + i * cell + cell / 2 + 5, v, { class: 'mono', 'text-anchor': 'middle', fill: f > 0.5 ? '#fff' : 'var(--ink)', opacity: dimmed ? 0.4 : 1, 'font-weight': inBlock ? 700 : 400 }, g);
+      }
+    }
+    for (let b = 0; b < 6; b++) {
+      const t = clamp01(p * 6 - b);
+      if (t > 0) el('rect', { x: x0 + 2 * b * cell, y: y0 + 2 * b * cell, width: 2 * cell, height: 2 * cell, fill: 'none', stroke: pair >= 0 && pair !== b ? 'var(--ink-3)' : '#eb6834', 'stroke-width': pair === b ? 3 : 2 }, g);
+    }
+    el('rect', { x: x0, y: y0, width: n * cell, height: n * cell, fill: 'none', stroke: 'var(--ink-3)' }, g);
+    PAIR_NAMES.forEach((nm, i) => {
+      const dimmed = pair >= 0 && Math.floor(i / 2) !== pair;
+      txt(x0 - 8, y0 + i * cell + cell / 2 + 4, nm, { class: 'axis-title', 'text-anchor': 'end', fill: dimmed ? 'var(--ink-3)' : 'var(--ink)' }, g);
+      txt(x0 + i * cell + cell / 2, y0 + n * cell + 8, nm, { class: 'axis-title', 'text-anchor': 'end', fill: dimmed ? 'var(--ink-3)' : 'var(--ink)', transform: `rotate(-60 ${x0 + i * cell + cell / 2} ${y0 + n * cell + 8})` }, g);
+    });
+    txt(x0 - 150, y0 + n * cell / 2, 'true exercise', { class: 'axis-title', 'text-anchor': 'middle', transform: `rotate(-90 ${x0 - 150} ${y0 + n * cell / 2})` }, g);
+    txt(x0 + n * cell / 2, H - 6, 'predicted exercise', { class: 'axis-title', 'text-anchor': 'middle' }, g);
+    // per-pair readout on the right
+    const rx = x0 + n * cell + 40;
+    txt(rx, y0 + 14, 'within-pair errors', { class: 'ptitle' }, g);
+    for (let b = 0; b < 6; b++) {
+      const t = clamp01(p * 6 - b);
+      const i = 2 * b;
+      const cross = PCM[i][i + 1] + PCM[i + 1][i], tot = PCM[i].reduce((a, c) => a + c, 0) + PCM[i + 1].reduce((a, c) => a + c, 0);
+      const dimmed = pair >= 0 && pair !== b;
+      const y = y0 + 44 + b * 60;
+      txt(rx, y, `${PAIR_NAMES[i]} / ${PAIR_NAMES[i + 1]}`, { class: 'axis-title', fill: dimmed ? 'var(--ink-3)' : 'var(--ink)' }, g);
+      txt(rx, y + 22, t > 0 ? `${Math.round(cross * t)} of ${tot} sets swapped` : '', { class: 'big', 'font-size': 16, fill: dimmed ? 'var(--ink-3)' : '#eb6834' }, g);
+    }
+    legend([{ c: '#eb6834', n: 'one variant pair (2 × 2 block)' }, { c: blues(0.7), n: 'fraction of the true class', box: true }], rx, H - 78, chart);
+  }
+
+  function render() {
+    const id = STEPS[step].id;
+    if (id === 'streams') drawStreams(prog);
+    else if (id === 'dir') drawDir(prog);
+    else if (id === 'prog') drawProg(prog);
+    else drawPairs(prog);
+  }
+
+  // ------------------------------------------------------------ step machinery
+  function enterStep(k, completed = false) {
+    stopPlay(); step = k; applyPresets(k);
+    const d = STEPS[k];
+    $('title').innerHTML = d.title() + `<span class="tag">${d.tag()}</span>`;
+    $('subtitle').textContent = d.subtitle();
+    $('counter').textContent = `${step + 1} / ${STEPS.length}`;
+    try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {}
+    prog = 0;
+    if (completed || speed === 0 || reduceMotion) { prog = 1; render(); }
+    else { render(); startPlay(); }
+  }
+  function tick(t) {
+    if (!playing) return;
+    const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+    prog = Math.min(1, prog + dt * speed / STEPS[step].dur);
+    render();
+    if (prog >= 1) { stopPlay(); return; }
+    raf = requestAnimationFrame(tick);
+  }
+  function startPlay() { if (prog >= 1) return; playing = true; lastT = performance.now(); $('play').textContent = 'Pause'; raf = requestAnimationFrame(tick); }
+  function stopPlay() { playing = false; cancelAnimationFrame(raf); $('play').textContent = 'Play'; }
+  function finish() { stopPlay(); prog = 1; render(); }
+  function next() { if (prog < 1) { finish(); return; } if (step < STEPS.length - 1) enterStep(step + 1); }
+  function prev() { if (step > 0) enterStep(step - 1, true); }
+  function restart() { enterStep(step); }
+
+  $('next').addEventListener('click', e => { e.stopPropagation(); next(); });
+  $('prev').addEventListener('click', e => { e.stopPropagation(); prev(); });
+  $('restart').addEventListener('click', e => { e.stopPropagation(); restart(); });
+  $('play').addEventListener('click', e => { e.stopPropagation(); if (playing) stopPlay(); else if (prog >= 1) restart(); else startPlay(); });
+  $('slide').addEventListener('click', () => next());
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
+    else if (e.key === 'r' || e.key === 'R') restart();
+  });
+  $('fam').addEventListener('change', e => { dirty.fam = true; fam = e.target.value; render(); });
+  $('pair').addEventListener('change', e => { dirty.pair = true; pair = parseInt(e.target.value, 10); render(); });
+  $('speed').addEventListener('change', e => { speed = parseFloat(e.target.value); });
+  $('reset').addEventListener('click', e => { e.stopPropagation(); for (const k in dirty) delete dirty[k]; fam = 'all'; $('fam').value = 'all'; pair = -1; $('pair').value = '-1'; enterStep(step); });
+
+  const h = parseInt((location.hash || '').replace('#', ''), 10);
+  enterStep(h >= 1 && h <= STEPS.length ? h - 1 : 0);
+})();
+</script>
+</body>
+</html>

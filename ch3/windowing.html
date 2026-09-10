@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Segmenting a Stream into Windows</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff;
+    --ink: #222222;
+    --ink-2: #666666;
+    --ink-3: #9a9a9a;
+    --rule: #dcdcdc;
+    --grid: #ececec;
+    --raw: #b4b4b4;
+    --raw-dot: #8c8c8c;
+    --clean: #444444;
+    --window: rgba(34, 34, 34, 0.06);
+    --window-edge: #222222;
+    --ma: #2a78d6;
+    --med: #1baf7a;
+    --wm: #4a3aa7;
+    --ewma: #eb6834;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.4;
+    padding-block: 18px 28px;
+    padding-inline: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .stage { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
+
+  /* ---------- slide frame ---------- */
+  .slide {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 26px 34px 16px;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 10px;
+    min-height: 560px;
+    position: relative;
+    outline: none;
+    cursor: pointer;
+    user-select: none;
+  }
+  .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
+  .head h1 {
+    margin: 0;
+    font-size: clamp(22px, 2.6vw, 30px);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+    line-height: 1.15;
+  }
+  .head h1 .tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-weight: 400;
+    font-size: 0.6em;
+    color: var(--ink-2);
+    margin-left: 10px;
+    vertical-align: middle;
+    background: #f4f4f4;
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+
+  .chart-wrap { position: relative; min-height: 0; }
+  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  .tt {
+    position: absolute; pointer-events: none; display: none;
+    background: #fff; border: 1px solid var(--rule); border-radius: 4px;
+    padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink);
+    box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2;
+  }
+  .tt .row { display: flex; gap: 10px; justify-content: space-between; }
+  .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+  .foot {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 12px; color: var(--ink-3); padding-top: 4px;
+  }
+  .foot .ctr { font-family: var(--mono); }
+
+  /* ---------- control bar ---------- */
+  .bar { display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center; padding:14px 18px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
+  .group { display:flex; align-items:center; gap:8px; }
+  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
+  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
+  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  button:hover, select:hover { border-color:var(--ink); }
+  button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
+  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
+  .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
+
+  /* ---------- svg parts ---------- */
+  .grid line { stroke: var(--grid); stroke-width: 1; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .raw-line { fill: none; stroke: var(--raw); stroke-width: 1.5; }
+  .out-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .thin-line { fill: none; stroke-width: 1.3; stroke-linejoin: round; }
+  .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
+  .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
+  .mono { font-family: var(--mono); font-size: 12px; fill: var(--ink); }
+  .mono-2 { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
+  .note { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
+  .cursor-line { stroke: var(--ink); stroke-width: 1; stroke-dasharray: 3 3; opacity: .7; }
+
+  @media (max-width: 720px) {
+    .slide { padding: 18px 16px 12px; min-height: 0; }
+    .hint { display: none; }
+  }
+
+</style>
+
+<div class="stage">
+  <section class="slide" id="slide" tabindex="0" aria-live="polite">
+    <div class="head">
+      <h1 id="title"></h1>
+      <p id="subtitle"></p>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 1200 620" role="img" aria-label="A stream of acceleration magnitude cut into windows"></svg>
+      <div class="tt" id="tt"></div>
+    </div>
+    <div class="foot">
+      <span>CS328 &nbsp;·&nbsp; The Activity Recognition Pipeline</span>
+      <span class="ctr" id="counter"></span>
+    </div>
+  </section>
+
+  <div class="bar">
+    <div class="group">
+      <button id="prev" title="Previous (←)">‹ Prev</button>
+      <button id="play" class="primary" title="Play / pause (space)">Play</button>
+      <button id="next" title="Next (→)">Next ›</button>
+      <button id="restart" title="Restart this step (r)">Restart</button>
+      <button id="reset" title="Reset all dials to the step's presets">Reset dials</button>
+    </div>
+    <div class="group">
+      <label for="win">Window length</label>
+      <input type="range" id="win" min="0" max="7" step="1" value="3">
+      <span class="val" id="winVal">2 s</span>
+    </div>
+    <div class="group">
+      <label for="ov">Overlap</label>
+      <input type="range" id="ov" min="0" max="4" step="1" value="0">
+      <span class="val" id="ovVal">0 %</span>
+    </div>
+    <div class="group">
+      <label for="speed">Speed</label>
+      <select id="speed">
+        <option value="vslow">very slow</option>
+        <option value="slow">slow</option>
+        <option value="normal" selected>normal</option>
+        <option value="fast">fast</option>
+        <option value="instant">instant</option>
+      </select>
+    </div>
+    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+  </div>
+</div>
+
+<script>
+(() => {
+const STREAM = [7.34,8.62,9.28,9.96,10.24,10.09,9.56,9.31,9.01,9.42,9.8,9.8,12.26,11.02,11.14,11.86,13.12,13.3,13.57,12.83,11.45,8.75,7.13,5.95,6.16,7.75,8.38,9.3,9.73,9.69,9.71,10.07,11.85,10.97,10.1,10.97,12.71,11.38,10.1,10.03,11.27,12.73,11.7,9.06,8.18,7.14,7.09,7.05,7.17,7.95,8.51,9.63,10.48,10.28,9.63,9.5,9.56,9.81,10.76,12.74,12.21,12.21,10.43,10.48,10.88,11.62,12.23,11.82,9.94,8.41,7.27,6.94,6.57,7.4,8.24,9.07,9.49,9.58,9.89,10.14,11.79,11.61,10.8,10.64,11.9,12.65,10.68,10.9,11.89,12.87,11.64,10.01,9.1,7.18,6.91,6.83,7.16,7.6,8.89,9.96,10.29,10.47,10.45,10.46,10.23,10.35,11.35,12.64,11.43,10.7,10.7,10.84,11.16,11.26,10.91,10.45,8.98,7.65,7.1,7.11,8.02,9.16,10.1,10.51,10.53,10.68,10.4,10.2,10.56,10.28,9.95,11.28,11.67,12.07,13.04,14.21,14.45,12.56,9.37,8.31,7.16,7.07,7.2,7.51,7.82,8.24,9.07,9.63,10.09,10.3,10.32,10.16,10.21,10.25,12.74,11.66,10.79,10.55,11.97,12.4,12.4,12.61,11.7,8.58,7.84,6.71,6.71,7.29,7.76,8.95,9.51,9.73,9.91,10.44,11.17,11.42,10.84,11.92,12.51,11.24,9.65,9.55,10.78,12.52,11.7,9.58,8.71,7.69,7.22,7.4,7.76,8.61,9.03,9.03,9.34,9.4,9.53,9.79,9.87,10.1,10.9,11.9,12.16,11.13,10.79,11.37,11.98,12.46,13.17,12.46,10.42,8.5,7.33,7.33,6.55,6.86,7.92,8.93,9.61,9.82,10,11.12,11.43,10.77,10.49,9.79,10.14,10.8,10.48,10.89,12.42,12.54,11.71,10.33,8.35,7.62,6.82,7.15,7.66,8.67,9.38,9.9,10.14,9.78,9.68,9.72,9.87,10.38,10.92,12.8,11.94,11.11,11.02,11.35,11.89,12.57,12.76,11.63,9.81,7.99,6.96,6.17,6.46,7.6,8.73,9.65,10,9.93,9.94,10.73,10.9,10.32,10.01,11.37,12.34,11.67,10.01,11.09,12.33,12.03,10.79,8.54,7.22,7.12,7.63,7.96,8.35,8.64,8.8,9.39,9.64,9.8,9.72,9.73,9.87,10.2,10.66,12.67,11.64,11.56,11.73,12.35,13.16,13.75,13.14,12.33,9.7,7.13,6,5.88,6.33,7.25,8.35,9.06,9.44,8.71,9.15,10.27,11.02,11.14,11,11.7,13.76,12.78,9.99,10.26,12.14,12.35,11.21,9.32,8.45,6.96,6.93,7.23,7.95,8.98,9.41,10.26,10.33,10.18,9.66,9.32,9.3,9.38,9.82,11.24,12.09,11.46,11.6,12.82,13.46,13.73,13.59,11.68,10.65,7.85,6.49,5.97,5.99,6.41,7.72,8.67,9.53,9.92,9.82,10.27,11.01,11.09,10.37,9.89,10.9,12.42,10.76,10.26,11.11,12.62,12.33,10.42,9.43,7.72,7.25,7.4,7.72,8.07,8.22,8.99,9.3,9.32,8.97,9.51,10.03,10.37,10.6,11.6,12.54,11.64,10.14,9.76,10,12.43,13.06,13.11,11.18,9.99,9.09,7.09,6.44,6.34,7.36,8.28,8.28,9.03,9.15,9.93,10.46,11,10.68,10.15,11.6,13.4,12.25,10.5,10.25,11.93,13.09,12,10.69,8.55,7.76,7.57,7.7,7.83,8.48,8.87,9.91,10.08,10.05,10.13,10.66,11,11.03,10.77,11.15,12.93,11.78,10.09,9.05,9.89,10.8,11.89,11.91,10.98,9.48,8.96,8.21,7.88,8.17,8.89,9.26,10.34,10.52,10.15,10.75,10.75,11,10.63,9.39,10.82,11.44,10.34,9.8,10.58,11.99,12.67,10.69,8.52,7.81,7.73,7.87,7.89,8.27,8.88,9.4,9.98,9.72,9.41,9.25,8.78,8.85,9.52,10.19,12.26,11.52,10.97,11.83,12.48,13.56,13.58,13,10.67,9.29,7.99,6.5,6.35,7.19,7.75,8.86,10.02,10.02,9.72,9.72,10.66,10.78,9.99,9.86,11.51,11.66,11.11,10.58,11.72,12.88,12.17,11.17,8.26,7.31,7.11,7.27,7.46,8.14,9.12,9.6,10.57,10.49,9.9,9.69,9.65,9.75,10.2,11.62,12.8,11,10.46,10.66,11.7,12.57,12.94,12.78,11,9.07,7.89,7.23,6.72,7.13,7.74,9.19,9.65,9.85,9.76,10.45,11.03,11.03,10.1,9.68,9.77,11.45,10.86,10.67,11.51,12.93,12.57,10.4,8.79,7.16,6.81,6.87,7.23,7.91,8.89,9.7,10.35,10.39,9.76,9.66,9.68,10,10.59,12.52,13.23,11.99,11.15,11.05,12.13,12.2,12.35,11.8,10.91,9.14,7.57,7.2,6.87,7.35,8.05,9.42,9.93,9.79,9.92,9.95,10.23,10.68,10.14,9.83,10.55,12.72,11.82,10.51,10.67,12.63,13.09,9.64,8.7,7.39,7.5,7.63,7.62,7.62,8.36,8.96,10,10.07,9.7,9.77,9.75,10.1,10.26,10.96,12.94,11.81,11.11,10.99,11.52,11.85,12.27,12.19,10.34,9.67,8.18,6.66,6.43,7.14,8.34,8.84,9.84,9.86,9.35,9.5,10.58,11.67,11.45,10.36,9.98,10.96,11.41,11.41,10.15,11.24,13.03,12.68,9.87,8.9,7.52,7.42,7.59,7.81,8.25,9.09,9.45,9.97,10,9.88,9.69,9.45,9.52,10.18,12.58,12.83,11.71,11.37,11.51,12.02,12.17,12.12,11.74,9.96,8.39,7.74,6.59,6.77,7.3,8.43,9.67,10.14,10.11,9.75,10.1,10.64,11.05,10.61,10.6,12.39,12.84,11.49,9.96,10.61,11.49,12.81,10.66,8.18,7.06,6.8,7.19,7.65,8.16,9.19,9.48,10.01,10.04,9.69,9.73,9.81,9.75,9.85,10.24,12.31,11.45,10.54,10.58,12.22,12.69,13.64,13.56,12.23,10.33,9.41,7.5,6.88,6.7,7.37,8.15,8.6,9.23,9.72,9.46,10.31,10.71,11.13,10.59,10.92,12.74,12.32,12.32,10.58,10.53,12.78,11.93,10.41,8.79,7.74,7.76,7.89,7.99,8.52,9.3,9.79,10.06,9.88,9.59,9.25,9.07,9.03,9.72,11.63,12.73,11.83,11.34,11.44,11.95,12.24,12.38,12.14,10.91,8.67,7.59,6.59,6.35,7.27,9.02,10.15,10.36,10.41,10.19,10.31,10.47,10.79,10.18,9.74,10.93,11.92,10.15,9.62,9.92,12.24,13.91,11.81,10.18,8.96,8.21,8.06,8.06,8.1,8.23,8.87,9.36,9.49,9.46,9.46,9.79,10.1,10.32,10.88,12.21,13.38,11.32,10.53,10.67,11.24,11.73,11.94,11.65,10.48,8.3,7.73,6.85,7.2,7.76,8.66,10.13,10.46,9.88,9.94,9.97,10.35,10.62,10.15,9.49,10.39,11.86,10.87,10.49,10.8,13.04,12.98,11.6,9.11,7.89,7.51,7.42,7.42,7.86,8.26,9,9.65,9.7,9.42,9.62,9.87,9.95,10.06,10.51,13.35,12.81,11.98,10.67,10.67,12.06,12.45,12.21,11.45,9.3,8.57,7.58,6.84,7.05,7.39,9.01,9.39,9.97,9.63,9.72,9.92,10.42,10.39,10.05,9.48,11.84,12.5,11.88,10.57,11.45,12.13,13.01,13.01,8.87,8.14,7.68,7.55,7.63,7.92,8.62,9.25,9.59,9.45,9.14,9.1,9.22,9.32,9.72,11.92,13.41,12.27,11.27,11.18,11.46,12.13,12.85,12.77,11.49,10.55,8,6.95,6.53,7.1,7.46,8.49,9.23,9.59,9.67,9.9,10.17,10.27,10.18,9.56,9.69,12.5,12.27,10.82,9.97,11.02,12.4,12.14,11.27,8.93,8.34,8.13,8.03,8.09,8.48,8.88,9.74,10.05,9.74,9.27,9.14,9.17,9.48,10.3,10.77,12.62,11.76,11.24,9.83,10.02,10.58,11.46,12.31,11.83,10.26,8.75,7.59,7.32,7.28,7.71,8.28,9.14,9.01,9.07,9.34,9.91,10.42,10.97,10.49,9.68,9.8,9.72,9.67,9.72,9.66,9.81,9.75,9.74,9.74,9.79,9.74,9.75,9.71,9.74,9.73,9.7,9.66,9.7,9.73,9.77,9.78,9.67,9.73,9.73,9.66,9.7,9.7,9.74,9.66,9.69,9.7,9.85,9.78,9.74,9.7,9.68,9.59,9.62,9.65,9.73,9.72,9.77,9.79,9.71,9.75,9.67,9.7,9.67,9.71,9.8,9.72,9.76,9.67,9.73,9.8,9.67,9.69,9.74,9.68,9.66,9.64,9.76,9.81,9.77,9.69,9.65,9.6,9.62,9.64,9.75,9.73,9.74,9.68,9.71,9.73,9.73,9.68,9.7,9.64,9.72,9.77,9.78,9.75,9.74,9.73,9.7,9.77,9.65,9.68,9.66,9.67,9.7,9.88,9.88,9.81,9.7,9.65,9.63,9.66,9.63,9.72,9.75,9.74,9.78,9.7,9.66,9.74,9.69,9.68,9.76,9.86,9.76,9.76,9.7,9.68,9.78,9.74,9.74,9.65,9.66,9.66,9.66,9.79,9.82,9.69,9.65,9.65,9.64,9.62,9.66,9.74,9.79,9.79,9.77,9.71,9.64,9.71,9.63,9.63,9.69,9.73,9.79,9.79,9.7,9.71,9.72,9.69,9.7,9.69,9.64,9.7,9.85,9.86,9.71,9.69,9.6,9.62,9.72,9.66,9.74,9.74,9.8,9.75,9.75,9.72,9.76,9.68,9.72,9.69,9.71,9.74,9.8,9.77,9.71,9.73,9.77,9.71,9.72,9.62,9.58,9.7,9.9,9.84,9.72,9.72,9.65,9.64,9.65,9.65,9.72,9.72,9.74,9.74,9.72,9.69,9.63,9.68,9.7,9.76,9.72,9.73,9.69,9.71,9.7,9.76,9.76,9.67,9.59,9.58,9.72,9.79,9.78,9.66,9.69,9.7,9.69,9.61,9.53,9.63,9.63,9.7,9.66,9.73,9.71,9.69,9.64,9.71,9.7,9.73,9.7,9.74,9.75,9.73,9.73,9.77,9.72,9.6,9.63,9.74,9.9,9.89,9.8,9.68,9.59,9.7,9.67,9.72,9.72,9.73,9.81,9.7,9.72,9.78,9.64,9.63,9.65,9.75,9.8,9.74,9.74,9.72,9.78,9.69,9.75,9.59,9.61,9.75,9.87,9.84,9.71,9.68,9.67,9.7,9.72,9.63,9.68,9.81,9.78,9.75,9.74,9.74,9.69,9.71,9.64,9.67,9.73,9.73,9.72,9.71,9.66,9.74,9.77,9.64,9.64,9.73,9.82,9.89,9.82,9.69,9.68,9.58,9.63,9.6,9.69,9.68,9.79,9.64,9.54,9.69,9.83,9.73,9.7,9.66,9.68,9.71,9.71,9.69,9.77,9.74,9.73,9.7,9.71,9.53,9.63,9.78,9.87,9.86,9.82,9.61,9.62,9.59,9.64,9.74,9.63,9.66,9.75,9.77,9.67,9.66,9.64,9.7,9.8,9.76,9.76,9.75,9.72,9.77,9.71,9.64,9.79,9.71,9.6,9.65,9.74,9.69,9.72,9.74,9.7,9.66,9.59,9.59,9.69,9.77,9.71,9.78,9.78,9.8,9.61,9.67,9.66,9.74,9.74,9.74,9.74,9.71,9.68,9.75,9.77,9.75,9.68,9.67,9.65,9.71,9.8,9.87,9.74,9.72,9.59,9.57,9.65,9.58,9.79,9.81,9.83,9.74,9.68,9.75,9.7,9.72,9.69,9.78,9.81,9.71,9.73,9.66,9.64,9.72,9.72,9.71,9.57,9.68,9.8,9.84,9.71,9.73,9.72,9.6,9.69,9.72,9.71,9.75,9.74,9.76,9.76,9.77,9.73,9.66,9.7,9.81,9.8,9.72,9.62,9.63,9.69,9.8,9.77,9.74,9.67,9.66,9.65,9.67,9.88,9.87,9.83,9.76,9.55,9.6,9.58,9.58,9.71,9.7,9.79,9.8,9.89,9.88,9.72,9.71,9.63,9.7,9.63,9.77,9.75,9.75,9.81,9.79,9.77,9.8,9.81,9.38,9.38,9.59,9.8,9.97,9.99,9.82,9.66,9.62,9.67,9.69,9.68,9.84,9.88,9.66,9.5,9.46,9.52,9.69,9.73,9.79,9.7,9.76,9.81,9.81,9.75,9.72,9.69,9.7,9.7,9.58];
+
+  // ------------------------------------------------------------ shared kit
+  const $ = id => document.getElementById(id);
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+  const txt = (parent, x, y, s, attrs = {}) => { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; };
+  const fmt = (v, d = 2) => (Math.round(v * Math.pow(10, d)) / Math.pow(10, d)).toFixed(d);
+  const COL = { blue: '#2a78d6', red: '#eb6834', green: '#1baf7a', violet: '#4a3aa7', raw: '#b4b4b4', ink: '#222222', ink2: '#666666', ink3: '#9a9a9a' };
+  const ACT_COL = { Walking: COL.blue, Sitting: COL.red };
+
+  // axes: thin grid, mono ticks, 12 px sans titles
+  function drawAxes(parent, o) {
+    const grid = el('g', { class: 'grid' }, parent);
+    const axis = el('g', { class: 'axis' }, parent);
+    o.yTicks.forEach(v => {
+      const y = o.ys(v);
+      el('line', { x1: o.x0, x2: o.x1, y1: y, y2: y }, grid);
+      txt(axis, o.x0 - 8, y + 4, o.yFmt ? o.yFmt(v) : v, { 'text-anchor': 'end' });
+    });
+    o.xTicks.forEach(v => {
+      const x = o.xs(v);
+      el('line', { x1: x, x2: x, y1: o.y0, y2: o.y1 }, grid);
+      txt(axis, x, o.y1 + 17, o.xFmt ? o.xFmt(v) : v, { 'text-anchor': 'middle' });
+    });
+    el('path', { d: `M${o.x0},${o.y0}V${o.y1}H${o.x1}` }, axis);
+    if (o.xTitle) txt(parent, o.x1, o.y1 + 34, o.xTitle, { class: 'axis-title', 'text-anchor': 'end' });
+    if (o.yTitle) txt(parent, o.x0 - 44, o.y0 - 10, o.yTitle, { class: 'axis-title', 'text-anchor': 'start' });
+  }
+  // conventional legend on a white 90 % rounded rect
+  function drawLegend(parent, x, y, items) {
+    const rowH = 18, padX = 10, padY = 8;
+    const wdt = Math.max(...items.map(i => i.n.length)) * 7.2 + 2 * padX + 40;
+    const g = el('g', {}, parent);
+    el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
+    items.forEach((it, j) => {
+      const yy = y + padY + j * rowH + 6;
+      if (it.fill) el('rect', { x: x + padX, y: yy - 6, width: 18, height: 12, fill: it.c, 'fill-opacity': it.op == null ? .35 : it.op, stroke: it.stroke || 'none', 'stroke-dasharray': it.dash ? '3 3' : 'none' }, g);
+      else el('line', { x1: x + padX, x2: x + padX + 18, y1: yy, y2: yy, stroke: it.c, 'stroke-width': it.w || 2.5, 'stroke-dasharray': it.dash ? '5 4' : 'none' }, g);
+      txt(g, x + padX + 26, yy + 4, it.n, { class: 'axis-title', fill: 'var(--ink)' });
+    });
+    return g;
+  }
+
+  // ------------------------------------------------------------ dials (persist unless the step presets them; dirty on user input)
+  const DIALS = {};
+  function dial(id, o) {
+    const inp = $(id), val = o.valId ? $(o.valId) : null;
+    const d = { id, dirty: false, list: o.list || null, fmt: o.fmt || (v => v),
+      get() { const raw = inp.tagName === 'SELECT' ? inp.value : parseFloat(inp.value); return d.list ? d.list[raw | 0] : (inp.tagName === 'SELECT' ? raw : raw); },
+      set(v) { if (d.list) { const i = d.list.indexOf(v); inp.value = i < 0 ? 0 : i; } else inp.value = v; d.show(); },
+      show() { if (val) val.textContent = d.fmt(d.get()); } };
+    inp.addEventListener(inp.tagName === 'SELECT' ? 'change' : 'input', () => { d.dirty = true; d.show(); if (ENG.ready) ENG.onDial(); });
+    DIALS[id] = d; d.show();
+    return d;
+  }
+  function applyPresets(step, force) {
+    const p = Object.assign({}, PAGE.defaults, step.presets || {});
+    for (const id in p) if (DIALS[id] && (force || !DIALS[id].dirty)) DIALS[id].set(p[id]);
+  }
+
+  // ------------------------------------------------------------ step engine
+  const ENG = { step: 0, t: 0, playing: false, raf: 0, lastT: 0, ready: false };
+  const SPEED = { vslow: 0.25, slow: 0.5, normal: 1, fast: 2.5, instant: 0 };
+  const speedFactor = () => SPEED[$('speed').value];
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const cur = () => PAGE.steps[ENG.step];
+  const span = () => cur().span();
+  const done = () => cur().static || ENG.t >= span() - 1e-9;
+
+  function enterStep(k, completed = false) {
+    ENG.step = k;
+    const d = cur();
+    stopPlay();
+    applyPresets(d, false);
+    ENG.t = 0;
+    setup();
+    if (d.static || completed || speedFactor() === 0 || reduceMotion) finish();
+    else { render(); startPlay(); }
+  }
+  function setup() {
+    const d = cur();
+    PAGE.setup(d);   // page computes its live quantities first, so the tag below reads them
+    $('title').innerHTML = d.title() + (d.tag ? `<span class="tag">${d.tag()}</span>` : '');
+    $('subtitle').textContent = typeof d.subtitle === 'function' ? d.subtitle() : d.subtitle;
+    $('counter').textContent = `${ENG.step + 1} / ${PAGE.steps.length}`;
+    try { history.replaceState(null, '', '#' + (ENG.step + 1)); } catch (_) {}
+  }
+  function render() { PAGE.draw(cur(), Math.min(ENG.t, span())); }
+  function finish() { ENG.t = span(); stopPlay(); render(); }
+  function tick(now) {
+    if (!ENG.playing) return;
+    const dt = Math.min(0.1, (now - ENG.lastT) / 1000); ENG.lastT = now;
+    ENG.t += dt * speedFactor() * span() / (PAGE.durNormal || 6);
+    if (ENG.t >= span()) { finish(); return; }
+    render();
+    ENG.raf = requestAnimationFrame(tick);
+  }
+  function startPlay() {
+    if (done()) return;
+    ENG.playing = true; ENG.lastT = performance.now();
+    $('play').textContent = 'Pause';
+    ENG.raf = requestAnimationFrame(tick);
+  }
+  function stopPlay() { ENG.playing = false; cancelAnimationFrame(ENG.raf); $('play').textContent = 'Play'; }
+  function next() { if (!done()) { finish(); return; } if (ENG.step < PAGE.steps.length - 1) enterStep(ENG.step + 1); }
+  function prev() { if (ENG.step > 0) enterStep(ENG.step - 1, true); }
+  function restart() { enterStep(ENG.step); }
+  // a dial moved: recompute from live values, redraw at the current progress
+  ENG.onDial = () => { const was = ENG.playing; stopPlay(); setup(); ENG.t = Math.min(ENG.t, span()); render(); if (was && !done()) startPlay(); };
+
+  $('next').addEventListener('click', e => { e.stopPropagation(); next(); });
+  $('prev').addEventListener('click', e => { e.stopPropagation(); prev(); });
+  $('restart').addEventListener('click', e => { e.stopPropagation(); restart(); });
+  $('reset').addEventListener('click', e => { e.stopPropagation(); for (const id in DIALS) DIALS[id].dirty = false; $('speed').value = 'normal'; applyPresets(cur(), true); restart(); });
+  $('play').addEventListener('click', e => { e.stopPropagation(); if (ENG.playing) stopPlay(); else if (done()) { if (cur().static) next(); else restart(); } else startPlay(); });
+  $('slide').addEventListener('click', () => next());
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
+    else if (e.key === 'r' || e.key === 'R') restart();
+  });
+  function boot() {
+    ENG.ready = true;
+    const h = parseInt((location.hash || '').replace('#', ''), 10);
+    enterStep(h >= 1 && h <= PAGE.steps.length ? h - 1 : 0);
+  }
+  // hover tooltip helper: returns svg coords of the mouse
+  const tt = $('tt');
+  function svgPoint(chart, evt) { const pt = chart.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY; return pt.matrixTransform(chart.getScreenCTM().inverse()); }
+  function showTip(chart, evt, html) {
+    tt.innerHTML = html; tt.style.display = 'block';
+    const wrap = chart.parentElement.getBoundingClientRect();
+    const px = evt.clientX - wrap.left, py = evt.clientY - wrap.top;
+    tt.style.left = (px + 16 + tt.offsetWidth > wrap.width ? px - tt.offsetWidth - 12 : px + 16) + 'px';
+    tt.style.top = Math.max(0, py - 10) + 'px';
+  }
+  function hideTip() { tt.style.display = 'none'; }
+
+
+  // ------------------------------------------------------------ page
+  const FS = 50, N = STREAM.length, TOTAL = N / FS;          // 20 s walking then 10 s sitting
+  const LABELS = [{ name: 'Walking', t0: 0, t1: 20 }, { name: 'Sitting', t0: 20, t1: 30 }];
+  const labelAt = t => t < 20 ? 'Walking' : 'Sitting';
+  const WINS = [0.2, 0.5, 1, 2, 3, 5, 10, 30], OVS = [0, 25, 50, 75, 90];
+  const chart = $('chart');
+  const w = () => DIALS.win.get(), ov = () => DIALS.ov.get();
+  const stepLen = () => w() * (1 - ov() / 100);
+  const wTxt = () => (w() < 1 ? fmt(w(), 1) : w()) + ' s = ' + Math.round(w() * FS) + ' samples';
+  let VIEW = 12;
+  const viewFor = step => step.id === 'short' ? Math.min(TOTAL, Math.max(3, 3 * w())) : step.id === 'long' ? TOTAL : Math.min(TOTAL, Math.max(12, 2 * w()));
+  // windows fully inside the current view
+  function windows() {
+    const out = [], s = stepLen(), ww = w();
+    for (let k = 0; ; k++) {
+      const a = k * s, b = a + ww;
+      if (b > VIEW + 1e-9) break;
+      const i0 = Math.round(a * FS), i1 = Math.round(b * FS);
+      let m = 0; for (let i = i0; i < i1; i++) m += STREAM[i]; m /= (i1 - i0);
+      const la = labelAt(a), lb = labelAt(b - 1 / FS);
+      out.push({ k: k + 1, a, b, mean: m, label: la === lb ? la : `${la} + ${lb}: label ?` });
+      if (out.length > 400) break;
+    }
+    return out;
+  }
+  const tagTxt = () => `w = ${wTxt()} · overlap ${ov()} % · ${windows().length} windows`;
+
+  const PAGE = {
+    defaults: { win: 2, ov: 0 },
+    durNormal: 6,
+    steps: [
+      { id: 'stream', title: () => 'The continuous stream of samples', tag: () => `50 Hz · ${VIEW} s shown`,
+        subtitle: 'The acceleration magnitude stream that must be sliced before features can be computed.' },
+      { id: 'nonov', presets: { win: 2, ov: 0 }, title: () => `Non-overlapping ${w() < 1 ? fmt(w(), 1) : w()}-second windows`, tag: tagTxt,
+        subtitle: () => `Cutting the stream into consecutive windows of ${Math.round(w() * FS)} samples, each producing one feature vector.` },
+      { id: 'ov', presets: { win: 2, ov: 50 }, title: () => `Overlapping windows`, tag: tagTxt,
+        subtitle: () => `Sliding windows with ${ov()} % overlap, each starting ${fmt(stepLen(), 1)} s after the previous.` },
+      { id: 'short', presets: { win: 0.2, ov: 0 }, title: () => 'A window shorter than one step', tag: tagTxt,
+        subtitle: 'How a window shorter than one step cannot capture a full walking cycle.' },
+      { id: 'long', presets: { win: 30, ov: 0 }, title: () => 'A window spanning two activities', tag: tagTxt,
+        subtitle: 'How a window spanning two activities cannot be given a single label.' }
+    ],
+    setup(step) {
+      VIEW = viewFor(step);
+      chart.innerHTML = ''; G = {};
+      const xt = []; const dx = VIEW <= 4 ? 0.5 : VIEW <= 15 ? 1 : 5; for (let v = 0; v <= VIEW + 1e-9; v += dx) xt.push(v);
+      drawAxes(chart, { x0: P.x0, x1: P.x1, y0: P.y0, y1: P.yAx, xs, ys, xTicks: xt, yTicks: [0, 5, 10, 15, 20], xTitle: 'time (seconds)', yTitle: '|a| (m/s²)', xFmt: v => dx < 1 ? fmt(v, 1) : v });
+      G.strip = el('g', {}, chart);
+      G.sig = el('g', {}, chart);
+      G.wins = el('g', {}, chart);
+      G.anno = el('g', {}, chart);
+      const items = [{ c: COL.ink2, n: 'acceleration magnitude |a|', w: 1.5 }];
+      LABELS.filter(l => l.t0 < VIEW).forEach(l => items.push({ c: ACT_COL[l.name], n: `label: ${l.name}`, fill: true }));
+      if (step.id !== 'stream') items.push({ c: '#8c8c8c', n: 'window', fill: true, op: .18, stroke: 'var(--ink-2)', dash: true });
+      drawLegend(chart, P.x1 - 232, P.y1 - items.length * 18 - 22, items);   // the 0–5 m/s² band is empty
+      G.hover = el('g', {}, chart);
+      el('rect', { x: P.x0, y: P.y0, width: P.x1 - P.x0, height: P.yAx - P.y0, fill: 'transparent' }, chart);
+      drawStrip();
+    },
+    draw(step, t) {
+      G.sig.innerHTML = ''; G.wins.innerHTML = ''; G.anno.innerHTML = '';
+      const last = Math.min(Math.round(VIEW * FS), N) - 1;
+      const upto = step.id === 'stream' ? Math.min(last, Math.floor(t * FS)) : last;
+      el('path', { class: 'thin-line', d: path(upto), stroke: COL.ink2, 'stroke-width': 1.2 }, G.sig);
+      if (step.id === 'stream') {
+        if (t < VIEW - 1e-9) { el('line', { class: 'cursor-line', x1: xs(t), x2: xs(t), y1: P.y0, y2: P.yAx }, G.sig); txt(G.sig, xs(t) + 6, P.y1 - 8, `t = ${fmt(t, 2)} s · sample ${upto + 1}`, { class: 'mono-2' }); }
+        return;
+      }
+      drawWindows(t);
+      if (step.id === 'short') drawStepPeriod();
+    }
+  };
+  let G = {};
+  const P = { x0: 64, x1: 1176, y0: 40, y1: 468, yAx: 500 };  // signal 0..22 lives in y0..y1, label strip between y1 and yAx
+  const xs = t => P.x0 + (t / VIEW) * (P.x1 - P.x0);
+  const ys = v => P.y1 - (v / 22) * (P.y1 - P.y0);
+  function path(upto) { let d = ''; for (let i = 0; i <= upto; i++) d += (i ? 'L' : 'M') + xs(i / FS).toFixed(1) + ',' + ys(STREAM[i]).toFixed(1); return d; }
+  function drawStrip() {
+    LABELS.forEach(l => {
+      if (l.t0 >= VIEW) return;
+      const a = xs(l.t0), b = xs(Math.min(l.t1, VIEW));
+      el('rect', { x: a, y: P.y1 + 6, width: b - a, height: P.yAx - P.y1 - 10, fill: ACT_COL[l.name], 'fill-opacity': .35 }, G.strip);
+      txt(G.strip, (a + b) / 2, P.yAx - 9, `label: ${l.name}`, { class: 'dlabel', 'text-anchor': 'middle', fill: 'var(--ink)' });
+    });
+  }
+  function drawWindows(t) {
+    const ws = windows(), o = ov();
+    const nl = o === 0 ? 1 : Math.min(5, Math.ceil(w() / stepLen()));
+    ws.forEach((win, j) => {
+      if (win.a >= t) return;
+      const doneW = win.b <= t + 1e-9;
+      const xa = xs(win.a), xb = xs(Math.min(win.b, t)), xe = xs(win.b), wpx = xe - xa;
+      // shading: alternate grey for non-overlapping (as in the chapter figure), blue while a window is being filled
+      if (o === 0 && j % 2 === 0) el('rect', { x: xa, y: P.y0, width: xb - xa, height: P.y1 - P.y0, fill: '#8c8c8c', 'fill-opacity': .18 }, G.wins);
+      if (!doneW) el('rect', { x: xa, y: P.y0, width: xb - xa, height: P.y1 - P.y0, fill: COL.blue, 'fill-opacity': .12 }, G.wins);
+      if (o === 0) { el('line', { x1: xa, x2: xa, y1: P.y0, y2: P.y1, stroke: 'var(--ink-2)', 'stroke-width': .8, 'stroke-dasharray': '4 3' }, G.wins); if (doneW) el('line', { x1: xe, x2: xe, y1: P.y0, y2: P.y1, stroke: 'var(--ink-2)', 'stroke-width': .8, 'stroke-dasharray': '4 3' }, G.wins); }
+      // bracket in a lane
+      const ly = P.y0 + 12 + (j % nl) * 36;
+      const g = el('g', {}, G.wins);
+      el('path', { d: `M${xa},${ly + 6}V${ly}H${xb}` + (doneW ? `V${ly + 6}` : ''), fill: 'none', stroke: doneW ? 'var(--ink)' : COL.blue, 'stroke-width': 1.2 }, g);
+      if (!doneW) return;
+      const cx = (xa + xe) / 2;
+      if (wpx >= 96) {
+        txt(g, cx, ly + 18, `window ${win.k}`, { class: 'dlabel', 'text-anchor': 'middle', fill: 'var(--ink)' });
+        txt(g, cx, ly + 32, `mean = ${fmt(win.mean, 1)} · ${win.label}`, { class: 'mono', 'text-anchor': 'middle', fill: win.label.endsWith('?') ? COL.red : 'var(--ink)' });
+      } else if (wpx >= 34) {
+        txt(g, cx, ly + 18, `${win.k}`, { class: 'dlabel', 'text-anchor': 'middle', fill: 'var(--ink)' });
+        txt(g, cx, ly + 32, fmt(win.mean, 1), { class: 'mono', 'text-anchor': 'middle', 'font-size': 11 });
+      }
+    });
+  }
+  // step 4: mark one walking step (peak to peak) so the window can be compared with it
+  function drawStepPeriod() {
+    const n = Math.min(N, Math.round(VIEW * FS)), pk = [];
+    for (let i = 1; i < n - 1 && pk.length < 2; i++) {
+      if (STREAM[i] > 12 && STREAM[i] >= STREAM[i - 1] && STREAM[i] > STREAM[i + 1] && i / FS > 0.4 && (!pk.length || i - pk[pk.length - 1] >= 15)) pk.push(i);
+    }
+    if (pk.length < 2) return;
+    const a = pk[0] / FS, b = pk[1] / FS, y = ys(Math.max(STREAM[pk[0]], STREAM[pk[1]])) - 22;
+    const g = el('g', {}, G.anno);
+    el('path', { d: `M${xs(a)},${y + 8}V${y}H${xs(b)}V${y + 8}`, fill: 'none', stroke: COL.red, 'stroke-width': 1.5 }, g);
+    [pk[0], pk[1]].forEach(i => el('circle', { cx: xs(i / FS), cy: ys(STREAM[i]), r: 4, fill: 'none', stroke: COL.red, 'stroke-width': 1.5 }, g));
+    txt(g, (xs(a) + xs(b)) / 2, y - 8, `one step ≈ ${fmt(b - a, 2)} s`, { class: 'dlabel', 'text-anchor': 'middle', fill: COL.red });
+  }
+
+  chart.addEventListener('mousemove', evt => {
+    const p = svgPoint(chart, evt);
+    const t = Math.max(0, Math.min(VIEW, (p.x - P.x0) / (P.x1 - P.x0) * VIEW));
+    const i = Math.min(N - 1, Math.round(t * FS));
+    G.hover.innerHTML = '';
+    el('line', { class: 'crosshair', x1: xs(i / FS), x2: xs(i / FS), y1: P.y0, y2: P.y1 }, G.hover);
+    let html = `<div class="row"><span>t</span><b>${fmt(i / FS, 2)} s</b></div><div class="row"><span>|a|</span><span>${fmt(STREAM[i])}</span></div><div class="row"><span>label</span><span>${labelAt(i / FS)}</span></div>`;
+    if (cur().id !== 'stream') { const inW = windows().filter(x => x.a <= i / FS && i / FS < x.b && x.b <= ENG.t + 1e-9).map(x => x.k); if (inW.length) html += `<div class="row"><span>window</span><span>${inW.join(', ')}</span></div>`; }
+    showTip(chart, evt, html);
+  });
+  chart.addEventListener('mouseleave', () => { hideTip(); if (G.hover) G.hover.innerHTML = ''; });
+
+  dial('win', { valId: 'winVal', list: WINS, fmt: v => (v < 1 ? fmt(v, 1) : v) + ' s' });
+  dial('ov', { valId: 'ovVal', list: OVS, fmt: v => v + ' %' });
+  PAGE.steps.forEach(s => { s.span = () => VIEW; });
+  boot();
+})();
+</script>
+</body>
+</html>

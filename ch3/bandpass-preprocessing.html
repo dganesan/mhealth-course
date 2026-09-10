@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Band-Pass Pre-processing of a Walking Trace</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff;
+    --ink: #222222;
+    --ink-2: #666666;
+    --ink-3: #9a9a9a;
+    --rule: #dcdcdc;
+    --grid: #ececec;
+    --raw: #b4b4b4;
+    --raw-dot: #8c8c8c;
+    --clean: #444444;
+    --window: rgba(34, 34, 34, 0.06);
+    --window-edge: #222222;
+    --ma: #2a78d6;
+    --med: #1baf7a;
+    --wm: #4a3aa7;
+    --ewma: #eb6834;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.4;
+    padding-block: 18px 28px;
+    padding-inline: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .stage { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
+
+  /* ---------- slide frame ---------- */
+  .slide {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 26px 34px 16px;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 10px;
+    min-height: 560px;
+    position: relative;
+    outline: none;
+    cursor: pointer;
+    user-select: none;
+  }
+  .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
+  .head h1 {
+    margin: 0;
+    font-size: clamp(22px, 2.6vw, 30px);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+    line-height: 1.15;
+  }
+  .head h1 .tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-weight: 400;
+    font-size: 0.6em;
+    color: var(--ink-2);
+    margin-left: 10px;
+    vertical-align: middle;
+    background: #f4f4f4;
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+
+  .chart-wrap { position: relative; min-height: 0; }
+  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  .tt {
+    position: absolute; pointer-events: none; display: none;
+    background: #fff; border: 1px solid var(--rule); border-radius: 4px;
+    padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink);
+    box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2;
+  }
+  .tt .row { display: flex; gap: 10px; justify-content: space-between; }
+  .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+  .foot {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 12px; color: var(--ink-3); padding-top: 4px;
+  }
+  .foot .ctr { font-family: var(--mono); }
+
+  /* ---------- control bar ---------- */
+  .bar { display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center; padding:14px 18px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
+  .group { display:flex; align-items:center; gap:8px; }
+  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
+  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
+  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  button:hover, select:hover { border-color:var(--ink); }
+  button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
+  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
+  .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
+
+  /* ---------- svg parts ---------- */
+  .grid line { stroke: var(--grid); stroke-width: 1; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .raw-line { fill: none; stroke: var(--raw); stroke-width: 1.5; }
+  .out-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .thin-line { fill: none; stroke-width: 1.3; stroke-linejoin: round; }
+  .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
+  .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
+  .mono { font-family: var(--mono); font-size: 12px; fill: var(--ink); }
+  .mono-2 { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
+  .note { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
+  .cursor-line { stroke: var(--ink); stroke-width: 1; stroke-dasharray: 3 3; opacity: .7; }
+
+  @media (max-width: 720px) {
+    .slide { padding: 18px 16px 12px; min-height: 0; }
+    .hint { display: none; }
+  }
+
+</style>
+
+<div class="stage">
+  <section class="slide" id="slide" tabindex="0" aria-live="polite">
+    <div class="head">
+      <h1 id="title"></h1>
+      <p id="subtitle"></p>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 1200 640" role="img" aria-label="Acceleration magnitude before and after band-pass filtering"></svg>
+      <div class="tt" id="tt"></div>
+    </div>
+    <div class="foot">
+      <span>CS328 &nbsp;·&nbsp; The Activity Recognition Pipeline</span>
+      <span class="ctr" id="counter"></span>
+    </div>
+  </section>
+
+  <div class="bar">
+    <div class="group">
+      <button id="prev" title="Previous (←)">‹ Prev</button>
+      <button id="play" class="primary" title="Play / pause (space)">Play</button>
+      <button id="next" title="Next (→)">Next ›</button>
+      <button id="restart" title="Restart this step (r)">Restart</button>
+      <button id="reset" title="Reset all dials to the step's presets">Reset dials</button>
+    </div>
+    <div class="group">
+      <label for="lo">Low cutoff</label>
+      <input type="range" id="lo" min="0.2" max="2" step="0.1" value="0.5">
+      <span class="val" id="loVal">0.5 Hz</span>
+    </div>
+    <div class="group">
+      <label for="hi">High cutoff</label>
+      <input type="range" id="hi" min="2" max="12" step="0.5" value="5">
+      <span class="val" id="hiVal">5.0 Hz</span>
+    </div>
+    <div class="group">
+      <label for="speed">Speed</label>
+      <select id="speed">
+        <option value="vslow">very slow</option>
+        <option value="slow">slow</option>
+        <option value="normal" selected>normal</option>
+        <option value="fast">fast</option>
+        <option value="instant">instant</option>
+      </select>
+    </div>
+    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+  </div>
+</div>
+
+<script>
+(() => {
+const MAG = [7.34,8.62,9.28,9.96,10.24,10.09,9.56,9.31,9.01,9.42,9.8,9.8,12.26,11.02,11.14,11.86,13.12,13.3,13.57,12.83,11.45,8.75,7.13,5.95,6.16,7.75,8.38,9.3,9.73,9.69,9.71,10.07,11.85,10.97,10.1,10.97,12.71,11.38,10.1,10.03,11.27,12.73,11.7,9.06,8.18,7.14,7.09,7.05,7.17,7.95,8.51,9.63,10.48,10.28,9.63,9.5,9.56,9.81,10.76,12.74,12.21,12.21,10.43,10.48,10.88,11.62,12.23,11.82,9.94,8.41,7.27,6.94,6.57,7.4,8.24,9.07,9.49,9.58,9.89,10.14,11.79,11.61,10.8,10.64,11.9,12.65,10.68,10.9,11.89,12.87,11.64,10.01,9.1,7.18,6.91,6.83,7.16,7.6,8.89,9.96,10.29,10.47,10.45,10.46,10.23,10.35,11.35,12.64,11.43,10.7,10.7,10.84,11.16,11.26,10.91,10.45,8.98,7.65,7.1,7.11,8.02,9.16,10.1,10.51,10.53,10.68,10.4,10.2,10.56,10.28,9.95,11.28,11.67,12.07,13.04,14.21,14.45,12.56,9.37,8.31,7.16,7.07,7.2,7.51,7.82,8.24,9.07,9.63,10.09,10.3,10.32,10.16,10.21,10.25,12.74,11.66,10.79,10.55,11.97,12.4,12.4,12.61,11.7,8.58,7.84,6.71,6.71,7.29,7.76,8.95,9.51,9.73,9.91,10.44,11.17,11.42,10.84,11.92,12.51,11.24,9.65,9.55,10.78,12.52,11.7,9.58,8.71,7.69,7.22,7.4,7.76,8.61,9.03,9.03,9.34,9.4,9.53,9.79,9.87,10.1,10.9,11.9,12.16,11.13,10.79,11.37,11.98,12.46,13.17,12.46,10.42,8.5,7.33,7.33,6.55,6.86,7.92,8.93,9.61,9.82,10,11.12,11.43,10.77,10.49,9.79,10.14,10.8,10.48,10.89,12.42,12.54,11.71,10.33,8.35,7.62,6.82,7.15,7.66,8.67,9.38,9.9,10.14,9.78,9.68,9.72,9.87,10.38,10.92,12.8,11.94,11.11,11.02,11.35,11.89,12.57,12.76,11.63,9.81,7.99,6.96,6.17,6.46,7.6,8.73,9.65,10,9.93,9.94,10.73,10.9,10.32,10.01,11.37,12.34,11.67,10.01,11.09,12.33,12.03,10.79,8.54,7.22,7.12,7.63,7.96,8.35,8.64,8.8,9.39,9.64,9.8,9.72,9.73,9.87,10.2,10.66,12.67,11.64,11.56];
+
+// Butterworth IIR design + filtering, mirroring scipy.signal.butter / lfilter / filtfilt.
+// Design path: analog Butterworth prototype (zpk) -> lp2lp / lp2hp / lp2bp / lp2bs -> bilinear -> SOS.
+// Usage:
+//   const sos = butter(4, 100, 1000, 'lowpass');            // cutoff Hz, fs Hz
+//   const sos = butter(4, [58, 62], 1000, 'bandstop');
+//   const y = sosfilt(sos, x);                              // causal (lfilter)
+//   const y = sosfiltfilt(sos, x);                          // zero-phase (filtfilt)
+//   const mag = sosFreqz(sos, fHz, fs);                     // |H| at one frequency
+(function (global) {
+  // ---- minimal complex arithmetic
+  const C = (re, im = 0) => ({ re, im });
+  const cadd = (a, b) => C(a.re + b.re, a.im + b.im);
+  const csub = (a, b) => C(a.re - b.re, a.im - b.im);
+  const cmul = (a, b) => C(a.re * b.re - a.im * b.im, a.re * b.im + a.im * b.re);
+  const cdiv = (a, b) => { const d = b.re * b.re + b.im * b.im; return C((a.re * b.re + a.im * b.im) / d, (a.im * b.re - a.re * b.im) / d); };
+  const csqrt = a => { const r = Math.hypot(a.re, a.im); const re = Math.sqrt(Math.max(0, (r + a.re) / 2)); const im = Math.sign(a.im || 1) * Math.sqrt(Math.max(0, (r - a.re) / 2)); return C(re, im); };
+  const cscale = (a, s) => C(a.re * s, a.im * s);
+
+  function buttap(N) { // analog prototype poles, unit cutoff
+    const p = [];
+    for (let k = 1; k <= N; k++) { const th = Math.PI * (2 * k - 1) / (2 * N); p.push(C(-Math.sin(th), Math.cos(th))); }
+    return { z: [], p, k: 1 };
+  }
+  function lp2lp(zpk, wo) { return { z: zpk.z.map(v => cscale(v, wo)), p: zpk.p.map(v => cscale(v, wo)), k: zpk.k * Math.pow(wo, zpk.p.length - zpk.z.length) }; }
+  function lp2hp(zpk, wo) {
+    const z = zpk.z.map(v => cdiv(C(wo), v)), p = zpk.p.map(v => cdiv(C(wo), v));
+    const deg = zpk.p.length - zpk.z.length;
+    for (let i = 0; i < deg; i++) z.push(C(0));
+    let num = C(1), den = C(1);
+    zpk.z.forEach(v => { num = cmul(num, cscale(v, -1)); });
+    zpk.p.forEach(v => { den = cmul(den, cscale(v, -1)); });
+    const kk = cdiv(num, den);
+    return { z, p, k: zpk.k * kk.re };
+  }
+  function lp2bp(zpk, wo, bw) {
+    const deg = zpk.p.length - zpk.z.length;
+    const tr = v => { const s = cscale(v, bw / 2); const r = csqrt(csub(cmul(s, s), C(wo * wo))); return [cadd(s, r), csub(s, r)]; };
+    const z = [], p = [];
+    zpk.z.forEach(v => z.push(...tr(v)));
+    zpk.p.forEach(v => p.push(...tr(v)));
+    for (let i = 0; i < deg; i++) z.push(C(0));
+    return { z, p, k: zpk.k * Math.pow(bw, deg) };
+  }
+  function lp2bs(zpk, wo, bw) {
+    const deg = zpk.p.length - zpk.z.length;
+    const tr = v => { const s = cdiv(C(bw / 2), v); const r = csqrt(csub(cmul(s, s), C(wo * wo))); return [cadd(s, r), csub(s, r)]; };
+    const z = [], p = [];
+    zpk.z.forEach(v => z.push(...tr(v)));
+    zpk.p.forEach(v => p.push(...tr(v)));
+    for (let i = 0; i < deg; i++) { z.push(C(0, wo)); z.push(C(0, -wo)); }
+    let num = C(1), den = C(1);
+    zpk.z.forEach(v => { num = cmul(num, cscale(v, -1)); });
+    zpk.p.forEach(v => { den = cmul(den, cscale(v, -1)); });
+    const kk = cdiv(num, den);
+    return { z, p, k: zpk.k * kk.re };
+  }
+  function bilinear(zpk, fs) {
+    const fs2 = 2 * fs;
+    const deg = zpk.p.length - zpk.z.length;
+    const tr = v => cdiv(cadd(C(fs2), v), csub(C(fs2), v));
+    const z = zpk.z.map(tr), p = zpk.p.map(tr);
+    for (let i = 0; i < deg; i++) z.push(C(-1));
+    let num = C(1), den = C(1);
+    zpk.z.forEach(v => { num = cmul(num, csub(C(fs2), v)); });
+    zpk.p.forEach(v => { den = cmul(den, csub(C(fs2), v)); });
+    const kk = cdiv(num, den);
+    return { z, p, k: zpk.k * kk.re };
+  }
+  // pair conjugates -> second-order sections [b0,b1,b2,a0,a1,a2]
+  function zpk2sos(zpk) {
+    const pairUp = arr => {
+      const rest = arr.slice(); const pairs = [];
+      while (rest.length) {
+        const a = rest.shift();
+        if (Math.abs(a.im) < 1e-9) { // real: pair with the nearest real
+          let j = rest.findIndex(v => Math.abs(v.im) < 1e-9);
+          if (j >= 0) { pairs.push([a, rest.splice(j, 1)[0]]); } else pairs.push([a]);
+        } else {
+          let j = rest.findIndex(v => Math.abs(v.re - a.re) < 1e-7 && Math.abs(v.im + a.im) < 1e-7);
+          if (j >= 0) { pairs.push([a, rest.splice(j, 1)[0]]); } else pairs.push([a, C(a.re, -a.im)]);
+        }
+      }
+      return pairs;
+    };
+    const poly = pr => { // (x - r1)(x - r2) -> real coefficients [1, c1, c2]
+      if (pr.length === 1) return [1, -pr[0].re, 0];
+      const s = cadd(pr[0], pr[1]), m = cmul(pr[0], pr[1]);
+      return [1, -s.re, m.re];
+    };
+    // sort poles by closeness to the unit circle so each section pairs zeros nearby (stability of cascade)
+    const P = zpk.p.slice().sort((a, b) => Math.hypot(b.re, b.im) - Math.hypot(a.re, a.im));
+    const Z = zpk.z.slice();
+    const pp = pairUp(P);
+    const sos = [];
+    pp.forEach((pair, idx) => {
+      // choose the zero(s) nearest this pole pair
+      const zs = [];
+      for (let n = 0; n < pair.length && Z.length; n++) {
+        let best = 0, bd = Infinity;
+        Z.forEach((v, j) => { const d = Math.hypot(v.re - pair[0].re, Math.abs(v.im) - Math.abs(pair[0].im)); if (d < bd) { bd = d; best = j; } });
+        const zz = Z.splice(best, 1)[0];
+        zs.push(zz);
+        if (Math.abs(zz.im) > 1e-9) { // also remove its conjugate
+          const cj = Z.findIndex(v => Math.abs(v.re - zz.re) < 1e-7 && Math.abs(v.im + zz.im) < 1e-7);
+          if (cj >= 0) { zs.push(Z.splice(cj, 1)[0]); n++; }
+        }
+      }
+      const b = zs.length ? poly(zs) : [1, 0, 0];
+      const a = poly(pair);
+      const g = idx === 0 ? zpk.k : 1;
+      sos.push([b[0] * g, b[1] * g, b[2] * g, a[0], a[1], a[2]]);
+    });
+    return sos;
+  }
+
+  function butter(N, cutoffHz, fs, btype = 'lowpass') {
+    const warp = f => 2 * fs * Math.tan(Math.PI * f / fs);
+    let zpk = buttap(N);
+    if (btype === 'lowpass') zpk = lp2lp(zpk, warp(cutoffHz));
+    else if (btype === 'highpass') zpk = lp2hp(zpk, warp(cutoffHz));
+    else {
+      const w1 = warp(cutoffHz[0]), w2 = warp(cutoffHz[1]);
+      const bw = w2 - w1, wo = Math.sqrt(w1 * w2);
+      zpk = btype === 'bandpass' ? lp2bp(zpk, wo, bw) : lp2bs(zpk, wo, bw);
+    }
+    return zpk2sos(bilinear(zpk, fs));
+  }
+
+  function sosfilt(sos, x, zi) { // direct form II transposed, per section
+    let y = Float64Array.from(x);
+    const st = zi || sos.map(() => [0, 0]);
+    sos.forEach(([b0, b1, b2, a0, a1, a2], s) => {
+      const z = st[s]; const out = new Float64Array(y.length);
+      for (let n = 0; n < y.length; n++) {
+        const xn = y[n];
+        const yn = b0 * xn + z[0];
+        z[0] = b1 * xn - a1 * yn + z[1];
+        z[1] = b2 * xn - a2 * yn;
+        out[n] = yn;
+      }
+      y = out;
+    });
+    return y;
+  }
+  // steady-state initial conditions for a step of amplitude 1 (like scipy sosfilt_zi)
+  function sosfiltZi(sos) {
+    let scale = 1;
+    return sos.map(([b0, b1, b2, a0, a1, a2]) => {
+      // solve for zi such that output is constant for constant input (scale)
+      const g = (b0 + b1 + b2) / (1 + a1 + a2); // dc gain of this section
+      const z0 = scale * ((b1 - a1 * b0) + (b2 - a2 * b0)) / (1 + a1 + a2) * 1; // approx via steady state
+      // exact: z1 = scale*(b2 - a2*b0)... use the standard linear solve
+      // Steady state: y = g*scale; z0 = y - b0*scale; z1 = z0 - (b1*scale - a1*y)
+      const y = g * scale;
+      const zz0 = y - b0 * scale;
+      const zz1 = zz0 - (b1 * scale - a1 * y);
+      scale = y;
+      return [zz0, zz1];
+    });
+  }
+  function sosfiltfilt(sos, x) {
+    const n = x.length;
+    const pad = Math.min(n - 1, 3 * 3 * sos.length); // ~ 3 * (order) samples (scipy: 3*max(len(a),len(b)))
+    // odd extension
+    const ext = new Float64Array(n + 2 * pad);
+    for (let i = 0; i < pad; i++) ext[i] = 2 * x[0] - x[pad - i];
+    for (let i = 0; i < n; i++) ext[pad + i] = x[i];
+    for (let i = 0; i < pad; i++) ext[pad + n + i] = 2 * x[n - 1] - x[n - 2 - i];
+    const zi = sosfiltZi(sos);
+    let y = sosfilt(sos, ext, zi.map(z => [z[0] * ext[0], z[1] * ext[0]]));
+    y.reverse();
+    y = sosfilt(sos, y, zi.map(z => [z[0] * y[0], z[1] * y[0]]));
+    y.reverse();
+    return y.slice(pad, pad + n);
+  }
+  function sosFreqz(sos, fHz, fs) { // magnitude response at a frequency (Hz)
+    const w = 2 * Math.PI * fHz / fs;
+    const e1 = C(Math.cos(-w), Math.sin(-w)), e2 = C(Math.cos(-2 * w), Math.sin(-2 * w));
+    let H = C(1);
+    sos.forEach(([b0, b1, b2, a0, a1, a2]) => {
+      const num = cadd(C(b0), cadd(cscale(e1, b1), cscale(e2, b2)));
+      const den = cadd(C(a0), cadd(cscale(e1, a1), cscale(e2, a2)));
+      H = cmul(H, cdiv(num, den));
+    });
+    return Math.hypot(H.re, H.im);
+  }
+  function sosPhase(sos, fHz, fs) {
+    const w = 2 * Math.PI * fHz / fs;
+    const e1 = C(Math.cos(-w), Math.sin(-w)), e2 = C(Math.cos(-2 * w), Math.sin(-2 * w));
+    let H = C(1);
+    sos.forEach(([b0, b1, b2, a0, a1, a2]) => {
+      const num = cadd(C(b0), cadd(cscale(e1, b1), cscale(e2, b2)));
+      const den = cadd(C(a0), cadd(cscale(e1, a1), cscale(e2, a2)));
+      H = cmul(H, cdiv(num, den));
+    });
+    return Math.atan2(H.im, H.re);
+  }
+
+  // ---- real FFT magnitude (radix-2, zero-padded), returns {f, mag} one-sided, mag scaled 2/N
+  function rfftMag(x, fs) {
+    let N = 1; while (N < x.length) N <<= 1;
+    const re = new Float64Array(N), im = new Float64Array(N);
+    for (let i = 0; i < x.length; i++) re[i] = x[i];
+    for (let i = 1, j = 0; i < N; i++) { // bit reversal
+      let bit = N >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit;
+      if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; }
+    }
+    for (let len = 2; len <= N; len <<= 1) {
+      const ang = -2 * Math.PI / len, wr = Math.cos(ang), wi = Math.sin(ang);
+      for (let i = 0; i < N; i += len) {
+        let cr = 1, ci = 0;
+        for (let j = 0; j < len / 2; j++) {
+          const ur = re[i + j], ui = im[i + j];
+          const vr = re[i + j + len / 2] * cr - im[i + j + len / 2] * ci;
+          const vi = re[i + j + len / 2] * ci + im[i + j + len / 2] * cr;
+          re[i + j] = ur + vr; im[i + j] = ui + vi;
+          re[i + j + len / 2] = ur - vr; im[i + j + len / 2] = ui - vi;
+          const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t;
+        }
+      }
+    }
+    const half = N / 2 + 1, f = new Float64Array(half), mag = new Float64Array(half);
+    for (let k = 0; k < half; k++) { f[k] = k * fs / N; mag[k] = 2 * Math.hypot(re[k], im[k]) / x.length; }
+    return { f, mag };
+  }
+
+  const api = { butter, sosfilt, sosfiltfilt, sosFreqz, sosPhase, rfftMag };
+  if (typeof module !== 'undefined') module.exports = api;
+  global.Butter = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+const Butter = window.Butter;
+// SciPy-faithful sosfilt / sosfilt_zi / sosfiltfilt (odd padding, padlen as scipy.signal.sosfiltfilt)
+function sosfiltZi(sos) {
+  const zi = []; let scale = 1;
+  for (const s of sos) {
+    const [b0, b1, b2, , a1, a2] = s;
+    const B0 = b1 - a1 * b0, B1 = b2 - a2 * b0, det = 1 + a1 + a2;
+    zi.push([scale * (B0 + B1) / det, scale * ((1 + a1) * B1 - a2 * B0) / det]);
+    scale *= (b0 + b1 + b2) / (1 + a1 + a2);
+  }
+  return zi;
+}
+function sosfiltZ(sos, x, zi) {
+  const n = x.length, y = new Float64Array(n);
+  const z = zi.map(v => v.slice());
+  for (let i = 0; i < n; i++) {
+    let v = x[i];
+    for (let s = 0; s < sos.length; s++) {
+      const [b0, b1, b2, , a1, a2] = sos[s]; const zs = z[s];
+      const out = b0 * v + zs[0];
+      zs[0] = b1 * v - a1 * out + zs[1];
+      zs[1] = b2 * v - a2 * out;
+      v = out;
+    }
+    y[i] = v;
+  }
+  return y;
+}
+function sosfiltfilt(sos, x) {
+  const n = x.length;
+  const nz0 = sos.filter(s => s[2] === 0).length, np0 = sos.filter(s => s[5] === 0).length;
+  const pad = Math.min(n - 1, 3 * (2 * sos.length + 1 - Math.min(nz0, np0)));
+  const ext = new Float64Array(n + 2 * pad);
+  for (let i = 0; i < pad; i++) ext[i] = 2 * x[0] - x[pad - i];
+  for (let i = 0; i < n; i++) ext[pad + i] = x[i];
+  for (let i = 0; i < pad; i++) ext[pad + n + i] = 2 * x[n - 1] - x[n - 2 - i];
+  const zi = sosfiltZi(sos);
+  let y = sosfiltZ(sos, ext, zi.map(v => [v[0] * ext[0], v[1] * ext[0]]));
+  y.reverse();
+  y = sosfiltZ(sos, y, zi.map(v => [v[0] * y[0], v[1] * y[0]]));
+  y.reverse();
+  return Array.from(y.slice(pad, pad + n));
+}
+
+  // ------------------------------------------------------------ shared kit
+  const $ = id => document.getElementById(id);
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+  const txt = (parent, x, y, s, attrs = {}) => { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; };
+  const fmt = (v, d = 2) => (Math.round(v * Math.pow(10, d)) / Math.pow(10, d)).toFixed(d);
+  const COL = { blue: '#2a78d6', red: '#eb6834', green: '#1baf7a', violet: '#4a3aa7', raw: '#b4b4b4', ink: '#222222', ink2: '#666666', ink3: '#9a9a9a' };
+  const ACT_COL = { Walking: COL.blue, Sitting: COL.red };
+
+  // axes: thin grid, mono ticks, 12 px sans titles
+  function drawAxes(parent, o) {
+    const grid = el('g', { class: 'grid' }, parent);
+    const axis = el('g', { class: 'axis' }, parent);
+    o.yTicks.forEach(v => {
+      const y = o.ys(v);
+      el('line', { x1: o.x0, x2: o.x1, y1: y, y2: y }, grid);
+      txt(axis, o.x0 - 8, y + 4, o.yFmt ? o.yFmt(v) : v, { 'text-anchor': 'end' });
+    });
+    o.xTicks.forEach(v => {
+      const x = o.xs(v);
+      el('line', { x1: x, x2: x, y1: o.y0, y2: o.y1 }, grid);
+      txt(axis, x, o.y1 + 17, o.xFmt ? o.xFmt(v) : v, { 'text-anchor': 'middle' });
+    });
+    el('path', { d: `M${o.x0},${o.y0}V${o.y1}H${o.x1}` }, axis);
+    if (o.xTitle) txt(parent, o.x1, o.y1 + 34, o.xTitle, { class: 'axis-title', 'text-anchor': 'end' });
+    if (o.yTitle) txt(parent, o.x0 - 44, o.y0 - 10, o.yTitle, { class: 'axis-title', 'text-anchor': 'start' });
+  }
+  // conventional legend on a white 90 % rounded rect
+  function drawLegend(parent, x, y, items) {
+    const rowH = 18, padX = 10, padY = 8;
+    const wdt = Math.max(...items.map(i => i.n.length)) * 7.2 + 2 * padX + 40;
+    const g = el('g', {}, parent);
+    el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
+    items.forEach((it, j) => {
+      const yy = y + padY + j * rowH + 6;
+      if (it.fill) el('rect', { x: x + padX, y: yy - 6, width: 18, height: 12, fill: it.c, 'fill-opacity': it.op == null ? .35 : it.op, stroke: it.stroke || 'none', 'stroke-dasharray': it.dash ? '3 3' : 'none' }, g);
+      else el('line', { x1: x + padX, x2: x + padX + 18, y1: yy, y2: yy, stroke: it.c, 'stroke-width': it.w || 2.5, 'stroke-dasharray': it.dash ? '5 4' : 'none' }, g);
+      txt(g, x + padX + 26, yy + 4, it.n, { class: 'axis-title', fill: 'var(--ink)' });
+    });
+    return g;
+  }
+
+  // ------------------------------------------------------------ dials (persist unless the step presets them; dirty on user input)
+  const DIALS = {};
+  function dial(id, o) {
+    const inp = $(id), val = o.valId ? $(o.valId) : null;
+    const d = { id, dirty: false, list: o.list || null, fmt: o.fmt || (v => v),
+      get() { const raw = inp.tagName === 'SELECT' ? inp.value : parseFloat(inp.value); return d.list ? d.list[raw | 0] : (inp.tagName === 'SELECT' ? raw : raw); },
+      set(v) { if (d.list) { const i = d.list.indexOf(v); inp.value = i < 0 ? 0 : i; } else inp.value = v; d.show(); },
+      show() { if (val) val.textContent = d.fmt(d.get()); } };
+    inp.addEventListener(inp.tagName === 'SELECT' ? 'change' : 'input', () => { d.dirty = true; d.show(); if (ENG.ready) ENG.onDial(); });
+    DIALS[id] = d; d.show();
+    return d;
+  }
+  function applyPresets(step, force) {
+    const p = Object.assign({}, PAGE.defaults, step.presets || {});
+    for (const id in p) if (DIALS[id] && (force || !DIALS[id].dirty)) DIALS[id].set(p[id]);
+  }
+
+  // ------------------------------------------------------------ step engine
+  const ENG = { step: 0, t: 0, playing: false, raf: 0, lastT: 0, ready: false };
+  const SPEED = { vslow: 0.25, slow: 0.5, normal: 1, fast: 2.5, instant: 0 };
+  const speedFactor = () => SPEED[$('speed').value];
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const cur = () => PAGE.steps[ENG.step];
+  const span = () => cur().span();
+  const done = () => cur().static || ENG.t >= span() - 1e-9;
+
+  function enterStep(k, completed = false) {
+    ENG.step = k;
+    const d = cur();
+    stopPlay();
+    applyPresets(d, false);
+    ENG.t = 0;
+    setup();
+    if (d.static || completed || speedFactor() === 0 || reduceMotion) finish();
+    else { render(); startPlay(); }
+  }
+  function setup() {
+    const d = cur();
+    PAGE.setup(d);   // page computes its live quantities first, so the tag below reads them
+    $('title').innerHTML = d.title() + (d.tag ? `<span class="tag">${d.tag()}</span>` : '');
+    $('subtitle').textContent = typeof d.subtitle === 'function' ? d.subtitle() : d.subtitle;
+    $('counter').textContent = `${ENG.step + 1} / ${PAGE.steps.length}`;
+    try { history.replaceState(null, '', '#' + (ENG.step + 1)); } catch (_) {}
+  }
+  function render() { PAGE.draw(cur(), Math.min(ENG.t, span())); }
+  function finish() { ENG.t = span(); stopPlay(); render(); }
+  function tick(now) {
+    if (!ENG.playing) return;
+    const dt = Math.min(0.1, (now - ENG.lastT) / 1000); ENG.lastT = now;
+    ENG.t += dt * speedFactor() * span() / (PAGE.durNormal || 6);
+    if (ENG.t >= span()) { finish(); return; }
+    render();
+    ENG.raf = requestAnimationFrame(tick);
+  }
+  function startPlay() {
+    if (done()) return;
+    ENG.playing = true; ENG.lastT = performance.now();
+    $('play').textContent = 'Pause';
+    ENG.raf = requestAnimationFrame(tick);
+  }
+  function stopPlay() { ENG.playing = false; cancelAnimationFrame(ENG.raf); $('play').textContent = 'Play'; }
+  function next() { if (!done()) { finish(); return; } if (ENG.step < PAGE.steps.length - 1) enterStep(ENG.step + 1); }
+  function prev() { if (ENG.step > 0) enterStep(ENG.step - 1, true); }
+  function restart() { enterStep(ENG.step); }
+  // a dial moved: recompute from live values, redraw at the current progress
+  ENG.onDial = () => { const was = ENG.playing; stopPlay(); setup(); ENG.t = Math.min(ENG.t, span()); render(); if (was && !done()) startPlay(); };
+
+  $('next').addEventListener('click', e => { e.stopPropagation(); next(); });
+  $('prev').addEventListener('click', e => { e.stopPropagation(); prev(); });
+  $('restart').addEventListener('click', e => { e.stopPropagation(); restart(); });
+  $('reset').addEventListener('click', e => { e.stopPropagation(); for (const id in DIALS) DIALS[id].dirty = false; $('speed').value = 'normal'; applyPresets(cur(), true); restart(); });
+  $('play').addEventListener('click', e => { e.stopPropagation(); if (ENG.playing) stopPlay(); else if (done()) { if (cur().static) next(); else restart(); } else startPlay(); });
+  $('slide').addEventListener('click', () => next());
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
+    else if (e.key === 'r' || e.key === 'R') restart();
+  });
+  function boot() {
+    ENG.ready = true;
+    const h = parseInt((location.hash || '').replace('#', ''), 10);
+    enterStep(h >= 1 && h <= PAGE.steps.length ? h - 1 : 0);
+  }
+  // hover tooltip helper: returns svg coords of the mouse
+  const tt = $('tt');
+  function svgPoint(chart, evt) { const pt = chart.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY; return pt.matrixTransform(chart.getScreenCTM().inverse()); }
+  function showTip(chart, evt, html) {
+    tt.innerHTML = html; tt.style.display = 'block';
+    const wrap = chart.parentElement.getBoundingClientRect();
+    const px = evt.clientX - wrap.left, py = evt.clientY - wrap.top;
+    tt.style.left = (px + 16 + tt.offsetWidth > wrap.width ? px - tt.offsetWidth - 12 : px + 16) + 'px';
+    tt.style.top = Math.max(0, py - 10) + 'px';
+  }
+  function hideTip() { tt.style.display = 'none'; }
+
+
+  // ------------------------------------------------------------ page
+  const FS = 50, N = MAG.length, DUR = N / FS;
+  const mean = MAG.reduce((a, b) => a + b, 0) / N;
+  const RAW = MAG.map(v => v - mean);
+  const chart = $('chart');
+  const lo = () => DIALS.lo.get(), hi = () => DIALS.hi.get();
+  const bandpass = (l, h) => sosfiltfilt(Butter.butter(3, [l, h], FS, 'bandpass'), RAW);
+  let FILT = [], FILT4 = [];
+  const bandTxt = () => `${fmt(lo(), 1)}–${fmt(hi(), 1)} Hz`;
+
+  const PAGE = {
+    defaults: { lo: 0.5, hi: 5 },
+    durNormal: 6,
+    steps: [
+      { id: 'raw', title: () => 'Raw acceleration magnitude during walking', tag: () => '|a| − mean · 50 Hz · 6 s',
+        subtitle: 'The mean-subtracted acceleration magnitude during walking before any filtering.', span: () => DUR },
+      { id: 'filt', title: () => `After a ${bandTxt()} band-pass filter`, tag: () => `band-pass ${bandTxt()} · filtfilt`,
+        subtitle: () => `The same signal after a band-pass filter that keeps ${bandTxt()}.`, span: () => DUR },
+      { id: 'cmp', title: () => 'Upper cutoff: 4 Hz for step counting versus 5 Hz here', tag: () => `0.5–4 Hz vs ${bandTxt()}`,
+        subtitle: 'Widening the band-pass cutoff from 4 Hz for step counting to 5 Hz here.', span: () => DUR }
+    ],
+    setup(step) {
+      FILT = bandpass(lo(), hi());
+      FILT4 = step.id === 'cmp' ? bandpass(0.5, 4) : [];
+      chart.innerHTML = ''; G = {};
+      drawAxes(chart, { x0: T.x0, x1: T.x1, y0: T.y0, y1: T.y1, xs, ys: ysT, xTicks: XT, yTicks: YT, yTitle: 'raw |a| − mean (m/s²)' });
+      drawAxes(chart, { x0: B.x0, x1: B.x1, y0: B.y0, y1: B.y1, xs, ys: ysB, xTicks: XT, yTicks: YT, xTitle: 'time (seconds)', yTitle: `filtered (${bandTxt()}) (m/s²)` });
+      G.top = el('g', {}, chart); G.bot = el('g', {}, chart); G.cursor = el('g', {}, chart);
+      drawLegend(chart, T.x0 + 10, T.y0 + 8, [{ c: COL.raw, n: 'raw |a| − mean' }]);
+      const items = [{ c: COL.blue, n: `band-pass ${bandTxt()} (filtfilt)` }];
+      if (step.id === 'cmp') items.push({ c: COL.violet, n: 'band-pass 0.5–4 Hz (step counting)', dash: true });
+      if (step.id !== 'raw') drawLegend(chart, B.x0 + 10, B.y0 + 8, items);
+      G.hover = el('g', {}, chart);
+      el('rect', { x: T.x0, y: T.y0, width: T.x1 - T.x0, height: B.y1 - T.y0, fill: 'transparent' }, chart);
+    },
+    draw(step, t) {
+      G.top.innerHTML = ''; G.bot.innerHTML = ''; G.cursor.innerHTML = '';
+      const upto = Math.min(N - 1, Math.floor(t * FS));
+      if (step.id === 'raw') el('path', { class: 'thin-line', d: path(RAW, upto, ysT), stroke: COL.raw, 'stroke-width': 1.5 }, G.top);
+      else {
+        el('path', { class: 'thin-line', d: path(RAW, N - 1, ysT), stroke: COL.raw, 'stroke-width': 1.5 }, G.top);
+        if (step.id === 'cmp') el('path', { class: 'thin-line', d: path(FILT4, upto, ysB), stroke: COL.violet, 'stroke-width': 1.8, 'stroke-dasharray': '6 4' }, G.bot);
+        el('path', { class: 'out-line', d: path(FILT, upto, ysB), stroke: COL.blue }, G.bot);
+      }
+      if (t < DUR - 1e-9) {
+        el('line', { class: 'cursor-line', x1: xs(t), x2: xs(t), y1: T.y0, y2: B.y1 }, G.cursor);
+        txt(G.cursor, xs(t) + 6, B.y1 - 8, `t = ${fmt(t, 2)} s`, { class: 'mono-2' });
+      }
+    }
+  };
+  let G = {};
+  const T = { x0: 70, x1: 1176, y0: 30, y1: 290 }, B = { x0: 70, x1: 1176, y0: 340, y1: 600 };
+  const XT = [0, 1, 2, 3, 4, 5, 6], YT = [-4, -2, 0, 2, 4], YLO = -5, YHI = 5;
+  const xs = t => T.x0 + (t / DUR) * (T.x1 - T.x0);
+  const ysT = v => T.y1 - ((v - YLO) / (YHI - YLO)) * (T.y1 - T.y0);
+  const ysB = v => B.y1 - ((v - YLO) / (YHI - YLO)) * (B.y1 - B.y0);
+  function path(arr, upto, ysf) { let d = ''; for (let i = 0; i <= upto; i++) d += (i ? 'L' : 'M') + xs(i / FS).toFixed(1) + ',' + ysf(arr[i]).toFixed(1); return d; }
+
+  chart.addEventListener('mousemove', evt => {
+    const p = svgPoint(chart, evt), step = cur();
+    const i = Math.max(0, Math.min(N - 1, Math.round((p.x - T.x0) / (T.x1 - T.x0) * DUR * FS)));
+    const upto = Math.floor(ENG.t * FS);
+    G.hover.innerHTML = '';
+    el('line', { class: 'crosshair', x1: xs(i / FS), x2: xs(i / FS), y1: T.y0, y2: B.y1 }, G.hover);
+    let html = `<div class="row"><span>t</span><b>${fmt(i / FS, 2)} s</b></div><div class="row"><span><i class="sw" style="background:${COL.raw}"></i>raw</span><span>${fmt(RAW[i])}</span></div>`;
+    if (step.id !== 'raw' && i <= upto) html += `<div class="row"><span><i class="sw" style="background:${COL.blue}"></i>${bandTxt()}</span><span>${fmt(FILT[i])}</span></div>`;
+    if (step.id === 'cmp' && i <= upto) html += `<div class="row"><span><i class="sw" style="background:${COL.violet}"></i>0.5–4 Hz</span><span>${fmt(FILT4[i])}</span></div>`;
+    showTip(chart, evt, html);
+  });
+  chart.addEventListener('mouseleave', () => { hideTip(); if (G.hover) G.hover.innerHTML = ''; });
+
+  dial('lo', { valId: 'loVal', fmt: v => fmt(v, 1) + ' Hz' });
+  dial('hi', { valId: 'hiVal', fmt: v => fmt(v, 1) + ' Hz' });
+  boot();
+})();
+</script>
+</body>
+</html>
