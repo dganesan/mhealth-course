@@ -50,7 +50,7 @@
     display: grid;
     grid-template-rows: auto 1fr auto;
     gap: 10px;
-    min-height: 560px;
+    min-height: 0;
     position: relative;
     outline: none;
     cursor: pointer;
@@ -78,9 +78,13 @@
     border-radius: 4px;
   }
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .code[hidden] { display: none; }
+  .code .p { color: var(--ma); font-weight: 700; }
+  .code .k { color: var(--ink-2); }
 
   .chart-wrap { position: relative; min-height: 0; }
-  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  svg.chart { display: block; width: 100%; height: auto; max-height: calc(100vh - 360px); overflow: visible; }
   .tt {
     position: absolute; pointer-events: none; display: none;
     background: #fff; border: 1px solid var(--rule); border-radius: 4px;
@@ -146,6 +150,7 @@
     <div class="head">
       <h1 id="title">Raw signal</h1>
       <p id="subtitle"></p>
+      <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
       <svg class="chart" id="chart" viewBox="0 0 1200 600" role="img" aria-label="Signal and filter output"></svg>
@@ -182,9 +187,8 @@
     <div class="group">
       <label for="alpha">EWMA α</label>
       <select id="alpha">
-        <option value="auto" selected>2/(w+1), matched to w</option>
         <option value="0.1">0.1</option>
-        <option value="0.2">0.2</option>
+        <option value="0.2" selected>0.2</option>
         <option value="0.33">0.33</option>
         <option value="0.5">0.5</option>
       </select>
@@ -272,14 +276,13 @@
     mamed: { key: 'mamed', name: 'average, then median', color: 'var(--ewma)', hex: '#eb6834' },
   };
   const STATIC = s => s === 'all' || s === 'cascade';
-  const KEYS = s => s === 'all' ? ['ma', 'wm', 'ewma', 'med'] : s === 'cascade' ? ['medma', 'mamed'] : s ? [s] : [];
+  const KEYS = s => s === 'all' ? ['ma', 'ewma', 'med'] : s === 'cascade' ? ['medma', 'mamed'] : s ? [s] : [];
 
   const fmt = v => (Math.round(v * 100) / 100).toFixed(2);
 
   function stepDefs(w, alpha, alphaAuto) {
     const M = (w - 1) / 2;
     const aTxt = alpha.toFixed(2).replace(/0$/, '');
-    const wEq = Math.round(2 / alpha - 1);
     return [
       {
         id: 'raw', series: null,
@@ -291,6 +294,7 @@
       {
         id: 'ma', series: 'ma',
         title: 'Moving average', tag: `w = ${w}`,
+        code: `ma  = data.rolling(window=<b class="p">${w}</b>, center=<b class="p">True</b>).mean()`,
         subtitle: `Sliding a window along the signal and averaging the samples inside it.`,
         formula: `sᵢ = (1/w) · Σₖ₌₋ₘ..ₘ xᵢ₊ₖ        w = 2M+1 = ${w}\n\nweights:  1/w, 1/w, …, 1/w   (flat)`,
         takeaway: `Noise averages out nicely. But the <strong>outlier is smeared</strong> into a bump ${w} samples wide, and the <strong>step edge becomes a ramp</strong> ${w} samples wide.`
@@ -298,34 +302,30 @@
       {
         id: 'med', series: 'med',
         title: 'Median filter', tag: `w = ${w}`,
+        code: `med = data.rolling(window=<b class="p">${w}</b>, center=<b class="p">True</b>).median()`,
         subtitle: `Sliding the same window and taking the median of the samples inside it.`,
         formula: `sᵢ = median( xᵢ₋ₘ, …, xᵢ₊ₘ )\n\nno weights: pick the middle of the sorted window`,
         takeaway: `One outlier can never be the middle value, so it <strong>vanishes</strong>. The <strong>step edge stays sharp</strong>. Cost: a sort per sample, and smooth peaks get slightly flattened.`
       },
       {
-        id: 'wm', series: 'wm',
-        title: 'Weighted moving average (triangular weights)', tag: `w = ${w}`,
-        subtitle: `Sliding the same window with triangular weights on the samples inside it.`,
-        formula: `sᵢ = Σₖ₌₋ₘ..ₘ wₖ · xᵢ₊ₖ ,   Σ wₖ = 1\n\nwₖ ∝ M+1−|k|   (triangle, peak at k = 0)`,
-        takeaway: `Follows the signal more closely than the flat window, so the edge ramp is <strong>shorter and steeper</strong>. The outlier still leaks in, but as a <strong>peaked bump</strong> instead of a flat plateau.`
-      },
-      {
         id: 'ewma', series: 'ewma',
         title: 'Exponentially weighted moving average', tag: `α = ${aTxt}`,
+        code: `ema = data.ewm(alpha=<b class="p">${aTxt}</b>, adjust=<b class="p">False</b>).mean()`,
         subtitle: `How the EWMA blends each new sample with the previous output.`,
-        formula: `sᵢ = α · xᵢ + (1−α) · sᵢ₋₁\n\nweights on xᵢ₋ₖ:  α(1−α)ᵏ      effective w ≈ 2/α − 1 = ${wEq}`,
+        formula: `sᵢ = α · xᵢ + (1−α) · sᵢ₋₁\n\nweights on xᵢ₋ₖ:  α(1−α)ᵏ`,
         takeaway: `One multiply-add per sample and no buffer, so it is the cheapest. Because it only looks <strong>backward</strong>, the output <strong>lags</strong>: it trails the step, and the outlier decays over roughly 1/α samples.`
       },
       {
         id: 'all', series: 'all',
-        title: 'The four filters compared', tag: `w = ${w}  ·  α = ${aTxt}${alphaAuto ? ' ≈ 2/(w+1)' : ''}`,
-        subtitle: 'Comparing all four filter outputs on the same signal.',
+        title: 'The three filters compared', tag: `w = ${w}  ·  α = ${aTxt}`,
+        subtitle: 'Comparing all three filter outputs on the same signal.',
         formula: `<span class="lbl">Same neighborhood, different summary</span>flat mean · middle value · triangle mean · geometric memory`,
         takeaway: `<strong>Average</strong> and <strong>weighted mean</strong> smear outliers, <strong>median</strong> deletes them, <strong>EWMA</strong> lags. Choose by what your noise looks like and what structure you must keep.`
       },
       {
         id: 'cascade', series: 'cascade',
         title: 'Cascading two filters: effect of order', tag: `w = ${w} each`,
+        code: `out = data.rolling(window=<b class="p">${w}</b>, center=True).median().rolling(window=<b class="p">${w}</b>, center=True).mean()`,
         subtitle: 'Comparing median then moving average with moving average then median.',
         formula: `<span class="lbl">Recipe</span>median (kills spikes)  →  moving average (smooths the rest)\n\nreverse order: the average spreads each spike over w samples first, and the median can no longer find a majority to outvote it`,
         takeaway: `<strong>Median first</strong> deletes the glitches and then smooths cleanly. <strong>Average first</strong> turns each glitch into a wide bump that the median then keeps. Order the stages so each removes what the next one cannot.`
@@ -352,10 +352,10 @@
   // ------------------------------------------------------------ state
   const $ = id => document.getElementById(id);
   const chart = $('chart');
-  let scenario = 'combo', w = 9, alphaMode = 'auto', speed = 14;
+  let scenario = 'combo', w = 9, alphaMode = '0.2', speed = 14;
   let data, out, steps, step = 0, cursor = -1, playing = false, raf = 0, lastT = 0, acc = 0;
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const alphaVal = () => alphaMode === 'auto' ? 2 / (w + 1) : parseFloat(alphaMode);
+  const alphaVal = () => parseFloat(alphaMode);
 
   function rebuild(keepStep = true) {
     data = makeSignal(scenario);
@@ -458,7 +458,6 @@
     const bw = 5, gapx = 2, maxH = STRIP_H - 10;
     const groups = [
       { k: 'ma',   wts: Array.from({ length: K }, () => 1) },
-      { k: 'wm',   wts: Array.from({ length: K }, (_, j) => triW(j - Mk, Mk)) },
       { k: 'med',  wts: Array.from({ length: K }, (_, j) => j === Mk ? 1 : 0.28), pick: true },
       { k: 'ewma', wts: Array.from({ length: K }, (_, j) => j > Mk ? 0 : Math.pow(1 - a, Mk - j)), causal: true },
     ];
@@ -581,6 +580,7 @@
     if (redraw || !G.rawLine) drawStatic();
     $('title').innerHTML = d.title + (d.tag ? `<span class="tag">${d.tag}</span>` : '');
     $('subtitle').textContent = d.subtitle;
+    $('code').hidden = !d.code; $('code').innerHTML = d.code || '';
     $('counter').textContent = `${step + 1} / ${steps.length}`;
     try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {}
     $('prev').disabled = step === 0;
@@ -674,7 +674,7 @@
   });
   $('scenario').addEventListener('change', e => { scenario = e.target.value; rebuild(); });
   $('win').addEventListener('input', e => { w = parseInt(e.target.value, 10); $('winVal').textContent = w; rebuild(); });
-  $('reset').addEventListener('click', e => { e.stopPropagation(); scenario = 'combo'; w = 9; alphaMode = 'auto'; speed = 14; $('scenario').value = 'combo'; $('win').value = 9; $('winVal').textContent = 9; $('alpha').value = 'auto'; $('speed').value = '14'; rebuild(); });
+  $('reset').addEventListener('click', e => { e.stopPropagation(); scenario = 'combo'; w = 9; alphaMode = '0.2'; speed = 14; $('scenario').value = 'combo'; $('win').value = 9; $('winVal').textContent = 9; $('alpha').value = '0.2'; $('speed').value = '14'; rebuild(); });
   $('alpha').addEventListener('change', e => { alphaMode = e.target.value; rebuild(); });
   $('speed').addEventListener('change', e => { speed = parseInt(e.target.value, 10); });
   chart.addEventListener('mousemove', hover);

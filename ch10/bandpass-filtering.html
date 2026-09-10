@@ -50,7 +50,7 @@
     display: grid;
     grid-template-rows: auto 1fr auto;
     gap: 10px;
-    min-height: 560px;
+    min-height: 0;
     position: relative;
     outline: none;
     cursor: pointer;
@@ -80,7 +80,7 @@
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
 
   .chart-wrap { position: relative; min-height: 0; }
-  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  svg.chart { display: block; width: 100%; height: auto; max-height: calc(100vh - 360px); overflow: visible; }
   .tt {
     position: absolute; pointer-events: none; display: none;
     background: #fff; border: 1px solid var(--rule); border-radius: 4px;
@@ -105,7 +105,7 @@
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
 
@@ -158,14 +158,14 @@
       <button id="reset" title="Reset all dials to the step's presets">Reset dials</button>
     </div>
     <div class="group">
-      <label for="flo">Low cutoff f_lo (Hz)</label>
+      <label for="flo">Low cutoff</label>
       <input type="range" id="flo" min="0.1" max="1.5" step="0.1" value="0.5">
-      <span class="val" id="floVal">0.5</span>
+      <span class="val" id="floVal">0.5 Hz</span>
     </div>
     <div class="group">
-      <label for="fhi">High cutoff f_hi (Hz)</label>
+      <label for="fhi">High cutoff</label>
       <input type="range" id="fhi" min="2" max="12" step="0.5" value="4">
-      <span class="val" id="fhiVal">4.0</span>
+      <span class="val" id="fhiVal">4.0 Hz</span>
     </div>
     <div class="group">
       <label for="speed">Speed</label>
@@ -595,8 +595,8 @@
 
   // ------------------------------------------------------------ step control
   function applyPresets() {
-    if (!dirty.flo) { flo = PRESET.flo; $('flo').value = flo; $('floVal').textContent = f1(flo); }
-    if (!dirty.fhi) { fhi = PRESET.fhi; $('fhi').value = fhi; $('fhiVal').textContent = f1(fhi); }
+    if (!dirty.flo) { flo = PRESET.flo; $('flo').value = flo; $('floVal').textContent = f1(flo) + ' Hz'; }
+    if (!dirty.fhi) { fhi = PRESET.fhi; $('fhi').value = fhi; $('fhiVal').textContent = f1(fhi) + ' Hz'; }
   }
   function header() {
     const d = STEPS[step];
@@ -651,8 +651,8 @@
     else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
     else if (e.key === 'r' || e.key === 'R') restart();
   });
-  $('flo').addEventListener('input', e => { dirty.flo = true; flo = parseFloat(e.target.value); $('floVal').textContent = f1(flo); redraw(); });
-  $('fhi').addEventListener('input', e => { dirty.fhi = true; fhi = parseFloat(e.target.value); $('fhiVal').textContent = f1(fhi); redraw(); });
+  $('flo').addEventListener('input', e => { dirty.flo = true; flo = parseFloat(e.target.value); $('floVal').textContent = f1(flo) + ' Hz'; redraw(); });
+  $('fhi').addEventListener('input', e => { dirty.fhi = true; fhi = parseFloat(e.target.value); $('fhiVal').textContent = f1(fhi) + ' Hz'; redraw(); });
   $('speed').addEventListener('change', e => { dirty.speed = true; speedMul = parseFloat(e.target.value); if (speedMul === 0 && playing) finish(); });
   $('reset').addEventListener('click', e => {
     e.stopPropagation();

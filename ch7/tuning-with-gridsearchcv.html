@@ -35,14 +35,17 @@
   .slide {
     background: var(--paper); border: 1px solid var(--rule); border-radius: 6px;
     padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px;
-    min-height: 560px; position: relative; outline: none; cursor: pointer; user-select: none;
+    min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none;
   }
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
   .head h1 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
   .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .code[hidden] { display: none; }
+  .code .p { color: var(--ma); font-weight: 700; }
   .chart-wrap { position: relative; min-height: 0; }
-  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  svg.chart { display: block; width: 100%; height: auto; max-height: calc(100vh - 360px); overflow: visible; }
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
@@ -56,7 +59,7 @@
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   .grid line { stroke: var(--grid); stroke-width: 1; }
@@ -78,6 +81,7 @@
     <div class="head">
       <h1 id="title">Tuning with cross-validation</h1>
       <p id="subtitle"></p>
+      <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
       <svg class="chart" id="chart" viewBox="0 0 1200 660" role="img" aria-label="Hyperparameter tuning with cross-validation"></svg>
@@ -98,7 +102,7 @@
       <button id="reset" title="Reset all dials to the step presets">Reset dials</button>
     </div>
     <div class="group">
-      <label for="kfold">Folds K (cv=)</label>
+      <label for="kfold">Folds K</label>
       <select id="kfold">
         <option value="3">3</option>
         <option value="5" selected>5</option>
@@ -192,6 +196,7 @@
       presets: { K: 5, band: 1 },
       frames: () => DEPTHS * (state.K + 1) + 2, rate: () => (state.K + 1) / 6,
       draw: drawCurve,
+      code: () => `grid = GridSearchCV(DecisionTreeClassifier(), param_grid, cv=<b class="p">${state.K}</b>, scoring='accuracy')`,
     },
     {
       id: 'split',
@@ -201,6 +206,7 @@
       presets: { K: 5 },
       frames: () => N + state.K + 2, rate: () => 24,
       draw: drawSplit,
+      code: () => `X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=<b class="p">0.3</b>, random_state=42)`,
     },
     {
       id: 'grid',
@@ -210,6 +216,7 @@
       presets: { K: 5 },
       frames: () => 20 * (state.K + 1) + 2, rate: () => (state.K + 1) / 7,
       draw: drawGrid,
+      code: () => `param_grid = {'max_depth': [3, 5, 7, 10, None], 'min_samples_split': [2, 5, 10, 20]}`,
     },
     {
       id: 'final',
@@ -219,6 +226,7 @@
       presets: { K: 5 },
       frames: () => 9, rate: () => 0.55,
       draw: drawFinal,
+      code: () => `best_clf = grid.best_estimator_; test_accuracy = best_clf.score(X_test, y_test)`,
     },
   ];
 
@@ -318,7 +326,6 @@
     text(bx + wTr / 2, by + bh + 22, `training set  ${nTr} / ${nTrain}  (70%)${nF > 0 ? `  →  ${K} folds for GridSearchCV` : ''}`, { class: 'mono', 'text-anchor': 'middle' }, g);
     text(bx + wTr + (bw - wTr) / 2, by + bh + 22, `test set  ${nTe} / ${nTest}  (30%)`, { class: 'mono', 'text-anchor': 'middle' }, g);
     legend(g, bx, by + bh + 40, [{ c: C.train, n: 'training window', sq: true }, { c: C.test, n: 'test window (locked away)', sq: true, edge: C.testEdge }, { c: C.none, n: 'not yet assigned', sq: true }]);
-    text(W - 60, by + bh + 62, 'train_test_split(X, y, test_size=0.3, random_state=42)', { class: 'mono', 'text-anchor': 'end', fill: C.ink2 }, g);
   }
 
   // ------------------------------------------------------------ step 3: the grid
@@ -433,6 +440,8 @@
     d.draw(cursor);
     $('title').innerHTML = d.title() + `<span class="tag">${d.tag()}</span>`;
     $('subtitle').textContent = d.subtitle();
+    const code = d.code ? d.code() : '';
+    $('code').hidden = !code; $('code').innerHTML = code;
     $('counter').textContent = `${step + 1} / ${steps.length}`;
   }
   function rebuild() { cursor = Math.min(cursor, frames()); render(); }

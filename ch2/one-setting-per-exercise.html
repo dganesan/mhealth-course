@@ -19,13 +19,16 @@
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.4; padding-block: 18px 28px; padding-inline: 16px; -webkit-font-smoothing: antialiased; }
   .stage { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
-  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; min-height: 560px; position: relative; outline: none; cursor: pointer; user-select: none; }
+  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none; }
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
   .head h1 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
   .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .code[hidden] { display: none; }
+  .code .p { color: var(--ma); font-weight: 700; }
   .chart-wrap { position: relative; min-height: 0; }
-  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  svg.chart { display: block; width: 100%; height: auto; max-height: calc(100vh - 360px); overflow: visible; }
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
@@ -39,7 +42,7 @@
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   .grid line { stroke: var(--grid); stroke-width: 1; }
@@ -67,6 +70,7 @@
     <div class="head">
       <h1 id="title"></h1>
       <p id="subtitle"></p>
+      <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
       <svg class="chart" id="chart" viewBox="0 0 1200 640" role="img" aria-label="One Peak Spacing per Exercise"></svg>
@@ -260,10 +264,13 @@ function applyPresets(p, force = false) { for (const id in p || {}) if (force ||
 let step = 0, progress = 0, playing = false, raf = 0, lastT = 0;
 const speedMult = () => parseFloat($('speed').value);
 function cur() { return STEPS[step]; }
+let lastCode = null;
 function updateHead() {
   const d = cur();
   $('title').innerHTML = d.title + (d.tag ? `<span class="tag">${d.tag()}</span>` : '');
   $('subtitle').textContent = d.subtitle;
+  const code = typeof d.code === 'function' ? d.code() : (d.code || '');
+  if (code !== lastCode) { lastCode = code; $('code').hidden = !code; $('code').innerHTML = code; }
   $('counter').textContent = `${step + 1} / ${STEPS.length}`;
 }
 function enterStep(k, completed = false) {
@@ -341,25 +348,27 @@ function setPanel(box, set, p, dSec, prom, o = {}) {
   rbadge(P, `true ${set.reps} · found ${ks.length}`, C.red, o.badgeY || 26);
   P.T = T; P.set = set; P.n = ks.length; return P;
 }
-const codeNote = (P, dSec, prom) => txt(P.top, P.box.x + P.box.w - 12, P.box.y + 58, `find_peaks(normalized, distance=${Math.floor(dSec * FS)}, prominence=${fmt(prom, 2)})`, { class: 'mono', 'text-anchor': 'end', 'font-size': 14, fill: 'var(--ink-2)' });
 
 const STEPS = [
   {
     title: 'Lateral raise at a spacing of 0.7 s', dur: 10, presets: { dist: 0.7, prom: 0.12 },
     tag: () => `distance = ${fmt(dial('dist'), 2)} s · prominence = ${fmt(dial('prom'), 2)} → found ${live.a} · true 9`,
     subtitle: 'How a spacing tuned for a fast exercise double-counts a slow lateral raise.',
-    setup() {}, draw(p) { chart.innerHTML = ''; G.cols = null; G.P = setPanel(SINGLE, RF.lat, p, dial('dist'), dial('prom')); codeNote(G.P, dial('dist'), dial('prom')); live.a = G.P.n; G.Q = null; }
+    code: () => `peaks, _ = find_peaks(normalized, distance=int(<b class="p">${fmt(dial('dist'), 2)}</b> * 50), prominence=<b class="p">${fmt(dial('prom'), 2)}</b>)`,
+    setup() {}, draw(p) { chart.innerHTML = ''; G.cols = null; G.P = setPanel(SINGLE, RF.lat, p, dial('dist'), dial('prom')); live.a = G.P.n; G.Q = null; }
   },
   {
     title: 'Jumping jacks at a spacing of 0.7 s', dur: 10, presets: { dist: 0.7, prom: 0.12 },
     tag: () => `distance = ${fmt(dial('dist'), 2)} s · prominence = ${fmt(dial('prom'), 2)} → found ${live.a} · true 25`,
     subtitle: 'The same detector counting every jumping jack exactly once.',
-    setup() {}, draw(p) { chart.innerHTML = ''; G.cols = null; G.P = setPanel(SINGLE, RF.jj, p, dial('dist'), dial('prom')); codeNote(G.P, dial('dist'), dial('prom')); live.a = G.P.n; G.Q = null; }
+    code: () => `peaks, _ = find_peaks(normalized, distance=int(<b class="p">${fmt(dial('dist'), 2)}</b> * 50), prominence=<b class="p">${fmt(dial('prom'), 2)}</b>)`,
+    setup() {}, draw(p) { chart.innerHTML = ''; G.cols = null; G.P = setPanel(SINGLE, RF.jj, p, dial('dist'), dial('prom')); live.a = G.P.n; G.Q = null; }
   },
   {
     title: 'Sweeping the minimum spacing', dur: 16, presets: { dist: 1.3, prom: 0.12 },
     tag: () => `spacing = ${fmt(live.d, 2)} s · lateral raise ${live.a} / 9 · jumping jacks ${live.b} / 25`,
     subtitle: 'How the counts for both exercises change as the minimum spacing grows.',
+    code: () => `peaks, _ = find_peaks(normalized, distance=int(<b class="p">${fmt(live.d, 2)}</b> * 50), prominence=<b class="p">${fmt(dial('prom'), 2)}</b>)`,
     setup() {}, draw(p) {
       chart.innerHTML = ''; G.cols = null;
       const d = p >= 1 ? dial('dist') : +(0.2 + p * 1.3).toFixed(2);
@@ -371,8 +380,9 @@ const STEPS = [
   },
   {
     title: 'The same detector on three participants', dur: 14, presets: { dist: 0.2, prom: 0.71 },
-    tag: () => `lateral raise · distance = ${fmt(dial('dist'), 2)} s · prominence = ${fmt(dial('prom'), 2)}`,
+    tag: () => `lateral raise · 3 participants`,
     subtitle: 'Comparing the same lateral-raise detector across three participants.',
+    code: () => `peaks, _ = find_peaks(normalized, distance=int(<b class="p">${fmt(dial('dist'), 2)}</b> * 50), prominence=<b class="p">${fmt(dial('prom'), 2)}</b>)`,
     setup() {}, draw(p) {
       chart.innerHTML = '';
       const longest = Math.max(...RF.ind.map(s => s.g.length));

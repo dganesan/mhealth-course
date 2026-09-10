@@ -23,13 +23,16 @@
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.4; padding-block: 18px 28px; padding-inline: 16px; -webkit-font-smoothing: antialiased; }
   .stage { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
-  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; min-height: 560px; position: relative; outline: none; cursor: pointer; user-select: none; }
+  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none; }
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
   .head h1 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
   .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .code[hidden] { display: none; }
+  .code .p { color: var(--ma); font-weight: 700; }
   .chart-wrap { position: relative; min-height: 0; }
-  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  svg.chart { display: block; width: 100%; height: auto; max-height: calc(100vh - 360px); overflow: visible; }
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
@@ -42,7 +45,7 @@
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   .grid line { stroke: var(--grid); stroke-width: 1; }
@@ -62,6 +65,7 @@
     <div class="head">
       <h1 id="title"></h1>
       <p id="subtitle"></p>
+      <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
       <svg class="chart" id="chart" viewBox="0 0 1200 640" role="img" aria-label="Two signals, their alignment and the DTW cost matrix"></svg>
@@ -249,7 +253,6 @@
     for (let i = 0; i < res.n; i += ti) txt(ax, mx0 - 8, geo.cy(i) + (isToy ? 4 : cs / 2 + 4), i, { 'text-anchor': 'end' });
     txt(g, mx0 + res.m * cs, my1 + 32, 'signal B index j', { class: 'axis-title', 'text-anchor': 'end' });
     txt(g, mx0 - 30, my1 - res.n * cs - 10, 'signal A index i', { class: 'axis-title' });
-    txt(g, R.x1, R.y1 - 4, d.phase === 'C' ? 'c(i,j) = |aᵢ − bⱼ|' : 'D(i,j) = c(i,j) + min{ D(i−1,j), D(i,j−1), D(i−1,j−1) }', { class: 'formula', 'text-anchor': 'end' });
     G.cellRects = [];
     for (let i = 0; i < res.n; i++) { G.cellRects.push([]); for (let j = 0; j < res.m; j++) G.cellRects[i].push(el('rect', { x: mx0 + j * cs, y: my1 - (i + 1) * cs, width: cs, height: cs, fill: '#fff', stroke: isToy ? 'var(--grid)' : 'none', 'stroke-width': 1 }, G.cells)); }
     G.hit = el('rect', { x: mx0, y: my1 - res.n * cs, width: res.m * cs, height: res.n * cs, fill: 'transparent' }, chart);
@@ -409,6 +412,7 @@
   // ------------------------------------------------------------ step control
   function applyPresets() { if (!dirty.plateau) { plateau = PRESET.plateau; $('plateau').value = plateau; $('plateauVal').textContent = plateau; } }
   function tag() { return STEPS[step].kind === 'toy' ? `A = (${A.join(',')}) · B = (${B.join(',')}) · n = ${res.n}, m = ${res.m}` : `n = ${res.n}, m = ${res.m} · ${ROW_FS} Hz`; }
+  function setCode() { const cd = STEPS[step].code, cs = typeof cd === 'function' ? cd() : cd; $('code').hidden = !cs; $('code').innerHTML = cs || ''; }
   function enterStep(k, completed = false) {
     step = k;
     applyPresets();
@@ -417,6 +421,7 @@
     drawStatic();
     $('title').innerHTML = d.title + `<span class="tag">${tag()}</span>`;
     $('subtitle').textContent = d.subtitle;
+    setCode();
     $('counter').textContent = `${step + 1} / ${STEPS.length}`;
     try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {}
     stopPlay();
@@ -430,6 +435,7 @@
     const wasDone = cursorDone();
     prepare(); drawStatic(); drawLegend();
     $('title').innerHTML = STEPS[step].title + `<span class="tag">${tag()}</span>`;
+    setCode();
     cursor = wasDone ? total - 1 : Math.min(total - 1, Math.round(frac * total));
     render();
   }

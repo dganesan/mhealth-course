@@ -18,13 +18,16 @@
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.4; padding-block: 18px 28px; padding-inline: 16px; -webkit-font-smoothing: antialiased; }
   .stage { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
-  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; min-height: 560px; position: relative; outline: none; cursor: pointer; user-select: none; }
+  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none; }
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
   .head h1 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
   .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .code[hidden] { display: none; }
+  .code .p { color: var(--ma); font-weight: 700; }
   .chart-wrap { position: relative; min-height: 0; }
-  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  svg.chart { display: block; width: 100%; height: auto; max-height: calc(100vh - 360px); overflow: visible; }
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
@@ -38,7 +41,7 @@
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   svg text { white-space: pre; }
@@ -67,6 +70,7 @@
     <div class="head">
       <h1 id="title">Training accuracy as depth grows</h1>
       <p id="subtitle"></p>
+      <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
       <svg class="chart" id="chart" viewBox="0 0 1200 560" role="img" aria-label="Decision regions at the current depth and accuracy versus max_depth"></svg>
@@ -199,6 +203,7 @@
   }
   const bestTestDepth = () => { let b = 1; for (let d = 2; d <= DMAX; d++) if (acc[d].test > acc[b].test + 1e-12) b = d; return b; };
 
+  const codeLine = () => `DecisionTreeClassifier(criterion=<b class="p">'${crit}'</b>, max_depth=<b class="p">${curDepth()}</b>, min_samples_split=<b class="p">${minSplit}</b>, min_samples_leaf=<b class="p">${minLeaf}</b>)`;
   const STEP_DEFS = [
     { kind: 'sweep', series: ['train'], presets: { show: 'train', minleaf: 1, minsplit: 2 },
       title: 'Training accuracy as depth grows', subtitle: 'How training accuracy changes as max_depth grows.' },
@@ -209,7 +214,7 @@
     { kind: 'sweep', series: ['train', 'test'], presets: { show: 'test', minleaf: 10, minsplit: 20 },
       title: 'Adding min_samples_leaf and min_samples_split', subtitle: 'How min_samples_leaf and min_samples_split change the accuracy curves.' }
   ];
-  function buildSteps() { return STEP_DEFS.map(s => Object.assign({}, s, { frames: s.kind === 'gap' ? 0 : DMAX, rate: 1 })); }
+  function buildSteps() { return STEP_DEFS.map(s => Object.assign({}, s, { code: codeLine, frames: s.kind === 'gap' ? 0 : DMAX, rate: 1 })); }
 
   // ------------------------------------------------------------ layout
   const svgNS = 'http://www.w3.org/2000/svg';
@@ -274,6 +279,7 @@
   function curDepth() { const d = steps[step]; return d.kind === 'gap' ? bestTestDepth() : Math.max(1, Math.min(DMAX, Math.floor(cursor + 1e-9) + 1)); }
   function render() {
     const d = steps[step], dep = curDepth(), upto = d.kind === 'gap' ? DMAX : dep;
+    setCode();
     G.regions.innerHTML = ''; G.curves.innerHTML = '';
     leavesAt(tree, dep).forEach(l => { const b = l.box; el('rect', { x: xs(b[0]), y: ys(b[3]), width: xs(b[1]) - xs(b[0]), height: ys(b[2]) - ys(b[3]), fill: CCOL[l.cls], opacity: .25 }, G.regions); });
     txt(SX0 + 8, SY1 - 10, `max_depth = ${dep} · ${acc[dep].leaves} ${acc[dep].leaves === 1 ? 'leaf' : 'leaves'}`, 'num', { 'font-size': 14, 'font-weight': 700 }, G.regions);
@@ -327,7 +333,8 @@
     if (!dirty.minleaf) { minLeaf = d.presets.minleaf; $('minleaf').value = minLeaf; $('minleafVal').textContent = minLeaf; }
     if (!dirty.minsplit) { minSplit = d.presets.minsplit; $('minsplit').value = minSplit; $('minsplitVal').textContent = minSplit; }
   }
-  function setHead() { const d = steps[step]; $('subtitle').textContent = d.subtitle; $('counter').textContent = `${step + 1} / ${steps.length}`; }
+  function setCode() { const cd = steps[step].code, cs = typeof cd === 'function' ? cd() : cd; $('code').hidden = !cs; $('code').innerHTML = cs || ''; }
+  function setHead() { const d = steps[step]; $('subtitle').textContent = d.subtitle; setCode(); $('counter').textContent = `${step + 1} / ${steps.length}`; }
   function enterStep(k, completed = false) {
     step = Math.max(0, Math.min(STEP_DEFS.length - 1, k));
     applyPresets(STEP_DEFS[step]);

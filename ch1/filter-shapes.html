@@ -44,8 +44,12 @@
   .head h1 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
   .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .code[hidden] { display: none; }
+  .code .p { color: var(--ma); font-weight: 700; }
+  .code .k { color: var(--ink-2); }
   .chart-wrap { position: relative; min-height: 0; }
-  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  svg.chart { display: block; width: 100%; height: auto; max-height: calc(100vh - 360px); overflow: visible; }
   .tt {
     position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule);
     border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink);
@@ -66,7 +70,7 @@
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
   input[type=checkbox] { accent-color:var(--ma); width:18px; height:18px; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family: var(--mono); background: #fff; border: 1px solid var(--rule); border-radius: 3px; padding: 0 5px; font-size: 11px; }
@@ -91,6 +95,7 @@
     <div class="head">
       <h1 id="title">Filter shapes</h1>
       <p id="subtitle"></p>
+      <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
       <svg class="chart" id="chart" viewBox="0 0 1200 700" role="img" aria-label="Frequency response, spectrum and time-domain result of a Butterworth filter"></svg>
@@ -459,7 +464,9 @@
   const FT = { lowpass: 'low-pass', highpass: 'high-pass', bandpass: 'band-pass', bandstop: 'notch' };
   const cutText = c => isBand(c.ftype) ? `${Math.min(c.c1, c.c2)}–${Math.max(c.c1, c.c2)} Hz` : `${c.c1} Hz`;
   const cutCode = c => isBand(c.ftype) ? `[${Math.min(c.c1, c.c2)}/nyq, ${Math.max(c.c1, c.c2)}/nyq]` : `${c.c1}/nyq`;
-  const scipyCall = (c, n) => `y = ${c.mode === 'causal' ? 'lfilter' : 'filtfilt'}(*butter(${n ?? c.order}, ${cutCode(c)}, btype='${c.ftype}'), x)`;
+  const P = v => `<b class="p">${v}</b>`;
+  const cutCodeP = c => isBand(c.ftype) ? `[${P(Math.min(c.c1, c.c2))}/nyq, ${P(Math.max(c.c1, c.c2))}/nyq]` : `${P(c.c1)}/nyq`;
+  const codeLine = c => `b, a = butter(${P(c.order)}, ${cutCodeP(c)}, btype='${P(c.ftype)}');  y = ${P(c.mode === 'causal' ? 'lfilter' : 'filtfilt')}(b, a, x)`;
 
   // ------------------------------------------------------------ steps (presets apply only to dials the user has not touched)
   const STEPS = [
@@ -469,6 +476,7 @@
       tag: c => `${FT[c.ftype]} · ${cutText(c)} · n = ${c.order}`,
       set: { ftype: 'lowpass', c1: 150, c2: 150, order: 4, input: 'hf', mode: 'zero' },
       subtitle: 'How a low-pass filter removes noise above the two tones.',
+      code: codeLine,
     },
     {
       id: 'hp', anim: 'sweep',
@@ -476,6 +484,7 @@
       tag: c => `${FT[c.ftype]} · ${cutText(c)} · n = ${c.order}`,
       set: { ftype: 'highpass', c1: 20, c2: 150, order: 4, input: 'lf', mode: 'zero' },
       subtitle: 'How a high-pass filter removes slow baseline wander below the tones.',
+      code: codeLine,
     },
     {
       id: 'bp', anim: 'sweep',
@@ -483,6 +492,7 @@
       tag: c => `${FT[c.ftype]} · ${cutText(c)} · n = ${c.order}`,
       set: { ftype: 'bandpass', c1: 20, c2: 100, order: 4, input: 'all', mode: 'zero' },
       subtitle: 'How a single band-pass filter removes all three noises and the 120 Hz tone.',
+      code: codeLine,
     },
     {
       id: 'notch', anim: 'sweep',
@@ -490,6 +500,7 @@
       tag: c => `${FT[c.ftype]} · ${cutText(c)} · n = ${c.order}`,
       set: { ftype: 'bandstop', c1: 55, c2: 65, order: 4, input: 'hum', mode: 'zero' },
       subtitle: 'How a narrow band-stop removes 60 Hz powerline noise between the two tones.',
+      code: codeLine,
     },
   ];
 
@@ -648,11 +659,13 @@
       const front = st.anim === 'sweep' ? prog * 500 : null;
       svg += drawResponse(d.H, { ftype: c.ftype, c1: c.c1, c2: c.c2, front });
       svg += drawSpectrum(inp, d.H, front);
-      svg += drawTime(inp, [{ y: output(d, c.input, c.mode), color: c.mode === 'causal' ? 'var(--violet)' : 'var(--sig)', name: c.mode === 'causal' ? 'filtered output (causal)' : 'filtered output (zero-phase)', animated: true }], st.anim === 'sweep' ? prog : null, scipyCall(c));
+      svg += drawTime(inp, [{ y: output(d, c.input, c.mode), color: c.mode === 'causal' ? 'var(--violet)' : 'var(--sig)', name: c.mode === 'causal' ? 'filtered output (causal)' : 'filtered output (zero-phase)', animated: true }], st.anim === 'sweep' ? prog : null);
     }
     svg += `<g id="hover"></g>`;
     chart.innerHTML = `<style>.ax{font-family:var(--mono);font-size:11px;fill:var(--ink-2)}</style>` + svg;
     $('title').innerHTML = esc(st.title) + `<span class="tag">${esc(st.tag(c))}</span>`;
+    const code = st.code ? st.code(c) : '';
+    $('code').hidden = !code; $('code').innerHTML = code;
     $('counter').textContent = `${step + 1} / ${STEPS.length}`;
   }
 

@@ -50,7 +50,7 @@
     display: grid;
     grid-template-rows: auto 1fr auto;
     gap: 10px;
-    min-height: 560px;
+    min-height: 0;
     position: relative;
     outline: none;
     cursor: pointer;
@@ -79,9 +79,12 @@
     white-space: nowrap;
   }
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .code[hidden] { display: none; }
+  .code .p { color: var(--ma); font-weight: 700; }
 
   .chart-wrap { position: relative; min-height: 0; }
-  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  svg.chart { display: block; width: 100%; height: auto; max-height: calc(100vh - 360px); overflow: visible; }
   .tt {
     position: absolute; pointer-events: none; display: none;
     background: #fff; border: 1px solid var(--rule); border-radius: 4px;
@@ -106,7 +109,7 @@
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
 
@@ -138,6 +141,7 @@
     <div class="head">
       <h1 id="title"></h1>
       <p id="subtitle"></p>
+      <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
       <svg class="chart" id="chart" viewBox="0 0 1200 640" role="img" aria-label="Acceleration magnitude before and after band-pass filtering"></svg>
@@ -543,6 +547,8 @@ function sosfiltfilt(sos, x) {
     PAGE.setup(d);   // page computes its live quantities first, so the tag below reads them
     $('title').innerHTML = d.title() + (d.tag ? `<span class="tag">${d.tag()}</span>` : '');
     $('subtitle').textContent = typeof d.subtitle === 'function' ? d.subtitle() : d.subtitle;
+    const code = typeof d.code === 'function' ? d.code() : (d.code || '');
+    $('code').hidden = !code; $('code').innerHTML = code;
     $('counter').textContent = `${ENG.step + 1} / ${PAGE.steps.length}`;
     try { history.replaceState(null, '', '#' + (ENG.step + 1)); } catch (_) {}
   }
@@ -617,9 +623,9 @@ function sosfiltfilt(sos, x) {
       { id: 'raw', title: () => 'Raw acceleration magnitude during walking', tag: () => '|a| − mean · 50 Hz · 6 s',
         subtitle: 'The mean-subtracted acceleration magnitude during walking before any filtering.', span: () => DUR },
       { id: 'filt', title: () => `After a ${bandTxt()} band-pass filter`, tag: () => `band-pass ${bandTxt()} · filtfilt`,
-        subtitle: () => `The same signal after a band-pass filter that keeps ${bandTxt()}.`, span: () => DUR },
+        subtitle: () => `The same signal after a band-pass filter that keeps ${bandTxt()}.`, code: () => `b, a = butter(3, [<b class="p">${fmt(lo(), 1)}</b>/(SR/2), <b class="p">${fmt(hi(), 1)}</b>/(SR/2)], btype='bandpass'); filtered = filtfilt(b, a, magnitude)`, span: () => DUR },
       { id: 'cmp', title: () => 'Upper cutoff: 4 Hz for step counting versus 5 Hz here', tag: () => `0.5–4 Hz vs ${bandTxt()}`,
-        subtitle: 'Widening the band-pass cutoff from 4 Hz for step counting to 5 Hz here.', span: () => DUR }
+        subtitle: 'Widening the band-pass cutoff from 4 Hz for step counting to 5 Hz here.', code: () => `b, a = butter(3, [<b class="p">${fmt(lo(), 1)}</b>/(SR/2), <b class="p">${fmt(hi(), 1)}</b>/(SR/2)], btype='bandpass'); filtered = filtfilt(b, a, magnitude)`, span: () => DUR }
     ],
     setup(step) {
       FILT = bandpass(lo(), hi());

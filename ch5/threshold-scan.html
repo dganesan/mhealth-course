@@ -18,13 +18,16 @@
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.4; padding-block: 18px 28px; padding-inline: 16px; -webkit-font-smoothing: antialiased; }
   .stage { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
-  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; min-height: 560px; position: relative; outline: none; cursor: pointer; user-select: none; }
+  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none; }
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
   .head h1 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
   .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .code[hidden] { display: none; }
+  .code .p { color: var(--ma); font-weight: 700; }
   .chart-wrap { position: relative; min-height: 0; }
-  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  svg.chart { display: block; width: 100%; height: auto; max-height: calc(100vh - 360px); overflow: visible; }
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
@@ -38,7 +41,7 @@
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   svg text { white-space: pre; }
@@ -67,6 +70,7 @@
     <div class="head">
       <h1 id="title">Twelve windows in the feature plane</h1>
       <p id="subtitle"></p>
+      <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
       <svg class="chart" id="chart" viewBox="0 0 1200 580" role="img" aria-label="Feature plane with a moving threshold and the information gain at each threshold"></svg>
@@ -195,20 +199,21 @@
     const impure = r.hL > 0 ? { set: r.L, side: 'Yes', desc: `${FEAT[rs.f].name} ≤ ${rs.t}` } : { set: r.R, side: 'No', desc: `${FEAT[rs.f].name} > ${rs.t}` };
     const bestRec = bestSplit(impure.set);
     const tree = buildTree(D, rs);
+    const codeLine = `dt = DecisionTreeClassifier(criterion=<b class="p">'${crit}'</b>)`;
     return [
       { kind: 'data', set: D, frames: 0, presets: {},
         title: 'Twelve windows in the feature plane', tag: `n = 12 · ${S}(S) = ${f3(h0)}`,
         subtitle: `The windows in the feature plane with the candidate thresholds marked.` },
-      { kind: 'scan', set: D, frames: 100, rate: 1, presets: { feat: 'std' },
+      { kind: 'scan', set: D, frames: 100, rate: 1, presets: { feat: 'std' }, code: codeLine,
         title: 'Scanning thresholds on one feature', tagFn: f => `${FEAT[f].name} · ${S}(S) = ${f3(h0)}`,
         subtitle: `Scanning thresholds on one feature and tracing the gain of each candidate.` },
-      { kind: 'scan', set: D, frames: 100, rate: 1, presets: { feat: 'mean' },
+      { kind: 'scan', set: D, frames: 100, rate: 1, presets: { feat: 'mean' }, code: codeLine,
         title: 'Scanning thresholds on the other feature', tagFn: f => `${FEAT[f].name} · ${S}(S) = ${f3(h0)}`,
         subtitle: `Scanning thresholds on the other feature to find the highest gain overall.` },
-      { kind: 'scan', set: impure.set, frames: 100, rate: 1, presets: { feat: bestRec.f }, root: rs, impure,
+      { kind: 'scan', set: impure.set, frames: 100, rate: 1, presets: { feat: bestRec.f }, root: rs, impure, code: codeLine,
         title: 'Recursing on the impure branch', tagFn: f => `root ${FEAT[rs.f].name} ≤ ${rs.t} · ${impure.side} branch: ${FEAT[f].name}`,
         subtitle: `Scanning thresholds again on the windows in the impure branch.` },
-      { kind: 'tree', set: D, frames: 2, rate: 0.03, presets: {}, tree,
+      { kind: 'tree', set: D, frames: 2, rate: 0.03, presets: {}, tree, code: 'dt.fit(X_train, y_train)',
         title: 'The finished tree and its decision regions', tag: `root ${FEAT[rs.f].name} ≤ ${rs.t}`,
         subtitle: `How each split in the finished tree adds a boundary to the feature plane.` }
     ];
@@ -445,6 +450,7 @@
     const d = steps[step];
     $('title').innerHTML = d.title + `<span class="tag">${d.tagFn ? d.tagFn(feat) : d.tag}</span>`;
     $('subtitle').textContent = d.subtitle;
+    const cd = d.code, cs = typeof cd === 'function' ? cd() : cd; $('code').hidden = !cs; $('code').innerHTML = cs || '';
     $('counter').textContent = `${step + 1} / ${steps.length}`;
   }
   function enterStep(k, completed = false) {

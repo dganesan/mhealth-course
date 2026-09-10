@@ -18,13 +18,16 @@
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.4; padding-block: 18px 28px; padding-inline: 16px; -webkit-font-smoothing: antialiased; }
   .stage { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
-  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; min-height: 560px; position: relative; outline: none; cursor: pointer; user-select: none; }
+  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none; }
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
   .head h1 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
   .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .code[hidden] { display: none; }
+  .code .p { color: var(--ma); font-weight: 700; }
   .chart-wrap { position: relative; min-height: 0; }
-  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  svg.chart { display: block; width: 100%; height: auto; max-height: calc(100vh - 410px); overflow: visible; }
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
@@ -38,7 +41,7 @@
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   .grid line { stroke: var(--grid); stroke-width: 1; }
@@ -58,6 +61,7 @@
     <div class="head">
       <h1 id="title">Random forest</h1>
       <p id="subtitle"></p>
+      <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
       <svg class="chart" id="chart" viewBox="0 0 1200 640" role="img" aria-label="Random forest on the feature plane"></svg>
@@ -104,7 +108,7 @@
       <span class="val" id="seedVal">1</span>
     </div>
     <div class="group">
-      <label for="q">Query example</label>
+      <label for="q">Example</label>
       <input type="range" id="q" min="1" max="150" step="1" value="7">
       <span class="val" id="qVal">7</span>
     </div>
@@ -350,13 +354,15 @@ const TEST = [[9.429,3.051,0],[9.603,2.104,0],[9.644,1.394,0],[9.507,1.669,0],[9
 
   // ------------------------------------------------------------ steps
   const depthTag = () => `max_depth = ${M.depth === Infinity ? 'None' : M.depth}`;
+  // the notes' call (GridSearchCV over a RandomForestClassifier grid), with the dial values substituted
+  const rfCode = () => `RandomForestClassifier(n_estimators=<b class="p">${M.N}</b>, max_features=<b class="p">${M.mf === 1 ? "'sqrt'" : 'None'}</b>, max_depth=<b class="p">${M.depth === Infinity ? 'None' : M.depth}</b>, random_state=<b class="p">${M.seed}</b>)`;
   const steps = [
     { id: 'subset', title: 'Random feature subsets at each split', presets: {},
       subtitle: 'How each split of a tree chooses only among a random subset of the features.',
-      frames: () => M.trees[0].order.length, rate: 0.7, tag: () => `max_features = ${M.mf} of 2 · tree 1 · random_state = ${M.seed}` },
+      frames: () => M.trees[0].order.length, rate: 0.7, tag: () => `max_features = ${M.mf} of 2 · tree 1 · random_state = ${M.seed}`, code: rfCode },
     { id: 'grow', title: 'Adding trees to the forest', presets: {},
       subtitle: 'Adding trees to the forest and tracking test accuracy for five random seeds.',
-      frames: () => M.N, rate: 0.6, tag: () => `n_estimators = ${Math.max(1, Math.min(frame, M.N))} of ${M.N} · max_features = ${M.mf} · ${depthTag()}` },
+      frames: () => M.N, rate: 0.6, tag: () => `n_estimators = ${Math.max(1, Math.min(frame, M.N))} of ${M.N} · max_features = ${M.mf} · ${depthTag()}`, code: rfCode },
     { id: 'vote', title: 'Majority vote on a new example', presets: {},
       subtitle: 'How every tree votes on one test window and the tally gives the forest\'s prediction.',
       frames: () => M.N, rate: 0.6, tag: () => `n_estimators = ${M.N} · example ${DIALS.q.get()} · max_features = ${M.mf}` },
@@ -504,7 +510,13 @@ const TEST = [[9.429,3.051,0],[9.603,2.104,0],[9.644,1.394,0],[9.507,1.669,0],[9
     render();
     if (frame < total) startPlay();
   }
-  function render() { $('title').innerHTML = steps[step].title + `<span class="tag">${steps[step].tag()}</span>`; draw(frame); }
+  function render() {
+    const d = steps[step];
+    $('title').innerHTML = d.title + `<span class="tag">${d.tag()}</span>`;
+    const code = d.code ? d.code() : '';
+    $('code').hidden = !code; $('code').innerHTML = code;
+    draw(frame);
+  }
   function finish() { frame = total; stopPlay(); render(); }
   function tick(t) {
     if (!playing) return;

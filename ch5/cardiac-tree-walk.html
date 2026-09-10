@@ -18,13 +18,16 @@
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.4; padding-block: 18px 28px; padding-inline: 16px; -webkit-font-smoothing: antialiased; }
   .stage { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
-  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; min-height: 560px; position: relative; outline: none; cursor: pointer; user-select: none; }
+  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none; }
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
   .head h1 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
   .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .code[hidden] { display: none; }
+  .code .p { color: var(--ma); font-weight: 700; }
   .chart-wrap { position: relative; min-height: 0; }
-  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  svg.chart { display: block; width: 100%; height: auto; max-height: calc(100vh - 360px); overflow: visible; }
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
@@ -38,7 +41,7 @@
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   svg text { white-space: pre; }
@@ -67,6 +70,7 @@
     <div class="head">
       <h1 id="title">The cardiac risk tree</h1>
       <p id="subtitle"></p>
+      <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
       <svg class="chart" id="chart" viewBox="0 0 1200 560" role="img" aria-label="The cardiac risk decision tree with a patient walking from the root to a leaf"></svg>
@@ -160,7 +164,9 @@
     { kind: 'walk', presets: { age: '>55', fh: 'Yes', ex: 'Rarely' }, title: 'A second patient lands at a different leaf', subtitle: 'How the answers of a different patient lead to a different leaf.' },
     { kind: 'walk', presets: { age: '<40', fh: 'Yes', ex: 'Regularly' }, title: 'Reaching a mixed leaf', subtitle: 'How a patient can reach a leaf with a mix of Low and High patients.' }
   ];
-  function buildSteps() { return STEP_DEFS.map(s => { const path = s.kind === 'walk' ? pathFor(age, fh, ex) : null; return Object.assign({}, s, { path, frames: path ? path.length - 1 : 0, rate: 0.8 }); }); }
+  const AGE_TXT = { '<40': 'under 40', '40–55': '40–55', '>55': 'over 55' };
+  const codeLine = () => `predictions = dt.predict(X_test)     # X_test: age <b class="p">${AGE_TXT[age]}</b>, family history <b class="p">${fh}</b>, exercise <b class="p">${ex}</b>`;
+  function buildSteps() { return STEP_DEFS.map(s => { const path = s.kind === 'walk' ? pathFor(age, fh, ex) : null; return Object.assign({}, s, { path, frames: path ? path.length - 1 : 0, rate: 0.8, code: path ? codeLine : null }); }); }
 
   // ------------------------------------------------------------ drawing
   const svgNS = 'http://www.w3.org/2000/svg';
@@ -260,7 +266,7 @@
     if (!dirty.fh) { fh = d.presets.fh; $('fh').value = fh; }
     if (!dirty.ex) { ex = d.presets.ex; $('ex').value = ex; }
   }
-  function setHead() { const d = steps[step]; $('title').innerHTML = d.title + (d.kind === 'tree' ? '<span class="tag">15 patients · 7 leaves</span>' : ''); $('subtitle').textContent = d.subtitle; $('counter').textContent = `${step + 1} / ${steps.length}`; }
+  function setHead() { const d = steps[step]; $('title').innerHTML = d.title + (d.kind === 'tree' ? '<span class="tag">15 patients · 7 leaves</span>' : ''); $('subtitle').textContent = d.subtitle; const cd = d.code, cs = typeof cd === 'function' ? cd() : cd; $('code').hidden = !cs; $('code').innerHTML = cs || ''; $('counter').textContent = `${step + 1} / ${steps.length}`; }
   function enterStep(k, completed = false) {
     step = Math.max(0, Math.min(STEP_DEFS.length - 1, k));
     applyPresets(STEP_DEFS[step]);

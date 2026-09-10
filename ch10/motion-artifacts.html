@@ -50,7 +50,7 @@
     display: grid;
     grid-template-rows: auto 1fr auto;
     gap: 10px;
-    min-height: 560px;
+    min-height: 0;
     position: relative;
     outline: none;
     cursor: pointer;
@@ -80,7 +80,10 @@
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
 
   .chart-wrap { position: relative; min-height: 0; }
-  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .code[hidden] { display: none; }
+  .code .p { color: var(--ma); font-weight: 700; }
+  svg.chart { display: block; width: 100%; height: auto; max-height: calc(100vh - 360px); overflow: visible; }
   .tt {
     position: absolute; pointer-events: none; display: none;
     background: #fff; border: 1px solid var(--rule); border-radius: 4px;
@@ -105,7 +108,7 @@
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
 
@@ -146,6 +149,7 @@
     <div class="head">
       <h1 id="title">Peak detection on wrist PPG through a motion event</h1>
       <p id="subtitle"></p>
+      <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
       <svg class="chart" id="chart" viewBox="0 0 1200 660" role="img" aria-label="Wrist PPG with motion artifacts and accelerometer"></svg>
@@ -166,14 +170,14 @@
       <button id="reset" title="Reset all dials to the step's presets">Reset dials</button>
     </div>
     <div class="group">
-      <label for="thr">Motion threshold (× median)</label>
+      <label for="thr">Motion threshold</label>
       <input type="range" id="thr" min="1" max="12" step="0.5" value="4">
-      <span class="val" id="thrVal">4.0</span>
+      <span class="val" id="thrVal">4.0 × median</span>
     </div>
     <div class="group">
-      <label for="prom">Prominence (× std)</label>
+      <label for="prom">Prominence</label>
       <input type="range" id="prom" min="0" max="1.5" step="0.05" value="0.5">
-      <span class="val" id="promVal">0.50</span>
+      <span class="val" id="promVal">0.50 × std</span>
     </div>
     <div class="group">
       <label for="speed">Speed</label>
@@ -503,9 +507,10 @@ function findPeaks(x, opt) {
   const STEPS = [
     {
       id: 'peaks', rate: 2,
-      title: 'Peak detection on wrist PPG through a motion event',
-      tag: () => `find_peaks · distance = 0.25 s · prominence = ${f2(prom)}·std`,
-      subtitle: 'How the peak detector mistakes motion spikes in wrist PPG for heartbeats.'
+      title: 'Peak detection on wrist PPG during motion',
+      tag: () => `distance = 0.25 s · prominence = ${f2(prom)}·std`,
+      subtitle: 'How the peak detector mistakes motion spikes in wrist PPG for heartbeats.',
+      code: () => `peaks, _ = find_peaks(ppg, distance=int(0.25 * fs), prominence=<b class="p">${f2(prom)}</b> * ppg.std())`
     },
     {
       id: 'flag', rate: 2,
@@ -517,7 +522,8 @@ function findPeaks(x, opt) {
       id: 'hr', rate: 2,
       title: 'Inter-beat intervals with and without motion rejection',
       tag: () => `HR = 60 / Δt`,
-      subtitle: 'Comparing the inter-beat intervals with and without rejecting the motion window.'
+      subtitle: 'Comparing the inter-beat intervals with and without rejecting the motion window.',
+      code: 'ibi = np.diff(t[peaks]); hr = 60 / ibi'
     }
   ];
 
@@ -679,13 +685,14 @@ function findPeaks(x, opt) {
 
   // ------------------------------------------------------------ step control
   function applyPresets() {
-    if (!dirty.thr) { thrMul = PRESET.thr; $('thr').value = thrMul; $('thrVal').textContent = f1(thrMul); }
-    if (!dirty.prom) { prom = PRESET.prom; $('prom').value = prom; $('promVal').textContent = f2(prom); }
+    if (!dirty.thr) { thrMul = PRESET.thr; $('thr').value = thrMul; $('thrVal').textContent = f1(thrMul) + ' × median'; }
+    if (!dirty.prom) { prom = PRESET.prom; $('prom').value = prom; $('promVal').textContent = f2(prom) + ' × std'; }
   }
   function header() {
     const d = STEPS[step];
     $('title').innerHTML = d.title + `<span class="tag">${d.tag()}</span>`;
     $('subtitle').textContent = typeof d.subtitle === 'function' ? d.subtitle() : d.subtitle;
+    const code = typeof d.code === 'function' ? d.code() : d.code; $('code').hidden = !code; $('code').innerHTML = code || '';
     $('counter').textContent = `${step + 1} / ${STEPS.length}`;
   }
   function enterStep(k, completed = false) {
@@ -735,8 +742,8 @@ function findPeaks(x, opt) {
     else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
     else if (e.key === 'r' || e.key === 'R') restart();
   });
-  $('thr').addEventListener('input', e => { dirty.thr = true; thrMul = parseFloat(e.target.value); $('thrVal').textContent = f1(thrMul); redraw(); });
-  $('prom').addEventListener('input', e => { dirty.prom = true; prom = parseFloat(e.target.value); $('promVal').textContent = f2(prom); redraw(); });
+  $('thr').addEventListener('input', e => { dirty.thr = true; thrMul = parseFloat(e.target.value); $('thrVal').textContent = f1(thrMul) + ' × median'; redraw(); });
+  $('prom').addEventListener('input', e => { dirty.prom = true; prom = parseFloat(e.target.value); $('promVal').textContent = f2(prom) + ' × std'; redraw(); });
   $('speed').addEventListener('change', e => { dirty.speed = true; speedMul = parseFloat(e.target.value); if (speedMul === 0 && playing) finish(); });
   $('reset').addEventListener('click', e => {
     e.stopPropagation();

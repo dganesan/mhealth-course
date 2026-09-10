@@ -75,11 +75,15 @@
     border-radius: 4px;
   }
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .code[hidden] { display: none; }
+  .code .p { color: var(--blue); font-weight: 700; }
+  .code .k { color: var(--ink-2); }
   .legend-box { fill: #fff; fill-opacity: .9; stroke: var(--rule); }
   .legend-text { font-family: var(--sans); font-size: 12px; fill: var(--ink); }
 
   .chart-wrap { position: relative; min-height: 0; }
-  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  svg.chart { display: block; width: 100%; height: auto; max-height: calc(100vh - 360px); overflow: visible; }
   .tt {
     position: absolute; pointer-events: none; display: none;
     background: #fff; border: 1px solid var(--rule); border-radius: 4px;
@@ -106,7 +110,7 @@
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--blue); color:#fff; border-color:var(--blue); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
-  input[type=range] { accent-color:var(--blue); width:200px; height:30px; cursor:pointer; }
+  input[type=range] { accent-color:var(--blue); width:150px; height:30px; cursor:pointer; }
   input[type=checkbox] { accent-color:var(--blue); width:18px; height:18px; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family: var(--mono); background: #fff; border: 1px solid var(--rule); border-radius: 3px; padding: 0 5px; font-size: 11px; }
@@ -141,6 +145,7 @@
     <div class="head">
       <h1 id="title">The input and its true peaks</h1>
       <p id="subtitle"></p>
+      <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
       <svg class="chart" id="chart" viewBox="0 0 1200 600" role="img" aria-label="ECG trace filtered with lfilter and with filtfilt"></svg>
@@ -482,6 +487,7 @@ window.ECG_SLICE = [-0.0763,-0.0806,-0.0784,-0.0719,-0.0675,-0.0588,-0.0501,-0.0
 
   // ------------------------------------------------------------ steps
   const fmtMs = v => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v) + ' ms';
+  const P = v => `<b class="p">${v}</b>`;
   function stepDefs() {
     const dc = meanDelay('c'), dz = meanDelay('z');
     return [
@@ -493,22 +499,26 @@ window.ECG_SLICE = [-0.0763,-0.0806,-0.0784,-0.0719,-0.0675,-0.0588,-0.0501,-0.0
       {
         id: 'causal', anim: 'forward',
         title: 'One forward pass: lfilter', tag: `order ${order} · ${cutoff} Hz low-pass · R-peak delay ${fmtMs(dc)}`,
-        subtitle: 'How lfilter delays the peaks relative to the true R-peak times.'
+        subtitle: 'How lfilter delays the peaks relative to the true R-peak times.',
+        code: `b, a = butter(${P(order)}, ${P(cutoff)}/nyq, btype='lowpass');  y = lfilter(b, a, x)`
       },
       {
         id: 'backward', anim: 'backward',
         title: 'Backward pass over the lfilter output', tag: `order ${order} · ${cutoff} Hz low-pass · second pass`,
-        subtitle: 'How a backward pass over the lfilter output shifts the peaks back.'
+        subtitle: 'How a backward pass over the lfilter output shifts the peaks back.',
+        code: `y = filtfilt(b, a, x)  <span class="k"># forward + backward, gives zero phase delay</span>`
       },
       {
         id: 'compare', anim: 'none',
         title: 'filtfilt output: peak timing preserved', tag: `order ${order} · ${cutoff} Hz low-pass · lfilter ${fmtMs(dc)} · filtfilt ${fmtMs(dz)}`,
-        subtitle: 'Comparing peak timing in the lfilter and filtfilt outputs.'
+        subtitle: 'Comparing peak timing in the lfilter and filtfilt outputs.',
+        code: `y_causal = lfilter(b, a, x);  y_zero = filtfilt(b, a, x)`
       },
       {
         id: 'stream', anim: 'stream',
         title: 'filtfilt needs the whole record', tag: `order ${order} · ${cutoff} Hz low-pass · streaming`,
-        subtitle: 'How the filtfilt output keeps changing as new samples arrive.'
+        subtitle: 'How the filtfilt output keeps changing as new samples arrive.',
+        code: `y = filtfilt(b, a, x)  <span class="k"># needs the entire signal in advance</span>`
       }
     ];
   }
@@ -739,6 +749,7 @@ window.ECG_SLICE = [-0.0763,-0.0806,-0.0784,-0.0719,-0.0675,-0.0588,-0.0501,-0.0
     const d = steps[step];
     $('title').innerHTML = d.title + (d.tag ? `<span class="tag">${d.tag}</span>` : '');
     $('subtitle').textContent = d.subtitle;
+    $('code').hidden = !d.code; $('code').innerHTML = d.code || '';
     drawLegend(d.id);
     $('counter').textContent = `${step + 1} / ${steps.length}`;
     $('prev').disabled = step === 0;
@@ -776,6 +787,7 @@ window.ECG_SLICE = [-0.0763,-0.0806,-0.0784,-0.0719,-0.0675,-0.0588,-0.0501,-0.0
     steps = stepDefs();
     const d = steps[step];
     $('title').innerHTML = d.title + (d.tag ? `<span class="tag">${d.tag}</span>` : '');
+    $('code').hidden = !d.code; $('code').innerHTML = d.code || '';
     render();
   }
 

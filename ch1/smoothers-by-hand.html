@@ -19,13 +19,17 @@
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.4; padding-block: 18px 28px; padding-inline: 16px; -webkit-font-smoothing: antialiased; }
   .stage { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
-  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; min-height: 560px; position: relative; outline: none; cursor: pointer; user-select: none; }
+  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none; }
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
   .head h1 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
   .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .code[hidden] { display: none; }
+  .code .p { color: var(--ma); font-weight: 700; }
+  .code .k { color: var(--ink-2); }
   .chart-wrap { position: relative; min-height: 0; }
-  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  svg.chart { display: block; width: 100%; height: auto; max-height: calc(100vh - 360px); overflow: visible; }
   .foot { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-3); padding-top: 4px; }
   .foot .ctr { font-family: var(--mono); }
   .bar { display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center; padding:14px 18px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
@@ -33,7 +37,8 @@
   .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
   .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
   button, select, input[type=text] { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
-  input[type=text] { font-family:var(--mono); cursor:text; flex:1 1 260px; min-width:200px; }
+  input[type=text] { font-family:var(--mono); cursor:text; width:330px; padding:5px 9px; font-size:13px; }
+  .bar .hint { display:none; }
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
@@ -72,6 +77,7 @@
     <div class="head">
       <h1 id="title"></h1>
       <p id="subtitle"></p>
+      <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
       <svg class="chart" id="chart" viewBox="0 0 1200 640" role="img" aria-label="Input sequence and four filter outputs computed by hand"></svg>
@@ -97,7 +103,7 @@
     </div>
     <div class="group">
       <label for="alpha">EWMA α</label>
-      <select id="alpha"><option value="auto" selected>2/(w+1)</option><option value="0.5">0.5</option><option value="0.33">0.33</option><option value="0.2">0.2</option></select>
+      <select id="alpha"><option value="0.5">0.5</option><option value="0.33">0.33</option><option value="0.2" selected>0.2</option></select>
     </div>
     <div class="group">
       <label for="speed">Speed</label>
@@ -116,7 +122,7 @@
         <option value="custom">custom (edit the sequence below)</option>
       </select>
     </div>
-    <div class="group" style="flex-basis:100%">
+    <div class="group">
       <label for="seq">Sequence</label>
       <input type="text" id="seq" value="2, 4, 6, 8, 10, 8, 6, 4, 2, 20, 2, 4, 6, 8, 10" spellcheck="false">
     </div>
@@ -133,8 +139,8 @@
 
   // ---------------- data & filters
   let X = [];
-  let w = 3, alphaMode = 'auto', speed = 1.6;
-  const alphaVal = () => alphaMode === 'auto' ? 2 / (w + 1) : parseFloat(alphaMode);
+  let w = 3, alphaMode = '0.2', speed = 1.6;
+  const alphaVal = () => parseFloat(alphaMode);
   const M = () => (w - 1) / 2;
   const idxWin = i => { const lo = Math.max(0, i - M()), hi = Math.min(X.length - 1, i + M()); const a = []; for (let k = lo; k <= hi; k++) a.push(k); return a; };
   const triW = k => M() + 1 - Math.abs(k);
@@ -159,11 +165,12 @@
       calc(i, out) { const a = alphaVal(); if (i === 0) return { v: X[0], work: `s₀ = x₀ = ${fmt(X[0])}` }; const prev = out[i - 1]; const v = a * X[i] + (1 - a) * prev; return { v, work: `${fmt(a)}·${fmt(X[i])} + ${fmt(1 - a)}·${fmt1(prev)} = ${fmt1(v)}` }; }
     }
   };
-  const ORDER = ['ma', 'med', 'wm', 'ewma'];
+  const ORDER = ['ma', 'med', 'ewma'];
   let OUT = {};
   function computeAll() { OUT = {}; ORDER.forEach(k => { const arr = []; for (let i = 0; i < X.length; i++) arr.push(F[k].calc(i, arr).v); OUT[k] = arr; }); }
 
   // ---------------- steps
+  const P = v => `<b class="p">${v}</b>`;
   function stepDefs() {
     const a = alphaVal(), aT = fmt(a);
     const wts = Array.from({ length: w }, (_, j) => triW(j - M()));
@@ -171,20 +178,21 @@
       { id: 'raw', lanes: [], title: 'The input sequence', tag: `${X.length} samples`,
         subtitle: 'The input sequence that each filter below is applied to.' },
       { id: 'ma', lanes: ['ma'], title: 'Moving average', tag: `w = ${w}`,
-        subtitle: `How the moving average is computed by hand at each position.` },
+        subtitle: `How the moving average is computed by hand at each position.`,
+        code: `ma  = data.rolling(window=${P(w)}, center=${P('True')}).mean()` },
       { id: 'med', lanes: ['med'], title: 'Median filter', tag: `w = ${w}`,
-        subtitle: 'How the median filter is computed by hand at each position.' },
-      { id: 'wm', lanes: ['wm'], title: 'Weighted moving average (triangular weights)', tag: `w = ${w}, weights ${wts.join(':')}`,
-        subtitle: 'How the weighted moving average is computed by hand at each position.' },
+        subtitle: 'How the median filter is computed by hand at each position.',
+        code: `med = data.rolling(window=${P(w)}, center=${P('True')}).median()` },
       { id: 'ewma', lanes: ['ewma'], title: 'Exponentially weighted moving average', tag: `α = ${aT}`,
-        subtitle: `How the EWMA is computed by hand at each position.` }
+        subtitle: `How the EWMA is computed by hand at each position.`,
+        code: `ema = data.ewm(alpha=${P(aT)}, adjust=${P('False')}).mean()` }
     ];
   }
 
   // ---------------- layout
   const W = 1200, H = 640;
   const PL = 130, PR = 420, PT = 26;
-  const TOP_H = 186, LANE_H = 86, LANE_GAP = 8;
+  const TOP_H = 186, LANE_H = 112, LANE_GAP = 10;
   const plotW = W - PL - PR;
   const xs = i => PL + (i + 0.5) * (plotW / X.length);
   let yLo = 0, yHi = 20;
@@ -312,6 +320,7 @@
     step = k; const d = steps[step];
     $('title').innerHTML = d.title + (d.tag ? `<span class="tag">${d.tag}</span>` : '');
     $('subtitle').textContent = d.subtitle;
+    $('code').hidden = !d.code; $('code').innerHTML = d.code || '';
     $('counter').textContent = `${step + 1} / ${steps.length}`;
     try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {}
     $('prev').disabled = step === 0;
@@ -369,7 +378,7 @@
     else if (e.key === 'r' || e.key === 'R') enterStep(step);
   });
   $('win').addEventListener('change', e => { w = parseInt(e.target.value, 10); rebuild(); });
-  $('reset').addEventListener('click', e => { e.stopPropagation(); w = 3; alphaMode = 'auto'; speed = 1.6; $('win').value = '3'; $('alpha').value = 'auto'; $('speed').value = '1.6'; $('seq').value = '2, 4, 6, 8, 10, 8, 6, 4, 2, 20, 2, 4, 6, 8, 10'; $('preset').value = $('seq').value; X = parseSeq($('seq').value); rebuild(); });
+  $('reset').addEventListener('click', e => { e.stopPropagation(); w = 3; alphaMode = '0.2'; speed = 1.6; $('win').value = '3'; $('alpha').value = '0.2'; $('speed').value = '1.6'; $('seq').value = '2, 4, 6, 8, 10, 8, 6, 4, 2, 20, 2, 4, 6, 8, 10'; $('preset').value = $('seq').value; X = parseSeq($('seq').value); rebuild(); });
   $('alpha').addEventListener('change', e => { alphaMode = e.target.value; rebuild(); });
   $('speed').addEventListener('change', e => { speed = parseFloat(e.target.value); });
   $('seq').addEventListener('change', e => { const v = parseSeq(e.target.value); if (v) { X = v; $('preset').value = 'custom'; rebuild(); } });

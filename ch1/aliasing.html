@@ -49,7 +49,7 @@
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
 
   .chart-wrap { position: relative; min-height: 0; }
-  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  svg.chart { display: block; width: 100%; height: auto; max-height: calc(100vh - 360px); overflow: visible; }
   .tt {
     position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule);
     border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink);
@@ -73,7 +73,7 @@
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:disabled { opacity:.45; cursor:default; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
   input[type=checkbox] { accent-color:var(--ma); width:18px; height:18px; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family: var(--mono); background: #fff; border: 1px solid var(--rule); border-radius: 3px; padding: 0 5px; font-size: 11px; }
@@ -135,12 +135,12 @@
       <span class="val" id="fval">7.0 kHz</span>
     </div>
     <div class="group">
-      <label for="fsslider">Sampling rate fs</label>
+      <label for="fsslider">Sample rate</label>
       <input type="range" id="fsslider" min="4000" max="30000" step="100" value="10000">
       <span class="val" id="fsval">10.0 kHz</span>
     </div>
     <div class="group">
-      <label for="aaf">Anti-alias low-pass</label>
+      <label for="aaf">Anti-alias filter</label>
       <input type="checkbox" id="aaf">
       <span class="val" id="aafval">off</span>
     </div>

@@ -50,7 +50,7 @@
     display: grid;
     grid-template-rows: auto 1fr auto;
     gap: 10px;
-    min-height: 560px;
+    min-height: 0;
     position: relative;
     outline: none;
     cursor: pointer;
@@ -79,9 +79,12 @@
     white-space: nowrap;
   }
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .code[hidden] { display: none; }
+  .code .p { color: var(--ma); font-weight: 700; }
 
   .chart-wrap { position: relative; min-height: 0; }
-  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  svg.chart { display: block; width: 100%; height: auto; max-height: calc(100vh - 360px); overflow: visible; }
   .tt {
     position: absolute; pointer-events: none; display: none;
     background: #fff; border: 1px solid var(--rule); border-radius: 4px;
@@ -106,7 +109,7 @@
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
 
@@ -142,6 +145,7 @@
     <div class="head">
       <h1 id="title"></h1>
       <p id="subtitle"></p>
+      <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
       <svg class="chart" id="chart" viewBox="0 0 1200 660" role="img" aria-label="Sensor data flowing through the five pipeline stages"></svg>
@@ -270,6 +274,8 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
     PAGE.setup(d);   // page computes its live quantities first, so the tag below reads them
     $('title').innerHTML = d.title() + (d.tag ? `<span class="tag">${d.tag()}</span>` : '');
     $('subtitle').textContent = typeof d.subtitle === 'function' ? d.subtitle() : d.subtitle;
+    const code = typeof d.code === 'function' ? d.code() : (d.code || '');
+    $('code').hidden = !code; $('code').innerHTML = code;
     $('counter').textContent = `${ENG.step + 1} / ${PAGE.steps.length}`;
     try { history.replaceState(null, '', '#' + (ENG.step + 1)); } catch (_) {}
   }
@@ -367,7 +373,8 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
       { id: 'collect', title: () => 'Stage 1: collect labeled sensor data', tag: () => '50 Hz · 12 s · Walking 8 s + Sitting 4 s', span: () => DUR,
         subtitle: 'Collecting three-axis acceleration with an activity label while the user walks then sits.' },
       { id: 'prep', title: () => 'Stage 2: pre-process with a band-pass filter', tag: () => 'band-pass 0.5–5 Hz · filtfilt', span: () => DUR,
-        subtitle: 'Filtering the acceleration magnitude with a 0.5–5 Hz band-pass.' },
+        subtitle: 'Filtering the acceleration magnitude with a 0.5–5 Hz band-pass.',
+        code: `b, a = butter(3, [0.5/(SR/2), 5.0/(SR/2)], btype='bandpass'); filtered = filtfilt(b, a, magnitude)` },
       { id: 'window', title: () => `Stage 3: segment into ${w()}-second windows`, tag: () => `w = ${w()} s = ${w() * FS} samples · ${WS.length} windows`, span: () => DUR,
         subtitle: 'Segmenting the filtered stream into consecutive windows, each labeled by its activity.' },
       { id: 'features', title: () => 'Stage 4: extract features from each window', tag: () => `${WS.length} rows × 2 features + label`, span: () => DUR,

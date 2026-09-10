@@ -50,7 +50,7 @@
     display: grid;
     grid-template-rows: auto 1fr auto;
     gap: 10px;
-    min-height: 560px;
+    min-height: 0;
     position: relative;
     outline: none;
     cursor: pointer;
@@ -80,7 +80,10 @@
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
 
   .chart-wrap { position: relative; min-height: 0; }
-  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .code[hidden] { display: none; }
+  .code .p { color: var(--ma); font-weight: 700; }
+  svg.chart { display: block; width: 100%; height: auto; max-height: calc(100vh - 360px); overflow: visible; }
   .tt {
     position: absolute; pointer-events: none; display: none;
     background: #fff; border: 1px solid var(--rule); border-radius: 4px;
@@ -105,7 +108,7 @@
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
 
@@ -148,6 +151,7 @@
     <div class="head">
       <h1 id="title">Steady rhythm</h1>
       <p id="subtitle"></p>
+      <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
       <svg class="chart" id="chart" viewBox="0 0 1200 640" role="img" aria-label="Heart rate and heart-rate variability"></svg>
@@ -168,14 +172,14 @@
       <button id="reset" title="Reset all dials to the step's presets">Reset dials</button>
     </div>
     <div class="group">
-      <label for="jit">Steady-rhythm jitter ×</label>
+      <label for="jit">Steady jitter</label>
       <input type="range" id="jit" min="0" max="3" step="0.25" value="1">
-      <span class="val" id="jitVal">1.00</span>
+      <span class="val" id="jitVal">1.00×</span>
     </div>
     <div class="group">
-      <label for="swing">Variable-rhythm swing ×</label>
+      <label for="swing">Variable swing</label>
       <input type="range" id="swing" min="0" max="2" step="0.1" value="1">
-      <span class="val" id="swingVal">1.0</span>
+      <span class="val" id="swingVal">1.0×</span>
     </div>
     <div class="group">
       <label for="speed">Speed</label>
@@ -506,19 +510,22 @@ function findPeaks(x, opt) {
       id: 'steady', rate: 1,
       title: 'Steady rhythm: eight beats with nearly equal intervals',
       tag: () => `mean HR = ${f0(hr(rrS))} bpm · RMSSD = ${f0(rmssd(rrS))} ms`,
-      subtitle: 'How the mean heart rate and RMSSD update as evenly spaced beats arrive.'
+      subtitle: 'How the mean heart rate and RMSSD update as evenly spaced beats arrive.',
+      code: 'hr = 60000 / np.mean(rr); rmssd = np.sqrt(np.mean(np.diff(rr) ** 2))'
     },
     {
       id: 'var', rate: 1,
       title: 'Variable rhythm: same mean heart rate, larger swings',
       tag: () => `mean HR = ${f0(hr(rrV))} bpm · RMSSD = ${f0(rmssd(rrV))} ms`,
-      subtitle: 'How uneven inter-beat intervals raise RMSSD while the mean heart rate stays the same.'
+      subtitle: 'How uneven inter-beat intervals raise RMSSD while the mean heart rate stays the same.',
+      code: 'hr = 60000 / np.mean(rr); rmssd = np.sqrt(np.mean(np.diff(rr) ** 2))'
     },
     {
       id: 'real', rate: 6.7,
       title: 'Time-domain HRV on the 67-second recording',
       tag: () => `RMSSD ${f0(rmssd(REAL.map(b => b.rr)))} ms · SDNN ${f0(sdnn(REAL.map(b => b.rr)))} ms · pNN50 ${f0(100 * pnn50(REAL.map(b => b.rr)))} %`,
-      subtitle: 'Computing RMSSD, SDNN and pNN50 from the inter-beat intervals of the recording.'
+      subtitle: 'Computing RMSSD, SDNN and pNN50 from the inter-beat intervals of the recording.',
+      code: 'rmssd = np.sqrt(np.mean(np.diff(rr) ** 2)); sdnn = np.std(rr); pnn50 = np.mean(np.abs(np.diff(rr)) > 50)'
     }
   ];
 
@@ -576,8 +583,6 @@ function findPeaks(x, opt) {
     if (d.id === 'var') items.push({ c: '#eb6834', n: 'heartbeat, variable rhythm', tick: true });
     items.push({ c: '#666', n: 'inter-beat interval RR (ms)' });
     legend(W - PR - (Math.max(...items.map(i => i.n.length)) * 7.2 + 60), 508, items);
-    G.formula = el('text', { x: PL, y: 530, class: 'note' }, chart);
-    G.formula.textContent = 'mean HR = 60000 / mean(RR)        RMSSD = √ mean( (RRₖ₊₁ − RRₖ)² )';
     G.diffs = el('text', { x: PL, y: 560, class: 'note', fill: 'var(--ink-2)' }, chart);
     if (d.id === 'steady') { G.rows[1].g.style.opacity = 0.35; G.rows[1].title.textContent = 'Variable rhythm — next step'; }
   }
@@ -633,8 +638,6 @@ function findPeaks(x, opt) {
     [50, -50].forEach(v => el('line', { class: 'nn50', x1: PL, x2: W - PR, y1: ysB(v), y2: ysB(v) }, chart));
     G.bars = el('g', {}, chart);
     legend(PL + 12, PB.y0 + 8, [{ c: '#4a3aa7', n: 'successive difference ΔRR', box: true }, { c: '#444', n: '±50 ms (pNN50 threshold)', dash: true }]);
-    G.formula = el('text', { x: W - PR - 8, y: PB.y0 + 26, class: 'note', 'text-anchor': 'end' }, chart);
-    G.formula.textContent = 'RMSSD = √mean(ΔRR²)    SDNN = std(RR)    pNN50 = fraction |ΔRR| > 50 ms';
     G.cursor = el('line', { class: 'cursor-line', y1: PA.y0, y2: PB.y1 }, chart);
   }
   function renderReal() {
@@ -702,13 +705,14 @@ function findPeaks(x, opt) {
 
   // ------------------------------------------------------------ step control
   function applyPresets() {
-    if (!dirty.jit) { jit = PRESET.jit; $('jit').value = jit; $('jitVal').textContent = f2(jit); }
-    if (!dirty.swing) { swing = PRESET.swing; $('swing').value = swing; $('swingVal').textContent = f1(swing); }
+    if (!dirty.jit) { jit = PRESET.jit; $('jit').value = jit; $('jitVal').textContent = f2(jit) + '×'; }
+    if (!dirty.swing) { swing = PRESET.swing; $('swing').value = swing; $('swingVal').textContent = f1(swing) + '×'; }
   }
   function header() {
     const d = STEPS[step];
     $('title').innerHTML = d.title + `<span class="tag">${d.tag()}</span>`;
     $('subtitle').textContent = typeof d.subtitle === 'function' ? d.subtitle() : d.subtitle;
+    const code = typeof d.code === 'function' ? d.code() : d.code; $('code').hidden = !code; $('code').innerHTML = code || '';
     $('counter').textContent = `${step + 1} / ${STEPS.length}`;
   }
   function enterStep(k, completed = false) {
@@ -758,8 +762,8 @@ function findPeaks(x, opt) {
     else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
     else if (e.key === 'r' || e.key === 'R') restart();
   });
-  $('jit').addEventListener('input', e => { dirty.jit = true; jit = parseFloat(e.target.value); $('jitVal').textContent = f2(jit); redraw(); });
-  $('swing').addEventListener('input', e => { dirty.swing = true; swing = parseFloat(e.target.value); $('swingVal').textContent = f1(swing); redraw(); });
+  $('jit').addEventListener('input', e => { dirty.jit = true; jit = parseFloat(e.target.value); $('jitVal').textContent = f2(jit) + '×'; redraw(); });
+  $('swing').addEventListener('input', e => { dirty.swing = true; swing = parseFloat(e.target.value); $('swingVal').textContent = f1(swing) + '×'; redraw(); });
   $('speed').addEventListener('change', e => { dirty.speed = true; speedMul = parseFloat(e.target.value); if (speedMul === 0 && playing) finish(); });
   $('reset').addEventListener('click', e => {
     e.stopPropagation();

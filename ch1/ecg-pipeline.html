@@ -36,15 +36,19 @@
   .slide {
     background: var(--paper); border: 1px solid var(--rule); border-radius: 6px;
     padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto auto;
-    gap: 10px; min-height: 640px; position: relative; outline: none; cursor: pointer; user-select: none;
+    gap: 10px; min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none;
   }
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
   .head h1 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
   .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .code[hidden] { display: none; }
+  .code .p { color: var(--ma); font-weight: 700; }
+  .code .k { color: var(--ink-2); }
 
   .chart-wrap { position: relative; min-height: 0; }
-  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  svg.chart { display: block; width: 100%; height: auto; max-height: calc(100vh - 480px); overflow: visible; }
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 12px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
@@ -82,11 +86,12 @@
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button.on { background:#eef4fc; border-color:var(--ma); color:var(--ma); font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
+  .group[hidden] { display: none; }
   input[type=checkbox] { accent-color:var(--ma); width:18px; height:18px; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family: var(--mono); background: #fff; border: 1px solid var(--rule); border-radius: 3px; padding: 0 5px; font-size: 11px; }
-  .code { font-family: var(--mono); font-size: 11.5px; fill: var(--ink-2); }
+  .svgcode { font-family: var(--mono); font-size: 11.5px; fill: var(--ink-2); }
 
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
@@ -114,6 +119,7 @@
     <div class="head">
       <h1 id="title">Raw, contaminated</h1>
       <p id="subtitle"></p>
+      <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
       <svg class="chart" id="chart" viewBox="0 0 1200 540" role="img" aria-label="ECG time trace and spectrum"></svg>
@@ -490,23 +496,29 @@ window.ECG = [0,0,0,0,0,0.0044,0.0153,0.024,0.037,0.0414,0.0458,0.0501,0.0523,0.
   const tR = iR / FS;
 
   // ------------------------------------------------------------ steps
+  const P = v => `<b class="p">${v}</b>`;
+  const stageCode = st => `b_${st.key}, a_${st.key} = butter(${st.order}, ${st.arg});  y = filtfilt(b_${st.key}, a_${st.key}, x)`;
   const STEPS = [
     { id: 'raw', kind: 'raw', title: 'Raw contaminated ECG', tag: () => 'ECG · 10 s · 1000 Hz',
       subtitle: 'The raw ECG and where each kind of noise sits in its spectrum.',
-      code: 'noisy = ecg + 0.5·sin(2π·0.25t) + 0.2·sin(2π·60t) + hf',
+      svgCode: 'noisy = ecg + 0.5·sin(2π·0.25t) + 0.2·sin(2π·60t) + hf',
       preset: { width: 4, t0: 2.0 } },
     { id: 's1', kind: 'filter', stage: 1, title: () => `Stage 1 of 3: ${stageList()[1].title}`, tag: () => `removes ${stageList()[1].noise}`,
       subtitle: 'How the high-pass filter removes baseline wander from the ECG.',
+      code: () => stageCode(stageList()[1]),
       preset: { width: 4, t0: 2.0 } },
     { id: 's2', kind: 'filter', stage: 2, title: () => `Stage 2 of 3: ${stageList()[2].title}`, tag: () => `removes ${stageList()[2].noise}`,
       subtitle: 'How the notch filter removes 60 Hz powerline noise from the ECG.',
+      code: () => stageCode(stageList()[2]),
       preset: { width: 1, t0: Math.max(0, tR - 0.4) } },
     { id: 's3', kind: 'filter', stage: 3, title: () => `Stage 3 of 3: ${stageList()[3].title}`, tag: () => `removes ${stageList()[3].noise}`,
       subtitle: 'How the low-pass filter removes high-frequency noise from the ECG.',
+      code: () => stageCode(stageList()[3]),
       preset: { width: 2, t0: Math.max(0, tR - 0.6) } },
     { id: 'tune', kind: 'tune', title: 'Tuning the high-pass and low-pass cutoffs',
-      tag: () => `high-pass ${fmtHP(fHP)} · notch 60 Hz · low-pass ${fmtLP(fLP)}`,
+      tag: () => `HP ${fmtHP(fHP)} · notch 60 Hz · LP ${fmtLP(fLP)}`,
       subtitle: 'How moving the high-pass and low-pass cutoffs changes the filtered ECG.',
+      code: () => `b_hp, a_hp = butter(2, ${P(fHP)}/nyq, btype='highpass');  b_lp, a_lp = butter(4, ${P(fLP)}/nyq, btype='lowpass')`,
       preset: { width: 2, t0: Math.max(0, tR - 0.6), hp: 0.5, lp: 150 } },
   ];
   const txt = v => typeof v === 'function' ? v() : v;
@@ -705,7 +717,7 @@ window.ECG = [0,0,0,0,0,0.0044,0.0153,0.024,0.037,0.0414,0.0458,0.0501,0.0523,0.
   let curSpec = SPEC.noisy, hoverSeries = [];
 
   function clearDyn() { G.specBands.innerHTML = ''; G.specLines.innerHTML = ''; G.timeLines.innerHTML = ''; G.ann.innerHTML = ''; G.legend.innerHTML = ''; }
-  function code(txtStr) { if (!txtStr) return; const t = el('text', { x: TR - 4, y: PB - 8, class: 'code', 'text-anchor': 'end' }, G.legend); t.textContent = txtStr; }
+  function code(txtStr) { if (!txtStr) return; const t = el('text', { x: TR - 4, y: PB - 8, class: 'svgcode', 'text-anchor': 'end' }, G.legend); t.textContent = txtStr; }
   const cursorLine = i => el('line', { class: 'cursor', x1: tx(i), x2: tx(i), y1: PT, y2: PB }, G.timeLines);
 
   function renderRaw(p) {
@@ -714,7 +726,7 @@ window.ECG = [0,0,0,0,0,0.0044,0.0153,0.024,0.037,0.0414,0.0458,0.0501,0.0523,0.
     overview(noisy, 'var(--ink-3)');
     el('path', { d: timePath(noisy, a, c), fill: 'none', stroke: 'var(--clean)', 'stroke-width': 1.1 }, G.timeLines);
     if (p < 1) cursorLine(c);
-    legend([{ color: 'var(--clean)', label: 'input (contaminated ECG)' }, { color: 'var(--noise)', label: 'baseline drift component', dash: true }]); code(STEPS[0].code);
+    legend([{ color: 'var(--clean)', label: 'input (contaminated ECG)' }, { color: 'var(--noise)', label: 'baseline drift component', dash: true }]); code(STEPS[0].svgCode);
     specLegend([{ color: 'var(--ink-2)', label: 'spectrum of input' }, { color: 'var(--noise)', label: 'noise bands' }, { color: 'var(--band)', label: 'shaded: where noise sits', box: true }]);
     // spectrum with noise bands painted
     curSpec = SPEC.noisy; hoverSeries = [{ name: 'raw', arr: noisy, color: '#444444' }];
@@ -769,7 +781,6 @@ window.ECG = [0,0,0,0,0,0.0044,0.0153,0.024,0.037,0.0414,0.0458,0.0501,0.0523,0.
     }
     if (sweep > 0 && sweep < 1) cursorLine(c);
     legend([{ color: '#8c8c8c', label: 'input' }, { color: 'var(--out)', label: `output of ${st.name}` }, { color: 'var(--noise)', label: 'removed component' }]);
-    code(`butter(${st.order}, ${st.arg}) → filtfilt`);
     curSpec = rp >= 1 ? specAfter : specBefore;
     hoverSeries = [{ name: 'before', arr: st.input, color: '#8c8c8c' }, { name: 'after', arr: st.sig, color: '#2a78d6' }];
   }
@@ -790,7 +801,6 @@ window.ECG = [0,0,0,0,0,0.0044,0.0153,0.024,0.037,0.0414,0.0458,0.0501,0.0523,0.
     const a = i0(), b = i1(); const T = tuned();
     overview(T.out, 'var(--out)');
     el('path', { d: timePath(T.out, a, b), fill: 'none', stroke: 'var(--out)', 'stroke-width': 2 }, G.timeLines);
-    code(`butter(2, ${fHP}/nyq, 'highpass') → notch 58–62 → butter(4, ${fLP}/nyq, 'lowpass')`);
     bandRects(stopBands(T.sosHP), 'var(--band)'); bandRects(stopBands(T.sosLP), 'var(--band)');
     el('path', { d: specPath(T.spec), fill: 'none', stroke: 'var(--out)', 'stroke-width': 1.6 }, G.specLines);
     el('path', { d: respPath(T.sosHP), fill: 'none', stroke: 'var(--ink)', 'stroke-width': 1.4, 'stroke-dasharray': '6 3' }, G.specLines);
@@ -820,6 +830,8 @@ window.ECG = [0,0,0,0,0,0.0044,0.0153,0.024,0.037,0.0414,0.0458,0.0501,0.0523,0.
   function setText(def) {
     $('title').innerHTML = txt(def.title) + `<span class="tag">${txt(def.tag)}</span>`;
     $('subtitle').textContent = txt(def.subtitle);
+    const code = txt(def.code);
+    $('code').hidden = !code; $('code').innerHTML = code || '';
     $('counter').textContent = `${step + 1} / ${STEPS.length}`;
     $('stage').value = step;
   }
@@ -827,6 +839,8 @@ window.ECG = [0,0,0,0,0,0.0044,0.0153,0.024,0.037,0.0414,0.0458,0.0501,0.0523,0.
     step = k; const def = STEPS[step];
     stopPlay();
     applyPreset(def); syncViewControls(); drawXAxis();
+    // the cutoff dials only drive the final (tune) step; stages 1-3 use the fixed chain from the notes
+    ['hpc', 'lpc'].forEach(id => { $(id).closest('.group').hidden = def.kind !== 'tune'; });
     setText(def);
     try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {}
     renderPipe(def);

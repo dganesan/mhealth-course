@@ -44,6 +44,10 @@
     margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px;
   }
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .code[hidden] { display: none; }
+  .code .p { color: var(--ma); font-weight: 700; }
+  .code .k { color: var(--ink-2); }
   .counter { flex: 0 0 auto; text-align: right; font-family: var(--mono); line-height: 1.1; min-width: 200px; }
   .counter .lbl { font-family: var(--sans); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
   .counter .big { font-size: clamp(34px, 4vw, 52px); font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
@@ -53,7 +57,7 @@
   .counter .sub b { color: var(--ink); font-weight: 700; }
 
   .chart-wrap { position: relative; min-height: 0; }
-  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  svg.chart { display: block; width: 100%; height: auto; max-height: calc(100vh - 360px); overflow: visible; }
   .tt {
     position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule);
     border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink);
@@ -75,7 +79,7 @@
   button:hover, select:hover { border-color: var(--ink); }
   button.primary { background: var(--ma); color: #fff; border-color: var(--ma); min-width: 88px; font-weight: 700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--ma); outline-offset: 2px; }
-  input[type=range] { accent-color: var(--ma); width: 200px; height: 30px; cursor: pointer; }
+  input[type=range] { accent-color: var(--ma); width: 150px; height: 30px; cursor: pointer; }
   input[type=checkbox] { accent-color: var(--ma); width: 18px; height: 18px; }
   .hint { margin-left: auto; color: var(--ink-2); font-size: 12px; }
   .hint kbd { font-family: var(--mono); background: #fff; border: 1px solid var(--rule); border-radius: 3px; padding: 0 5px; font-size: 11px; }
@@ -89,7 +93,7 @@
   .out-line { fill: none; stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; }
   .pk-x { stroke-width: 2; stroke-linecap: round; }
   .pk-o { fill: none; stroke-width: 2; }
-  .ripple { fill: none; stroke-width: 1.4; stroke-dasharray: 2 2; }
+  .ripple { stroke: #fff; stroke-width: 1.2; }
   .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
   .ann text { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
   .ann line, .ann path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
@@ -119,6 +123,7 @@
       <div>
         <h1 id="title">Local maxima of the raw magnitude</h1>
         <p id="subtitle"></p>
+      <pre class="code" id="code" hidden></pre>
       </div>
       <div class="counter">
         <div class="lbl">detected peaks</div>
@@ -457,6 +462,8 @@
 
   // ------------------------------------------------------------ steps
   const fmt1 = v => (Math.round(v * 10) / 10).toFixed(1);
+  const P = v => `<b class="p">${v}</b>`;
+  const rollingLine = w => `ma = data.rolling(window=${P(w)}, center=${P('True')}).mean()`;
   const steps = [
     {
       id: 'raw', title: 'Local maxima of the raw magnitude',
@@ -468,31 +475,36 @@
       id: 'ma5', title: () => `Peaks after a ${W_LIVE()}-sample moving average`, preset: { win: 5 },
       tag: () => `w = ${W_LIVE()}`,
       subtitle: () => `How the moving average changes the trace and the counted peaks.`,
+      code: () => rollingLine(currentW()),
       formula: () => `s[i] = (1/${W_LIVE()}) · Σ x[i+k],  k = −${(W_LIVE() - 1) / 2} … ${(W_LIVE() - 1) / 2}`
     },
     {
       id: 'sweep', title: 'Peak count as a function of window length',
       tag: () => `w = 1, 3, 5, … 51`,
       subtitle: () => `How the peak count changes as the window length grows.`,
+      code: () => rollingLine(currentW()),
       formula: () => `count[w] = len(find_peaks(moving_average(x, w)))`
     },
     {
       id: 'big', title: 'Over-smoothing merges adjacent steps', preset: { win: 51 },
       tag: () => `w = ${W_LIVE()} = ${(W_LIVE() / FS).toFixed(2)} s`,
       subtitle: () => `How an overly long window merges neighbouring steps into one hump.`,
+      code: () => rollingLine(currentW()),
       formula: () => `window = ${W_LIVE()} / ${FS} Hz = ${(W_LIVE() / FS).toFixed(2)} s ≈ ${(W_LIVE() / periodSamples).toFixed(1)} T`
     },
     {
       id: 'rule', title: 'Window length relative to the step period', preset: { win: wRule },
       tag: () => `T ≈ ${(periodSamples / FS).toFixed(2)} s · w = ${W_LIVE()}`,
       subtitle: () => `Comparing window lengths with the length of one step period.`,
+      code: () => rollingLine(currentW()),
       formula: () => `w ≈ ¼T … ½T = ${Math.round(periodSamples / 4)} … ${Math.round(periodSamples / 2)} samples`
     },
     {
       id: 'lp', title: () => `A ${CUT_LIVE()} Hz Butterworth low-pass for comparison`, preset: { cut: 3, win: wBest },
       tag: () => `order 4 · zero-phase · w = ${W_LIVE()}`,
       subtitle: () => `Comparing a Butterworth low-pass with the moving average on the same trace.`,
-      formula: () => `filtfilt(butter(4, ${CUT_LIVE()} / (fs/2), 'lowpass'), mag)`
+      code: () => `b, a = butter(4, ${P(CUT_LIVE())}/nyq, btype='lowpass');  y = filtfilt(b, a, x)`,
+      formula: () => ''
     }
   ];
 
@@ -577,14 +589,14 @@
       if (rip) ripples++;
       const cx = xs(i), cy = ys(y[i]);
       if (kind === 'o') el('circle', { class: 'pk-o', cx, cy, r: 6, stroke: color }, G.peaks);
-      else if (rip && kind === 'x-rip') el('circle', { class: 'ripple', cx, cy, r: 6, stroke: color }, G.peaks);
+      else if (rip && kind === 'x-rip') el('circle', { class: 'ripple', cx, cy, r: 5.5, fill: color }, G.peaks);
       else el('path', { class: 'pk-x', d: `M${cx - 4},${cy - 4}L${cx + 4},${cy + 4}M${cx - 4},${cy + 4}L${cx + 4},${cy - 4}`, stroke: color }, G.peaks);
     });
     return { n, ripples };
   }
   function setCount(n, ripples, cls) {
     const c = $('count'); c.textContent = n; c.className = 'big' + (cls ? ' ' + cls : '');
-    $('ripples').textContent = ripples > 0 ? `· ${ripples} ripple${ripples === 1 ? '' : 's'} < ${RIPPLE} m/s²` : '';
+    $('ripples').textContent = ripples > 0 ? `· ${ripples} false peak${ripples === 1 ? '' : 's'} (bump < ${RIPPLE} m/s²)` : '';
   }
   function drawCurve(uptoIdx) {
     G.panelCurve.innerHTML = '';
@@ -630,7 +642,7 @@
       if (it.kind === 'line') el('line', { x1: cx, x2: cx + sw, y1: y, y2: y, stroke: c, 'stroke-width': 3 }, g);
       else if (it.kind === 'dash') el('line', { x1: cx, x2: cx + sw, y1: y, y2: y, stroke: c, 'stroke-width': 2, 'stroke-dasharray': '5 4' }, g);
       else if (it.kind === 'x') el('path', { d: `M${mx - 4},${y - 4}L${mx + 4},${y + 4}M${mx - 4},${y + 4}L${mx + 4},${y - 4}`, stroke: c, 'stroke-width': 2, fill: 'none' }, g);
-      else if (it.kind === 'ring') el('circle', { cx: mx, cy: y, r: 5, fill: 'none', stroke: c, 'stroke-width': 1.4, 'stroke-dasharray': '2 2' }, g);
+      else if (it.kind === 'disc') el('circle', { cx: mx, cy: y, r: 5, fill: c, stroke: '#fff', 'stroke-width': 1.2 }, g);
       else if (it.kind === 'o') el('circle', { cx: mx, cy: y, r: 5, fill: 'none', stroke: c, 'stroke-width': 2 }, g);
       else if (it.kind === 'dot') { el('line', { x1: cx, x2: cx + sw, y1: y, y2: y, stroke: c, 'stroke-width': 2 }, g); el('circle', { cx: mx, cy: y, r: 3.5, fill: c, stroke: '#fff', 'stroke-width': 1.5 }, g); }
       el('text', { x: cx + sw + 6, y: y + 4 }, g).textContent = it.name;
@@ -643,7 +655,7 @@
     const raw = { kind: 'line', color: 'var(--raw)', name: 'raw magnitude' };
     const ma = { kind: 'line', color: 'var(--ma)', name: `moving average w=${w}` };
     const pk = { kind: 'x', color: 'var(--bad)', name: 'detected peak' };
-    const rip = { kind: 'ring', color: 'var(--bad)', name: 'ripple peak (< 1 m/s²)' };
+    const rip = { kind: 'disc', color: 'var(--bad)', name: 'false peak (bump < 1 m/s²)' };
     let main;
     if (d.id === 'raw') main = [raw, pk];
     else if (d.id === 'lp') main = [raw, { kind: 'line', color: 'var(--lp)', name: `${CUT_LIVE()} Hz low-pass` }, { kind: 'o', color: 'var(--lp)', name: 'accepted step peak' }, ma];
@@ -657,6 +669,8 @@
     const d = steps[step];
     $('title').innerHTML = (typeof d.title === 'function' ? d.title() : d.title) + `<span class="tag">${d.tag()}</span>`;
     $('subtitle').textContent = d.subtitle();
+    const code = typeof d.code === 'function' ? d.code() : d.code;
+    $('code').hidden = !code; $('code').innerHTML = code || '';
     G.formula.textContent = d.formula();
   }
 

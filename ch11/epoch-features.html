@@ -20,13 +20,16 @@
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.4; padding-block: 18px 28px; padding-inline: 16px; -webkit-font-smoothing: antialiased; }
   .stage { max-width: 1200px; margin: 0 auto; display: grid; gap: 14px; }
-  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; min-height: 560px; position: relative; outline: none; cursor: pointer; user-select: none; }
+  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 26px 34px 16px; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none; }
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
   .head h1 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
   .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
   .chart-wrap { position: relative; min-height: 0; }
-  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .code[hidden] { display: none; }
+  .code .p { color: var(--ma); font-weight: 700; }
+  svg.chart { display: block; width: 100%; height: auto; max-height: calc(100vh - 360px); overflow: visible; }
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
@@ -40,7 +43,7 @@
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   .grid line { stroke: var(--grid); stroke-width: 1; }
@@ -59,6 +62,7 @@
     <div class="head">
       <h1 id="title"></h1>
       <p id="subtitle"></p>
+      <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
       <svg class="chart" id="chart" viewBox="0 0 1200 660" role="img" aria-label="Per-epoch motion features"></svg>
@@ -78,7 +82,7 @@
       <button id="reset" title="Reset all dials to defaults">Reset dials</button>
     </div>
     <div class="group">
-      <label for="thr">Activity-count threshold</label>
+      <label for="thr">Count threshold</label>
       <select id="thr">
         <option value="c01">0.01 g</option>
         <option value="c02">0.02 g</option>
@@ -87,9 +91,9 @@
       </select>
     </div>
     <div class="group">
-      <label for="roll">Rolling window (min)</label>
+      <label for="roll">Rolling window</label>
       <input type="range" id="roll" min="1" max="30" step="1" value="10">
-      <span class="val" id="rollVal">10</span>
+      <span class="val" id="rollVal">10 min</span>
     </div>
     <div class="group">
       <label for="yscale">Feature axis</label>
@@ -142,7 +146,7 @@
     const animated = () => frames() > 0;
     const done = () => !animated() || cursor >= frames() - 1;
     function applyPresets() { const p = steps[step].presets || {}; for (const id in p) { if (!dirty[id]) { const c = $(id); c.value = p[id]; cfg.onDial(id, c.value); } } }
-    function setHead() { const d = steps[step]; $('title').innerHTML = d.title + (d.tag ? `<span class="tag">${d.tag}</span>` : ''); $('subtitle').textContent = d.subtitle; $('counter').textContent = `${step + 1} / ${steps.length}`; try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {} }
+    function setHead() { const d = steps[step]; $('title').innerHTML = d.title + (d.tag ? `<span class="tag">${d.tag}</span>` : ''); $('subtitle').textContent = d.subtitle; const code = typeof d.code === 'function' ? d.code() : d.code; $('code').hidden = !code; $('code').innerHTML = code || ''; $('counter').textContent = `${step + 1} / ${steps.length}`; try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {} }
     function enterStep(k, completed = false) {
       step = k; stopPlay(); steps = cfg.steps(); applyPresets(); steps = cfg.steps(); setHead(); cursor = -1; cfg.enter(step);
       if (!animated() || completed || speed === 0 || reduceMotion) finish(); else { cfg.render(cursor, step); startPlay(); }
@@ -210,7 +214,7 @@
         subtitle: 'How the accelerometer samples in each epoch collapse to one MAD value.' },
       { title: 'Max, std, 95th percentile and activity count per epoch', tag: `threshold = ${thrVal().toFixed(2)} g`, frames: N, mode: 'multi', presets: { thr: 'cnt' },
         subtitle: 'How the same epoch window produces the max, std, percentile and activity count features.' },
-      { title: 'Rolling-mean MAD over the previous 10 minutes', tag: `window = ${rollMin} min = ${rollW()} epochs`, frames: N, mode: 'roll', presets: { roll: 10 },
+      { title: 'Rolling-mean MAD over the previous 10 minutes', tag: `window = ${rollMin} min = ${rollW()} epochs`, frames: N, mode: 'roll', presets: { roll: 10 }, code: `roll_mad = mad.rolling(window=<b class="p">${rollW()}</b>, min_periods=1).mean()`,
         subtitle: 'How a rolling mean over the preceding epochs smooths the MAD of each epoch.' },
     ];
   }
@@ -314,7 +318,7 @@
     const rows = mode === 'multi' ? ['mx', 'sd', 'p95', 'cnt'] : ['mad'];
     rows.forEach(k => { txt(G.zoom, zx0, ry, `${F[k].n} = ${F[k].fmt(F[k].get(i))} ${F[k].unit}`, { class: 'ann', 'font-size': 13, fill: k === 'mad' ? 'var(--ma)' : 'var(--ink)' }); ry += 18; });
     if (mode === 'mad') txt(G.zoom, zx0, ry, F.mad.formula, { class: 'ann', 'font-size': 12, fill: 'var(--ink-2)' });
-    if (mode === 'roll') { txt(G.zoom, zx0, ry, `rolling(${rollW()}, min_periods=1).mean()`, { class: 'ann', 'font-size': 12, fill: 'var(--ink-2)' }); txt(G.zoom, zx0, ry + 18, `= ${rollSeries[i].toFixed(4)} g`, { class: 'ann', 'font-size': 13, fill: 'var(--ma)' }); }
+    if (mode === 'roll') { txt(G.zoom, zx0, ry, `rolling mean = ${rollSeries[i].toFixed(4)} g`, { class: 'ann', 'font-size': 13, fill: 'var(--ma)' }); }
   }
 
   function render(cursor) {
@@ -368,7 +372,7 @@
 
   makeEngine({ steps, enter, render, speedDefault: '14',
     dials: [{ id: 'thr', def: 'cnt' }, { id: 'roll', def: 10 }, { id: 'yscale', def: 'lin' }],
-    onDial: (id, v) => { if (id === 'thr') thrKey = v; else if (id === 'roll') { rollMin = parseInt(v, 10); $('rollVal').textContent = rollMin; } else if (id === 'yscale') yscale = v; } });
+    onDial: (id, v) => { if (id === 'thr') thrKey = v; else if (id === 'roll') { rollMin = parseInt(v, 10); $('rollVal').textContent = rollMin + ' min'; } else if (id === 'yscale') yscale = v; } });
 
 })();
 </script>
