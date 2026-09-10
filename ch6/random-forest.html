@@ -10,7 +10,7 @@
   :root {
     color-scheme: light;
     --paper: #ffffff; --ink: #222222; --ink-2: #666666; --ink-3: #9a9a9a;
-    --rule: #dcdcdc; --grid: #ececec; --raw: #b4b4b4; --raw-dot: #8c8c8c; --clean: #444444;
+    --rule: #dcdcdc; --grid: #ececec; --raw: #8f8f8f; --raw-dot: #8c8c8c; --clean: #444444;
     --ma: #2a78d6; --med: #1baf7a; --wm: #4a3aa7; --ewma: #eb6834;
     --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
     --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
@@ -394,7 +394,7 @@ const TEST = [[9.429,3.051,0],[9.603,2.104,0],[9.644,1.394,0],[9.507,1.669,0],[9
       const cur = upto > 0 ? tree.order[upto - 1] : null;
       FEAT.forEach((f, k) => {
         const on = cur && cur.tried.includes(k), chosen = cur && cur.feat === k;
-        el('rect', { x: RX + k * 170, y: 56, width: 150, height: 40, rx: 6, fill: on ? '#e4eefb' : '#fff', stroke: on ? '#2a78d6' : '#b4b4b4', 'stroke-width': chosen ? 2.5 : 1.2 }, root);
+        el('rect', { x: RX + k * 170, y: 56, width: 150, height: 40, rx: 6, fill: on ? '#e4eefb' : '#fff', stroke: on ? '#2a78d6' : '#8f8f8f', 'stroke-width': chosen ? 2.5 : 1.2 }, root);
         text(RX + k * 170 + 75, 81, f, { class: 'dlabel', 'text-anchor': 'middle', fill: on ? '#2a78d6' : '#9a9a9a', 'font-size': 15 }, root);
       });
       if (cur) text(RX, 128, `split ${upto}:  ${FEAT[cur.feat]} ≤ ${cur.thr.toFixed(2)}`, { class: 'mono', 'font-size': 15 }, root);

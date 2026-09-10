@@ -10,7 +10,7 @@
   :root {
     color-scheme: light;
     --paper: #ffffff; --ink: #222222; --ink-2: #666666; --ink-3: #9a9a9a;
-    --rule: #dcdcdc; --grid: #ececec; --raw: #b4b4b4; --raw-dot: #8c8c8c; --clean: #444444;
+    --rule: #dcdcdc; --grid: #ececec; --raw: #8f8f8f; --raw-dot: #8c8c8c; --clean: #444444;
     --window: rgba(34, 34, 34, 0.06); --window-edge: #222222;
     --ma: #2a78d6; --med: #1baf7a; --wm: #4a3aa7; --ewma: #eb6834;
     --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
@@ -441,7 +441,7 @@ const svgNS = 'http://www.w3.org/2000/svg';
 const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
 const txt = (parent, x, y, s, attrs = {}) => { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; };
 const chart = $('chart'), tt = $('tt');
-const C = { blue: '#2a78d6', green: '#1baf7a', violet: '#4a3aa7', red: '#eb6834', grey: '#b4b4b4', greyDot: '#8c8c8c', ink: '#222', ink2: '#666', ink3: '#9a9a9a' };
+const C = { blue: '#2a78d6', green: '#1baf7a', violet: '#4a3aa7', red: '#eb6834', grey: '#8f8f8f', greyDot: '#8c8c8c', ink: '#222', ink2: '#666', ink3: '#9a9a9a' };
 const fmt = (v, d = 2) => (Math.round(v * Math.pow(10, d)) / Math.pow(10, d)).toFixed(d);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 function niceTicks(lo, hi, n = 6) {

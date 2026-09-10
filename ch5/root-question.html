@@ -10,7 +10,7 @@
   :root {
     color-scheme: light;
     --paper: #ffffff; --ink: #222222; --ink-2: #666666; --ink-3: #9a9a9a;
-    --rule: #dcdcdc; --grid: #ececec; --raw: #b4b4b4; --raw-dot: #8c8c8c; --clean: #444444;
+    --rule: #dcdcdc; --grid: #ececec; --raw: #8f8f8f; --raw-dot: #8c8c8c; --clean: #444444;
     --ma: #2a78d6; --med: #1baf7a; --wm: #4a3aa7; --ewma: #eb6834;
     --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
     --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
@@ -417,7 +417,7 @@
         // bar on the right
         const bh2 = 34, yb = CY0 + 24 + ci * ((CY1 - CY0 - 24) / k);
         const frac = ci < shown - 1 || c >= d.frames ? 1 : (c - ci);
-        el('rect', { x: CX0, y: yb, width: Math.max(0, G.gx(cand.gain) - CX0) * frac, height: bh2, fill: isBest ? 'var(--ma)' : '#b4b4b4', rx: 2 }, G.curve);
+        el('rect', { x: CX0, y: yb, width: Math.max(0, G.gx(cand.gain) - CX0) * frac, height: bh2, fill: isBest ? 'var(--ma)' : '#8f8f8f', rx: 2 }, G.curve);
         txt(CX0 + 8, yb + bh2 / 2 + 5, cand.A.name, 'lab b', { fill: isBest ? '#fff' : 'var(--ink)' }, G.curve);
         if (frac >= 1) txt(G.gx(cand.gain) + 8, yb + bh2 / 2 + 5, f2(cand.gd), 'num', {}, G.curve);
       }

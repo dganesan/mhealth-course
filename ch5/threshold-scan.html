@@ -10,7 +10,7 @@
   :root {
     color-scheme: light;
     --paper: #ffffff; --ink: #222222; --ink-2: #666666; --ink-3: #9a9a9a;
-    --rule: #dcdcdc; --grid: #ececec; --raw: #b4b4b4; --raw-dot: #8c8c8c; --clean: #444444;
+    --rule: #dcdcdc; --grid: #ececec; --raw: #8f8f8f; --raw-dot: #8c8c8c; --clean: #444444;
     --ma: #2a78d6; --med: #1baf7a; --wm: #4a3aa7; --ewma: #eb6834;
     --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
     --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
@@ -391,7 +391,7 @@
       if (node.leaf || depth >= shown) {
         const k = node.leaf ? node.cls : node.ct.indexOf(Math.max(...node.ct));
         const pure = node.h === 0;
-        el('rect', { x: xm(box.x0), y: ys(box.y1), width: xm(box.x1) - xm(box.x0), height: ys(box.y0) - ys(box.y1), fill: pure ? CCOL[k] : '#b4b4b4', opacity: pure ? .18 : .12 }, G.regions);
+        el('rect', { x: xm(box.x0), y: ys(box.y1), width: xm(box.x1) - xm(box.x0), height: ys(box.y0) - ys(box.y1), fill: pure ? CCOL[k] : '#8f8f8f', opacity: pure ? .18 : .12 }, G.regions);
         if (depth > 0) txt(xm(box.x0) + 8, ys(box.y0) - 8, pure ? `${CLS[k]} (n=${node.n})` : `mixed: ${node.ct.join(' · ')}`, 'lab b', { fill: pure ? CCOL[k] : 'var(--ink-2)' }, G.regions);
         return;
       }

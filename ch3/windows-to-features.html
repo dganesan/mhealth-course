@@ -15,7 +15,7 @@
     --ink-3: #9a9a9a;
     --rule: #dcdcdc;
     --grid: #ececec;
-    --raw: #b4b4b4;
+    --raw: #8f8f8f;
     --raw-dot: #8c8c8c;
     --clean: #444444;
     --window: rgba(34, 34, 34, 0.06);
@@ -198,7 +198,7 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
   const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
   const txt = (parent, x, y, s, attrs = {}) => { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; };
   const fmt = (v, d = 2) => (Math.round(v * Math.pow(10, d)) / Math.pow(10, d)).toFixed(d);
-  const COL = { blue: '#2a78d6', red: '#eb6834', green: '#1baf7a', violet: '#4a3aa7', raw: '#b4b4b4', ink: '#222222', ink2: '#666666', ink3: '#9a9a9a' };
+  const COL = { blue: '#2a78d6', red: '#eb6834', green: '#1baf7a', violet: '#4a3aa7', raw: '#8f8f8f', ink: '#222222', ink2: '#666666', ink3: '#9a9a9a' };
   const ACT_COL = { Walking: COL.blue, Sitting: COL.red };
 
   // axes: thin grid, mono ticks, 12 px sans titles

@@ -15,7 +15,7 @@
     --ink-3: #9a9a9a;
     --rule: #dcdcdc;
     --grid: #ececec;
-    --raw: #b4b4b4;
+    --raw: #8f8f8f;
     --raw-dot: #8c8c8c;
     --clean: #444444;
     --ma: #2a78d6;
@@ -165,7 +165,7 @@
   const text = (x, y, s, attrs = {}, parent) => { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; };
   const $ = id => document.getElementById(id);
   const chart = $('chart');
-  const C = { train: '#2a78d6', val: '#eb6834', test: '#ffffff', testEdge: '#444444', none: '#b4b4b4', ink: '#222222', ink2: '#666666', ink3: '#9a9a9a' };
+  const C = { train: '#2a78d6', val: '#eb6834', test: '#ffffff', testEdge: '#444444', none: '#8f8f8f', ink: '#222222', ink2: '#666666', ink3: '#9a9a9a' };
   const pct = v => (100 * v).toFixed(1) + '%';
   const f3 = v => v.toFixed(3);
 

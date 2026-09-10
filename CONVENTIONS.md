@@ -24,7 +24,7 @@ CSS verbatim where possible. Key facts of the template:
 - White ground, Helvetica Neue bold titles (#222), grey #666 secondary, Menlo for math/numbers,
   matplotlib-like axes: thin grey grid, mono tick labels, axis titles in 12 px sans.
 - Colors: blue #2a78d6 (primary series / controls accent), green #1baf7a, violet #4a3aa7,
-  orange-red #eb6834 (noise, errors, "bad"), grey #b4b4b4 raw input, dashed #444 clean target.
+  orange-red #eb6834 (noise, errors, "bad"), grey #8f8f8f raw input, dashed #444 clean target.
   Categorical classes: blue, orange-red, green, violet in that order.
 - Footer line "CS328 · <Chapter title>" left, "n / N" counter right (mono).
 - Every page: `<title>` first, then `<style>`, no doctype/html/head/body tags (the wrapper adds

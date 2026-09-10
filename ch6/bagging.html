@@ -10,7 +10,7 @@
   :root {
     color-scheme: light;
     --paper: #ffffff; --ink: #222222; --ink-2: #666666; --ink-3: #9a9a9a;
-    --rule: #dcdcdc; --grid: #ececec; --raw: #b4b4b4; --raw-dot: #8c8c8c; --clean: #444444;
+    --rule: #dcdcdc; --grid: #ececec; --raw: #8f8f8f; --raw-dot: #8c8c8c; --clean: #444444;
     --ma: #2a78d6; --med: #1baf7a; --wm: #4a3aa7; --ewma: #eb6834;
     --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
     --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
@@ -402,7 +402,7 @@ const TEST = [[9.429,3.051,0],[9.603,2.104,0],[9.644,1.394,0],[9.507,1.669,0],[9
       const bw = HP.w / 5;
       ['0', '1', '2', '3', '4+'].forEach((lab, k) => {
         const hgt = hist[k] / 150 * HP.h;
-        el('rect', { x: HP.x + k * bw + 8, y: HP.y + HP.h - hgt, width: bw - 16, height: hgt, fill: k === 0 ? '#b4b4b4' : '#2a78d6', opacity: k === 0 ? 0.8 : 0.85 }, root);
+        el('rect', { x: HP.x + k * bw + 8, y: HP.y + HP.h - hgt, width: bw - 16, height: hgt, fill: k === 0 ? '#8f8f8f' : '#2a78d6', opacity: k === 0 ? 0.8 : 0.85 }, root);
         text(HP.x + k * bw + bw / 2, HP.y + HP.h + 16, lab, { 'text-anchor': 'middle' }, axis);
         if (hist[k]) text(HP.x + k * bw + bw / 2, HP.y + HP.h - hgt - 5, hist[k], { class: 'mono', 'text-anchor': 'middle', 'font-size': 12 }, root);
       });

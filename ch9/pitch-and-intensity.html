@@ -10,7 +10,7 @@
   :root {
     color-scheme: light;
     --paper: #ffffff; --ink: #222222; --ink-2: #666666; --ink-3: #9a9a9a;
-    --rule: #dcdcdc; --grid: #ececec; --raw: #b4b4b4; --raw-dot: #8c8c8c; --clean: #444444;
+    --rule: #dcdcdc; --grid: #ececec; --raw: #8f8f8f; --raw-dot: #8c8c8c; --clean: #444444;
     --ma: #2a78d6; --med: #1baf7a; --wm: #4a3aa7; --ewma: #eb6834;
     --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
     --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
@@ -45,7 +45,7 @@
   .axis text { font-family: var(--mono); font-size: 12px; fill: var(--ink-2); }
   .axis-title { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
   .ptitle { font-family: var(--sans); font-size: 13px; font-weight: 700; fill: var(--ink); }
-  .wave-fill { fill: #b4b4b4; stroke: none; }
+  .wave-fill { fill: #8f8f8f; stroke: none; }
   .win-rect { fill: rgba(42,120,214,.15); stroke: var(--ma); stroke-width: 1.5; }
   .pitch-line { fill: none; stroke: var(--ma); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
   .int-line { fill: none; stroke: var(--ewma); stroke-width: 2.2; stroke-dasharray: 6 4; stroke-linejoin: round; }
@@ -253,7 +253,7 @@
       const k = Math.max(0, Math.min(c.T - 1, cur - 1));
       const g = el('g', {}, chart); wavePanel(g, c, 40, 300, `waveform: ${c.name}`);
       if (cur < c.T) windowRect(g, c, k, 40, 300, rmsMs);
-      legend(g, PL + 8, 46, [{ c: '#b4b4b4', n: 'waveform', box: true }, { c: 'rgba(42,120,214,.3)', s: 'var(--ma)', n: `RMS window (${rmsMs} ms)`, box: true }]);
+      legend(g, PL + 8, 46, [{ c: '#8f8f8f', n: 'waveform', box: true }, { c: 'rgba(42,120,214,.3)', s: 'var(--ma)', n: `RMS window (${rmsMs} ms)`, box: true }]);
       const g2 = el('g', {}, chart); contourPanel(g2, c, 380, 620, 'int', cur, true);
       legend(g2, PL + 8, 386, [{ c: 'var(--ewma)', n: 'intensity = 20·log10(RMS)', dash: true }]);
       el('text', { x: PL + PW - 8, y: 402, class: 'mono', 'text-anchor': 'end' }, g2).textContent = 'RMS = sqrt( (1/N) Σ x[i]² )';
@@ -263,7 +263,7 @@
       const k = Math.max(0, Math.min(c.T - 1, cur - 1));
       const g = el('g', {}, chart); wavePanel(g, c, 30, 190, `waveform: ${c.name}`);
       if (cur < c.T) windowRect(g, c, k, 30, 190, 46);
-      legend(g, PL + 8, 36, [{ c: '#b4b4b4', n: 'waveform', box: true }, { c: 'rgba(42,120,214,.3)', s: 'var(--ma)', n: 'current 46-ms window', box: true }]);
+      legend(g, PL + 8, 36, [{ c: '#8f8f8f', n: 'waveform', box: true }, { c: 'rgba(42,120,214,.3)', s: 'var(--ma)', n: 'current 46-ms window', box: true }]);
       const g2 = el('g', {}, chart); zoomPanel(g2, c, cur < c.T ? k : c.T - 1, 250, 380);
       const g3 = el('g', {}, chart); contourPanel(g3, c, 460, 640, 'pitch', cur, true);
       legend(g3, PL + 8, 466, [{ c: 'var(--ma)', n: 'pitch F₀ (Hz), voiced windows only' }]);
@@ -283,7 +283,7 @@
         let dd = '', pen = false; for (let j = 0; j < up; j++) { const v = c.f0[j]; if (v == null) { pen = false; continue; } dd += (pen ? 'L' : 'M') + tx(c.times[j]).toFixed(1) + ',' + yy(v).toFixed(1); pen = true; }
         if (dd) el('path', { class: 'pitch-line', d: dd }, g);
         if (up > 0 && up < c.T && c.f0[k] != null) el('circle', { cx: tx(c.times[k]), cy: yy(c.f0[k]), r: 5, fill: 'var(--ma)', stroke: '#fff', 'stroke-width': 1.5 }, g);
-        legend(g, PL + PW - 275, wy0 + 6, [{ c: '#b4b4b4', n: 'waveform', box: true }, { c: 'var(--ma)', n: 'pitch F₀ (Hz, right axis)' }, { c: 'var(--ewma)', n: 'intensity (dB, panel below)', dash: true }]);
+        legend(g, PL + PW - 275, wy0 + 6, [{ c: '#8f8f8f', n: 'waveform', box: true }, { c: 'var(--ma)', n: 'pitch F₀ (Hz, right axis)' }, { c: 'var(--ewma)', n: 'intensity (dB, panel below)', dash: true }]);
         const g2 = el('g', {}, chart); contourPanel(g2, c, iy0, iy1, 'int', up, r === 1);
       });
       hoverFn = null;
