@@ -44,8 +44,9 @@
   .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
   .lane-lab { font-family: var(--mono); font-size: 15px; font-weight: 700; }
   .lane-sub { font-family: var(--sans); font-size: 15px; fill: var(--ink-2); }
-  .plus { font-family: var(--sans); font-size: 34px; font-weight: 700; fill: var(--ink-3); }
+  .plus { font-family: var(--sans); font-size: 46px; font-weight: 700; fill: #c8c8c8; }
   .plus.on { fill: var(--ink); }
+  .lane-hi { fill: #eef4fc; }
   .trace { fill: none; stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; }
   .faint { fill: none; stroke: var(--raw); stroke-width: 1.4; opacity: .55; }
   .stem { stroke-width: 4; stroke-linecap: round; }
@@ -175,6 +176,7 @@ function pathOf(ys, sy, upto) { let d = ''; const n = upto == null ? N : upto; f
 
 function drawLane(box, comp, k, upto, opts = {}) {
   const g = el('g', {}, chart);
+  if (opts.hi) el('rect', { x: box.x - 4, y: box.y - 4, width: box.w + 8, height: box.h + 8, rx: 4, class: 'lane-hi' }, g);
   const amp = Math.max(0.5, comp.A * 1.15);
   const lo = comp.f === 0 ? comp.A - amp : -amp, hi = comp.f === 0 ? comp.A + amp : amp;
   const sy = yScale(box, lo, hi);
@@ -184,7 +186,7 @@ function drawLane(box, comp, k, upto, opts = {}) {
   txt(g, box.x - 12, box.y + box.h / 2 - 4, lab, { class: 'lane-lab', fill: COL[k], 'text-anchor': 'end' });
   txt(g, box.x - 12, box.y + box.h / 2 + 15, `A = ${fmt(comp.A, 1)}`, { class: 'lane-sub', 'text-anchor': 'end' });
   if (opts.faint) el('path', { d: pathOf(comp.y, sy), class: 'faint' }, g);
-  el('path', { d: pathOf(comp.y, sy, upto), class: 'trace', stroke: COL[k], opacity: opts.dim ? .35 : 1 }, g);
+  el('path', { d: pathOf(comp.y, sy, upto), class: 'trace', stroke: COL[k], opacity: opts.dim ? .25 : 1, 'stroke-width': opts.hi ? 3.2 : 2.4 }, g);
   return g;
 }
 function drawSum(box, ys, upto, opts = {}) {
@@ -199,17 +201,18 @@ function drawSum(box, ys, upto, opts = {}) {
   for (let t = 0; t <= DUR; t++) { el('line', { x1: xs(t), x2: xs(t), y1: box.y, y2: box.y + box.h }, gr); txt(ax, xs(t), box.y + box.h + 20, t, { 'text-anchor': 'middle' }); }
   txt(g, box.x + box.w, box.y + box.h + 20, 'time (s)', { class: 'axis-title', 'text-anchor': 'end', dx: -40 });
   txt(g, box.x - 66, box.y + box.h / 2 - 4, opts.label || 'sum', { class: 'lane-lab', fill: 'var(--ink)', 'text-anchor': 'end' });
-  if (opts.sub) txt(g, box.x - 66, box.y + box.h / 2 + 15, opts.sub, { class: 'lane-sub', 'text-anchor': 'end' });
+  if (opts.sub) txt(g, box.x - 66, box.y + box.h / 2 + 15, opts.sub, { class: 'lane-sub', 'text-anchor': 'end', fill: opts.color || 'var(--ink-2)', 'font-weight': opts.color ? 700 : 400 });
   const cid = 'clip' + Math.random().toString(36).slice(2, 8);
   el('rect', { x: box.x, y: box.y - 2, width: box.w, height: box.h + 4 }, el('clipPath', { id: cid }, g));
   const cg = el('g', { 'clip-path': `url(#${cid})` }, g);
   if (opts.prev) el('path', { d: pathOf(opts.prev, sy), class: 'faint' }, cg);
-  el('path', { d: pathOf(ys, sy, upto), class: 'trace', stroke: 'var(--ink)', 'stroke-width': 2.6 }, cg);
+  el('path', { d: pathOf(ys, sy, upto), class: 'trace', stroke: opts.color || 'var(--ink)', 'stroke-width': 3 }, cg);
   return g;
 }
-function drawPlus(boxAbove, boxBelow, k, on, sign = '+') {
-  const y = (boxAbove.y + boxAbove.h + boxBelow.y) / 2 + 12;
-  txt(chart, LX - 64, y, sign, { class: 'plus' + (on ? ' on' : ''), 'text-anchor': 'middle' });
+function drawPlus(boxAbove, boxBelow, k, on, sign = '+', color) {
+  const y = (boxAbove.y + boxAbove.h + boxBelow.y) / 2 + 16;
+  const t = txt(chart, LX - 64, y, sign, { class: 'plus' + (on ? ' on' : ''), 'text-anchor': 'middle' });
+  if (color) t.setAttribute('fill', color);
 }
 function drawSpectrum(m, opts = {}) {
   const box = { x: SX, y: 60, w: SW, h: 400 };
@@ -265,12 +268,12 @@ const STEPS = [
       chart.innerHTML = '';
       const K = COMP.length, { lanes, sum } = laneBoxes(K);
       const per = 1 / K, m = Math.min(K, Math.floor(p * K)), q = clamp((p - m * per) / per, 0, 1);
-      COMP.forEach((c, k) => drawLane(lanes[k], c, k, N, { dim: k > m }));
-      for (let k = 0; k + 1 < lanes.length; k++) drawPlus(lanes[k], lanes[k + 1], k, k + 1 <= m, '+');
-      drawPlus(lanes[K - 1], sum, 0, m >= K, '=');
       const done = m >= K;
+      COMP.forEach((c, k) => drawLane(lanes[k], c, k, N, { dim: k > m, hi: !done && k === m }));
+      for (let k = 0; k + 1 < lanes.length; k++) drawPlus(lanes[k], lanes[k + 1], k, k + 1 <= m, '+', !done && k + 1 === m ? COL[m] : null);
+      drawPlus(lanes[K - 1], sum, 0, m >= K, '=', !done && m === 0 ? COL[0] : null);
       const ys = done ? SUM : partialSum(m + 1), prev = done || m === 0 ? null : partialSum(m);
-      drawSum(sum, ys, done ? N : Math.max(2, Math.round(q * N)), { label: done ? 'sum' : `sum of ${m + 1}`, sub: done ? `${K} sinusoids` : `adding ${fmt(COMP[m].f, 1)} Hz`, prev });
+      drawSum(sum, ys, done ? N : Math.max(2, Math.round(q * N)), { label: done ? 'sum' : `sum of ${m + 1}`, sub: done ? `${K} sinusoids` : `adding ${COMP[m].name || fmt(COMP[m].f, 1) + ' Hz'}`, prev, color: done ? null : COL[m] });
       drawSpectrum(done ? K : m + (q >= 1 ? 1 : 0));
     }
   },

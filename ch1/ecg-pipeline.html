@@ -87,6 +87,7 @@
   button.on { background:#eef4fc; border-color:var(--ma); color:var(--ma); font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
   input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
+  input[type=range] { width: 120px; }
   .group[hidden] { display: none; }
   input[type=checkbox] { accent-color:var(--ma); width:18px; height:18px; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
@@ -125,7 +126,7 @@
       <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1240 540" role="img" aria-label="ECG time trace and spectrum"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1400 540" role="img" aria-label="ECG time trace and spectrum"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="pipe" id="pipe"></div>
@@ -162,12 +163,12 @@
       <span class="val" id="posv">2.0 s</span>
     </div>
     <div class="group">
-      <label for="hpc">High-pass cutoff</label>
+      <label for="hpc">HP cutoff</label>
       <input type="range" id="hpc" min="0" max="1" step="0.005" value="0.5">
       <span class="val" id="hpv">0.50 Hz</span>
     </div>
     <div class="group">
-      <label for="lpc">Low-pass cutoff</label>
+      <label for="lpc">LP cutoff</label>
       <input type="range" id="lpc" min="20" max="400" step="5" value="150">
       <span class="val" id="lpv">150 Hz</span>
     </div>
@@ -527,11 +528,11 @@ window.ECG = [0,0,0,0,0,0.0044,0.0153,0.024,0.037,0.0414,0.0458,0.0501,0.0523,0.
   const txt = v => typeof v === 'function' ? v() : v;
 
   // ------------------------------------------------------------ layout
-  const W = 1240, H = 540;
-  const TL = 84, TR = 790;               // time plot x range
+  const W = 1400, H = 540;
+  const TL = 84, TR = 830;               // time plot x range
   const OV0 = 6, OV1 = 38;               // overview strip y range
-  const PT = 66, PB = 470;               // plot y range (shared)
-  const SL = 886, SR = W - 30;             // spectrum x range
+  const PT = 112, PB = 470;             // legend rows sit between the panel title and the plot               // plot y range (shared)
+  const SL = 960, SR = W - 30;             // spectrum x range
   const FMAX = 250, DBLO = -90, DBHI = 5;
   const svgNS = 'http://www.w3.org/2000/svg';
   const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
@@ -666,8 +667,21 @@ window.ECG = [0,0,0,0,0,0.0044,0.0153,0.024,0.037,0.0414,0.0458,0.0501,0.0523,0.
       const t = el('text', { x: x + 22, y: y + 4 }, group); t.textContent = it.label;
     });
   }
-  function legend(items) { G.legend.innerHTML = ''; legendBox(G.legend, TL + 6, PT + 6, items, false); }
-  function specLegend(items) { const g = el('g', { class: 'lg' }, G.specLines); const h = items.length * 17 + 10; legendBox(g, SR - 6, PB - 6 - h, items, true); }
+  function legendRow(group, x0, yTop, maxW, items) {
+    const rowH = 22, gap = 22, sw = 18;
+    let x = x0, y = yTop;
+    items.forEach(it => {
+      const w = sw + 8 + it.label.length * 8.6;
+      if (x > x0 && x + w > x0 + maxW) { x = x0; y += rowH; }
+      if (it.box) el('rect', { x, y: y - 5, width: sw, height: 10, fill: it.color, stroke: 'var(--noise)', 'stroke-width': .5 }, group);
+      else if (it.dot) el('circle', { cx: x + sw / 2, cy: y, r: 3.5, fill: it.color }, group);
+      else el('line', { x1: x, x2: x + sw, y1: y, y2: y, stroke: it.color, 'stroke-width': it.dash ? 1.5 : 3, 'stroke-dasharray': it.dash ? '4 3' : 'none' }, group);
+      const t = el('text', { x: x + sw + 8, y: y + 5 }, group); t.textContent = it.label;
+      x += w + gap;
+    });
+  }
+  function legend(items) { G.legend.innerHTML = ''; legendRow(G.legend, TL, 72, TR - TL, items); }
+  function specLegend(items) { const g = el('g', { class: 'lg' }, G.specLines); legendRow(g, SL, 72, SR - SL, items); }
   function bandRects(bands, color, label) {
     bands.forEach(([fA, fB]) => {
       const x = sx(fA), w = Math.max(3, sx(fB) - sx(fA));
@@ -731,7 +745,7 @@ window.ECG = [0,0,0,0,0,0.0044,0.0153,0.024,0.037,0.0414,0.0458,0.0501,0.0523,0.
     el('path', { d: timePath(noisy, a, c), fill: 'none', stroke: 'var(--clean)', 'stroke-width': 1.1 }, G.timeLines);
     if (p < 1) cursorLine(c);
     legend([{ color: 'var(--clean)', label: 'input (contaminated ECG)' }, { color: 'var(--noise)', label: 'baseline drift component', dash: true }]); code(STEPS[0].svgCode);
-    specLegend([{ color: 'var(--ink-2)', label: 'spectrum of input' }, { color: 'var(--noise)', label: 'noise bands' }, { color: 'var(--band)', label: 'shaded: where noise sits', box: true }]);
+    specLegend([{ color: 'var(--ink-2)', label: 'spectrum of input' }, { color: 'var(--band)', label: 'noise bands (shaded)', box: true }]);
     // spectrum with noise bands painted
     curSpec = SPEC.noisy; hoverSeries = [{ name: 'raw', arr: noisy, color: '#444444' }];
     const bands = [[0, 0.5], [58, 62], [160, FMAX]];
@@ -774,7 +788,7 @@ window.ECG = [0,0,0,0,0,0.0044,0.0153,0.024,0.037,0.0414,0.0458,0.0501,0.0523,0.
     if (rp > 0) el('path', { d: respPath(st.sos, rp), fill: 'none', stroke: 'var(--ink)', 'stroke-width': 1.6, 'stroke-dasharray': '6 3' }, G.specLines);
     if (rp >= 1) el('path', { d: specPath(specAfter), fill: 'none', stroke: 'var(--out)', 'stroke-width': 1.1, opacity: Math.min(1, sweep * 3 + 0.15) }, G.specLines);
     el('path', { d: specPath(specBefore), fill: 'none', stroke: 'var(--ink-2)', 'stroke-width': 1, opacity: rp >= 1 ? .45 : 1 }, G.specLines);
-    specLegend([{ color: 'var(--ink-2)', label: 'before' }, { color: 'var(--out)', label: 'after' }, { color: 'var(--ink)', label: 'filter response |H(f)| (dashed)', dash: true }, { color: 'var(--band)', label: 'removed band (shaded)', box: true }]);
+    specLegend([{ color: 'var(--ink-2)', label: 'before' }, { color: 'var(--out)', label: 'after' }, { color: 'var(--ink)', label: '|H(f)| (dashed)', dash: true }, { color: 'var(--band)', label: 'removed band (shaded)', box: true }]);
     // time: input full, output + removed up to cursor
     const c = a + Math.floor(sweep * (b - a));
     el('path', { d: timePath(st.input, a, b), fill: 'none', stroke: '#8c8c8c', 'stroke-width': 1.0 }, G.timeLines);
@@ -809,7 +823,7 @@ window.ECG = [0,0,0,0,0,0.0044,0.0153,0.024,0.037,0.0414,0.0458,0.0501,0.0523,0.
     el('path', { d: specPath(T.spec), fill: 'none', stroke: 'var(--out)', 'stroke-width': 1.6 }, G.specLines);
     el('path', { d: respPath(T.sosHP), fill: 'none', stroke: 'var(--ink)', 'stroke-width': 1.4, 'stroke-dasharray': '6 3' }, G.specLines);
     el('path', { d: respPath(T.sosLP), fill: 'none', stroke: 'var(--ink)', 'stroke-width': 1.4, 'stroke-dasharray': '6 3' }, G.specLines);
-    specLegend([{ color: 'var(--out)', label: 'tuned output' }, { color: 'var(--ink)', label: 'filter responses (dashed)', dash: true }, { color: 'var(--band)', label: 'removed bands (shaded)', box: true }]);
+    specLegend([{ color: 'var(--out)', label: 'tuned output' }, { color: 'var(--ink)', label: '|H(f)| (dashed)', dash: true }, { color: 'var(--band)', label: 'removed bands (shaded)', box: true }]);
     curSpec = T.spec; hoverSeries = [{ name: 'output', arr: T.out, color: '#2a78d6' }];
     labelPQRST(T.out);
   }
