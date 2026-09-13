@@ -603,15 +603,15 @@ function applyPresets(p, force = false) { for (const id in p || {}) if (force ||
 
 // ------------------------------------------------------------ layout
 const W = 1400, H = 640;
-const FIG = { x: 16, y: 16, w: 400, h: 600 };                  // stick figure panel
-const SIGX = 550, SIGW = 810;                                  // signal panels (left pad holds the vertical y title)
+const FIG = { x: 0, y: 16, w: 400, h: 600 };                  // stick figure panel
+const SIGX = 500, SIGW = 860;                                  // signal panels (left pad holds the vertical y title)
 const SINGLE = { x: SIGX, y: 96, w: SIGW, h: 464 };
 const TOP = { x: SIGX, y: 30, w: SIGW, h: 190 }, BOT = { x: SIGX, y: 290, w: SIGW, h: 260 };
 const WIN = 6;                                                // seconds of walking shown per step
 const FS = 50;                                                // display / sensor sampling rate
 const CADENCE = 110;                                          // steps per minute
 const SCALE = 300;                                            // px per metre in the figure panel
-const GROUND = FIG.y + FIG.h - 60, CX = FIG.x + FIG.w / 2 + 10;
+const GROUND = FIG.y + FIG.h - 60, CX = FIG.x + FIG.w / 2 - 10;
 const PLACES = {
   pocket: { name: 'Phone in a pocket', short: 'pocket', color: C.blue, axes: ['x · forward', 'y · along thigh', 'z · sideways'] },
   wrist: { name: 'Watch on the wrist', short: 'wrist', color: C.green, axes: ['x · forward', 'y · along forearm', 'z · sideways'] },
@@ -697,7 +697,7 @@ const strikeItems = [{ k: 'dash', c: C.ink, n: 'right foot strike' }, { k: 'dash
 // ------------------------------------------------------------ signal panels
 function placeTitle(parent, box) { const P = PLACES[dial('place')]; txt(parent, box.x, box.y - 46, P.name, { class: 'sans', 'font-size': 26, 'font-weight': 700, fill: P.color }); }
 function legendRow(parent, box, items) {   // one row of legend entries between the placement title and the plot, left-aligned
-  const widths = items.map(it => 26 + it.n.length * 9.2 + 22);
+  const widths = items.map(it => 26 + it.n.length * 8.8 + 16);
   let x = box.x; const y = box.y - 10;
   items.forEach((it, j) => {
     el('line', { x1: x, x2: x + 18, y1: y - 5, y2: y - 5, stroke: it.c, 'stroke-width': it.w || (it.k === 'dash' ? 1.5 : 2.5), 'stroke-dasharray': it.k === 'dash' ? '5 4' : 'none' }, parent);
