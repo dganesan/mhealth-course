@@ -76,7 +76,7 @@
       <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1400 640" role="img" aria-label="From Walking to the Accelerometer Signal"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1400 640" role="img" aria-label="Step signal by accelerometer position"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -107,16 +107,6 @@
         <option value="axes" selected>three axes</option>
         <option value="mag">magnitude</option>
       </select>
-    </div>
-    <div class="group">
-      <label for="cad">Cadence</label>
-      <input type="range" id="cad" min="80" max="140" step="2" value="110">
-      <span class="val" id="cadVal">110</span>
-    </div>
-    <div class="group">
-      <label for="imp">Impact</label>
-      <input type="range" id="imp" min="0" max="2" step="0.1" value="1">
-      <span class="val" id="impVal">1.0×</span>
     </div>
     <div class="group">
       <label for="speed">Speed</label>
@@ -405,7 +395,7 @@ const DATA={"ax":[2.263,4.289,11.335,9.616,-0.365,-11.074,-8.194,-0.231,4.744,5.
   const F0 = Math.asin(L.ankleH / L.foot);   // slope of the flat foot: toe on the ground, ankle 7 cm above it
   const RMAX = L.thigh + L.shank, R0 = 0.862;  // soft reach limit: the knee never locks straight
 
-  const HMEAN = 0.913, HAMP = 0.0225, H2 = 0.12, PH0 = 0.07;   // height = HMEAN - HAMP [cos 4pi(phi - PH0) + H2 cos 8pi(phi - PH0)]
+  const HMEAN = 0.913, HAMP = 0.0225, H2 = 0.06, PH0 = 0.07;   // height = HMEAN - HAMP [cos 4pi(phi - PH0) + H2 cos 8pi(phi - PH0)]
   const XAMP = 0.010, PHX = 0.03;                                 // x = v t + XAMP sin 4pi(phi - PHX): braking after contact, push at the end of stance
   const LAT = 0.025;
   function pelvis(t, phi, v) {
@@ -474,11 +464,14 @@ const DATA={"ax":[2.263,4.289,11.335,9.616,-0.365,-11.074,-8.194,-0.231,4.744,5.
       const stepPhase = (phi[0] * 2) % 1;
       const trunk = 4 + 1.5 * Math.cos(2 * Math.PI * stepPhase);
       const sh = { x: H.x + L.trunk * Math.sin(trunk * D), y: H.y + L.trunk * Math.cos(trunk * D) };
-      const head = { x: sh.x + L.neck * Math.sin(trunk * D), y: sh.y + L.neck * Math.cos(trunk * D) };
+      // the neck and spine stabilise the head: it keeps ~75% of the pelvis bounce and half of the fore-aft surge
+      const by = H.y - HMEAN, bx = H.x - v * t;
+      const head = { x: sh.x + L.neck * Math.sin(trunk * D) - 0.5 * bx, y: sh.y + L.neck * Math.cos(trunk * D) - 0.25 * by };
       const arms = [0, 1].map(i => {
         const ua = ARM(phi[i]), fa = ua + ELBOW(phi[i]);
         const elbow = { x: sh.x + L.uarm * Math.sin(ua * D), y: sh.y - L.uarm * Math.cos(ua * D) };
-        const wrist = { x: elbow.x + L.farm * Math.sin(fa * D), y: elbow.y - L.farm * Math.cos(fa * D) };
+        // the elbow gives a little: the hand keeps ~90% of the bounce; the arm swings in an arc that crosses toward the body
+        const wrist = { x: elbow.x + L.farm * Math.sin(fa * D), y: elbow.y - L.farm * Math.cos(fa * D) - 0.1 * by, lat: -0.03 * (1 - Math.cos(2 * Math.PI * phi[i])) };
         return { ua, fa, elbow, wrist };
       });
       frames.push({ t, phi, hip: { x: H.x, y: H.y }, lat: H.lat, sh, head, trunk, arms, legs: legsOut });
@@ -488,12 +481,15 @@ const DATA={"ax":[2.263,4.289,11.335,9.616,-0.365,-11.074,-8.194,-0.231,4.744,5.
     const g = 9.81;
     // the sensor sits in soft tissue and cloth, not bolted to the bone: smooth its path (gaussian, sigma 10 ms) before differentiating
     // a hard heel strike (impact 2) couples stiffly; a soft one (impact 0) spreads the contact over ~50 ms
-    const SIG = 2 + 3 * (1 - Math.min(1, impact)), KW = Math.ceil(3 * SIG), KER = [];
-    for (let k = -KW; k <= KW; k++) KER.push(Math.exp(-0.5 * k * k / (SIG * SIG)));
-    const KS = KER.reduce((a, b) => a + b, 0);
-    function smoothed(arr) { const o = new Float64Array(N); for (let n = 0; n < N; n++) { let v = 0; for (let k = -KW; k <= KW; k++) v += KER[k + KW] * arr[Math.min(N - 1, Math.max(0, n + k))]; o[n] = v / KS; } return o; }
-    function accelOf(getP, getLat) {
-      const px = smoothed(frames.map(f => getP(f).x)), py = smoothed(frames.map(f => getP(f).y)), pl = smoothed(frames.map(getLat));
+    const SIG0 = 2 + 3 * (1 - Math.min(1, impact));
+    function smoothed(arr, SIG) {
+      const KW = Math.ceil(3 * SIG), KER = []; for (let k = -KW; k <= KW; k++) KER.push(Math.exp(-0.5 * k * k / (SIG * SIG)));
+      const KS = KER.reduce((a, b) => a + b, 0), o = new Float64Array(N);
+      for (let n = 0; n < N; n++) { let v = 0; for (let k = -KW; k <= KW; k++) v += KER[k + KW] * arr[Math.min(N - 1, Math.max(0, n + k))]; o[n] = v / KS; } return o;
+    }
+    function accelOf(getP, getLat, sig) {
+      const SIG = Math.max(SIG0, sig || 0);
+      const px = smoothed(frames.map(f => getP(f).x), SIG), py = smoothed(frames.map(f => getP(f).y), SIG), pl = smoothed(frames.map(getLat), SIG);
       const ax = new Float64Array(N), ay = new Float64Array(N), az = new Float64Array(N);
       for (let n = 1; n < N - 1; n++) {
         ax[n] = (px[n + 1] - 2 * px[n] + px[n - 1]) / (dt * dt); ay[n] = (py[n + 1] - 2 * py[n] + py[n - 1]) / (dt * dt);
@@ -509,12 +505,12 @@ const DATA={"ax":[2.263,4.289,11.335,9.616,-0.365,-11.074,-8.194,-0.231,4.744,5.
     }
     const PLACE = {
       pocket: { get: f => f.legs[0].pocket, lat: f => f.lat, ang: f => f.legs[0].a.thigh, hangs: true, amp: [4, 3], side: 0, latAmp: 0.6 },
-      wrist: { get: f => f.arms[0].wrist, lat: f => 0.5 * f.lat, ang: f => f.arms[0].fa, hangs: true, amp: [1.2, 1.2], side: 0, latAmp: 0.2 },
-      ear: { get: f => f.head, lat: f => 0.6 * f.lat, ang: f => f.trunk, hangs: false, amp: [2.2, 2.2], side: 0, latAmp: 0.3 },
+      wrist: { get: f => f.arms[0].wrist, lat: f => 0.5 * f.lat + f.arms[0].wrist.lat, ang: f => f.arms[0].fa, hangs: true, amp: [1.2, 1.2], side: 0, latAmp: 0.2, roll: 10 },
+      ear: { get: f => f.head, lat: f => 0.4 * f.lat, ang: f => f.trunk, hangs: false, amp: [1.0, 1.0], side: 0, latAmp: 0.3, sig: 5 },
     };
     const sensors = {};
     for (const k in PLACE) {
-      const P = PLACE[k], w = accelOf(P.get, P.lat);
+      const P = PLACE[k], w = accelOf(P.get, P.lat, P.sig);
       const x = new Float64Array(N), y = new Float64Array(N), z = new Float64Array(N), wx = new Float64Array(N), wy = new Float64Array(N);
       for (let n = 0; n < N; n++) {
         const th = P.ang(frames[n]) * D, tr = transient(n, P.amp[0], P.amp[1], P.side);
@@ -522,9 +518,12 @@ const DATA={"ax":[2.263,4.289,11.335,9.616,-0.365,-11.074,-8.194,-0.231,4.744,5.
         let u, fw;
         if (P.hangs) { u = [-Math.sin(th), Math.cos(th)]; fw = [Math.cos(th), Math.sin(th)]; }   // thigh / forearm hang from their joint: 'up' points back to it
         else { u = [Math.sin(th), Math.cos(th)]; fw = [Math.cos(th), -Math.sin(th)]; }
-        x[n] = fx * fw[0] + fy * fw[1] + noise * gauss();
-        y[n] = fx * u[0] + fy * u[1] + noise * gauss();
-        z[n] = fz + noise * gauss();
+        let sx = fx * fw[0] + fy * fw[1], sy = fx * u[0] + fy * u[1], sz = fz;
+        if (P.roll) {   // the forearm rolls a little each swing, trading the forward and sideways axes
+          const r = P.roll * D * Math.sin(2 * Math.PI * frames[n].phi[0]), c = Math.cos(r), s_ = Math.sin(r);
+          const tx = sx * c + sz * s_; sz = -sx * s_ + sz * c; sx = tx;
+        }
+        x[n] = sx + noise * gauss(); y[n] = sy + noise * gauss(); z[n] = sz + noise * gauss();
         wx[n] = fx; wy[n] = fy;
       }
       sensors[k] = { x, y, z, wx, wy };
@@ -540,7 +539,7 @@ const svgNS = 'http://www.w3.org/2000/svg';
 const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
 const txt = (parent, x, y, s, attrs = {}) => { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; };
 const chart = $('chart'), tt = $('tt');
-const C = { blue: '#2a78d6', green: '#1baf7a', violet: '#4a3aa7', red: '#eb6834', grey: '#8f8f8f', ink: '#222', ink2: '#666', ink3: '#9a9a9a', far: '#b9b9b9' };
+const C = { blue: '#2a78d6', green: '#1baf7a', violet: '#4a3aa7', red: '#eb6834', grey: '#8f8f8f', rawDark: '#5c5c5c', ink: '#222', ink2: '#666', ink3: '#9a9a9a', far: '#b9b9b9' };
 const fmt = (v, d = 2) => (Math.round(v * Math.pow(10, d)) / Math.pow(10, d)).toFixed(d);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 function niceTicks(lo, hi, n = 6) {
@@ -575,7 +574,7 @@ function legend(parent, x, y, items, right) {
     const cy = y + padY + j * rowH + 6, cx = x + padX + 9;
     if (it.k === 'dot') el('circle', { cx, cy, r: 5, fill: it.c }, parent);
     else if (it.k === 'ring') el('circle', { cx, cy, r: 5.5, fill: 'none', stroke: it.c, 'stroke-width': 2.2 }, parent);
-    else el('line', { x1: x + padX, x2: x + padX + 18, y1: cy, y2: cy, stroke: it.c, 'stroke-width': it.k === 'dash' ? 1.5 : 2.5, 'stroke-dasharray': it.k === 'dash' ? '5 4' : 'none' }, parent);
+    else el('line', { x1: x + padX, x2: x + padX + 18, y1: cy, y2: cy, stroke: it.c, 'stroke-width': it.w || (it.k === 'dash' ? 1.5 : it.k === 'dotted' ? 1.2 : 2.5), 'stroke-dasharray': it.k === 'dash' ? '5 4' : it.k === 'dotted' ? '2 3' : 'none' }, parent);
     txt(parent, x + padX + 26, cy + 4, it.n, { class: 'axis-title', fill: 'var(--ink)' });
   });
   return wdt;
@@ -605,46 +604,30 @@ function applyPresets(p, force = false) { for (const id in p || {}) if (force ||
 // ------------------------------------------------------------ layout
 const W = 1400, H = 640;
 const FIG = { x: 16, y: 16, w: 400, h: 600 };                  // stick figure panel
-const SIGX = 550, SIGW = 590, LEGX = 1152;                                  // signal panels (left pad holds the vertical y title)
-const SINGLE = { x: SIGX, y: 30, w: SIGW, h: 520 };
+const SIGX = 550, SIGW = 810;                                  // signal panels (left pad holds the vertical y title)
+const SINGLE = { x: SIGX, y: 82, w: SIGW, h: 478 };
 const TOP = { x: SIGX, y: 30, w: SIGW, h: 190 }, BOT = { x: SIGX, y: 290, w: SIGW, h: 260 };
-const WIN = 4;                                                // seconds of walking shown per step
+const WIN = 6;                                                // seconds of walking shown per step
 const FS = 50;                                                // display / sensor sampling rate
+const CADENCE = 110;                                          // steps per minute
 const SCALE = 300;                                            // px per metre in the figure panel
 const GROUND = FIG.y + FIG.h - 60, CX = FIG.x + FIG.w / 2 + 10;
 const PLACES = {
-  pocket: { name: 'phone in pocket', short: 'pocket', axes: ['x · forward', 'y · along thigh', 'z · sideways'] },
-  wrist: { name: 'watch on the wrist', short: 'wrist', axes: ['x · forward', 'y · along forearm', 'z · sideways'] },
-  ear: { name: 'earbud', short: 'earbud', axes: ['x · forward', 'y · up', 'z · sideways'] },
+  pocket: { name: 'Phone in a pocket', short: 'pocket', color: C.blue, axes: ['x · forward', 'y · along thigh', 'z · sideways'] },
+  wrist: { name: 'Watch on the wrist', short: 'wrist', color: C.green, axes: ['x · forward', 'y · along forearm', 'z · sideways'] },
+  ear: { name: 'Earbud', short: 'earbud', color: C.violet, axes: ['x · forward', 'y · up', 'z · sideways'] },
 };
 const AXC = [C.blue, C.green, C.violet];
 
 
-// scipy.signal.find_peaks(x, distance=, prominence=): local maxima, prominence over the whole signal, then the distance rule
-function std(a) { const m = a.reduce((s, v) => s + v, 0) / a.length; return Math.sqrt(a.reduce((s, v) => s + (v - m) * (v - m), 0) / a.length); }
-function findPeaks(x, distance, prominence) {
-  const n = x.length, cand = [];
-  for (let i = 1; i < n - 1; i++) if (x[i] > x[i - 1] && x[i] >= x[i + 1]) cand.push(i);
-  const prom = cand.map(pk => { let lm = x[pk], i = pk; while (i >= 0 && x[i] <= x[pk]) { lm = Math.min(lm, x[i]); i--; } let rm = x[pk]; i = pk; while (i < n && x[i] <= x[pk]) { rm = Math.min(rm, x[i]); i++; } return x[pk] - Math.max(lm, rm); });
-  let alive = cand.filter((_, k) => prom[k] >= prominence);
-  const keep = new Array(alive.length).fill(true), order = alive.map((_, k) => k).sort((a, b) => x[alive[b]] - x[alive[a]]);
-  order.forEach(k => { if (!keep[k]) return; alive.forEach((q, j) => { if (j !== k && keep[j] && Math.abs(q - alive[k]) < distance) keep[j] = false; }); });
-  return alive.filter((_, k) => keep[k]);
-}
-
 // ------------------------------------------------------------ simulation and derived series
 let SIM = null, T0 = 0, D = {};
 function rebuild() {
-  SIM = Gait.simulate({ cadence: dial('cad'), impact: dial('imp'), strides: 8, fsi: 200, noise: 0.25, seed: 328 });
+  SIM = Gait.simulate({ cadence: CADENCE, impact: 1, strides: 10, fsi: 200, noise: 0.25, seed: 328 });
   T0 = 2 * SIM.T - 0.3;                                       // skip two settling strides; first strike at 0.3 s
   const n0 = Math.round(T0 * SIM.fsi), nW = Math.round(WIN * SIM.fsi);
   const dt = SIM.dt;
   // hip height (cm) and its vertical acceleration (m/s^2) at the internal rate
-  D.th = [], D.hipY = [], D.hipA = [];
-  for (let n = n0; n <= n0 + nW; n++) {
-    D.th.push((n - n0) * dt); D.hipY.push(100 * SIM.frames[n].hip.y);
-    D.hipA.push((SIM.frames[n + 1].hip.y - 2 * SIM.frames[n].hip.y + SIM.frames[n - 1].hip.y) / (dt * dt));
-  }
   // sensor readings at 50 Hz
   const step = SIM.fsi / FS, S = SIM.sensors[dial('place')];
   D.ts = [], D.x = [], D.y = [], D.z = [], D.mag = [];
@@ -652,10 +635,7 @@ function rebuild() {
   D.mean = D.mag.reduce((a, b) => a + b, 0) / D.mag.length;
   const sos = Butter.butter(3, [0.5, 4], FS, 'bandpass');
   D.filt = Array.from(Butter.sosfiltfilt(sos, D.mag.map(v => v - D.mean))).map(v => v + D.mean);
-  D.peaks = findPeaks(D.filt, Math.round(0.3 * FS), 0.4 * std(D.filt));
   D.strikes = SIM.strikes.map(s => ({ t: s.t - T0, side: s.side })).filter(s => s.t >= 0 && s.t <= WIN);
-  // hip acceleration peaks (for the lag annotation)
-  D.hipPeaks = []; for (let i = 1; i < D.hipA.length - 1; i++) if (D.hipA[i] > D.hipA[i - 1] && D.hipA[i] >= D.hipA[i + 1] && D.hipA[i] > 0) D.hipPeaks.push(i);
 }
 function frameAt(t) { return SIM.frames[clamp(Math.round((T0 + t) * SIM.fsi), 0, SIM.N - 1)]; }
 function phaseName(phi) { return phi < 0.02 ? 'heel strike' : phi < 0.12 ? 'loading' : phi < 0.32 ? 'midstance' : phi < 0.62 ? 'push-off' : 'swing'; }
@@ -689,7 +669,7 @@ function drawFigure(parent, t, opts = {}) {
     if (!opts.sensors) continue;
     const m = marks[k], on = k === sel, x = X(m.p), y = Y(m.p);
     const gg = el('g', { transform: `translate(${x},${y}) rotate(${-m.rot * 180 / Math.PI})` }, g);
-    el('rect', { x: -m.w / 2, y: -m.h / 2, width: m.w, height: m.h, rx: 2.5, fill: on ? C.blue : '#fff', stroke: on ? C.blue : C.ink2, 'stroke-width': on ? 2 : 1.5 }, gg);
+    const pc = PLACES[k].color; el('rect', { x: -m.w / 2, y: -m.h / 2, width: m.w, height: m.h, rx: 2.5, fill: on ? pc : '#fff', stroke: on ? pc : C.ink2, 'stroke-width': on ? 2 : 1.5 }, gg);
     if (on && opts.axes) {
       // x forward (perpendicular to the segment), y up along the segment
       arrow(gg, 0, 0, 46, 0, AXC[0], 'x'); arrow(gg, 0, 0, 0, -46, AXC[1], 'y');
@@ -710,90 +690,55 @@ function arrow(parent, x1, y1, x2, y2, col, label) {
 function strikeLines(P, tcur, labelY) {
   D.strikes.forEach(s => { if (s.t > tcur) return; const x = P.sx(s.t);
     el('line', { x1: x, x2: x, y1: P.box.y, y2: P.box.y + P.box.h, stroke: s.side ? C.ink3 : C.ink, 'stroke-width': 1.3, 'stroke-dasharray': '5 4' }, P.top);
-    if (labelY != null) txt(P.top, x, labelY, s.side ? 'L' : 'R', { class: 'mono', 'font-size': 13, 'font-weight': 700, fill: s.side ? C.ink3 : C.ink, 'text-anchor': 'middle' }); });
+  });
 }
 const strikeItems = [{ k: 'dash', c: C.ink, n: 'right foot strike' }, { k: 'dash', c: C.ink3, n: 'left foot strike' }];
 
 // ------------------------------------------------------------ signal panels
-function drawHeight(parent, box, tcur, o = {}) {
-  const lo = Math.floor(Math.min(...D.hipY)) - 1, hi = Math.ceil(Math.max(...D.hipY)) + 1;
-  const P = panel(parent, box, [0, WIN], [lo, hi], { xlabel: o.noX ? '' : 'time (s)', ylabel: 'hip height (cm)', ny: 4, noxt: o.noX, ylx: 66 });
-  const n = D.th.findIndex(v => v > tcur); const m = n < 0 ? D.th.length : n;
-  el('path', { d: pathOf(D.th.map(P.sx), D.hipY.map(P.sy), m), class: 'out-line', stroke: C.blue }, P.g);
-  if (m > 0) el('circle', { cx: P.sx(D.th[m - 1]), cy: P.sy(D.hipY[m - 1]), r: 5, fill: C.blue, stroke: '#fff', 'stroke-width': 2 }, P.g);
-  strikeLines(P, tcur, box.y - 6);
-  legend(P.top, LEGX, box.y + 4, [{ c: C.blue, n: 'hip height' }].concat(strikeItems));
-  return P;
-}
-function drawAccel(parent, box, tcur) {
-  const lo = Math.floor(Math.min(...D.hipA)) - 1, hi = Math.ceil(Math.max(...D.hipA)) + 2;
-  const P = panel(parent, box, [0, WIN], [lo, hi], { xlabel: 'time (s)', ylabel: 'vertical accel. (m/s²)', ny: 5, ylx: 66 });
-  el('line', { x1: box.x, x2: box.x + box.w, y1: P.sy(0), y2: P.sy(0), stroke: C.ink3, 'stroke-width': 1 }, P.g);
-  const n = D.th.findIndex(v => v > tcur); const m = n < 0 ? D.th.length : n;
-  el('path', { d: pathOf(D.th.map(P.sx), D.hipA.map(P.sy), m), class: 'out-line', stroke: C.blue }, P.g);
-  if (m > 0) el('circle', { cx: P.sx(D.th[m - 1]), cy: P.sy(D.hipA[m - 1]), r: 5, fill: C.blue, stroke: '#fff', 'stroke-width': 2 }, P.g);
-  strikeLines(P, tcur);
-  // lag from contact to the acceleration peak, for every completed pair
-  D.strikes.forEach(s => {
-    const pk = D.hipPeaks.find(i => D.th[i] > s.t); if (pk == null || D.th[pk] > tcur) return;
-    const x1 = P.sx(s.t), x2 = P.sx(D.th[pk]), y = P.sy(D.hipA[pk]) - 14;
-    el('path', { d: `M${x1},${y + 6}V${y}H${x2}V${y + 6}`, fill: 'none', stroke: C.red, 'stroke-width': 1.6 }, P.top);
-    txt(P.top, (x1 + x2) / 2, y - 6, `${Math.round(1000 * (D.th[pk] - s.t))} ms`, { class: 'mono', 'font-size': 14, 'font-weight': 700, fill: C.red, 'text-anchor': 'middle' });
+function placeTitle(parent, box) { const P = PLACES[dial('place')]; txt(parent, box.x, box.y - 40, P.name, { class: 'sans', 'font-size': 26, 'font-weight': 700, fill: P.color }); }
+function legendRow(parent, box, items) {   // one row of legend entries inside the plot, top right, on a white backing
+  const widths = items.map(it => 26 + it.n.length * 9.2 + 22), total = widths.reduce((a, b) => a + b, 0);
+  let x = box.x + box.w - 10 - total; const y = box.y + 22;
+  el('rect', { x: x - 10, y: box.y + 4, width: total + 12, height: 28, rx: 4, fill: '#fff', 'fill-opacity': .92, stroke: 'var(--rule)' }, parent);
+  items.forEach((it, j) => {
+    el('line', { x1: x, x2: x + 18, y1: y - 5, y2: y - 5, stroke: it.c, 'stroke-width': it.w || (it.k === 'dash' ? 1.5 : 2.5), 'stroke-dasharray': it.k === 'dash' ? '5 4' : 'none' }, parent);
+    txt(parent, x + 26, y, it.n, { class: 'axis-title', fill: 'var(--ink)' });
+    x += widths[j];
   });
-  legend(P.top, LEGX, box.y + 4, [{ c: C.blue, n: 'vertical accel.' }].concat(strikeItems, [{ c: C.red, n: 'contact to peak' }]));
-  return P;
 }
 function drawAxes(parent, box, tcur) {
-  const all = D.x.concat(D.y, D.z), lo = Math.floor(Math.min(...all) / 5) * 5, hi = Math.ceil(Math.max(...all) / 5) * 5;
-  const P = panel(parent, box, [0, WIN], [lo, hi], { xlabel: 'time (s)', ylabel: 'acceleration (m/s²)', ny: 6, ylx: 66 });
+  const P = panel(parent, box, [0, WIN], [-10, 30], { xlabel: 'time (s)', ylabel: 'acceleration (m/s²)', yt: [-10, 0, 10, 20, 30], ylx: 66 });
   el('line', { x1: box.x, x2: box.x + box.w, y1: P.sy(0), y2: P.sy(0), stroke: C.ink3, 'stroke-width': 1 }, P.g);
   const n = D.ts.findIndex(v => v > tcur); const m = n < 0 ? D.ts.length : n;
   [D.x, D.y, D.z].forEach((arr, k) => { el('path', { d: pathOf(D.ts.map(P.sx), arr.map(P.sy), m), class: 'thin-line', stroke: AXC[k], 'stroke-width': 1.8 }, P.g);
     if (m > 0) el('circle', { cx: P.sx(D.ts[m - 1]), cy: P.sy(arr[m - 1]), r: 4, fill: AXC[k], stroke: '#fff', 'stroke-width': 1.5 }, P.g); });
-  strikeLines(P, tcur, box.y - 6);
+  strikeLines(P, tcur); placeTitle(parent, box);
   const ax = PLACES[dial('place')].axes;
-  legend(P.top, LEGX, box.y + 4, ax.map((n, k) => ({ c: AXC[k], n })).concat(strikeItems));
+  legendRow(P.top, box, ax.map((n, k) => ({ c: AXC[k], n })).concat(strikeItems));
   return P;
 }
 function drawMag(parent, box, tcur) {
-  const lo = Math.floor(Math.min(...D.mag) / 5) * 5, hi = Math.ceil(Math.max(...D.mag) / 5) * 5;
-  const P = panel(parent, box, [0, WIN], [lo, hi], { xlabel: 'time (s)', ylabel: 'acceleration magnitude (m/s²)', ny: 6, ylx: 66 });
+  const col = PLACES[dial('place')].color;
+  const P = panel(parent, box, [0, WIN], [0, 30], { xlabel: 'time (s)', ylabel: 'acceleration magnitude (m/s²)', yt: [0, 5, 10, 15, 20, 25, 30], ylx: 66 });
   const n = D.ts.findIndex(v => v > tcur); const m = n < 0 ? D.ts.length : n;
-  el('path', { d: pathOf(D.ts.map(P.sx), D.mag.map(P.sy), m), class: 'raw-line' }, P.g);
-  el('path', { d: pathOf(D.ts.map(P.sx), D.filt.map(P.sy), m), class: 'out-line', stroke: C.blue }, P.g);
-  D.peaks.forEach(i => { if (D.ts[i] > tcur) return; el('circle', { cx: P.sx(D.ts[i]), cy: P.sy(D.filt[i]), r: 5.5, fill: 'none', stroke: C.red, 'stroke-width': 2.2 }, P.top); });
-  strikeLines(P, tcur, box.y - 6);
-  // contact-to-peak lag on the filtered magnitude
-  D.strikes.forEach(s => {
-    const pk = D.peaks.find(i => D.ts[i] > s.t); if (pk == null || D.ts[pk] > tcur) return;
-    const x1 = P.sx(s.t), x2 = P.sx(D.ts[pk]), y = P.sy(D.filt[pk]) - 16;
-    el('path', { d: `M${x1},${y + 6}V${y}H${x2}V${y + 6}`, fill: 'none', stroke: C.red, 'stroke-width': 1.6 }, P.top);
-    txt(P.top, (x1 + x2) / 2, y - 6, `${Math.round(1000 * (D.ts[pk] - s.t))} ms`, { class: 'mono', 'font-size': 14, 'font-weight': 700, fill: C.red, 'text-anchor': 'middle' });
-  });
-  if (m > 0) el('circle', { cx: P.sx(D.ts[m - 1]), cy: P.sy(D.filt[m - 1]), r: 5, fill: C.blue, stroke: '#fff', 'stroke-width': 2 }, P.g);
-  legend(P.top, LEGX, box.y + 4, [{ c: C.grey, n: 'magnitude' }, { c: C.blue, n: 'band-pass 0.5–4 Hz' }, { k: 'ring', c: C.red, n: 'find_peaks' }].concat(strikeItems));
+  el('path', { d: pathOf(D.ts.map(P.sx), D.mag.map(P.sy), m), fill: 'none', stroke: C.rawDark, 'stroke-width': 2, 'stroke-linejoin': 'round' }, P.g);
+  el('path', { d: pathOf(D.ts.map(P.sx), D.filt.map(P.sy), m), fill: 'none', stroke: col, 'stroke-width': 3.4, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, P.g);
+  strikeLines(P, tcur); placeTitle(parent, box);
+  if (m > 0) el('circle', { cx: P.sx(D.ts[m - 1]), cy: P.sy(D.filt[m - 1]), r: 5.5, fill: col, stroke: '#fff', 'stroke-width': 2 }, P.g);
+  legendRow(P.top, box, [{ c: C.rawDark, n: 'magnitude' }, { c: col, n: 'band-pass 0.5–4 Hz', w: 3.4 }].concat(strikeItems));
   return P;
 }
 
 // ------------------------------------------------------------ steps
 let PANELS = [];
 const STEPS = [
-  { title: 'The walking cycle', dur: 8, dials: ['cad', 'speed'],
-    tag: () => `${dial('cad')} steps/min`,
-    subtitle: 'One stride of walking, and how the hip rises and falls with each step.',
-    setup() {}, draw(p) { const t = p * WIN; chart.innerHTML = ''; drawFigure(chart, t); PANELS = [drawHeight(chart, SINGLE, t)]; } },
-  { title: 'Vertical acceleration and the foot strike', dur: 8, dials: ['cad', 'speed'],
-    tag: () => `${dial('cad')} steps/min`,
-    subtitle: 'The acceleration peak comes while the landing leg takes the weight, not at contact.',
-    setup() {}, draw(p) { const t = p * WIN; chart.innerHTML = ''; drawFigure(chart, t); PANELS = [drawHeight(chart, TOP, t, { noX: true }), drawAccel(chart, BOT, t)]; } },
-  { title: 'Three axes at each sensor placement', dur: 8, presets: { view: 'axes' },
-    tag: () => `${dial('cad')} steps/min · ${PLACES[dial('place')].short} · ${FS} Hz`,
-    subtitle: 'The same walk seen by a phone in a pocket, a watch, or an earbud.',
+  { title: 'Step signal by accelerometer position', dur: 8, presets: { view: 'axes' },
+    tag: () => `${CADENCE} steps/min · ${FS} Hz`,
+    subtitle: 'Acceleration signal while walking for different device placements.',
     setup() {}, draw(p) { drawSensor(p); } },
-  { title: 'From three axes to one magnitude', dur: 8, presets: { view: 'mag' },
-    tag: () => `${dial('cad')} steps/min · ${PLACES[dial('place')].short} · ${FS} Hz`,
-    subtitle: 'Combining the three axes into a magnitude, with the foot strikes marked.',
-    code: () => dial('view') === 'mag' ? `peaks, _ = find_peaks(filtered, distance=int(0.3*SR), prominence=0.4*filtered.std())` : '',
+  { title: 'Step signal magnitude by accelerometer position', dur: 8, presets: { view: 'mag' },
+    tag: () => `${CADENCE} steps/min · ${FS} Hz`,
+    subtitle: 'Acceleration magnitude while walking for different device placements.',
     setup() {}, draw(p) { drawSensor(p); } },
 ];
 function drawSensor(p) {
@@ -809,9 +754,9 @@ chart.addEventListener('mousemove', evt => {
   const tq = clamp((q.x - P.box.x) / P.box.w * WIN, 0, WIN), tcur = progress * WIN;
   if (tq > tcur) { tt.style.display = 'none'; return; }
   let html = `<div class="row"><span>t</span><b>${fmt(tq, 2)} s</b></div>`;
-  if (step <= 1) { const i = Math.round(tq * SIM.fsi); html += `<div class="row"><span><i class="sw" style="background:${C.blue}"></i>hip height</span><span>${fmt(D.hipY[i], 1)} cm</span></div>`; if (step === 1) html += `<div class="row"><span>vertical accel.</span><span>${fmt(D.hipA[i], 2)}</span></div>`; }
-  else { const i = Math.round(tq * FS); if (dial('view') === 'axes') [D.x, D.y, D.z].forEach((a, k) => { html += `<div class="row"><span><i class="sw" style="background:${AXC[k]}"></i>${'xyz'[k]}</span><span>${fmt(a[i], 2)}</span></div>`; });
-    else html += `<div class="row"><span><i class="sw" style="background:${C.grey}"></i>magnitude</span><span>${fmt(D.mag[i], 2)}</span></div><div class="row"><span><i class="sw" style="background:${C.blue}"></i>filtered</span><span>${fmt(D.filt[i], 2)}</span></div>`; }
+  const i = Math.round(tq * FS);
+  if (dial('view') === 'axes') [D.x, D.y, D.z].forEach((a, k) => { html += `<div class="row"><span><i class="sw" style="background:${AXC[k]}"></i>${'xyz'[k]}</span><span>${fmt(a[i], 2)}</span></div>`; });
+  else html += `<div class="row"><span><i class="sw" style="background:${C.rawDark}"></i>magnitude</span><span>${fmt(D.mag[i], 2)}</span></div><div class="row"><span><i class="sw" style="background:${PLACES[dial('place')].color}"></i>filtered</span><span>${fmt(D.filt[i], 2)}</span></div>`;
   tipAt(evt, html);
 });
 
@@ -857,7 +802,7 @@ function wire() {
   $('next').addEventListener('click', e => { e.stopPropagation(); next(); });
   $('prev').addEventListener('click', e => { e.stopPropagation(); prev(); });
   $('restart').addEventListener('click', e => { e.stopPropagation(); restart(); });
-  $('reset').addEventListener('click', e => { e.stopPropagation(); for (const id in dirty) dirty[id] = false; applyPresets({ place: 'pocket', view: 'axes', cad: 110, imp: 1 }, true); applyPresets(cur().presets, true); restart(); });
+  $('reset').addEventListener('click', e => { e.stopPropagation(); for (const id in dirty) dirty[id] = false; applyPresets({ place: 'pocket', view: 'axes' }, true); applyPresets(cur().presets, true); restart(); });
   $('play').addEventListener('click', e => { e.stopPropagation(); if (playing) stopPlay(); else if (progress >= 1) restart(); else startPlay(); });
   $('speed').addEventListener('click', e => e.stopPropagation());
   $('speed').addEventListener('change', e => { e.stopPropagation(); if (speedMult() === 0) finish(); });
@@ -875,8 +820,6 @@ function wire() {
 }
 defDial('place', {});
 defDial('view', {});
-defDial('cad', { val: 'cadVal', parse: v => parseInt(v, 10), fmt: v => `${v}` });
-defDial('imp', { val: 'impVal', parse: v => parseFloat(v), fmt: v => `${v.toFixed(1)}×` });
 wire();
 
 })();
