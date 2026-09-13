@@ -1,0 +1,886 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>From Walking to the Accelerometer Signal</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff; --ink: #222222; --ink-2: #666666; --ink-3: #9a9a9a;
+    --rule: #dcdcdc; --grid: #ececec; --raw: #8f8f8f; --raw-dot: #8c8c8c; --clean: #444444;
+    --window: rgba(34, 34, 34, 0.06); --window-edge: #222222;
+    --ma: #2a78d6; --med: #1baf7a; --wm: #4a3aa7; --ewma: #eb6834;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.4; padding-block: 10px 10px; padding-inline: 14px; -webkit-font-smoothing: antialiased; }
+  .stage { max-width: 1880px; margin: 0 auto; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; height: calc(100vh - 20px); }
+  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 16px 30px 8px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 6px; min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none; }
+  .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
+  .head h1 { margin: 0; font-size: clamp(20px, 2.2vw, 28px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .code[hidden] { display: none; }
+  .code .p { color: var(--ma); font-weight: 700; }
+  .chart-wrap { position: relative; min-height: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
+  svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt .row { display: flex; gap: 10px; justify-content: space-between; }
+  .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
+  .foot .ctr { font-family: var(--mono); }
+  .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
+  .group { display:flex; align-items:center; gap:8px; }
+  .group[hidden] { display:none; }
+  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
+  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
+  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  button:hover, select:hover { border-color:var(--ink); }
+  button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
+  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
+  .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
+  .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
+  .grid line { stroke: var(--grid); stroke-width: 1; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
+  .ptitle { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ink); }
+  .raw-line { fill: none; stroke: var(--raw); stroke-width: 1.5; }
+  .out-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .thin-line { fill: none; stroke-width: 1.4; stroke-linejoin: round; }
+  .dash { stroke-dasharray: 5 4; }
+  .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
+  .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
+  .mono { font-family: var(--mono); }
+  .big { font-family: var(--mono); font-size: 22px; font-weight: 700; }
+  .badge { font-family: var(--mono); font-size: 15px; font-weight: 700; fill: var(--ink); }
+  .kept { fill: none; stroke: var(--ewma); stroke-width: 2.2; }
+  .cross { stroke: var(--raw-dot); stroke-width: 1.6; }
+  .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
+  @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
+  .hint { display:none !important; }
+  button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
+  button.primary.tb { min-width:52px; }
+</style>
+<div class="stage">
+  <section class="slide" id="slide" tabindex="0" aria-live="polite">
+    <div class="head">
+      <h1 id="title"></h1>
+      <p id="subtitle"></p>
+      <pre class="code" id="code" hidden></pre>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 1400 640" role="img" aria-label="From Walking to the Accelerometer Signal"></svg>
+      <div class="tt" id="tt"></div>
+    </div>
+    <div class="foot">
+      <span>CS328 &nbsp;·&nbsp; Counting: Steps and Repetitions</span>
+      <span class="ctr" id="counter"></span>
+    </div>
+  </section>
+
+  <div class="bar">
+    <div class="group">
+      <button id="prev" class="tb" title="Previous step (←)">⏮</button>
+      <button id="play" class="primary tb" title="Play / pause (space)">▶</button>
+      <button id="next" class="tb" title="Next step (→)">⏭</button>
+      <button id="restart" class="tb" title="Restart this step (r)">↺</button>
+      <button id="reset" title="Reset dials to this step's presets">Reset dials</button>
+    </div>
+    <div class="group">
+      <label for="place">Sensor</label>
+      <select id="place">
+        <option value="pocket" selected>phone in pocket</option>
+        <option value="wrist">watch on wrist</option>
+        <option value="ear">earbud</option>
+      </select>
+    </div>
+    <div class="group">
+      <label for="view">Show</label>
+      <select id="view">
+        <option value="axes" selected>three axes</option>
+        <option value="mag">magnitude</option>
+      </select>
+    </div>
+    <div class="group">
+      <label for="cad">Cadence</label>
+      <input type="range" id="cad" min="80" max="140" step="2" value="110">
+      <span class="val" id="cadVal">110</span>
+    </div>
+    <div class="group">
+      <label for="imp">Impact</label>
+      <input type="range" id="imp" min="0" max="2" step="0.1" value="1">
+      <span class="val" id="impVal">1.0×</span>
+    </div>
+    <div class="group">
+      <label for="speed">Speed</label>
+      <select id="speed">
+        <option value="0.25">very slow</option>
+        <option value="0.5">slow</option>
+        <option value="1" selected>normal</option>
+        <option value="2.5">fast</option>
+        <option value="0">instant</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+
+<script>
+(() => {
+// Butterworth IIR design + filtering, mirroring scipy.signal.butter / lfilter / filtfilt.
+// Design path: analog Butterworth prototype (zpk) -> lp2lp / lp2hp / lp2bp / lp2bs -> bilinear -> SOS.
+// Usage:
+//   const sos = butter(4, 100, 1000, 'lowpass');            // cutoff Hz, fs Hz
+//   const sos = butter(4, [58, 62], 1000, 'bandstop');
+//   const y = sosfilt(sos, x);                              // causal (lfilter)
+//   const y = sosfiltfilt(sos, x);                          // zero-phase (filtfilt)
+//   const mag = sosFreqz(sos, fHz, fs);                     // |H| at one frequency
+(function (global) {
+  // ---- minimal complex arithmetic
+  const C = (re, im = 0) => ({ re, im });
+  const cadd = (a, b) => C(a.re + b.re, a.im + b.im);
+  const csub = (a, b) => C(a.re - b.re, a.im - b.im);
+  const cmul = (a, b) => C(a.re * b.re - a.im * b.im, a.re * b.im + a.im * b.re);
+  const cdiv = (a, b) => { const d = b.re * b.re + b.im * b.im; return C((a.re * b.re + a.im * b.im) / d, (a.im * b.re - a.re * b.im) / d); };
+  const csqrt = a => { const r = Math.hypot(a.re, a.im); const re = Math.sqrt(Math.max(0, (r + a.re) / 2)); const im = Math.sign(a.im || 1) * Math.sqrt(Math.max(0, (r - a.re) / 2)); return C(re, im); };
+  const cscale = (a, s) => C(a.re * s, a.im * s);
+
+  function buttap(N) { // analog prototype poles, unit cutoff
+    const p = [];
+    for (let k = 1; k <= N; k++) { const th = Math.PI * (2 * k - 1) / (2 * N); p.push(C(-Math.sin(th), Math.cos(th))); }
+    return { z: [], p, k: 1 };
+  }
+  function lp2lp(zpk, wo) { return { z: zpk.z.map(v => cscale(v, wo)), p: zpk.p.map(v => cscale(v, wo)), k: zpk.k * Math.pow(wo, zpk.p.length - zpk.z.length) }; }
+  function lp2hp(zpk, wo) {
+    const z = zpk.z.map(v => cdiv(C(wo), v)), p = zpk.p.map(v => cdiv(C(wo), v));
+    const deg = zpk.p.length - zpk.z.length;
+    for (let i = 0; i < deg; i++) z.push(C(0));
+    let num = C(1), den = C(1);
+    zpk.z.forEach(v => { num = cmul(num, cscale(v, -1)); });
+    zpk.p.forEach(v => { den = cmul(den, cscale(v, -1)); });
+    const kk = cdiv(num, den);
+    return { z, p, k: zpk.k * kk.re };
+  }
+  function lp2bp(zpk, wo, bw) {
+    const deg = zpk.p.length - zpk.z.length;
+    const tr = v => { const s = cscale(v, bw / 2); const r = csqrt(csub(cmul(s, s), C(wo * wo))); return [cadd(s, r), csub(s, r)]; };
+    const z = [], p = [];
+    zpk.z.forEach(v => z.push(...tr(v)));
+    zpk.p.forEach(v => p.push(...tr(v)));
+    for (let i = 0; i < deg; i++) z.push(C(0));
+    return { z, p, k: zpk.k * Math.pow(bw, deg) };
+  }
+  function lp2bs(zpk, wo, bw) {
+    const deg = zpk.p.length - zpk.z.length;
+    const tr = v => { const s = cdiv(C(bw / 2), v); const r = csqrt(csub(cmul(s, s), C(wo * wo))); return [cadd(s, r), csub(s, r)]; };
+    const z = [], p = [];
+    zpk.z.forEach(v => z.push(...tr(v)));
+    zpk.p.forEach(v => p.push(...tr(v)));
+    for (let i = 0; i < deg; i++) { z.push(C(0, wo)); z.push(C(0, -wo)); }
+    let num = C(1), den = C(1);
+    zpk.z.forEach(v => { num = cmul(num, cscale(v, -1)); });
+    zpk.p.forEach(v => { den = cmul(den, cscale(v, -1)); });
+    const kk = cdiv(num, den);
+    return { z, p, k: zpk.k * kk.re };
+  }
+  function bilinear(zpk, fs) {
+    const fs2 = 2 * fs;
+    const deg = zpk.p.length - zpk.z.length;
+    const tr = v => cdiv(cadd(C(fs2), v), csub(C(fs2), v));
+    const z = zpk.z.map(tr), p = zpk.p.map(tr);
+    for (let i = 0; i < deg; i++) z.push(C(-1));
+    let num = C(1), den = C(1);
+    zpk.z.forEach(v => { num = cmul(num, csub(C(fs2), v)); });
+    zpk.p.forEach(v => { den = cmul(den, csub(C(fs2), v)); });
+    const kk = cdiv(num, den);
+    return { z, p, k: zpk.k * kk.re };
+  }
+  // pair conjugates -> second-order sections [b0,b1,b2,a0,a1,a2]
+  function zpk2sos(zpk) {
+    const pairUp = arr => {
+      const rest = arr.slice(); const pairs = [];
+      while (rest.length) {
+        const a = rest.shift();
+        if (Math.abs(a.im) < 1e-9) { // real: pair with the nearest real
+          let j = rest.findIndex(v => Math.abs(v.im) < 1e-9);
+          if (j >= 0) { pairs.push([a, rest.splice(j, 1)[0]]); } else pairs.push([a]);
+        } else {
+          let j = rest.findIndex(v => Math.abs(v.re - a.re) < 1e-7 && Math.abs(v.im + a.im) < 1e-7);
+          if (j >= 0) { pairs.push([a, rest.splice(j, 1)[0]]); } else pairs.push([a, C(a.re, -a.im)]);
+        }
+      }
+      return pairs;
+    };
+    const poly = pr => { // (x - r1)(x - r2) -> real coefficients [1, c1, c2]
+      if (pr.length === 1) return [1, -pr[0].re, 0];
+      const s = cadd(pr[0], pr[1]), m = cmul(pr[0], pr[1]);
+      return [1, -s.re, m.re];
+    };
+    // sort poles by closeness to the unit circle so each section pairs zeros nearby (stability of cascade)
+    const P = zpk.p.slice().sort((a, b) => Math.hypot(b.re, b.im) - Math.hypot(a.re, a.im));
+    const Z = zpk.z.slice();
+    const pp = pairUp(P);
+    const sos = [];
+    pp.forEach((pair, idx) => {
+      // choose the zero(s) nearest this pole pair
+      const zs = [];
+      for (let n = 0; n < pair.length && Z.length; n++) {
+        let best = 0, bd = Infinity;
+        Z.forEach((v, j) => { const d = Math.hypot(v.re - pair[0].re, Math.abs(v.im) - Math.abs(pair[0].im)); if (d < bd) { bd = d; best = j; } });
+        const zz = Z.splice(best, 1)[0];
+        zs.push(zz);
+        if (Math.abs(zz.im) > 1e-9) { // also remove its conjugate
+          const cj = Z.findIndex(v => Math.abs(v.re - zz.re) < 1e-7 && Math.abs(v.im + zz.im) < 1e-7);
+          if (cj >= 0) { zs.push(Z.splice(cj, 1)[0]); n++; }
+        }
+      }
+      const b = zs.length ? poly(zs) : [1, 0, 0];
+      const a = poly(pair);
+      const g = idx === 0 ? zpk.k : 1;
+      sos.push([b[0] * g, b[1] * g, b[2] * g, a[0], a[1], a[2]]);
+    });
+    return sos;
+  }
+
+  function butter(N, cutoffHz, fs, btype = 'lowpass') {
+    const warp = f => 2 * fs * Math.tan(Math.PI * f / fs);
+    let zpk = buttap(N);
+    if (btype === 'lowpass') zpk = lp2lp(zpk, warp(cutoffHz));
+    else if (btype === 'highpass') zpk = lp2hp(zpk, warp(cutoffHz));
+    else {
+      const w1 = warp(cutoffHz[0]), w2 = warp(cutoffHz[1]);
+      const bw = w2 - w1, wo = Math.sqrt(w1 * w2);
+      zpk = btype === 'bandpass' ? lp2bp(zpk, wo, bw) : lp2bs(zpk, wo, bw);
+    }
+    return zpk2sos(bilinear(zpk, fs));
+  }
+
+  function sosfilt(sos, x, zi) { // direct form II transposed, per section
+    let y = Float64Array.from(x);
+    const st = zi || sos.map(() => [0, 0]);
+    sos.forEach(([b0, b1, b2, a0, a1, a2], s) => {
+      const z = st[s]; const out = new Float64Array(y.length);
+      for (let n = 0; n < y.length; n++) {
+        const xn = y[n];
+        const yn = b0 * xn + z[0];
+        z[0] = b1 * xn - a1 * yn + z[1];
+        z[1] = b2 * xn - a2 * yn;
+        out[n] = yn;
+      }
+      y = out;
+    });
+    return y;
+  }
+  // steady-state initial conditions for a step of amplitude 1 (like scipy sosfilt_zi)
+  function sosfiltZi(sos) {
+    let scale = 1;
+    return sos.map(([b0, b1, b2, a0, a1, a2]) => {
+      // solve for zi such that output is constant for constant input (scale)
+      const g = (b0 + b1 + b2) / (1 + a1 + a2); // dc gain of this section
+      const z0 = scale * ((b1 - a1 * b0) + (b2 - a2 * b0)) / (1 + a1 + a2) * 1; // approx via steady state
+      // exact: z1 = scale*(b2 - a2*b0)... use the standard linear solve
+      // Steady state: y = g*scale; z0 = y - b0*scale; z1 = z0 - (b1*scale - a1*y)
+      const y = g * scale;
+      const zz0 = y - b0 * scale;
+      const zz1 = zz0 - (b1 * scale - a1 * y);
+      scale = y;
+      return [zz0, zz1];
+    });
+  }
+  function sosfiltfilt(sos, x) {
+    const n = x.length;
+    const pad = Math.min(n - 1, 3 * (2 * sos.length + 1)); // ~ 3 * (order) samples (scipy: 3*max(len(a),len(b)))
+    // odd extension
+    const ext = new Float64Array(n + 2 * pad);
+    for (let i = 0; i < pad; i++) ext[i] = 2 * x[0] - x[pad - i];
+    for (let i = 0; i < n; i++) ext[pad + i] = x[i];
+    for (let i = 0; i < pad; i++) ext[pad + n + i] = 2 * x[n - 1] - x[n - 2 - i];
+    const zi = sosfiltZi(sos);
+    let y = sosfilt(sos, ext, zi.map(z => [z[0] * ext[0], z[1] * ext[0]]));
+    y.reverse();
+    y = sosfilt(sos, y, zi.map(z => [z[0] * y[0], z[1] * y[0]]));
+    y.reverse();
+    return y.slice(pad, pad + n);
+  }
+  function sosFreqz(sos, fHz, fs) { // magnitude response at a frequency (Hz)
+    const w = 2 * Math.PI * fHz / fs;
+    const e1 = C(Math.cos(-w), Math.sin(-w)), e2 = C(Math.cos(-2 * w), Math.sin(-2 * w));
+    let H = C(1);
+    sos.forEach(([b0, b1, b2, a0, a1, a2]) => {
+      const num = cadd(C(b0), cadd(cscale(e1, b1), cscale(e2, b2)));
+      const den = cadd(C(a0), cadd(cscale(e1, a1), cscale(e2, a2)));
+      H = cmul(H, cdiv(num, den));
+    });
+    return Math.hypot(H.re, H.im);
+  }
+  function sosPhase(sos, fHz, fs) {
+    const w = 2 * Math.PI * fHz / fs;
+    const e1 = C(Math.cos(-w), Math.sin(-w)), e2 = C(Math.cos(-2 * w), Math.sin(-2 * w));
+    let H = C(1);
+    sos.forEach(([b0, b1, b2, a0, a1, a2]) => {
+      const num = cadd(C(b0), cadd(cscale(e1, b1), cscale(e2, b2)));
+      const den = cadd(C(a0), cadd(cscale(e1, a1), cscale(e2, a2)));
+      H = cmul(H, cdiv(num, den));
+    });
+    return Math.atan2(H.im, H.re);
+  }
+
+  // ---- real FFT magnitude (radix-2, zero-padded), returns {f, mag} one-sided, mag scaled 2/N
+  function rfftMag(x, fs) {
+    let N = 1; while (N < x.length) N <<= 1;
+    const re = new Float64Array(N), im = new Float64Array(N);
+    for (let i = 0; i < x.length; i++) re[i] = x[i];
+    for (let i = 1, j = 0; i < N; i++) { // bit reversal
+      let bit = N >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit;
+      if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; }
+    }
+    for (let len = 2; len <= N; len <<= 1) {
+      const ang = -2 * Math.PI / len, wr = Math.cos(ang), wi = Math.sin(ang);
+      for (let i = 0; i < N; i += len) {
+        let cr = 1, ci = 0;
+        for (let j = 0; j < len / 2; j++) {
+          const ur = re[i + j], ui = im[i + j];
+          const vr = re[i + j + len / 2] * cr - im[i + j + len / 2] * ci;
+          const vi = re[i + j + len / 2] * ci + im[i + j + len / 2] * cr;
+          re[i + j] = ur + vr; im[i + j] = ui + vi;
+          re[i + j + len / 2] = ur - vr; im[i + j + len / 2] = ui - vi;
+          const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t;
+        }
+      }
+    }
+    const half = N / 2 + 1, f = new Float64Array(half), mag = new Float64Array(half);
+    for (let k = 0; k < half; k++) { f[k] = k * fs / N; mag[k] = 2 * Math.hypot(re[k], im[k]) / x.length; }
+    return { f, mag };
+  }
+
+  const api = { butter, sosfilt, sosfiltfilt, sosFreqz, sosPhase, rfftMag };
+  if (typeof module !== 'undefined') module.exports = api;
+  global.Butter = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+const DATA={"ax":[2.263,4.289,11.335,9.616,-0.365,-11.074,-8.194,-0.231,4.744,5.601,4.634,2.351,0.647,-0.003,0.985,-1.343,-3.7,-4.837,-3.9,-2.812,-3.164,-6.794,-7.056,-5.561,-5.104,-6.932,-11.231,-9.327,-2.902,2.732,7.388,9.326,6.534,3.301,1.235,0.499,2.304,3.482,2.213,0.818,2.427,3.844,3.827,2.354,-0.867,-0.879,7.048,7.124,-4.497,-14.683,-7.232,6.788,14.065,10.937,5.379,-1.788,-3.297,-1.798,-1.874,-3.228,-3.821,-4.487,-3.988,-2.143,-2.514,-5.973,-8.253,-5.58,-2.652,-2.476,-10.562,-11.605,-1.343,5.405,5.543,4.184,2.385,2.473,3.127,1.48,-0.053,-0.1,1.925,2.492,2.718,3.068,4.053,3.104,1.437,-0.779,3.165,9.004,2.868,-10.534,-7.406,3.96,14.267,11.221,4.129,0.952,0.564,0.797,-1.519,-4.821,-7.399,-4.79,-2.398,-1.931,-6.154,-6.654,-4.928,-4.059,-4.416,-4.073,-9.036,-8.032,-1.743,4.746,8.512,6.503,5.846,6.798,6.039,3.063,1.19,-0.222,-0.541,1.761,4.184,5.039,3.12,0.718,-0.331,2.547,8.852,3.465,-9.222,-11.909,-5.071,4.886,9.997,6.803,1.897,-1.267,-2.126,-2.931,-4.38,-5.892,-6.123,-4.033,-1.391,-2.497,-6.594,-8.132,-5.823,-2.686,-1.372,-9.446,-12.029,-4.518,1.68,3.218,3.413,3.753,5.108,6.11,4.115,2.142,0.692,0.873,2.475,4.158,5.039,5.041,1.266,-0.588,1.851,10.971,10.418,-4.154,-17.075,-7.456,7.819,14.094,8.85,3.634,0.152,-1.56,-1.5,-2.062,-3.952,-4.937,-4.464,-3.602,-3.338,-3.757,-5.849,-7.215,-6.506,-1.167,-2.017,-6.863,-8.62,-1.874,2.83,5.886,5.008,4.782,6.234,6.127,3.203,1.014,0.278,1.302,1.937,2.316,1.58,1.604,0.878,-0.662,1.697,6.312,6.493,-2.421,-7.227,1.294,11.778,13.432,8.148,1.509,-2.617,-2.148,1.149,3.632,-0.465,-4.868,-5.156,-2.557,-1.938,-3.826,-6.561,-7.294,-6.059,-2.945,-1.41,-4.823,-5.447,-1.555,-0.612,-1.284,0.109,1.556,1.64,1.973,3.832,3.641,1.233,-1.305,-0.522,2.263,2.432,-0.612,-1.876,0.033,3.175,0.597,-4.761,-5.194,11.194,12.427,-7.039,-14.045,-4.199,10.814,14.96,13.151,5.52,-2.417,-4.69,-3.331,-2.79,-2.383,-2.24,-2.302,-0.9,0.011,-0.15,-1.069,-1.805,-0.343,1.809,1.656,-0.929,-0.793,1.075,2.235,2.532,1.916,0.702,0.59,0.747,-0.065,0.268,1.637,2.566,2.349,1.549,2.297,1.078,3.125,4.075,1.104,1.935],"ay":[-5.707,-5.269,0.141,2.922,-7.012,-12.317,-6.505,2.558,7.385,6.768,5.895,4.819,4.012,4.11,4.869,2.972,2.429,2.631,4.169,6.63,7.202,4.155,3.403,4.462,6.809,8.011,1.213,-6.081,-5.272,-2.682,1.025,3.983,2.384,-0.506,-2.536,-3.065,-2.277,-1.187,-2.053,-3.615,-3.11,-2.648,-3.37,-5.0,-7.354,-6.983,0.465,7.352,-4.25,-11.337,-4.715,6.554,11.053,7.187,3.45,0.091,0.46,2.777,2.972,2.743,3.143,3.148,4.369,6.723,7.244,4.809,2.603,3.469,6.678,11.136,1.444,-6.331,-3.441,1.141,2.305,1.679,0.234,-0.197,-0.646,-2.127,-3.491,-3.174,-1.67,-0.996,-1.365,-2.651,-3.327,-3.403,-4.305,-5.46,-3.267,2.765,-6.098,-14.448,-9.054,2.577,10.394,7.363,3.822,3.712,5.188,5.902,4.024,1.06,0.996,3.555,6.616,8.439,4.307,2.417,3.179,3.824,5.157,6.223,-0.542,-8.111,-7.945,-4.617,0.322,1.591,-0.444,-1.218,-0.808,-2.158,-3.31,-5.148,-5.341,-3.167,-1.999,-1.994,-4.284,-6.519,-7.264,-4.645,4.764,0.637,-9.97,-10.087,-1.239,7.647,9.337,7.214,5.309,3.824,3.752,3.219,2.377,1.26,1.47,4.136,7.44,7.69,4.943,2.465,3.188,7.021,12.193,3.764,-6.319,-5.988,-2.908,-0.549,-1.361,-1.541,-2.194,-1.411,-1.558,-2.575,-3.798,-4.019,-3.384,-2.986,-2.572,-2.858,-5.65,-7.997,-7.247,2.265,4.797,-9.344,-15.262,-6.04,6.992,10.641,6.095,4.229,2.71,2.31,2.903,2.962,2.481,2.231,4.21,6.261,7.314,6.909,5.485,2.698,2.707,8.808,12.196,1.086,-5.16,-3.622,-1.399,-0.028,0.294,-1.353,-1.063,-0.818,-3.174,-4.776,-4.536,-3.155,-2.694,-2.798,-4.05,-3.85,-4.086,-5.505,-4.584,2.677,1.558,-8.645,-13.048,-4.265,7.344,8.918,4.169,1.179,-0.016,1.651,3.507,4.84,2.66,0.829,1.605,4.774,6.899,6.249,3.971,2.529,2.781,6.697,10.237,4.94,-1.832,-2.998,-3.765,-5.555,-4.35,-2.446,-2.006,-1.044,0.499,0.965,-0.416,-1.81,-1.618,-0.154,0.501,-1.62,-2.675,-1.287,0.784,-1.396,-5.707,-4.757,7.221,14.369,-3.703,-15.683,-12.234,-1.077,6.138,7.725,4.528,0.92,0.979,2.743,2.869,2.012,1.801,1.272,2.612,3.667,3.16,1.501,0.515,1.641,2.4,1.222,-0.318,-0.38,0.851,1.51,1.884,1.755,1.674,1.791,1.92,1.184,0.76,1.301,1.967,1.827,1.079,2.907,-1.482,1.353,2.391,2.446,1.717],"az":[8.478,9.163,6.514,7.802,19.306,19.306,19.306,16.54,11.053,12.131,11.979,9.387,7.311,4.36,4.114,6.945,7.863,6.371,2.972,-0.325,1.722,7.375,11.267,13.614,11.275,12.757,19.306,19.306,19.306,16.378,9.772,5.966,5.021,5.554,5.312,4.326,1.641,0.072,-0.544,1.539,1.739,1.71,1.705,4.131,9.175,12.415,10.065,10.953,19.306,19.306,19.306,12.779,8.766,9.265,8.032,8.347,4.881,5.076,6.573,8.649,8.861,6.564,2.869,-0.063,2.084,6.814,12.296,17.725,14.402,12.081,19.306,19.306,19.306,15.773,7.149,4.336,1.513,1.26,3.326,5.802,6.987,5.114,1.601,0.948,1.348,3.6,5.854,4.702,5.89,9.073,13.688,12.058,19.306,19.306,19.306,10.548,11.353,19.008,17.975,12.531,5.038,2.443,3.717,9.896,9.511,5.745,0.796,-0.694,5.126,8.801,11.708,14.393,12.572,12.319,19.306,19.306,19.306,17.39,7.14,4.362,5.842,8.071,6.097,3.498,2.091,2.905,3.117,2.648,-0.394,-1.341,0.668,7.292,11.175,10.891,6.085,14.75,19.306,19.306,18.751,11.132,12.869,12.422,11.482,9.537,4.99,2.831,5.043,7.128,5.571,2.046,0.294,1.817,7.678,14.193,16.488,12.677,9.427,19.306,19.306,19.306,19.306,8.37,6.711,5.155,6.307,2.827,0.91,1.929,2.924,2.439,1.32,0.07,-1.191,0.601,5.576,8.728,9.658,6.618,9.37,19.306,19.306,19.306,18.542,16.585,15.014,10.353,7.973,4.219,3.074,3.284,3.479,3.643,1.832,1.929,2.465,5.65,10.925,17.813,17.247,12.153,16.388,19.306,19.306,19.306,10.775,6.19,2.165,1.801,3.2,2.162,2.531,3.246,2.589,1.936,1.391,0.525,1.891,2.148,4.567,7.092,10.051,8.792,18.054,19.306,19.306,19.306,12.386,12.393,14.095,14.467,9.649,1.753,0.394,3.186,6.071,6.245,2.669,-0.551,-1.361,1.244,6.849,11.953,16.069,14.186,13.36,19.306,19.306,19.306,19.306,18.682,11.336,6.43,6.35,5.704,5.681,6.152,5.05,1.81,1.336,-0.042,0.91,2.112,1.617,-0.256,-1.425,1.553,10.813,14.133,8.413,7.24,19.306,19.306,19.306,19.306,5.516,3.584,7.03,13.731,13.341,9.589,9.642,11.272,9.142,8.83,6.183,4.233,5.676,7.744,7.049,2.781,4.205,7.74,9.411,9.125,9.256,9.82,10.146,9.306,7.606,7.794,9.058,11.417,12.322,11.077,8.766,7.89,10.134,-2.065,19.306,14.502,12.396,4.479,12.131]};
+
+
+// Kinematic sagittal-plane gait model.
+// The pelvis follows a smooth path: an inverted-pendulum bounce (two per stride), a forward speed
+// that dips while braking after each foot strike, and a lateral sway over the stance leg. The
+// stance leg is solved by inverse kinematics so the planted foot never slides; the swing leg, arms
+// and trunk follow joint-angle curves over the gait cycle. A sensor reading is the second difference
+// of the sensor point's position, plus gravity in the segment's frame, plus a damped heel-strike
+// transient and sensor noise.
+(function (global) {
+  const D = Math.PI / 180;
+  const TOEOFF = 0.62, HEELOFF = 0.32, REACH = 0.26;
+  const smooth = (a, b, x) => { const u = Math.max(0, Math.min(1, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
+  function periodic(table, K = 6) {   // periodic smooth curve from [phi, value] knots (truncated Fourier fit with sigma factors)
+    const M = 128, s = new Float64Array(M), pts = table.slice().sort((a, b) => a[0] - b[0]);
+    for (let i = 0; i < M; i++) {
+      const p = i / M; let j = 0;
+      while (j < pts.length - 1 && pts[j + 1][0] <= p) j++;
+      const a = pts[j], b = pts[(j + 1) % pts.length];
+      const span = ((b[0] - a[0]) + 1) % 1 || 1, u = (((p - a[0]) + 1) % 1) / span;
+      s[i] = a[1] + (b[1] - a[1]) * u;
+    }
+    const co = [], si = [];
+    for (let k = 0; k <= K; k++) { let c = 0, d = 0; for (let i = 0; i < M; i++) { c += s[i] * Math.cos(2 * Math.PI * k * i / M); d += s[i] * Math.sin(2 * Math.PI * k * i / M); } co.push(c / M); si.push(d / M); }
+    return phi => { let v = co[0]; for (let k = 1; k <= K; k++) { const w = Math.PI * k / (K + 1), sig = Math.sin(w) / w; v += 2 * sig * (co[k] * Math.cos(2 * Math.PI * k * phi) + si[k] * Math.sin(2 * Math.PI * k * phi)); } return v; };
+  }
+  // ---- joint-angle curves (degrees; phi = fraction of the stride, 0 = heel strike of that leg)
+  // segment angles from the vertical, positive = forward; knee = flexion of the shank relative to the thigh
+  const HIP = periodic([[0, 24.5], [0.1, 19], [0.2, 10], [0.3, 0], [0.4, -8], [0.5, -12], [0.6, -6], [0.7, 8], [0.8, 20], [0.85, 26], [0.9, 25.5], [0.95, 24.2]]);
+  const KNEE = periodic([[0, 9], [0.05, 14], [0.1, 18], [0.15, 18], [0.2, 14], [0.3, 7], [0.4, 6], [0.5, 14], [0.55, 28], [0.6, 45], [0.65, 58], [0.7, 62], [0.75, 55], [0.8, 38], [0.85, 22], [0.9, 8], [0.95, 3]], 8);
+  const FOOT0 = periodic([[0, 12], [0.04, 4], [0.08, 0], [0.2, 0], [0.32, 0], [0.4, -2], [0.46, -4], [0.5, -6], [0.54, -14], [0.58, -26], [0.62, -38], [0.66, -40], [0.72, -28], [0.78, -12], [0.88, 2], [0.95, 9]], 8);
+  const FOOT = phi => phi < 0.08 ? FOOT0(phi) * (1 - smooth(0.03, 0.08, phi)) : phi <= HEELOFF ? 0 : phi < 0.62 ? FOOT0(phi) * smooth(HEELOFF, HEELOFF + 0.06, phi) : FOOT0(phi);
+  const ARM = periodic([[0, -22], [0.15, -14], [0.3, 0], [0.5, 14], [0.65, 10], [0.8, -6], [0.9, -18]]);   // upper arm on the same side as the leg whose phase is used
+  const ELBOW = periodic([[0, 12], [0.25, 20], [0.5, 34], [0.75, 24]]);
+
+  const L = { thigh: 0.44, shank: 0.43, ankleH: 0.07, foot: 0.22, heel: 0.05, trunk: 0.50, neck: 0.20, uarm: 0.30, farm: 0.26 };
+  const F0 = Math.asin(L.ankleH / L.foot);   // slope of the flat foot: toe on the ground, ankle 7 cm above it
+  const RMAX = L.thigh + L.shank, R0 = 0.862;  // soft reach limit: the knee never locks straight
+
+  const HMEAN = 0.913, HAMP = 0.0225, H2 = 0.12, PH0 = 0.07;   // height = HMEAN - HAMP [cos 4pi(phi - PH0) + H2 cos 8pi(phi - PH0)]
+  const XAMP = 0.010, PHX = 0.03;                                 // x = v t + XAMP sin 4pi(phi - PHX): braking after contact, push at the end of stance
+  const LAT = 0.025;
+  function pelvis(t, phi, v) {
+    const u = phi - PH0, ux = phi - PHX;
+    return { x: v * t + XAMP * Math.sin(4 * Math.PI * ux), y: HMEAN - HAMP * (Math.cos(4 * Math.PI * u) + H2 * Math.cos(8 * Math.PI * u)), lat: LAT * Math.sin(2 * Math.PI * phi) };
+  }
+  // two-link inverse kinematics: thigh/shank angles that put the ankle at A given the hip at H
+  function ik(H, A) {
+    const dx = A.x - H.x, dy = A.y - H.y;
+    let r = Math.hypot(dx, dy);
+    if (r > R0) r = RMAX - (RMAX - R0) * Math.exp(-(r - R0) / (RMAX - R0));   // smooth saturation below full extension
+    const ck = Math.max(-1, Math.min(1, (r * r - L.thigh * L.thigh - L.shank * L.shank) / (2 * L.thigh * L.shank)));
+    const k = Math.acos(ck), beta = Math.atan2(dx, -dy), alpha = Math.asin(L.shank * Math.sin(k) / r);
+    return { thigh: (beta + alpha) / D, shank: (beta + alpha - k) / D, knee: k / D };
+  }
+  function footVec(f) { const a = f * D - F0; return { x: L.foot * Math.cos(a), y: L.foot * Math.sin(a) }; }
+  const ankleOf = (H, a) => ({ x: H.x + L.thigh * Math.sin(a.thigh * D) + L.shank * Math.sin(a.shank * D), y: H.y - L.thigh * Math.cos(a.thigh * D) - L.shank * Math.cos(a.shank * D) });
+
+  function simulate(opt) {
+    const cadence = opt.cadence || 110, T = 120 / cadence, fsi = opt.fsi || 200, strides = opt.strides || 8;
+    const stepLen = opt.stepLen || (0.33 + 0.002 * cadence), v = stepLen * 2 / T;
+    const impact = opt.impact == null ? 1 : opt.impact, noise = opt.noise == null ? 0.25 : opt.noise, seed = opt.seed || 328;
+    let s = seed >>> 0; const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+    const gauss = () => { const u = 1 - rnd(), w = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * w); };
+    const dt = 1 / fsi, N = Math.round(strides * T * fsi);
+    const legs = [{ off: 0, P: null, toe: false }, { off: 0.5, P: null, toe: false }];   // 0 = right, 1 = left
+    const frames = [], strikes = [];
+    let prevPhi = [null, null];
+    for (let n = 0; n < N; n++) {
+      const t = n * dt, phi = legs.map(l => ((t / T) + l.off) % 1);
+      const H = pelvis(t, phi[0], v);
+      const legsOut = [0, 1].map(i => {
+        const l = legs[i], p = phi[i];
+        if (prevPhi[i] != null && p < prevPhi[i]) { l.P = null; l.landing = true; strikes.push({ t, side: i }); }
+        if (n === 0 && i === 0) strikes.push({ t: 0, side: 0 });
+        let a = { thigh: HIP(p), shank: HIP(p) - KNEE(p), foot: FOOT(p) };     // free-swing pose from the tables
+        if (!l.P && p < TOEOFF) {            // this leg has just landed (or the run starts mid-stance): plant the ankle where it is
+          const A = l.landing ? ankleOf(H, a) : { x: H.x + REACH - p * v * T, y: L.ankleH };   // plant the ankle where the swing put it
+          l.P = { x: A.x, y: A.y }; l.toe = false; l.landing = false;
+          if (p >= HEELOFF) { l.P = { x: l.P.x + L.foot * Math.cos(F0), y: 0 }; l.toe = true; }
+        }
+        if (l.P) {
+          if (p >= HEELOFF && !l.toe) { l.P = { x: l.P.x + L.foot * Math.cos(F0), y: 0 }; l.toe = true; }
+          const target = l.toe ? { x: l.P.x - footVec(a.foot).x, y: -footVec(a.foot).y } : { x: l.P.x, y: l.P.y + (L.ankleH - l.P.y) * smooth(0, 0.08, p) };
+          if (p < TOEOFF) {
+            const k = ik(H, target);
+            // remember the toe-off pose and its angular velocity relative to the free-swing curve
+            const prev = l.last, tb = { thigh: HIP(p), shank: HIP(p) - KNEE(p) };
+            l.last = { p, thigh: k.thigh, shank: k.shank, dT: tb.thigh, dS: tb.shank };
+            if (prev) { l.tof = { p, dthigh: (k.thigh - tb.thigh) - (prev.thigh - prev.dT), dshank: (k.shank - tb.shank) - (prev.shank - prev.dS), Dthigh: k.thigh - tb.thigh, Dshank: k.shank - tb.shank, dp: p - prev.p }; }
+            a = { thigh: k.thigh, shank: k.shank, foot: a.foot, knee: k.knee };
+          } else {                           // early swing: carry the toe-off offset (and its rate) and let it die out smoothly
+            const o = l.tof, u = Math.min(1, (p - TOEOFF) / 0.16), S = u * u * u * (u * (6 * u - 15) + 10);
+            if (o) { const steps = (p - o.p) / o.dp; a = { thigh: a.thigh + (o.Dthigh + o.dthigh * steps) * (1 - S), shank: a.shank + (o.Dshank + o.dshank * steps) * (1 - S), foot: a.foot }; }
+            if (u >= 1) { l.P = null; l.tof = null; l.last = null; }
+          }
+        }
+        const knee = { x: H.x + L.thigh * Math.sin(a.thigh * D), y: H.y - L.thigh * Math.cos(a.thigh * D) };
+        const ankle = { x: knee.x + L.shank * Math.sin(a.shank * D), y: knee.y - L.shank * Math.cos(a.shank * D) };
+        const fv = footVec(a.foot), cf = Math.cos(a.foot * D), sf = Math.sin(a.foot * D);
+        const toe = { x: ankle.x + fv.x, y: ankle.y + fv.y };
+        const heel = { x: ankle.x - L.heel * cf + L.ankleH * sf, y: ankle.y - L.heel * sf - L.ankleH * cf };
+        const pocket = { x: H.x + 0.42 * L.thigh * Math.sin(a.thigh * D) + 0.045 * Math.cos(a.thigh * D), y: H.y - 0.42 * L.thigh * Math.cos(a.thigh * D) + 0.045 * Math.sin(a.thigh * D) };
+        return { a, knee, ankle, toe, heel, pocket, planted: !!l.P && p < TOEOFF };
+      });
+      const stepPhase = (phi[0] * 2) % 1;
+      const trunk = 4 + 1.5 * Math.cos(2 * Math.PI * stepPhase);
+      const sh = { x: H.x + L.trunk * Math.sin(trunk * D), y: H.y + L.trunk * Math.cos(trunk * D) };
+      const head = { x: sh.x + L.neck * Math.sin(trunk * D), y: sh.y + L.neck * Math.cos(trunk * D) };
+      const arms = [0, 1].map(i => {
+        const ua = ARM(phi[i]), fa = ua + ELBOW(phi[i]);
+        const elbow = { x: sh.x + L.uarm * Math.sin(ua * D), y: sh.y - L.uarm * Math.cos(ua * D) };
+        const wrist = { x: elbow.x + L.farm * Math.sin(fa * D), y: elbow.y - L.farm * Math.cos(fa * D) };
+        return { ua, fa, elbow, wrist };
+      });
+      frames.push({ t, phi, hip: { x: H.x, y: H.y }, lat: H.lat, sh, head, trunk, arms, legs: legsOut });
+      prevPhi = phi;
+    }
+    // ---- sensors
+    const g = 9.81;
+    // the sensor sits in soft tissue and cloth, not bolted to the bone: smooth its path (gaussian, sigma 10 ms) before differentiating
+    // a hard heel strike (impact 2) couples stiffly; a soft one (impact 0) spreads the contact over ~50 ms
+    const SIG = 2 + 3 * (1 - Math.min(1, impact)), KW = Math.ceil(3 * SIG), KER = [];
+    for (let k = -KW; k <= KW; k++) KER.push(Math.exp(-0.5 * k * k / (SIG * SIG)));
+    const KS = KER.reduce((a, b) => a + b, 0);
+    function smoothed(arr) { const o = new Float64Array(N); for (let n = 0; n < N; n++) { let v = 0; for (let k = -KW; k <= KW; k++) v += KER[k + KW] * arr[Math.min(N - 1, Math.max(0, n + k))]; o[n] = v / KS; } return o; }
+    function accelOf(getP, getLat) {
+      const px = smoothed(frames.map(f => getP(f).x)), py = smoothed(frames.map(f => getP(f).y)), pl = smoothed(frames.map(getLat));
+      const ax = new Float64Array(N), ay = new Float64Array(N), az = new Float64Array(N);
+      for (let n = 1; n < N - 1; n++) {
+        ax[n] = (px[n + 1] - 2 * px[n] + px[n - 1]) / (dt * dt); ay[n] = (py[n + 1] - 2 * py[n] + py[n - 1]) / (dt * dt);
+        az[n] = (pl[n + 1] - 2 * pl[n] + pl[n - 1]) / (dt * dt);
+      }
+      ax[0] = ax[1]; ay[0] = ay[1]; az[0] = az[1]; ax[N - 1] = ax[N - 2]; ay[N - 1] = ay[N - 2]; az[N - 1] = az[N - 2];
+      return { ax, ay, az };
+    }
+    function transient(n, ampSame, ampOther, side) {
+      const t = frames[n].t; let val = 0;
+      for (const sk of strikes) { const d = t - sk.t; if (d < 0 || d > 0.3) continue; const A = sk.side === side ? ampSame : ampOther; val += A * Math.exp(-d / 0.035) * Math.cos(2 * Math.PI * 12 * d); }
+      return val * impact;
+    }
+    const PLACE = {
+      pocket: { get: f => f.legs[0].pocket, lat: f => f.lat, ang: f => f.legs[0].a.thigh, hangs: true, amp: [4, 3], side: 0, latAmp: 0.6 },
+      wrist: { get: f => f.arms[0].wrist, lat: f => 0.5 * f.lat, ang: f => f.arms[0].fa, hangs: true, amp: [1.2, 1.2], side: 0, latAmp: 0.2 },
+      ear: { get: f => f.head, lat: f => 0.6 * f.lat, ang: f => f.trunk, hangs: false, amp: [2.2, 2.2], side: 0, latAmp: 0.3 },
+    };
+    const sensors = {};
+    for (const k in PLACE) {
+      const P = PLACE[k], w = accelOf(P.get, P.lat);
+      const x = new Float64Array(N), y = new Float64Array(N), z = new Float64Array(N), wx = new Float64Array(N), wy = new Float64Array(N);
+      for (let n = 0; n < N; n++) {
+        const th = P.ang(frames[n]) * D, tr = transient(n, P.amp[0], P.amp[1], P.side);
+        const fx = w.ax[n] + 0.35 * tr, fy = w.ay[n] + g + tr, fz = w.az[n] + 0.3 * P.latAmp * tr;   // specific force in the world (a - g)
+        let u, fw;
+        if (P.hangs) { u = [-Math.sin(th), Math.cos(th)]; fw = [Math.cos(th), Math.sin(th)]; }   // thigh / forearm hang from their joint: 'up' points back to it
+        else { u = [Math.sin(th), Math.cos(th)]; fw = [Math.cos(th), -Math.sin(th)]; }
+        x[n] = fx * fw[0] + fy * fw[1] + noise * gauss();
+        y[n] = fx * u[0] + fy * u[1] + noise * gauss();
+        z[n] = fz + noise * gauss();
+        wx[n] = fx; wy[n] = fy;
+      }
+      sensors[k] = { x, y, z, wx, wy };
+    }
+    return { T, v, fsi, dt, N, frames, strikes, sensors, L };
+  }
+  global.Gait = { simulate, L, HIP, KNEE, FOOT, ARM, ELBOW, pelvis, ik };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+// ------------------------------------------------------------ shared helpers
+const $ = id => document.getElementById(id);
+const svgNS = 'http://www.w3.org/2000/svg';
+const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+const txt = (parent, x, y, s, attrs = {}) => { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; };
+const chart = $('chart'), tt = $('tt');
+const C = { blue: '#2a78d6', green: '#1baf7a', violet: '#4a3aa7', red: '#eb6834', grey: '#8f8f8f', ink: '#222', ink2: '#666', ink3: '#9a9a9a', far: '#b9b9b9' };
+const fmt = (v, d = 2) => (Math.round(v * Math.pow(10, d)) / Math.pow(10, d)).toFixed(d);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+function niceTicks(lo, hi, n = 6) {
+  const span = hi - lo, raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => span / s <= n) || mag * 10;
+  const out = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(6)); return out;
+}
+function panel(parent, box, xd, yd, o = {}) {
+  const { x, y, w, h } = box;
+  const sx = v => x + (v - xd[0]) / (xd[1] - xd[0]) * w, sy = v => y + h - (v - yd[0]) / (yd[1] - yd[0]) * h;
+  const grid = el('g', { class: 'grid' }, parent), axis = el('g', { class: 'axis' }, parent);
+  const xt = o.xt || niceTicks(xd[0], xd[1], o.nx || 8), yt = o.yt || niceTicks(yd[0], yd[1], o.ny || 5);
+  xt.forEach(v => { el('line', { x1: sx(v), x2: sx(v), y1: y, y2: y + h }, grid); if (!o.noxt) txt(axis, sx(v), y + h + 17, o.xf ? o.xf(v) : v, { 'text-anchor': 'middle' }); });
+  yt.forEach(v => { el('line', { x1: x, x2: x + w, y1: sy(v), y2: sy(v) }, grid); txt(axis, x - 8, sy(v) + 4, o.yf ? o.yf(v) : v, { 'text-anchor': 'end' }); });
+  el('path', { d: `M${x},${y}V${y + h}H${x + w}` }, axis);
+  if (o.xlabel) txt(parent, x + w, y + h + 38, o.xlabel, { class: 'axis-title', 'text-anchor': 'end' });
+  if (o.ylabel) { const t = txt(parent, 0, 0, o.ylabel, { class: 'axis-title', 'text-anchor': 'middle' }); t.setAttribute('transform', `translate(${x - (o.ylx || 62)},${y + h / 2}) rotate(-90)`); }
+  if (o.title) txt(parent, x, y - 8, o.title, { class: 'ptitle' });
+  const id = 'clip' + Math.random().toString(36).slice(2, 8);
+  const cp = el('clipPath', { id }, parent); el('rect', { x, y: y - 2, width: w, height: h + 4 }, cp);
+  const g = el('g', { 'clip-path': `url(#${id})` }, parent), top = el('g', {}, parent);
+  return { sx, sy, g, top, box, xd, yd };
+}
+function pathOf(xs, ys, n) { let d = ''; const m = n == null ? xs.length : n; for (let i = 0; i < m; i++) d += (i ? 'L' : 'M') + xs[i].toFixed(1) + ',' + ys[i].toFixed(1); return d; }
+function legend(parent, x, y, items, right) {
+  const rowH = 24, padX = 10, padY = 8;
+  const wdt = Math.max(...items.map(i => i.n.length)) * 10 + 2 * padX + 30;
+  if (right != null) x = right - wdt;
+  x = Math.min(x, W - wdt - 6);
+  el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, parent);
+  items.forEach((it, j) => {
+    const cy = y + padY + j * rowH + 6, cx = x + padX + 9;
+    if (it.k === 'dot') el('circle', { cx, cy, r: 5, fill: it.c }, parent);
+    else if (it.k === 'ring') el('circle', { cx, cy, r: 5.5, fill: 'none', stroke: it.c, 'stroke-width': 2.2 }, parent);
+    else el('line', { x1: x + padX, x2: x + padX + 18, y1: cy, y2: cy, stroke: it.c, 'stroke-width': it.k === 'dash' ? 1.5 : 2.5, 'stroke-dasharray': it.k === 'dash' ? '5 4' : 'none' }, parent);
+    txt(parent, x + padX + 26, cy + 4, it.n, { class: 'axis-title', fill: 'var(--ink)' });
+  });
+  return wdt;
+}
+function tipAt(evt, html) {
+  tt.innerHTML = html; tt.style.display = 'block';
+  const wrap = chart.parentElement.getBoundingClientRect();
+  const px = evt.clientX - wrap.left, py = evt.clientY - wrap.top;
+  tt.style.left = (px + 16 + tt.offsetWidth > wrap.width ? px - tt.offsetWidth - 12 : px + 16) + 'px';
+  tt.style.top = Math.max(0, py - 10) + 'px';
+}
+function svgPoint(evt) { const pt = chart.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY; return pt.matrixTransform(chart.getScreenCTM().inverse()); }
+
+// ------------------------------------------------------------ dials (persist unless the user touched them)
+const dials = {}, dirty = {};
+function defDial(id, o) {
+  dials[id] = o; dirty[id] = false;
+  const inp = $(id), ev = inp.tagName === 'SELECT' ? 'change' : 'input';
+  inp.addEventListener(ev, e => { e.stopPropagation(); dirty[id] = true; showDial(id); onDial(id); });
+  inp.addEventListener('click', e => e.stopPropagation());
+  showDial(id);
+}
+function dial(id) { const v = $(id).value; return dials[id].parse ? dials[id].parse(v) : v; }
+function showDial(id) { const o = dials[id]; if (o.val) $(o.val).textContent = o.fmt ? o.fmt(dial(id)) : $(id).value; }
+function applyPresets(p, force = false) { for (const id in p || {}) if (force || !dirty[id]) { $(id).value = p[id]; showDial(id); } }
+
+// ------------------------------------------------------------ layout
+const W = 1400, H = 640;
+const FIG = { x: 16, y: 16, w: 400, h: 600 };                  // stick figure panel
+const SIGX = 550, SIGW = 590, LEGX = 1152;                                  // signal panels (left pad holds the vertical y title)
+const SINGLE = { x: SIGX, y: 30, w: SIGW, h: 520 };
+const TOP = { x: SIGX, y: 30, w: SIGW, h: 190 }, BOT = { x: SIGX, y: 290, w: SIGW, h: 260 };
+const WIN = 4;                                                // seconds of walking shown per step
+const FS = 50;                                                // display / sensor sampling rate
+const SCALE = 300;                                            // px per metre in the figure panel
+const GROUND = FIG.y + FIG.h - 60, CX = FIG.x + FIG.w / 2 + 10;
+const PLACES = {
+  pocket: { name: 'phone in pocket', short: 'pocket', axes: ['x · forward', 'y · along thigh', 'z · sideways'] },
+  wrist: { name: 'watch on the wrist', short: 'wrist', axes: ['x · forward', 'y · along forearm', 'z · sideways'] },
+  ear: { name: 'earbud', short: 'earbud', axes: ['x · forward', 'y · up', 'z · sideways'] },
+};
+const AXC = [C.blue, C.green, C.violet];
+
+
+// scipy.signal.find_peaks(x, distance=, prominence=): local maxima, prominence over the whole signal, then the distance rule
+function std(a) { const m = a.reduce((s, v) => s + v, 0) / a.length; return Math.sqrt(a.reduce((s, v) => s + (v - m) * (v - m), 0) / a.length); }
+function findPeaks(x, distance, prominence) {
+  const n = x.length, cand = [];
+  for (let i = 1; i < n - 1; i++) if (x[i] > x[i - 1] && x[i] >= x[i + 1]) cand.push(i);
+  const prom = cand.map(pk => { let lm = x[pk], i = pk; while (i >= 0 && x[i] <= x[pk]) { lm = Math.min(lm, x[i]); i--; } let rm = x[pk]; i = pk; while (i < n && x[i] <= x[pk]) { rm = Math.min(rm, x[i]); i++; } return x[pk] - Math.max(lm, rm); });
+  let alive = cand.filter((_, k) => prom[k] >= prominence);
+  const keep = new Array(alive.length).fill(true), order = alive.map((_, k) => k).sort((a, b) => x[alive[b]] - x[alive[a]]);
+  order.forEach(k => { if (!keep[k]) return; alive.forEach((q, j) => { if (j !== k && keep[j] && Math.abs(q - alive[k]) < distance) keep[j] = false; }); });
+  return alive.filter((_, k) => keep[k]);
+}
+
+// ------------------------------------------------------------ simulation and derived series
+let SIM = null, T0 = 0, D = {};
+function rebuild() {
+  SIM = Gait.simulate({ cadence: dial('cad'), impact: dial('imp'), strides: 8, fsi: 200, noise: 0.25, seed: 328 });
+  T0 = 2 * SIM.T - 0.3;                                       // skip two settling strides; first strike at 0.3 s
+  const n0 = Math.round(T0 * SIM.fsi), nW = Math.round(WIN * SIM.fsi);
+  const dt = SIM.dt;
+  // hip height (cm) and its vertical acceleration (m/s^2) at the internal rate
+  D.th = [], D.hipY = [], D.hipA = [];
+  for (let n = n0; n <= n0 + nW; n++) {
+    D.th.push((n - n0) * dt); D.hipY.push(100 * SIM.frames[n].hip.y);
+    D.hipA.push((SIM.frames[n + 1].hip.y - 2 * SIM.frames[n].hip.y + SIM.frames[n - 1].hip.y) / (dt * dt));
+  }
+  // sensor readings at 50 Hz
+  const step = SIM.fsi / FS, S = SIM.sensors[dial('place')];
+  D.ts = [], D.x = [], D.y = [], D.z = [], D.mag = [];
+  for (let n = n0; n <= n0 + nW; n += step) { D.ts.push((n - n0) * dt); D.x.push(S.x[n]); D.y.push(S.y[n]); D.z.push(S.z[n]); D.mag.push(Math.hypot(S.x[n], S.y[n], S.z[n])); }
+  D.mean = D.mag.reduce((a, b) => a + b, 0) / D.mag.length;
+  const sos = Butter.butter(3, [0.5, 4], FS, 'bandpass');
+  D.filt = Array.from(Butter.sosfiltfilt(sos, D.mag.map(v => v - D.mean))).map(v => v + D.mean);
+  D.peaks = findPeaks(D.filt, Math.round(0.3 * FS), 0.4 * std(D.filt));
+  D.strikes = SIM.strikes.map(s => ({ t: s.t - T0, side: s.side })).filter(s => s.t >= 0 && s.t <= WIN);
+  // hip acceleration peaks (for the lag annotation)
+  D.hipPeaks = []; for (let i = 1; i < D.hipA.length - 1; i++) if (D.hipA[i] > D.hipA[i - 1] && D.hipA[i] >= D.hipA[i + 1] && D.hipA[i] > 0) D.hipPeaks.push(i);
+}
+function frameAt(t) { return SIM.frames[clamp(Math.round((T0 + t) * SIM.fsi), 0, SIM.N - 1)]; }
+function phaseName(phi) { return phi < 0.02 ? 'heel strike' : phi < 0.12 ? 'loading' : phi < 0.32 ? 'midstance' : phi < 0.62 ? 'push-off' : 'swing'; }
+
+// ------------------------------------------------------------ stick figure
+function drawFigure(parent, t, opts = {}) {
+  const f = frameAt(t), v = SIM.v, tt = T0 + t;
+  const X = p => CX + (p.x - v * tt) * SCALE, Y = p => GROUND - p.y * SCALE;
+  const g = el('g', {}, parent);
+  // ground with scrolling ticks
+  el('line', { x1: FIG.x, x2: FIG.x + FIG.w, y1: GROUND, y2: GROUND, stroke: C.ink2, 'stroke-width': 1.2 }, g);
+  const off = ((v * tt) % 0.25 + 0.25) % 0.25;
+  for (let m = -0.75; m <= 0.75; m += 0.25) { const x = CX + (m - off) * SCALE; if (x > FIG.x + 4 && x < FIG.x + FIG.w - 4) el('line', { x1: x, x2: x, y1: GROUND, y2: GROUND + 7, stroke: C.ink3, 'stroke-width': 1 }, g); }
+  const seg = (a, b, col, w) => el('line', { x1: X(a), y1: Y(a), x2: X(b), y2: Y(b), stroke: col, 'stroke-width': w, 'stroke-linecap': 'round' }, g);
+  const leg = (L, col, w) => { seg(f.hip, L.knee, col, w); seg(L.knee, L.ankle, col, w); el('path', { d: `M${X(L.heel)},${Y(L.heel)}L${X(L.ankle)},${Y(L.ankle)}L${X(L.toe)},${Y(L.toe)}Z`, fill: col, stroke: col, 'stroke-width': w * 0.6, 'stroke-linejoin': 'round' }, g); };
+  const arm = (A, col, w) => { seg(f.sh, A.elbow, col, w); seg(A.elbow, A.wrist, col, w); };
+  // far side first (left leg, left arm), then trunk, then the near side (right leg, right arm)
+  leg(f.legs[1], C.far, 9); arm(f.arms[1], C.far, 8);
+  seg(f.hip, f.sh, C.ink, 11); seg(f.sh, f.head, C.ink, 8);
+  el('circle', { cx: X(f.head), cy: Y(f.head) - 0.085 * SCALE, r: 0.1 * SCALE, fill: '#fff', stroke: C.ink, 'stroke-width': 4 }, g);
+  leg(f.legs[0], C.ink, 9); arm(f.arms[0], C.ink, 8);
+  // foot-strike flash
+  D.strikes.forEach(s => { const d = t - s.t; if (d < 0 || d > 0.12) return; const L = f.legs[s.side], hx = X(L.heel), hy = Y(L.heel);
+    [-150, -120, -90].forEach(a => { const r = a * Math.PI / 180, k = 1 - d / 0.12; el('line', { x1: hx + 10 * Math.cos(r), y1: hy + 10 * Math.sin(r), x2: hx + (12 + 16 * k) * Math.cos(r), y2: hy + (12 + 16 * k) * Math.sin(r), stroke: C.red, 'stroke-width': 3, 'stroke-linecap': 'round', opacity: k }, g); }); });
+  // sensors: all three drawn, the selected one highlighted with its axes
+  const sel = opts.sensors ? dial('place') : null;
+  const R = f.legs[0], thighAng = Math.atan2(R.knee.x - f.hip.x, -(R.knee.y - f.hip.y));
+  const foreAng = Math.atan2(f.arms[0].wrist.x - f.arms[0].elbow.x, -(f.arms[0].wrist.y - f.arms[0].elbow.y));
+  const marks = { pocket: { p: R.pocket, rot: thighAng, w: 11, h: 20 }, wrist: { p: f.arms[0].wrist, rot: foreAng, w: 12, h: 9 }, ear: { p: { x: f.head.x + 0.005, y: f.head.y + 0.055 }, rot: 0, w: 9, h: 9 } };
+  for (const k in marks) {
+    if (!opts.sensors) continue;
+    const m = marks[k], on = k === sel, x = X(m.p), y = Y(m.p);
+    const gg = el('g', { transform: `translate(${x},${y}) rotate(${-m.rot * 180 / Math.PI})` }, g);
+    el('rect', { x: -m.w / 2, y: -m.h / 2, width: m.w, height: m.h, rx: 2.5, fill: on ? C.blue : '#fff', stroke: on ? C.blue : C.ink2, 'stroke-width': on ? 2 : 1.5 }, gg);
+    if (on && opts.axes) {
+      // x forward (perpendicular to the segment), y up along the segment
+      arrow(gg, 0, 0, 46, 0, AXC[0], 'x'); arrow(gg, 0, 0, 0, -46, AXC[1], 'y');
+      el('circle', { cx: 0, cy: 0, r: 5, fill: '#fff', stroke: AXC[2], 'stroke-width': 2 }, gg); el('circle', { cx: 0, cy: 0, r: 1.6, fill: AXC[2] }, gg);
+    }
+  }
+  // phase label and time
+  txt(g, CX, GROUND + 34, `right leg · ${phaseName(f.phi[0])}`, { class: 'mono', 'font-size': 17, 'font-weight': 700, fill: C.ink, 'text-anchor': 'middle' });
+  txt(g, CX, GROUND + 56, `t = ${fmt(t, 2)} s`, { class: 'mono', 'font-size': 15, fill: C.ink2, 'text-anchor': 'middle' });
+  return g;
+}
+function arrow(parent, x1, y1, x2, y2, col, label) {
+  const a = Math.atan2(y2 - y1, x2 - x1), hx = x2 - 8 * Math.cos(a), hy = y2 - 8 * Math.sin(a);
+  el('line', { x1, y1, x2: hx, y2: hy, stroke: col, 'stroke-width': 2.6 }, parent);
+  el('path', { d: `M${x2},${y2}L${hx + 5 * Math.sin(a)},${hy - 5 * Math.cos(a)}L${hx - 5 * Math.sin(a)},${hy + 5 * Math.cos(a)}Z`, fill: col }, parent);
+  if (label) txt(parent, x2 + 12 * Math.cos(a), y2 + 12 * Math.sin(a) + 5, label, { class: 'mono', 'font-size': 15, 'font-weight': 700, fill: col, 'text-anchor': 'middle' });
+}
+function strikeLines(P, tcur, labelY) {
+  D.strikes.forEach(s => { if (s.t > tcur) return; const x = P.sx(s.t);
+    el('line', { x1: x, x2: x, y1: P.box.y, y2: P.box.y + P.box.h, stroke: s.side ? C.ink3 : C.ink, 'stroke-width': 1.3, 'stroke-dasharray': '5 4' }, P.top);
+    if (labelY != null) txt(P.top, x, labelY, s.side ? 'L' : 'R', { class: 'mono', 'font-size': 13, 'font-weight': 700, fill: s.side ? C.ink3 : C.ink, 'text-anchor': 'middle' }); });
+}
+const strikeItems = [{ k: 'dash', c: C.ink, n: 'right foot strike' }, { k: 'dash', c: C.ink3, n: 'left foot strike' }];
+
+// ------------------------------------------------------------ signal panels
+function drawHeight(parent, box, tcur, o = {}) {
+  const lo = Math.floor(Math.min(...D.hipY)) - 1, hi = Math.ceil(Math.max(...D.hipY)) + 1;
+  const P = panel(parent, box, [0, WIN], [lo, hi], { xlabel: o.noX ? '' : 'time (s)', ylabel: 'hip height (cm)', ny: 4, noxt: o.noX, ylx: 66 });
+  const n = D.th.findIndex(v => v > tcur); const m = n < 0 ? D.th.length : n;
+  el('path', { d: pathOf(D.th.map(P.sx), D.hipY.map(P.sy), m), class: 'out-line', stroke: C.blue }, P.g);
+  if (m > 0) el('circle', { cx: P.sx(D.th[m - 1]), cy: P.sy(D.hipY[m - 1]), r: 5, fill: C.blue, stroke: '#fff', 'stroke-width': 2 }, P.g);
+  strikeLines(P, tcur, box.y - 6);
+  legend(P.top, LEGX, box.y + 4, [{ c: C.blue, n: 'hip height' }].concat(strikeItems));
+  return P;
+}
+function drawAccel(parent, box, tcur) {
+  const lo = Math.floor(Math.min(...D.hipA)) - 1, hi = Math.ceil(Math.max(...D.hipA)) + 2;
+  const P = panel(parent, box, [0, WIN], [lo, hi], { xlabel: 'time (s)', ylabel: 'vertical accel. (m/s²)', ny: 5, ylx: 66 });
+  el('line', { x1: box.x, x2: box.x + box.w, y1: P.sy(0), y2: P.sy(0), stroke: C.ink3, 'stroke-width': 1 }, P.g);
+  const n = D.th.findIndex(v => v > tcur); const m = n < 0 ? D.th.length : n;
+  el('path', { d: pathOf(D.th.map(P.sx), D.hipA.map(P.sy), m), class: 'out-line', stroke: C.blue }, P.g);
+  if (m > 0) el('circle', { cx: P.sx(D.th[m - 1]), cy: P.sy(D.hipA[m - 1]), r: 5, fill: C.blue, stroke: '#fff', 'stroke-width': 2 }, P.g);
+  strikeLines(P, tcur);
+  // lag from contact to the acceleration peak, for every completed pair
+  D.strikes.forEach(s => {
+    const pk = D.hipPeaks.find(i => D.th[i] > s.t); if (pk == null || D.th[pk] > tcur) return;
+    const x1 = P.sx(s.t), x2 = P.sx(D.th[pk]), y = P.sy(D.hipA[pk]) - 14;
+    el('path', { d: `M${x1},${y + 6}V${y}H${x2}V${y + 6}`, fill: 'none', stroke: C.red, 'stroke-width': 1.6 }, P.top);
+    txt(P.top, (x1 + x2) / 2, y - 6, `${Math.round(1000 * (D.th[pk] - s.t))} ms`, { class: 'mono', 'font-size': 14, 'font-weight': 700, fill: C.red, 'text-anchor': 'middle' });
+  });
+  legend(P.top, LEGX, box.y + 4, [{ c: C.blue, n: 'vertical accel.' }].concat(strikeItems, [{ c: C.red, n: 'contact to peak' }]));
+  return P;
+}
+function drawAxes(parent, box, tcur) {
+  const all = D.x.concat(D.y, D.z), lo = Math.floor(Math.min(...all) / 5) * 5, hi = Math.ceil(Math.max(...all) / 5) * 5;
+  const P = panel(parent, box, [0, WIN], [lo, hi], { xlabel: 'time (s)', ylabel: 'acceleration (m/s²)', ny: 6, ylx: 66 });
+  el('line', { x1: box.x, x2: box.x + box.w, y1: P.sy(0), y2: P.sy(0), stroke: C.ink3, 'stroke-width': 1 }, P.g);
+  const n = D.ts.findIndex(v => v > tcur); const m = n < 0 ? D.ts.length : n;
+  [D.x, D.y, D.z].forEach((arr, k) => { el('path', { d: pathOf(D.ts.map(P.sx), arr.map(P.sy), m), class: 'thin-line', stroke: AXC[k], 'stroke-width': 1.8 }, P.g);
+    if (m > 0) el('circle', { cx: P.sx(D.ts[m - 1]), cy: P.sy(arr[m - 1]), r: 4, fill: AXC[k], stroke: '#fff', 'stroke-width': 1.5 }, P.g); });
+  strikeLines(P, tcur, box.y - 6);
+  const ax = PLACES[dial('place')].axes;
+  legend(P.top, LEGX, box.y + 4, ax.map((n, k) => ({ c: AXC[k], n })).concat(strikeItems));
+  return P;
+}
+function drawMag(parent, box, tcur) {
+  const lo = Math.floor(Math.min(...D.mag) / 5) * 5, hi = Math.ceil(Math.max(...D.mag) / 5) * 5;
+  const P = panel(parent, box, [0, WIN], [lo, hi], { xlabel: 'time (s)', ylabel: 'acceleration magnitude (m/s²)', ny: 6, ylx: 66 });
+  const n = D.ts.findIndex(v => v > tcur); const m = n < 0 ? D.ts.length : n;
+  el('path', { d: pathOf(D.ts.map(P.sx), D.mag.map(P.sy), m), class: 'raw-line' }, P.g);
+  el('path', { d: pathOf(D.ts.map(P.sx), D.filt.map(P.sy), m), class: 'out-line', stroke: C.blue }, P.g);
+  D.peaks.forEach(i => { if (D.ts[i] > tcur) return; el('circle', { cx: P.sx(D.ts[i]), cy: P.sy(D.filt[i]), r: 5.5, fill: 'none', stroke: C.red, 'stroke-width': 2.2 }, P.top); });
+  strikeLines(P, tcur, box.y - 6);
+  // contact-to-peak lag on the filtered magnitude
+  D.strikes.forEach(s => {
+    const pk = D.peaks.find(i => D.ts[i] > s.t); if (pk == null || D.ts[pk] > tcur) return;
+    const x1 = P.sx(s.t), x2 = P.sx(D.ts[pk]), y = P.sy(D.filt[pk]) - 16;
+    el('path', { d: `M${x1},${y + 6}V${y}H${x2}V${y + 6}`, fill: 'none', stroke: C.red, 'stroke-width': 1.6 }, P.top);
+    txt(P.top, (x1 + x2) / 2, y - 6, `${Math.round(1000 * (D.ts[pk] - s.t))} ms`, { class: 'mono', 'font-size': 14, 'font-weight': 700, fill: C.red, 'text-anchor': 'middle' });
+  });
+  if (m > 0) el('circle', { cx: P.sx(D.ts[m - 1]), cy: P.sy(D.filt[m - 1]), r: 5, fill: C.blue, stroke: '#fff', 'stroke-width': 2 }, P.g);
+  legend(P.top, LEGX, box.y + 4, [{ c: C.grey, n: 'magnitude' }, { c: C.blue, n: 'band-pass 0.5–4 Hz' }, { k: 'ring', c: C.red, n: 'find_peaks' }].concat(strikeItems));
+  return P;
+}
+
+// ------------------------------------------------------------ steps
+let PANELS = [];
+const STEPS = [
+  { title: 'The walking cycle', dur: 8, dials: ['cad', 'speed'],
+    tag: () => `${dial('cad')} steps/min`,
+    subtitle: 'One stride of walking, and how the hip rises and falls with each step.',
+    setup() {}, draw(p) { const t = p * WIN; chart.innerHTML = ''; drawFigure(chart, t); PANELS = [drawHeight(chart, SINGLE, t)]; } },
+  { title: 'Vertical acceleration and the foot strike', dur: 8, dials: ['cad', 'speed'],
+    tag: () => `${dial('cad')} steps/min`,
+    subtitle: 'The acceleration peak comes while the landing leg takes the weight, not at contact.',
+    setup() {}, draw(p) { const t = p * WIN; chart.innerHTML = ''; drawFigure(chart, t); PANELS = [drawHeight(chart, TOP, t, { noX: true }), drawAccel(chart, BOT, t)]; } },
+  { title: 'Three axes at each sensor placement', dur: 8, presets: { view: 'axes' },
+    tag: () => `${dial('cad')} steps/min · ${PLACES[dial('place')].short} · ${FS} Hz`,
+    subtitle: 'The same walk seen by a phone in a pocket, a watch, or an earbud.',
+    setup() {}, draw(p) { drawSensor(p); } },
+  { title: 'From three axes to one magnitude', dur: 8, presets: { view: 'mag' },
+    tag: () => `${dial('cad')} steps/min · ${PLACES[dial('place')].short} · ${FS} Hz`,
+    subtitle: 'Combining the three axes into a magnitude, with the foot strikes marked.',
+    code: () => dial('view') === 'mag' ? `peaks, _ = find_peaks(filtered, distance=int(0.3*SR), prominence=0.4*filtered.std())` : '',
+    setup() {}, draw(p) { drawSensor(p); } },
+];
+function drawSensor(p) {
+  const t = p * WIN; chart.innerHTML = '';
+  drawFigure(chart, t, { sensors: true, axes: dial('view') === 'axes' });
+  PANELS = [dial('view') === 'axes' ? drawAxes(chart, SINGLE, t) : drawMag(chart, SINGLE, t)];
+}
+
+// ------------------------------------------------------------ hover
+chart.addEventListener('mousemove', evt => {
+  const q = svgPoint(evt), P = PANELS.find(P => q.x >= P.box.x && q.x <= P.box.x + P.box.w && q.y >= P.box.y && q.y <= P.box.y + P.box.h);
+  if (!P) { tt.style.display = 'none'; return; }
+  const tq = clamp((q.x - P.box.x) / P.box.w * WIN, 0, WIN), tcur = progress * WIN;
+  if (tq > tcur) { tt.style.display = 'none'; return; }
+  let html = `<div class="row"><span>t</span><b>${fmt(tq, 2)} s</b></div>`;
+  if (step <= 1) { const i = Math.round(tq * SIM.fsi); html += `<div class="row"><span><i class="sw" style="background:${C.blue}"></i>hip height</span><span>${fmt(D.hipY[i], 1)} cm</span></div>`; if (step === 1) html += `<div class="row"><span>vertical accel.</span><span>${fmt(D.hipA[i], 2)}</span></div>`; }
+  else { const i = Math.round(tq * FS); if (dial('view') === 'axes') [D.x, D.y, D.z].forEach((a, k) => { html += `<div class="row"><span><i class="sw" style="background:${AXC[k]}"></i>${'xyz'[k]}</span><span>${fmt(a[i], 2)}</span></div>`; });
+    else html += `<div class="row"><span><i class="sw" style="background:${C.grey}"></i>magnitude</span><span>${fmt(D.mag[i], 2)}</span></div><div class="row"><span><i class="sw" style="background:${C.blue}"></i>filtered</span><span>${fmt(D.filt[i], 2)}</span></div>`; }
+  tipAt(evt, html);
+});
+
+// ------------------------------------------------------------ step machine
+let step = 0, progress = 0, playing = false, raf = 0, lastT = 0;
+const speedMult = () => parseFloat($('speed').value);
+function cur() { return STEPS[step]; }
+let lastCode = null;
+function updateHead() {
+  const d = cur();
+  $('title').innerHTML = d.title + (d.tag ? `<span class="tag">${d.tag()}</span>` : '');
+  $('subtitle').textContent = d.subtitle;
+  const code = typeof d.code === 'function' ? d.code() : (d.code || '');
+  if (code !== lastCode) { lastCode = code; $('code').hidden = !code; $('code').innerHTML = code; }
+  $('counter').textContent = `${step + 1} / ${STEPS.length}`;
+  const use = d.dials || Object.keys(dials); for (const id in dials) $(id).closest('.group').hidden = !use.includes(id);
+}
+function enterStep(k, completed = false) {
+  step = clamp(k, 0, STEPS.length - 1); stopPlay();
+  applyPresets(cur().presets);
+  try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {}
+  progress = 0; rebuild(); cur().setup();
+  if (!cur().dur || completed || speedMult() === 0) { progress = 1; cur().draw(1); updateHead(); }
+  else { cur().draw(0); updateHead(); startPlay(); }
+}
+function redraw() { rebuild(); cur().setup(); cur().draw(progress); updateHead(); }
+function onDial() { redraw(); }
+function tick(t) {
+  if (!playing) return;
+  const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+  progress = Math.min(1, progress + dt * speedMult() / cur().dur);
+  cur().draw(progress); updateHead();
+  if (progress >= 1) { stopPlay(); return; }
+  raf = requestAnimationFrame(tick);
+}
+function startPlay() { if (progress >= 1 || !cur().dur) return; playing = true; lastT = performance.now(); $('play').textContent = '⏸'; raf = requestAnimationFrame(tick); }
+function stopPlay() { playing = false; cancelAnimationFrame(raf); $('play').textContent = '▶'; }
+function finish() { stopPlay(); progress = 1; cur().draw(1); updateHead(); }
+function next() { if (progress < 1) { finish(); return; } if (step < STEPS.length - 1) enterStep(step + 1); }
+function prev() { if (step > 0) enterStep(step - 1, true); }
+function restart() { enterStep(step); }
+function wire() {
+  $('next').addEventListener('click', e => { e.stopPropagation(); next(); });
+  $('prev').addEventListener('click', e => { e.stopPropagation(); prev(); });
+  $('restart').addEventListener('click', e => { e.stopPropagation(); restart(); });
+  $('reset').addEventListener('click', e => { e.stopPropagation(); for (const id in dirty) dirty[id] = false; applyPresets({ place: 'pocket', view: 'axes', cad: 110, imp: 1 }, true); applyPresets(cur().presets, true); restart(); });
+  $('play').addEventListener('click', e => { e.stopPropagation(); if (playing) stopPlay(); else if (progress >= 1) restart(); else startPlay(); });
+  $('speed').addEventListener('click', e => e.stopPropagation());
+  $('speed').addEventListener('change', e => { e.stopPropagation(); if (speedMult() === 0) finish(); });
+  $('slide').addEventListener('click', () => next());
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
+    else if (e.key === 'r' || e.key === 'R') restart();
+  });
+  chart.addEventListener('mouseleave', () => { tt.style.display = 'none'; });
+  const h = parseInt((location.hash || '').replace('#', ''), 10);
+  enterStep(h >= 1 && h <= STEPS.length ? h - 1 : 0);
+}
+defDial('place', {});
+defDial('view', {});
+defDial('cad', { val: 'cadVal', parse: v => parseInt(v, 10), fmt: v => `${v}` });
+defDial('imp', { val: 'impVal', parse: v => parseFloat(v), fmt: v => `${v.toFixed(1)}×` });
+wire();
+
+})();
+</script>
+
+</body>
+</html>
