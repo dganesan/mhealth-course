@@ -466,10 +466,10 @@
 
   const FT = { lowpass: 'low-pass', highpass: 'high-pass', bandpass: 'band-pass', bandstop: 'notch' };
   const cutText = c => isBand(c.ftype) ? `${Math.min(c.c1, c.c2)}–${Math.max(c.c1, c.c2)} Hz` : `${c.c1} Hz`;
-  const cutCode = c => isBand(c.ftype) ? `[${Math.min(c.c1, c.c2)}/nyq, ${Math.max(c.c1, c.c2)}/nyq]` : `${c.c1}/nyq`;
+  const cutCode = c => isBand(c.ftype) ? `[${Math.min(c.c1, c.c2)}, ${Math.max(c.c1, c.c2)}]` : `${c.c1}`;
   const P = v => `<b class="p">${v}</b>`;
-  const cutCodeP = c => isBand(c.ftype) ? `[${P(Math.min(c.c1, c.c2))}/nyq, ${P(Math.max(c.c1, c.c2))}/nyq]` : `${P(c.c1)}/nyq`;
-  const codeLine = c => `b, a = butter(${P(c.order)}, ${cutCodeP(c)}, btype='${P(c.ftype)}');  y = ${P(c.mode === 'causal' ? 'lfilter' : 'filtfilt')}(b, a, x)`;
+  const cutCodeP = c => isBand(c.ftype) ? `[${P(Math.min(c.c1, c.c2))}, ${P(Math.max(c.c1, c.c2))}]` : `${P(c.c1)}`;
+  const codeLine = c => `b, a = butter(${P(c.order)}, ${cutCodeP(c)}, btype='${P(c.ftype)}', fs=${FS});  y = ${P(c.mode === 'causal' ? 'lfilter' : 'filtfilt')}(b, a, x)`;
 
   // ------------------------------------------------------------ steps (presets apply only to dials the user has not touched)
   const STEPS = [

@@ -473,7 +473,7 @@
     {
       id: 'bs', title: 'Notch filter output', tag: () => `notch ${bandText()} · order 4`,
       subtitle: () => SIG.bsSub,
-      code: () => { const lo = Math.max(1, centre - width / 2), hi = Math.min(FS / 2 - 1, centre + width / 2); return `b, a = butter(4, [${P(lo)}/nyq, ${P(hi)}/nyq], btype='bandstop');  y = filtfilt(b, a, x)`; },
+      code: () => { const lo = Math.max(1, centre - width / 2), hi = Math.min(FS / 2 - 1, centre + width / 2); return `b, a = butter(4, [${P(lo)}, ${P(hi)}], btype='bandstop', fs=${FS});  y = filtfilt(b, a, x)`; },
     },
   ];
 

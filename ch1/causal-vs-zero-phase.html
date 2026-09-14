@@ -500,7 +500,7 @@ window.ECG_SLICE = [-0.0763,-0.0806,-0.0784,-0.0719,-0.0675,-0.0588,-0.0501,-0.0
         id: 'causal', anim: 'forward',
         title: 'One forward pass: lfilter', tag: `order ${order} · ${cutoff} Hz low-pass · R-peak delay ${fmtMs(dc)}`,
         subtitle: 'How lfilter delays the peaks relative to the true R-peak times.',
-        code: `b, a = butter(${P(order)}, ${P(cutoff)}/nyq, btype='lowpass');  y = lfilter(b, a, x)`
+        code: `b, a = butter(${P(order)}, ${P(cutoff)}, btype='lowpass', fs=${FS});  y = lfilter(b, a, x)`
       },
       {
         id: 'backward', anim: 'backward',

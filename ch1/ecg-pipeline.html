@@ -470,9 +470,9 @@ window.ECG = [0,0,0,0,0,0.0044,0.0153,0.024,0.037,0.0414,0.0458,0.0501,0.0523,0.
   const SPEC = { noisy: specDb(noisy), hp: specDb(hp), notch: specDb(notch), lp: specDb(lp) };
   const RAW = { key: 'noisy', name: 'raw ECG', sub: 'contaminated', sig: noisy, spec: SPEC.noisy, sos: null, input: null };
   const F = {
-    hp:    { key: 'hp', name: 'high-pass', sub: '0.5 Hz', sos: sosHP, order: 2, arg: "0.5/nyq, btype='highpass'", removedName: 'removed: baseline drift', noise: 'baseline wander', title: 'high-pass filter at 0.5 Hz' },
-    notch: { key: 'notch', name: 'notch', sub: '58–62 Hz', sos: sosN, order: 2, arg: "[58/nyq, 62/nyq], btype='bandstop'", removedName: 'removed: 60 Hz powerline noise', noise: 'powerline noise', title: 'notch filter at 60 Hz' },
-    lp:    { key: 'lp', name: 'low-pass', sub: '150 Hz', sos: sosLP, order: 4, arg: "150/nyq, btype='lowpass'", removedName: 'removed: HF noise', noise: 'high-frequency noise', title: 'low-pass filter at 150 Hz' },
+    hp:    { key: 'hp', name: 'high-pass', sub: '0.5 Hz', sos: sosHP, order: 2, arg: `0.5, btype='highpass', fs=${FS}`, removedName: 'removed: baseline drift', noise: 'baseline wander', title: 'high-pass filter at 0.5 Hz' },
+    notch: { key: 'notch', name: 'notch', sub: '58–62 Hz', sos: sosN, order: 2, arg: `[58, 62], btype='bandstop', fs=${FS}`, removedName: 'removed: 60 Hz powerline noise', noise: 'powerline noise', title: 'notch filter at 60 Hz' },
+    lp:    { key: 'lp', name: 'low-pass', sub: '150 Hz', sos: sosLP, order: 4, arg: `150, btype='lowpass', fs=${FS}`, removedName: 'removed: HF noise', noise: 'high-frequency noise', title: 'low-pass filter at 150 Hz' },
   };
   const CHAIN_A = [RAW,
     { ...F.hp, sig: hp, spec: SPEC.hp, input: noisy, specIn: SPEC.noisy },
@@ -522,7 +522,7 @@ window.ECG = [0,0,0,0,0,0.0044,0.0153,0.024,0.037,0.0414,0.0458,0.0501,0.0523,0.
     { id: 'tune', kind: 'tune', title: 'Tuning the high-pass and low-pass cutoffs',
       tag: () => `HP ${fmtHP(fHP)} · notch 60 Hz · LP ${fmtLP(fLP)}`,
       subtitle: 'How moving the high-pass and low-pass cutoffs changes the filtered ECG.',
-      code: () => `b_hp, a_hp = butter(2, ${P(fHP)}/nyq, btype='highpass');  b_lp, a_lp = butter(4, ${P(fLP)}/nyq, btype='lowpass')`,
+      code: () => `b_hp, a_hp = butter(2, ${P(fHP)}, btype='highpass', fs=${FS});  b_lp, a_lp = butter(4, ${P(fLP)}, btype='lowpass', fs=${FS})`,
       preset: { width: 2, t0: Math.max(0, tR - 0.6), hp: 0.5, lp: 150 } },
   ];
   const txt = v => typeof v === 'function' ? v() : v;

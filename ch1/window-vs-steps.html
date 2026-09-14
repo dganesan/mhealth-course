@@ -506,7 +506,7 @@
       id: 'lp', title: () => `A ${CUT_LIVE()} Hz Butterworth low-pass for comparison`, preset: { cut: 3, win: wBest },
       tag: () => `order 4 · zero-phase · w = ${W_LIVE()}`,
       subtitle: () => `Comparing a Butterworth low-pass with the moving average on the same trace.`,
-      code: () => `b, a = butter(4, ${P(CUT_LIVE())}/nyq, btype='lowpass');  y = filtfilt(b, a, x)`,
+      code: () => `b, a = butter(4, ${P(CUT_LIVE())}, btype='lowpass', fs=${FS});  y = filtfilt(b, a, x)`,
       formula: () => ''
     }
   ];
