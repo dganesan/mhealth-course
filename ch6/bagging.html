@@ -512,7 +512,7 @@ const TEST = [[9.429,3.051,0],[9.603,2.104,0],[9.644,1.394,0],[9.507,1.669,0],[9
   function finish() { frame = total; stopPlay(); render(); }
   function tick(t) {
     if (!playing) return;
-    const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+    const dt = Math.max(0, Math.min(0.1, (t - lastT) / 1000)); lastT = t;
     acc += dt * speed * steps[step].rate;
     while (acc >= 1 && frame < total) { frame++; acc -= 1; }
     render();

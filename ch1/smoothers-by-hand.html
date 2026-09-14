@@ -344,7 +344,7 @@
   function finish() { cursor = X.length - 1; stopPlay(); render(); ORDER.forEach(k => { if (steps[step].lanes.includes(k)) drawLane(k, X.length - 1, false); }); G.win.innerHTML = ''; [...G.inDots.querySelectorAll('circle')].forEach(c => { c.setAttribute('r', 4); c.setAttribute('fill', 'var(--raw-dot)'); c.style.opacity = 1; }); }
   function tick(t) {
     if (!playing) return;
-    const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t; acc += dt * speed;
+    const dt = Math.max(0, Math.min(0.1, (t - lastT) / 1000)); lastT = t; acc += dt * speed;
     while (acc >= 1 && cursor < X.length - 1) { cursor++; acc -= 1; render(); }
     if (cursor >= X.length - 1) { render(); stopPlay(); return; }
     raf = requestAnimationFrame(tick);

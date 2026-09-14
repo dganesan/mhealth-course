@@ -416,7 +416,7 @@
   function finish() { cursor = steps[step].n; stopPlay(); render(); }
   function tick(t) {
     if (!playing) return;
-    const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+    const dt = Math.max(0, Math.min(0.1, (t - lastT) / 1000)); lastT = t;
     const d = steps[step];
     acc += dt * speed * d.n / d.secs;
     while (acc >= 1 && cursor < d.n) { cursor++; acc -= 1; }

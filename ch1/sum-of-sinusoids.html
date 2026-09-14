@@ -267,7 +267,7 @@ const STEPS = [
     setup() {}, draw(p) {
       chart.innerHTML = '';
       const K = COMP.length, { lanes, sum } = laneBoxes(K);
-      const per = 1 / K, m = Math.min(K, Math.floor(p * K)), q = clamp((p - m * per) / per, 0, 1);
+      const per = 1 / K, m = clamp(Math.floor(p * K), 0, K), q = clamp((p - m * per) / per, 0, 1);
       const done = m >= K;
       COMP.forEach((c, k) => drawLane(lanes[k], c, k, N, { dim: k > m, hi: !done && k === m }));
       for (let k = 0; k + 1 < lanes.length; k++) drawPlus(lanes[k], lanes[k + 1], k, k + 1 <= m, '+', !done && k + 1 === m ? COL[m] : null);
@@ -309,7 +309,7 @@ function redraw() { build(); cur().setup(); cur().draw(progress); updateHead(); 
 function onDial() { redraw(); }
 function tick(t) {
   if (!playing) return;
-  const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+  const dt = Math.max(0, Math.min(0.1, (t - lastT) / 1000)); lastT = t;
   progress = Math.min(1, progress + dt * speedMult() / cur().dur);
   cur().draw(progress); updateHead();
   if (progress >= 1) { stopPlay(); return; }

@@ -416,7 +416,7 @@
   function rate() { return speed * (STEPS[step].panel === 'scatter6' ? 25 : 1); }
   function tick(t) {
     if (!playing) return;
-    const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+    const dt = Math.max(0, Math.min(0.1, (t - lastT) / 1000)); lastT = t;
     acc += dt * rate();
     while (acc >= 1 && cursor < total - 1) { cursor++; acc -= 1; }
     render();

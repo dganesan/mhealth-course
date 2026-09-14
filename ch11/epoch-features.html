@@ -169,7 +169,7 @@
     function finish() { cursor = animated() ? frames() - 1 : -1; stopPlay(); cfg.render(cursor, step); }
     function redraw() { steps = cfg.steps(); setHead(); cfg.enter(step); if (cursor > frames() - 1) cursor = frames() - 1; cfg.render(cursor, step); }
     function tick(t) {
-      if (!playing) return; const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t; acc += dt * speed * (steps[step].speedScale || 1);
+      if (!playing) return; const dt = Math.max(0, Math.min(0.1, (t - lastT) / 1000)); lastT = t; acc += dt * speed * (steps[step].speedScale || 1);
       while (acc >= 1 && cursor < frames() - 1) { cursor++; acc -= 1; }
       cfg.render(cursor, step); if (cursor >= frames() - 1) { finish(); return; } raf = requestAnimationFrame(tick);
     }

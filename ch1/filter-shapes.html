@@ -750,7 +750,7 @@
   function finish() { prog = 1; stopPlay(); render(); }
   function tick(t) {
     if (!playing) return;
-    const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+    const dt = Math.max(0, Math.min(0.1, (t - lastT) / 1000)); lastT = t;
     prog = Math.min(1, prog + dt * speed);
     render();
     if (prog >= 1) { finish(); return; }

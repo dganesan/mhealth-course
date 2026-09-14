@@ -76,7 +76,7 @@ CSS verbatim where possible. Key facts of the template:
   r restarts. Clicking the slide advances. URL hash `#n` opens step n.
 
 ## Wording
-- "60 Hz powerline noise", never "hum". "ECG", never "real ECG". "band-stop (notch)" at first
+- "60 Hz powerline noise", never "hum". "ECG", never "real ECG". "notch (band-stop)" at first
   mention. Use function names from the notes (lfilter, filtfilt, find_peaks, rolling(...)).
 - Numbers shown to students should be large and on one line; no wrapping, no index clutter.
 

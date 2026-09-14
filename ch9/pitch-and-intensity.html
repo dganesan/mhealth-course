@@ -330,7 +330,7 @@
   function finish() { cursor = steps[step].n; stopPlay(); render(); }
   function tick(t) {
     if (!playing) return;
-    const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+    const dt = Math.max(0, Math.min(0.1, (t - lastT) / 1000)); lastT = t;
     acc += dt * speed;
     while (acc >= 1 && cursor < steps[step].n) { cursor++; acc -= 1; }
     render();

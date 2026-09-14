@@ -764,7 +764,7 @@ window.ECG_SLICE = [-0.0763,-0.0806,-0.0784,-0.0719,-0.0675,-0.0588,-0.0501,-0.0
   function finish() { cursor = N - 1; stopPlay(); render(); }
   function tick(t) {
     if (!playing) return;
-    const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+    const dt = Math.max(0, Math.min(0.1, (t - lastT) / 1000)); lastT = t;
     acc += dt * speed;
     const stepN = Math.floor(acc); acc -= stepN;
     cursor = Math.min(N - 1, cursor + stepN);

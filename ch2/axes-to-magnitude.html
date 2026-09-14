@@ -537,7 +537,7 @@ function redraw() { cur().setup(); cur().draw(progress); updateHead(); }
 function onDial() { redraw(); }
 function tick(t) {
   if (!playing) return;
-  const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+  const dt = Math.max(0, Math.min(0.1, (t - lastT) / 1000)); lastT = t;
   progress = Math.min(1, progress + dt * speedMult() / cur().dur);
   cur().draw(progress); updateHead();
   if (progress >= 1) { stopPlay(); return; }

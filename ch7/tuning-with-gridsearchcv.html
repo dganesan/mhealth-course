@@ -462,7 +462,7 @@
   function finish() { stopPlay(); cursor = frames(); render(); }
   function tick(t) {
     if (!playing) return;
-    const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+    const dt = Math.max(0, Math.min(0.1, (t - lastT) / 1000)); lastT = t;
     acc += dt * state.speed * steps[step].rate();
     let moved = false;
     while (acc >= 1 && cursor < frames()) { cursor++; acc -= 1; moved = true; }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Moving Average versus Band-Stop Filter</title>
+<title>Moving Average versus Notch Filter</title>
 </head>
 <body>
 <style>
@@ -105,7 +105,7 @@
       <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1584 720" role="img" aria-label="Moving average and band-stop filter outputs on a signal with 60 Hz powerline noise"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1584 720" role="img" aria-label="Moving average and notch filter outputs on a signal with 60 Hz powerline noise"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -123,17 +123,24 @@
       <button id="reset" title="Clear your dial changes and use the presets">Reset dials</button>
     </div>
     <div class="group">
+      <label for="sig">Signal</label>
+      <select id="sig">
+        <option value="tones" selected>two tones + 60 Hz (chapter figure)</option>
+        <option value="ecg">ECG + 60 Hz</option>
+      </select>
+    </div>
+    <div class="group">
       <label for="win">Window w</label>
       <input type="range" id="win" class="narrow" min="3" max="41" step="2" value="9">
       <span class="val" id="winval">9</span>
     </div>
     <div class="group">
-      <label for="centre">Band-stop centre</label>
+      <label for="centre">Notch centre</label>
       <input type="range" id="centre" class="narrow" min="30" max="200" step="1" value="60">
       <span class="val" id="centreval">60 Hz</span>
     </div>
     <div class="group">
-      <label for="width">Band-stop width</label>
+      <label for="width">Notch width</label>
       <input type="range" id="width" class="narrow" min="2" max="40" step="1" value="10">
       <span class="val" id="widthval">10 Hz</span>
     </div>
@@ -387,12 +394,27 @@
 <script>
 (() => {
   // ------------------------------------------------------------ signal
-  const FS = 1000, N = 1000;
-  const T = Array.from({ length: N }, (_, i) => i / FS);
-  const CLEAN = T.map(t => Math.sin(2 * Math.PI * 50 * t) + Math.sin(2 * Math.PI * 120 * t));
-  const X = CLEAN.map((c, i) => c + Math.sin(2 * Math.PI * 60 * T[i]));
-  const WIN = [100, 200];           // samples shown: 0.10–0.20 s
-  const YR = 3.4;                   // y range ±
+  const FS = 1000;
+  // 1.5 s of the chapter's ECG trace (ECG-Trace/ecg.txt, 1000 Hz): drift and high-frequency noise removed, R peak scaled to 1
+  const ECG = [-0.014,-0.015,-0.016,-0.015,-0.014,-0.011,-0.009,-0.006,-0.003,-0.001,0.001,0.002,0.002,0.002,0.0,-0.002,-0.005,-0.008,-0.011,-0.013,-0.015,-0.016,-0.016,-0.015,-0.013,-0.01,-0.007,-0.003,0.0,0.003,0.005,0.007,0.007,0.006,0.005,0.003,0.0,-0.003,-0.005,-0.008,-0.01,-0.011,-0.011,-0.01,-0.008,-0.006,-0.003,-0.0,0.003,0.005,0.006,0.007,0.007,0.006,0.004,0.001,-0.001,-0.004,-0.007,-0.01,-0.011,-0.012,-0.011,-0.01,-0.008,-0.005,-0.002,0.002,0.005,0.008,0.01,0.011,0.011,0.01,0.008,0.005,0.002,-0.002,-0.006,-0.009,-0.012,-0.013,-0.014,-0.014,-0.012,-0.01,-0.007,-0.004,-0.001,0.002,0.004,0.005,0.006,0.006,0.004,0.003,0.0,-0.002,-0.005,-0.007,-0.008,-0.009,-0.009,-0.008,-0.006,-0.004,-0.001,0.002,0.005,0.007,0.009,0.01,0.01,0.009,0.007,0.005,0.002,-0.0,-0.003,-0.005,-0.006,-0.007,-0.007,-0.005,-0.003,-0.001,0.002,0.006,0.008,0.011,0.012,0.012,0.012,0.01,0.007,0.004,-0.0,-0.004,-0.008,-0.012,-0.014,-0.016,-0.017,-0.016,-0.015,-0.013,-0.01,-0.007,-0.004,-0.001,0.001,0.003,0.003,0.002,0.001,-0.001,-0.003,-0.006,-0.008,-0.009,-0.01,-0.01,-0.008,-0.006,-0.002,0.002,0.007,0.012,0.017,0.021,0.025,0.027,0.029,0.029,0.028,0.027,0.024,0.022,0.019,0.017,0.016,0.015,0.015,0.016,0.018,0.02,0.023,0.026,0.028,0.03,0.032,0.032,0.032,0.03,0.028,0.025,0.021,0.017,0.014,0.011,0.008,0.006,0.006,0.006,0.007,0.008,0.01,0.012,0.013,0.015,0.015,0.014,0.013,0.01,0.007,0.003,-0.001,-0.005,-0.009,-0.012,-0.014,-0.015,-0.015,-0.014,-0.011,-0.008,-0.005,-0.001,0.003,0.006,0.009,0.01,0.01,0.01,0.008,0.005,0.002,-0.001,-0.005,-0.008,-0.01,-0.012,-0.012,-0.011,-0.01,-0.007,-0.004,-0.001,0.002,0.005,0.007,0.009,0.01,0.009,0.008,0.006,0.003,0.001,-0.002,-0.004,-0.006,-0.007,-0.007,-0.006,-0.004,-0.002,0.001,0.004,0.006,0.009,0.01,0.011,0.011,0.01,0.008,0.005,0.002,-0.001,-0.004,-0.007,-0.009,-0.01,-0.01,-0.009,-0.007,-0.004,-0.001,0.002,0.005,0.008,0.01,0.011,0.011,0.011,0.009,0.007,0.004,0.001,-0.003,-0.006,-0.009,-0.012,-0.014,-0.016,-0.019,-0.021,-0.024,-0.027,-0.031,-0.037,-0.043,-0.051,-0.06,-0.07,-0.081,-0.092,-0.102,-0.112,-0.119,-0.125,-0.128,-0.127,-0.122,-0.113,-0.099,-0.079,-0.055,-0.025,0.01,0.05,0.093,0.14,0.191,0.244,0.299,0.355,0.412,0.47,0.528,0.585,0.642,0.697,0.751,0.802,0.85,0.893,0.931,0.962,0.984,0.997,1.0,0.991,0.971,0.939,0.896,0.842,0.779,0.709,0.634,0.556,0.478,0.401,0.328,0.26,0.199,0.146,0.101,0.063,0.034,0.011,-0.005,-0.017,-0.025,-0.031,-0.034,-0.037,-0.039,-0.042,-0.044,-0.047,-0.05,-0.054,-0.057,-0.06,-0.064,-0.067,-0.069,-0.072,-0.075,-0.078,-0.081,-0.084,-0.088,-0.092,-0.097,-0.102,-0.107,-0.111,-0.115,-0.119,-0.121,-0.123,-0.123,-0.123,-0.121,-0.119,-0.116,-0.113,-0.11,-0.108,-0.106,-0.105,-0.105,-0.106,-0.107,-0.109,-0.112,-0.114,-0.116,-0.118,-0.119,-0.119,-0.118,-0.117,-0.114,-0.111,-0.107,-0.104,-0.1,-0.098,-0.096,-0.094,-0.094,-0.095,-0.096,-0.098,-0.101,-0.103,-0.105,-0.106,-0.107,-0.107,-0.105,-0.103,-0.099,-0.095,-0.091,-0.086,-0.082,-0.078,-0.075,-0.073,-0.072,-0.072,-0.072,-0.074,-0.076,-0.078,-0.08,-0.081,-0.082,-0.082,-0.081,-0.079,-0.076,-0.072,-0.068,-0.064,-0.06,-0.057,-0.055,-0.053,-0.053,-0.053,-0.055,-0.057,-0.06,-0.062,-0.065,-0.067,-0.068,-0.068,-0.067,-0.065,-0.062,-0.059,-0.055,-0.051,-0.047,-0.043,-0.04,-0.038,-0.037,-0.037,-0.038,-0.039,-0.041,-0.043,-0.045,-0.046,-0.046,-0.046,-0.044,-0.041,-0.038,-0.034,-0.029,-0.025,-0.02,-0.016,-0.013,-0.011,-0.01,-0.01,-0.011,-0.012,-0.014,-0.016,-0.018,-0.02,-0.021,-0.021,-0.02,-0.018,-0.015,-0.011,-0.007,-0.002,0.002,0.006,0.009,0.011,0.012,0.012,0.012,0.011,0.009,0.008,0.006,0.005,0.005,0.006,0.008,0.01,0.014,0.018,0.022,0.027,0.031,0.035,0.039,0.041,0.043,0.043,0.043,0.042,0.041,0.039,0.038,0.038,0.038,0.039,0.041,0.044,0.048,0.052,0.057,0.061,0.066,0.07,0.073,0.076,0.077,0.078,0.077,0.076,0.075,0.074,0.073,0.072,0.073,0.074,0.075,0.078,0.082,0.086,0.09,0.095,0.099,0.102,0.104,0.106,0.107,0.106,0.105,0.103,0.1,0.098,0.095,0.093,0.092,0.091,0.091,0.092,0.094,0.096,0.099,0.101,0.103,0.105,0.105,0.104,0.103,0.1,0.096,0.091,0.086,0.08,0.075,0.07,0.065,0.062,0.059,0.057,0.056,0.055,0.055,0.055,0.054,0.053,0.051,0.048,0.043,0.038,0.032,0.025,0.018,0.01,0.003,-0.003,-0.009,-0.014,-0.018,-0.021,-0.023,-0.024,-0.025,-0.025,-0.026,-0.027,-0.028,-0.031,-0.034,-0.039,-0.044,-0.049,-0.055,-0.061,-0.067,-0.072,-0.076,-0.079,-0.082,-0.083,-0.083,-0.082,-0.081,-0.08,-0.079,-0.078,-0.078,-0.079,-0.08,-0.083,-0.086,-0.09,-0.094,-0.098,-0.102,-0.105,-0.107,-0.109,-0.109,-0.109,-0.107,-0.105,-0.102,-0.099,-0.097,-0.094,-0.093,-0.092,-0.091,-0.092,-0.094,-0.096,-0.098,-0.1,-0.103,-0.104,-0.105,-0.106,-0.105,-0.103,-0.101,-0.098,-0.095,-0.092,-0.089,-0.087,-0.085,-0.084,-0.084,-0.086,-0.087,-0.09,-0.092,-0.095,-0.098,-0.1,-0.101,-0.101,-0.1,-0.099,-0.096,-0.093,-0.09,-0.086,-0.083,-0.08,-0.078,-0.077,-0.077,-0.077,-0.079,-0.081,-0.083,-0.086,-0.088,-0.089,-0.09,-0.09,-0.09,-0.088,-0.085,-0.082,-0.078,-0.075,-0.071,-0.068,-0.066,-0.064,-0.064,-0.064,-0.066,-0.067,-0.07,-0.072,-0.074,-0.076,-0.077,-0.077,-0.077,-0.075,-0.073,-0.07,-0.067,-0.063,-0.06,-0.058,-0.056,-0.055,-0.055,-0.056,-0.057,-0.06,-0.062,-0.065,-0.067,-0.069,-0.07,-0.07,-0.07,-0.068,-0.065,-0.062,-0.059,-0.055,-0.052,-0.049,-0.046,-0.045,-0.044,-0.045,-0.046,-0.048,-0.051,-0.053,-0.055,-0.057,-0.059,-0.059,-0.059,-0.058,-0.056,-0.053,-0.05,-0.047,-0.044,-0.042,-0.04,-0.039,-0.039,-0.039,-0.041,-0.043,-0.046,-0.049,-0.051,-0.054,-0.055,-0.056,-0.055,-0.054,-0.052,-0.049,-0.046,-0.043,-0.04,-0.038,-0.036,-0.034,-0.034,-0.035,-0.036,-0.038,-0.04,-0.043,-0.045,-0.047,-0.048,-0.048,-0.047,-0.046,-0.044,-0.041,-0.038,-0.035,-0.032,-0.029,-0.027,-0.026,-0.026,-0.026,-0.028,-0.03,-0.032,-0.035,-0.037,-0.039,-0.041,-0.041,-0.041,-0.039,-0.037,-0.034,-0.031,-0.028,-0.025,-0.022,-0.02,-0.019,-0.019,-0.02,-0.022,-0.024,-0.027,-0.03,-0.033,-0.035,-0.037,-0.037,-0.037,-0.036,-0.035,-0.032,-0.029,-0.026,-0.023,-0.02,-0.019,-0.018,-0.017,-0.018,-0.02,-0.022,-0.025,-0.028,-0.031,-0.033,-0.035,-0.036,-0.036,-0.036,-0.034,-0.032,-0.03,-0.027,-0.025,-0.023,-0.021,-0.021,-0.021,-0.022,-0.023,-0.026,-0.028,-0.031,-0.033,-0.035,-0.036,-0.036,-0.035,-0.033,-0.031,-0.028,-0.024,-0.021,-0.017,-0.014,-0.012,-0.011,-0.011,-0.011,-0.012,-0.014,-0.017,-0.019,-0.021,-0.023,-0.025,-0.025,-0.025,-0.024,-0.022,-0.019,-0.017,-0.014,-0.011,-0.009,-0.008,-0.007,-0.007,-0.008,-0.01,-0.012,-0.015,-0.017,-0.02,-0.022,-0.023,-0.024,-0.023,-0.022,-0.02,-0.017,-0.014,-0.011,-0.007,-0.005,-0.003,-0.002,-0.001,-0.002,-0.003,-0.006,-0.008,-0.011,-0.014,-0.016,-0.018,-0.019,-0.019,-0.018,-0.017,-0.014,-0.012,-0.009,-0.006,-0.004,-0.002,-0.001,-0.001,-0.002,-0.003,-0.005,-0.008,-0.01,-0.013,-0.015,-0.016,-0.016,-0.016,-0.015,-0.013,-0.01,-0.007,-0.004,-0.001,0.002,0.003,0.005,0.005,0.004,0.002,-0.0,-0.003,-0.007,-0.01,-0.012,-0.015,-0.016,-0.017,-0.017,-0.016,-0.014,-0.012,-0.01,-0.008,-0.006,-0.004,-0.003,-0.003,-0.003,-0.005,-0.006,-0.009,-0.011,-0.013,-0.015,-0.016,-0.017,-0.017,-0.016,-0.014,-0.012,-0.009,-0.007,-0.004,-0.002,-0.001,-0.0,-0.0,-0.002,-0.004,-0.006,-0.01,-0.013,-0.016,-0.019,-0.021,-0.022,-0.023,-0.022,-0.02,-0.018,-0.015,-0.012,-0.009,-0.007,-0.005,-0.003,-0.003,-0.003,-0.005,-0.007,-0.009,-0.012,-0.014,-0.017,-0.018,-0.019,-0.019,-0.018,-0.016,-0.014,-0.01,-0.007,-0.004,-0.001,0.002,0.004,0.005,0.005,0.004,0.002,-0.0,-0.003,-0.005,-0.008,-0.009,-0.01,-0.011,-0.01,-0.009,-0.007,-0.004,-0.002,0.001,0.003,0.005,0.006,0.006,0.006,0.004,0.002,-0.0,-0.003,-0.006,-0.008,-0.01,-0.011,-0.011,-0.01,-0.009,-0.006,-0.004,-0.001,0.002,0.004,0.006,0.007,0.008,0.007,0.006,0.004,0.001,-0.002,-0.005,-0.007,-0.009,-0.01,-0.011,-0.01,-0.008,-0.006,-0.003,-0.0,0.003,0.005,0.008,0.009,0.01,0.01,0.009,0.007,0.005,0.002,-0.001,-0.004,-0.006,-0.008,-0.008,-0.009,-0.008,-0.007,-0.005,-0.003,-0.002,0.0,0.001,0.002,0.002,0.001,-0.0,-0.002,-0.004,-0.007,-0.009,-0.01,-0.011,-0.012,-0.011,-0.009,-0.006,-0.003,0.001,0.006,0.01,0.014,0.017,0.019,0.021,0.022,0.021,0.02,0.019,0.017,0.015,0.013,0.012,0.012,0.012,0.013,0.015,0.017,0.02,0.023,0.026,0.028,0.03,0.031,0.031,0.03,0.028,0.026,0.022,0.019,0.015,0.011,0.008,0.005,0.003,0.003,0.002,0.003,0.004,0.006,0.008,0.009,0.01,0.011,0.011,0.01,0.009,0.007,0.005,0.002,-0.001,-0.003,-0.005,-0.006,-0.006,-0.006,-0.004,-0.003,-0.0,0.002,0.005,0.007,0.009,0.01,0.011,0.01,0.009,0.007,0.005,0.003,0.0,-0.002,-0.004,-0.004,-0.005,-0.004,-0.003,-0.001,0.002,0.005,0.007,0.01,0.012,0.013,0.014,0.013,0.012,0.01,0.008,0.005,0.003,0.0,-0.002,-0.003,-0.004,-0.004,-0.003,-0.002,0.0,0.003,0.005,0.007,0.009,0.011,0.011,0.011,0.01,0.009,0.007,0.004,0.002,0.0,-0.001,-0.002,-0.002,-0.002,-0.001,0.001,0.004,0.006,0.009,0.012,0.014,0.015,0.016,0.016,0.016,0.014,0.012,0.01,0.008,0.006,0.004,0.002,0.001,0.0,-0.001,-0.001,-0.002,-0.003,-0.005,-0.008,-0.012,-0.016,-0.022,-0.029,-0.037,-0.046,-0.055,-0.064,-0.072,-0.08,-0.087,-0.092,-0.095,-0.095,-0.094,-0.09,-0.082,-0.072,-0.058,-0.04,-0.019,0.007,0.037,0.072,0.111,0.155,0.203,0.255,0.311,0.369,0.43,0.492,0.555,0.617,0.677,0.734,0.788,0.836,0.878,0.912,0.938,0.955,0.961,0.957,0.943,0.917,0.882,0.837,0.784,0.724,0.659,0.59,0.52,0.45,0.382,0.317,0.257,0.203,0.156,0.115,0.08,0.052,0.03,0.013,-0.0,-0.01,-0.017,-0.021,-0.024,-0.027,-0.028,-0.029,-0.031,-0.032,-0.033,-0.034,-0.035,-0.037,-0.039,-0.041,-0.044,-0.047,-0.051,-0.056,-0.06,-0.065,-0.07,-0.075,-0.08,-0.084,-0.087,-0.089,-0.091,-0.091,-0.091,-0.09,-0.088,-0.085,-0.083,-0.081,-0.079,-0.077,-0.076,-0.076,-0.077,-0.079,-0.081,-0.083,-0.085,-0.087,-0.089,-0.091,-0.091,-0.091,-0.09,-0.088,-0.085,-0.083,-0.08,-0.077,-0.074,-0.072,-0.071,-0.07,-0.071,-0.071,-0.072,-0.074,-0.076,-0.077,-0.078,-0.078,-0.078,-0.077,-0.075,-0.073,-0.07,-0.067,-0.064,-0.061,-0.058,-0.056,-0.055,-0.055,-0.055,-0.056,-0.058,-0.06,-0.061,-0.063,-0.064,-0.064,-0.064,-0.063,-0.061,-0.058,-0.055,-0.051,-0.048,-0.044,-0.041,-0.039,-0.038,-0.037,-0.037,-0.038,-0.039,-0.041,-0.043,-0.044];
+  const hum = (i, a) => a * Math.sin(2 * Math.PI * 60 * i / FS);
+  const T1 = Array.from({ length: 1000 }, (_, i) => i / FS);
+  const TONES = T1.map(t => Math.sin(2 * Math.PI * 50 * t) + Math.sin(2 * Math.PI * 120 * t));
+  const SIGNALS = {
+    tones: { clean: TONES, x: TONES.map((c, i) => c + hum(i, 1)), win: [100, 200], yr: 3.4, yticks: [-3, -2, -1, 0, 1, 2, 3], xtick: 20, rate: 25,
+      inputName: 'input (noisy, with 60 Hz powerline noise)', cleanName: 'clean signal (50 + 120 Hz)',
+      inputTitle: 'The input: powerline noise between two signal tones',
+      inputSub: 'The noisy input with 60 Hz powerline noise and the clean signal it should match.',
+      maSub: 'How the moving average output compares with the clean signal.',
+      bsSub: 'How the notch (band-stop) filter output compares with the moving average.' },
+    ecg: { clean: ECG, x: ECG.map((c, i) => c + hum(i, 0.3)), win: [0, 1500], yr: 1.35, yticks: [-1, -0.5, 0, 0.5, 1], xtick: 250, rate: 300,
+      inputName: 'input (ECG with 60 Hz powerline noise)', cleanName: 'clean ECG',
+      inputTitle: 'The input: powerline noise on an ECG',
+      inputSub: 'An ECG with 60 Hz powerline noise and the clean ECG it should match.',
+      maSub: 'A short window leaves the hum on the beat, a longer one rounds off the sharp R peak.',
+      bsSub: 'The notch removes the hum and leaves the sharp R peak untouched.' },
+  };
+  let SIG = SIGNALS.tones, CLEAN = SIG.clean, X = SIG.x, WIN = SIG.win, YR = SIG.yr;
 
   function movavg(x, w) {
     const M = (w - 1) / 2, out = new Array(x.length);
@@ -433,23 +455,24 @@
   let step = 0, progress = 0, playing = false, raf = 0, lastT = 0, acc = 0;
   let ma = movavg(X, w), bs = bandstop(X, centre, width);
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const SPAN = WIN[1] - WIN[0];     // samples drawn per animated step
+  let SPAN = WIN[1] - WIN[0];       // samples drawn per animated step
+  function setSignal(k) { SIG = SIGNALS[k]; CLEAN = SIG.clean; X = SIG.x; WIN = SIG.win; YR = SIG.yr; SPAN = WIN[1] - WIN[0]; recomputeMA(); recomputeBS(); }
 
   const bandText = () => `${Math.max(1, centre - width / 2)}–${Math.min(FS / 2 - 1, centre + width / 2)} Hz`;
   const P = v => `<b class="p">${v}</b>`;
   const STEPS = [
     {
-      id: 'input', title: 'The input: powerline noise between two signal tones', tag: () => 'fs = 1000 Hz',
-      subtitle: () => 'The noisy input with 60 Hz powerline noise and the clean signal it should match.',
+      id: 'input', title: () => SIG.inputTitle, tag: () => 'fs = 1000 Hz',
+      subtitle: () => SIG.inputSub,
     },
     {
       id: 'ma', title: 'Moving average output', tag: () => `w = ${w}`,
-      subtitle: () => `How the moving average output compares with the clean signal.`,
+      subtitle: () => SIG.maSub,
       code: () => `ma = data.rolling(window=${P(w)}, center=${P('True')}).mean()`,
     },
     {
-      id: 'bs', title: 'Band-stop filter output', tag: () => `band-stop ${bandText()} · order 4`,
-      subtitle: () => `How the band-stop (notch) filter output compares with the moving average.`,
+      id: 'bs', title: 'Notch filter output', tag: () => `notch ${bandText()} · order 4`,
+      subtitle: () => SIG.bsSub,
       code: () => { const lo = Math.max(1, centre - width / 2), hi = Math.min(FS / 2 - 1, centre + width / 2); return `b, a = butter(4, [${P(lo)}/nyq, ${P(hi)}/nyq], btype='bandstop');  y = filtfilt(b, a, x)`; },
     },
   ];
@@ -458,14 +481,14 @@
   let G = {};
   function drawFrame() {
     chart.innerHTML = '';
-    [[TOP, 'moving average'], [BOT, 'band-stop (notch) filter']].forEach(([P, title]) => {
+    [[TOP, 'moving average'], [BOT, 'notch (band-stop) filter']].forEach(([P, title]) => {
       const grid = el('g', { class: 'grid' }, chart), axis = el('g', { class: 'axis' }, chart);
       el('text', { x: P.x0, y: P.y0 - 12, class: 'ptitle' }, chart).textContent = title;
-      [-3, -2, -1, 0, 1, 2, 3].forEach(v => {
+      SIG.yticks.forEach(v => {
         el('line', { x1: P.x0, x2: P.x1, y1: py(P, v), y2: py(P, v) }, grid);
         el('text', { x: P.x0 - 8, y: py(P, v) + 4, 'text-anchor': 'end' }, axis).textContent = v;
       });
-      for (let i = WIN[0]; i <= WIN[1] - 1; i += 20) {
+      for (let i = WIN[0]; i <= WIN[1] - 1; i += SIG.xtick) {
         el('line', { x1: px(P, i), x2: px(P, i), y1: P.y0, y2: P.y1 }, grid);
         el('text', { x: px(P, i), y: P.y1 + 16, 'text-anchor': 'middle' }, axis).textContent = (i / FS).toFixed(2);
       }
@@ -493,9 +516,9 @@
     });
   }
   function legendItems(panel) {
-    const items = [{ name: 'input (noisy, with 60 Hz powerline noise)', color: 'var(--raw)' }, { name: 'clean signal (50 + 120 Hz)', color: 'var(--clean)', dashed: true }];
+    const items = [{ name: SIG.inputName, color: 'var(--raw)' }, { name: SIG.cleanName, color: 'var(--clean)', dashed: true }];
     if (panel === 'top' && step >= 1) items.push({ name: `moving average w=${w}`, color: 'var(--ma)' });
-    if (panel === 'bot' && step >= 2) items.push({ name: `band-stop ${bandText()}`, color: 'var(--notch)' });
+    if (panel === 'bot' && step >= 2) items.push({ name: `notch ${bandText()}`, color: 'var(--notch)' });
     return items;
   }
   function refreshLegends() {
@@ -537,8 +560,8 @@
     drawPanel(G.top, TOP, baseTop, step >= 1 ? ma : null, maUpto, 'var(--ma)');
     drawPanel(G.bot, BOT, baseBot, step >= 2 ? bs : null, bsUpto, 'var(--notch)');
     annotateRms(G.annoTop, TOP, ma, `moving average w=${w}`, 'var(--ma)', step >= 1 && maUpto >= SPAN);
-    annotateRms(G.annoBot, BOT, bs, `band-stop ${bandText()}`, 'var(--notch)', step >= 2 && bsUpto >= SPAN);
-    $('title').innerHTML = d.title + `<span class="tag">${d.tag()}</span>`;
+    annotateRms(G.annoBot, BOT, bs, `notch ${bandText()}`, 'var(--notch)', step >= 2 && bsUpto >= SPAN);
+    $('title').innerHTML = (typeof d.title === 'function' ? d.title() : d.title) + `<span class="tag">${d.tag()}</span>`;
     $('subtitle').textContent = d.subtitle();
     const code = typeof d.code === 'function' ? d.code() : d.code;
     $('code').hidden = !code; $('code').innerHTML = code || '';
@@ -560,7 +583,7 @@
     if (!dirty.win) w = PRESET.win;
     if (!dirty.centre) centre = PRESET.centre;
     if (!dirty.width) width = PRESET.width;
-    setDials(); recomputeMA(); recomputeBS();
+    setDials(); setSignal($('sig').value);
     progress = 0; acc = 0;
     drawFrame(); refreshLegends();
     $('counter').textContent = `${step + 1} / ${STEPS.length}`;
@@ -572,8 +595,8 @@
   function finish() { stopPlay(); progress = SPAN; render(); }
   function tick(t) {
     if (!playing) return;
-    const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
-    acc += dt * 25 * speedMult;
+    const dt = Math.max(0, Math.min(0.1, (t - lastT) / 1000)); lastT = t;
+    acc += dt * SIG.rate * speedMult;
     let adv = false;
     while (acc >= 1 && progress < SPAN) { progress++; acc -= 1; adv = true; }
     if (adv) render();
@@ -600,7 +623,7 @@
       `<div class="row"><span><i class="sw" style="background:var(--raw)"></i>input</span><span>${fmt3(X[i])}</span></div>` +
       `<div class="row"><span><i class="sw" style="background:var(--clean)"></i>clean signal</span><span>${fmt3(CLEAN[i])}</span></div>`;
     if (step >= 1) html += `<div class="row"><span><i class="sw" style="background:var(--ma)"></i>moving average</span><span>${fmt3(ma[i])}</span></div>`;
-    if (step >= 2) html += `<div class="row"><span><i class="sw" style="background:var(--notch)"></i>band-stop</span><span>${fmt3(bs[i])}</span></div>`;
+    if (step >= 2) html += `<div class="row"><span><i class="sw" style="background:var(--notch)"></i>notch</span><span>${fmt3(bs[i])}</span></div>`;
     tt.innerHTML = html; tt.style.display = 'block';
     const wrap = chart.parentElement.getBoundingClientRect();
     const cx = evt.clientX - wrap.left, cy = evt.clientY - wrap.top;
@@ -628,6 +651,8 @@
   $('centre').addEventListener('input', e => { dirty.centre = true; centre = parseInt(e.target.value, 10); setDials(); recomputeBS(); refreshLegends(); render(); });
   $('width').addEventListener('input', e => { dirty.width = true; width = parseInt(e.target.value, 10); setDials(); recomputeBS(); refreshLegends(); render(); });
   $('speed').addEventListener('change', e => { speedMult = parseFloat(e.target.value); });
+  $('sig').addEventListener('change', e => { e.stopPropagation(); enterStep(step); });
+  $('sig').addEventListener('click', e => e.stopPropagation());
   chart.addEventListener('mousemove', hover);
   chart.addEventListener('mouseleave', unhover);
 

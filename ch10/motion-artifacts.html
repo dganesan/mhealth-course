@@ -711,7 +711,7 @@ function findPeaks(x, opt) {
   function finish() { cursor = TEND; stopPlay(); render(); }
   function tick(t) {
     if (!playing) return;
-    const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+    const dt = Math.max(0, Math.min(0.1, (t - lastT) / 1000)); lastT = t;
     cursor = Math.min(TEND, cursor + dt * STEPS[step].rate * speedMul);
     render();
     if (done()) { finish(); return; }
