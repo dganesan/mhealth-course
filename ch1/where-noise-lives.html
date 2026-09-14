@@ -447,6 +447,10 @@
       title: '60 Hz powerline interference', tagFn: () => `noise: ${NOISE_NAME[noiseSel]} · ${amp.toFixed(1)}×`,
       subtitle: 'Where 60 Hz powerline noise appears in the time trace and in the spectrum.',
       annot: 'x = signal + sin(2π·60t)   →   notch filter' },
+    { id: 'all', base: 3, window: 0.4, with120: true, preset: { noise: 'all', amp: 1 },
+      title: 'All three noise types together', tagFn: () => `noise: ${NOISE_NAME[noiseSel]} · ${amp.toFixed(1)}×`,
+      subtitle: 'Where high-frequency noise, drift and 60 Hz noise appear together, each in its own band.',
+      annot: 'x = signal + all three noises' },
   ];
 
   // ------------------------------------------------------------ layout
@@ -596,7 +600,7 @@
     if (d.id === 'two') { const g = Math.max(0, (q - 0.5) / 0.5); return Float64Array.from(s50, (v, i) => v + g * s120[i]); }
     return Float64Array.from(s50, (v, i) => v + s120[i]);
   }
-  const fadeSteps = new Set(['hf', 'lf', 'hum']);
+  const fadeSteps = new Set(['hf', 'lf', 'hum', 'all']);
   function stateAt(d, q) {
     const key = `${d.id}|${noiseSel}|${amp}|${q.toFixed(3)}`;
     if (cache.key === key) return cache;
