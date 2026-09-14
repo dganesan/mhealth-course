@@ -435,19 +435,19 @@
       title: 'Sum of two sinusoids', tagFn: () => '50 Hz + 120 Hz',
       subtitle: 'How adding a second sinusoid adds a second spike to the spectrum.',
       annot: 'x(t) = sin(2π·50t) + sin(2π·120t)' },
-    { id: 'hf', base: 3, window: 0.2, with120: false, preset: { noise: 'hf', amp: 1 },
+    { id: 'hf', base: 3, window: 0.2, with120: true, preset: { noise: 'hf', amp: 1 },
       title: 'High-frequency noise above 200 Hz', tagFn: () => `noise: ${NOISE_NAME[noiseSel]} · ${amp.toFixed(1)}×`,
       subtitle: 'Where high-frequency noise appears in the time trace and in the spectrum.',
       annot: 'x = signal + noise_HF   →   low-pass filter' },
-    { id: 'lf', base: 3, window: 1.0, with120: false, preset: { noise: 'lf', amp: 1 },
+    { id: 'lf', base: 3, window: 1.0, with120: true, preset: { noise: 'lf', amp: 1 },
       title: 'Low-frequency baseline drift', tagFn: () => `noise: ${NOISE_NAME[noiseSel]} · ${amp.toFixed(1)}×`,
       subtitle: 'Where slow baseline drift appears in the time trace and in the spectrum.',
       annot: 'x = signal + noise_LF   →   high-pass filter' },
-    { id: 'hum', base: 3, window: 0.2, with120: false, preset: { noise: 'hum', amp: 1 },
+    { id: 'hum', base: 3, window: 0.2, with120: true, preset: { noise: 'hum', amp: 1 },
       title: '60 Hz powerline interference', tagFn: () => `noise: ${NOISE_NAME[noiseSel]} · ${amp.toFixed(1)}×`,
       subtitle: 'Where 60 Hz powerline noise appears in the time trace and in the spectrum.',
       annot: 'x = signal + sin(2π·60t)   →   notch filter' },
-    { id: 'nyq', base: 2.5, window: 0.2, with120: false, preset: { noise: 'all', amp: 1 },
+    { id: 'nyq', base: 2.5, window: 0.2, with120: true, preset: { noise: 'all', amp: 1 },
       title: 'Upper limit of the spectrum: the Nyquist frequency', tagFn: () => `f_N = fs/2 = ${NYQ} Hz · noise: ${NOISE_NAME[noiseSel]}`,
       subtitle: 'How the spectrum ends at half the sampling rate.',
       annot: 'f_N = fs / 2 = 1000 / 2 = 500 Hz' },
@@ -596,7 +596,7 @@
 
   // the signal on screen for step d at progress p, computed from the CURRENT dials
   function baseSignal(d, q) {
-    if (!d.with120) return s50;   // the noise steps add noise to the single 50 Hz sinusoid
+    if (!d.with120) return s50;
     if (d.id === 'two') { const g = Math.max(0, (q - 0.5) / 0.5); return Float64Array.from(s50, (v, i) => v + g * s120[i]); }
     return Float64Array.from(s50, (v, i) => v + s120[i]);
   }
@@ -635,7 +635,6 @@
         const q = (p - 0.5) / 0.5;
         const { x, spec: m } = stateAt(d, p);
         timePath(x);
-        timePath(s120, winN() - 1, 'faint').setAttribute('opacity', String(0.45 * (1 - q)));
         drawSpectrum(m, sel, 1, true);
       }
     }
