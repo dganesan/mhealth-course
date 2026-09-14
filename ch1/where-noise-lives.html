@@ -435,10 +435,6 @@
       title: 'Sum of two sinusoids', tagFn: () => '50 Hz + 120 Hz',
       subtitle: 'How adding a second sinusoid adds a second spike to the spectrum.',
       annot: 'x(t) = sin(2π·50t) + sin(2π·120t)' },
-    { id: 'probe', base: 7.5, window: 0.2, with120: true, preset: { noise: 'none', amp: 1 },
-      title: 'Computing the spectrum by correlation with sinusoids', tagFn: () => 'probe sweep 0 → 500 Hz',
-      subtitle: 'How correlating with a probe sinusoid at each frequency builds the spectrum.',
-      annot: 'X(f) = Σₙ x[n]·e^(−i2πfn/fs)' },
     { id: 'hf', base: 3, window: 0.2, with120: false, preset: { noise: 'hf', amp: 1 },
       title: 'High-frequency noise above 200 Hz', tagFn: () => `noise: ${NOISE_NAME[noiseSel]} · ${amp.toFixed(1)}×`,
       subtitle: 'Where high-frequency noise appears in the time trace and in the spectrum.',
@@ -501,10 +497,8 @@
     const noiseOn = noiseSel !== 'none' && amp > 0;
     const time = [{ name: noiseOn ? 'signal + noise' : 'signal', color: 'var(--sig)' }];
     if (d.id === 'two') time.push({ name: '120 Hz component (dashed)', color: 'var(--probe)', dash: true });
-    if (d.id === 'probe') { time.push({ name: 'probe sinusoid', color: 'var(--probe)', dash: true }); time.push({ name: 'product x·probe', color: 'var(--probe)', kind: 'fill' }); }
     const spec = [{ name: 'signal tones', color: 'var(--sig)' }];
     if (noiseOn) spec.push({ name: 'noise', color: 'var(--noise)' });
-    if (d.id === 'probe') spec.push({ name: 'current probe', color: 'var(--probe)', kind: 'bar' });
     return { time, spec };
   }
 
@@ -643,36 +637,6 @@
         timePath(x);
         timePath(s120, winN() - 1, 'faint').setAttribute('opacity', String(0.45 * (1 - q)));
         drawSpectrum(m, sel, 1, true);
-      }
-    }
-    else if (d.id === 'probe') {
-      drawBands(sel, noiseVisible(1));
-      const { x, spec: m } = stateAt(d, 1);
-      timePath(x);
-      const kmax = Math.round(p * 100); // 0..100 -> 0..500 Hz in 5 Hz steps
-      const f = kmax * 5;
-      const bw = Math.max(2, (fx(5) - fx(0)) - 1.5);
-      for (let k = 0; k <= kmax; k++) {
-        const ff = k * 5, h = m[ff];
-        const cur = k === kmax && p < 1;
-        const inBand = bandKeys(sel).some(b => ff >= BANDS[b][0] && ff <= BANDS[b][1]);
-        el('rect', { x: fx(ff) - bw / 2, y: fy(h), width: bw, height: fy(0) - fy(h), fill: cur ? 'var(--probe)' : inBand ? 'var(--noise)' : 'var(--sig)', opacity: cur ? 1 : 0.85 }, G.spec);
-      }
-      if (p < 1) {
-        const probe = tone(f);
-        timePath(probe, winN() - 1, 'probe-line');
-        let dpath = `M${tx(0).toFixed(1)},${ty(0).toFixed(1)}`;
-        for (let i = 0; i < winN(); i++) dpath += `L${tx(t[i]).toFixed(1)},${ty(x[i] * probe[i]).toFixed(1)}`;
-        dpath += `L${tx(t[winN() - 1]).toFixed(1)},${ty(0).toFixed(1)}Z`;
-        el('path', { class: 'product', d: dpath }, G.time);
-        el('line', { x1: fx(f), x2: fx(f), y1: Y0, y2: Y1, stroke: 'var(--probe)', 'stroke-width': 1, 'stroke-dasharray': '3 3' }, G.spec);
-        const lab = el('text', { class: 'dlabel', x: fx(f) + (f > 400 ? -8 : 8), y: Y0 + 14, fill: 'var(--probe)', 'text-anchor': f > 400 ? 'end' : 'start' }, G.spec);
-        lab.textContent = `probe ${f} Hz · match ${fmt(m[f])}`;
-        const tl = el('text', { class: 'dlabel', x: L.x1 - 4, y: Y0 + 14, fill: 'var(--probe)', 'text-anchor': 'end' }, G.time);
-        tl.textContent = `probe: sin(2π·${f}·t)   shaded: x(t)·probe(t)`;
-        G.labels.innerHTML = '';
-      } else {
-        sigLabels(m, true, sel === 'hum' || sel === 'all');
       }
     }
     else if (fadeSteps.has(d.id)) {
