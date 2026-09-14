@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exercise Signals by Sensor and Placement</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff; --ink: #222222; --ink-2: #666666; --ink-3: #9a9a9a;
+    --rule: #dcdcdc; --grid: #ececec; --raw: #8f8f8f; --raw-dot: #8c8c8c; --clean: #444444;
+    --window: rgba(34, 34, 34, 0.06); --window-edge: #222222;
+    --ma: #2a78d6; --med: #1baf7a; --wm: #4a3aa7; --ewma: #eb6834;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.4; padding-block: 10px 10px; padding-inline: 14px; -webkit-font-smoothing: antialiased; }
+  .stage { max-width: 1880px; margin: 0 auto; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; height: calc(100vh - 20px); }
+  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 16px 30px 8px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 6px; min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none; }
+  .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
+  .head h1 { margin: 0; font-size: clamp(20px, 2.2vw, 28px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .code[hidden] { display: none; }
+  .code .p { color: var(--ma); font-weight: 700; }
+  .chart-wrap { position: relative; min-height: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
+  svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt .row { display: flex; gap: 10px; justify-content: space-between; }
+  .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
+  .foot .ctr { font-family: var(--mono); }
+  .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
+  .group { display:flex; align-items:center; gap:8px; }
+  .group[hidden] { display:none; }
+  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
+  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
+  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  button:hover, select:hover { border-color:var(--ink); }
+  button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
+  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
+  .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
+  .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
+  .grid line { stroke: var(--grid); stroke-width: 1; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
+  .ptitle { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ink); }
+  .raw-line { fill: none; stroke: var(--raw); stroke-width: 1.5; }
+  .out-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .thin-line { fill: none; stroke-width: 1.4; stroke-linejoin: round; }
+  .dash { stroke-dasharray: 5 4; }
+  .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
+  .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
+  .mono { font-family: var(--mono); }
+  .big { font-family: var(--mono); font-size: 22px; font-weight: 700; }
+  .badge { font-family: var(--mono); font-size: 15px; font-weight: 700; fill: var(--ink); }
+  .kept { fill: none; stroke: var(--ewma); stroke-width: 2.2; }
+  .cross { stroke: var(--raw-dot); stroke-width: 1.6; }
+  .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
+  @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
+  .hint { display:none !important; }
+  button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
+  button.primary.tb { min-width:52px; }
+</style>
+<div class="stage">
+  <section class="slide" id="slide" tabindex="0" aria-live="polite">
+    <div class="head">
+      <h1 id="title"></h1>
+      <p id="subtitle"></p>
+      <pre class="code" id="code" hidden></pre>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 1400 640" role="img" aria-label="Exercise signal by sensor and placement"></svg>
+      <div class="tt" id="tt"></div>
+    </div>
+    <div class="foot">
+      <span>CS328 &nbsp;·&nbsp; Counting: Steps and Repetitions</span>
+      <span class="ctr" id="counter"></span>
+    </div>
+  </section>
+
+  <div class="bar">
+    <div class="group">
+      <button id="prev" class="tb" title="Previous step (←)">⏮</button>
+      <button id="play" class="primary tb" title="Play / pause (space)">▶</button>
+      <button id="next" class="tb" title="Next step (→)">⏭</button>
+      <button id="restart" class="tb" title="Restart this step (r)">↺</button>
+      <button id="reset" title="Reset dials to this step's presets">Reset dials</button>
+    </div>
+    <div class="group">
+      <label for="ex">Exercise</label>
+      <select id="ex">
+        <option value="curl" selected>bicep curl</option>
+        <option value="triceps">lying triceps extension</option>
+        <option value="crunch">crunch</option>
+        <option value="bench">bench press</option>
+        <option value="shoulder">shoulder press</option>
+        <option value="squat">squat</option>
+        <option value="legraise">leg raise</option>
+      </select>
+    </div>
+    <div class="group">
+      <label for="place">Sensor</label>
+      <select id="place">
+        <option value="pocket">phone in pocket</option>
+        <option value="wrist" selected>watch on wrist</option>
+        <option value="ear">earbud</option>
+      </select>
+    </div>
+    <div class="group">
+      <label for="speed">Speed</label>
+      <select id="speed">
+        <option value="0.25">very slow</option>
+        <option value="0.5">slow</option>
+        <option value="1" selected>normal</option>
+        <option value="2.5">fast</option>
+        <option value="0">instant</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+
+<script>
+(() => {
+// Kinematic exercise model (side view). Each exercise is a pose as a function of the repetition
+// phase: trunk pitch, hip and knee flexion, shoulder angle relative to the trunk, elbow flexion,
+// head pitch, and where the hip is. Sensor readings: accelerometer = second difference of the
+// sensor point's path plus gravity in the segment frame; gyroscope = the segment's angular rate.
+(function (global) {
+  const D = Math.PI / 180;
+  const L = { thigh: 0.44, shank: 0.43, ankleH: 0.07, foot: 0.22, heel: 0.05, trunk: 0.50, neck: 0.20, uarm: 0.30, farm: 0.26 };
+  const S5 = u => { u = Math.max(0, Math.min(1, u)); return u * u * u * (u * (6 * u - 15) + 10); };
+  // lift over [0.05, 0.45], hold, lower over [0.55, 0.95]
+  const ramp = phi => phi < 0.5 ? S5((phi - 0.05) / 0.4) : 1 - S5((phi - 0.55) / 0.4);
+  const STAND_Y = L.ankleH + L.thigh + L.shank;
+  // angle conventions: tau = trunk pitch from vertical (+ forward); thigh/shank from straight down (+ forward);
+  // ua = upper arm from hanging (+ forward), fa = ua + elbow flexion; beta = shoulder angle relative to the trunk
+  // (180 = hanging along the body, 90 = straight out in front, 0 = overhead) -> ua = 180 - tau - beta
+  const EX = {
+    curl: { name: 'Bicep curl', prop: null, pose(s) { return { tau: 2, hip: { x: 0, y: STAND_Y }, thigh: 0, knee: 0, beta: 176, elbow: 15 + 115 * s, pitch: 0, feet: 'floor' }; } },
+    triceps: { name: 'Lying triceps extension', prop: 'bench', pose(s) { return { tau: -90, hip: { x: 0.15, y: 0.6 }, thigh: 77, knee: 77, beta: 90, elbow: 100 - 90 * s, pitch: 0 }; } },
+    crunch: { name: 'Crunch', prop: null, pose(s) { return { tau: -90 + 35 * s, hip: { x: 0, y: 0.1 }, thigh: 145, knee: 120, beta: 25, elbow: 150, pitch: 12 * s }; } },
+    // presses are done with the elbows out to the sides: modelled and drawn in the frontal plane (x = sideways)
+    bench: { name: 'Bench press', prop: 'bench', view: 'front', pose(s) { return { front: true, lying: true, shY: 0.66, grip: 0.30, lift: 0.08 + 0.45 * s, s }; } },
+    shoulder: { name: 'Shoulder press', prop: null, view: 'front', pose(s) { return { front: true, lying: false, shY: STAND_Y + L.trunk, grip: 0.27, lift: 0.04 + 0.5 * s, s }; } },
+    squat: { name: 'Squat', prop: null, pose(s) {
+      const thigh = 85 * s, shank = -25 * s;
+      return { tau: 35 * s, hip: { x: -(L.thigh * Math.sin(thigh * D) + L.shank * Math.sin(shank * D)), y: L.ankleH + L.thigh * Math.cos(thigh * D) + L.shank * Math.cos(shank * D) }, thigh, knee: thigh - shank, ua: 90, elbow: 0, pitch: -10 * s }; } },
+    legraise: { name: 'Leg raise', prop: null, pose(s) { return { tau: -90, hip: { x: 0, y: 0.1 }, thigh: 90 + 88 * s, knee: 0, beta: 180, elbow: 0, pitch: 0 }; } },
+  };
+  const SHW = 0.19;   // half shoulder width in the frontal view
+  function jointsFront(p) {
+    // hands stay at a fixed width on the bar and the forearm stays close to vertical; the elbow swings out of the
+    // drawing plane, which shows here as a foreshortened upper arm
+    const sh = { x: SHW, y: p.shY }, shL = { x: -SHW, y: p.shY };
+    const reach = L.uarm + L.farm - 0.005, dx = p.grip - SHW;
+    const wrist = { x: p.grip, y: sh.y + Math.min(p.lift, Math.sqrt(reach * reach - dx * dx)) };
+    const psi = Math.asin(dx / reach) * p.s;            // forearm tilt: vertical at the bottom, in line with the straight arm at the top
+    const elbow = { x: wrist.x - L.farm * Math.sin(psi), y: wrist.y - L.farm * Math.cos(psi) };
+    const phiF = 180 - psi / D;                          // forearm angle in the 'hanging' convention
+    const hip = { x: 0, y: p.lying ? 0.58 : STAND_Y }, head = { x: 0, y: p.shY + (p.lying ? 0.02 : L.neck) };
+    const pocket = { x: 0.13, y: p.lying ? 0.5 : STAND_Y - 0.42 * L.thigh };
+    return { front: true, lying: p.lying, sh, shL, elbow, wrist, hip, head, pocket, fa: phiF, thigh: 0, headAng: 0 };
+  }
+  function joints(p) {
+    if (p.front) return jointsFront(p);
+    const tau = p.tau * D, ua = (p.ua != null ? p.ua : 180 - p.tau - p.beta), fa = ua + p.elbow;
+    const hip = p.hip;
+    const sh = { x: hip.x + L.trunk * Math.sin(tau), y: hip.y + L.trunk * Math.cos(tau) };
+    const nk = (p.tau + p.pitch) * D;
+    const head = { x: sh.x + L.neck * Math.sin(nk), y: sh.y + L.neck * Math.cos(nk) };
+    const elbow = { x: sh.x + L.uarm * Math.sin(ua * D), y: sh.y - L.uarm * Math.cos(ua * D) };
+    const wrist = { x: elbow.x + L.farm * Math.sin(fa * D), y: elbow.y - L.farm * Math.cos(fa * D) };
+    const th = p.thigh * D, shk = (p.thigh - p.knee) * D;
+    const knee = { x: hip.x + L.thigh * Math.sin(th), y: hip.y - L.thigh * Math.cos(th) };
+    const ankle = { x: knee.x + L.shank * Math.sin(shk), y: knee.y - L.shank * Math.cos(shk) };
+    // foot: flat on the floor when the shank reaches it, otherwise at right angles to the shank
+    const onFloor = ankle.y < L.ankleH + 0.02;
+    const fang = onFloor ? -Math.asin(L.ankleH / L.foot) : shk - Math.asin(L.ankleH / L.foot);
+    const toe = { x: ankle.x + L.foot * Math.cos(fang), y: ankle.y + L.foot * Math.sin(fang) };
+    const heel = { x: ankle.x - L.heel * Math.cos(fang) + L.ankleH * Math.sin(fang), y: ankle.y - L.heel * Math.sin(fang) - L.ankleH * Math.cos(fang) };
+    const pocket = { x: hip.x + 0.42 * L.thigh * Math.sin(th) + 0.045 * Math.cos(th), y: hip.y - 0.42 * L.thigh * Math.cos(th) + 0.045 * Math.sin(th) };
+    return { hip, sh, head, elbow, wrist, knee, ankle, toe, heel, pocket, ua, fa, thigh: p.thigh, headAng: p.tau + p.pitch, tau: p.tau };
+  }
+  function simulate(opt) {
+    const ex = EX[opt.exercise], fsi = opt.fsi || 200, reps = opt.reps || 6, T = opt.period || 2.8;
+    let s = (opt.seed || 328) >>> 0; const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+    const gauss = () => { const u = 1 - rnd(), w = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * w); };
+    // repetition timing and depth vary a little from rep to rep
+    const periods = [], depths = []; for (let r = 0; r < reps; r++) { periods.push(T * (1 + 0.06 * gauss())); depths.push(1 - 0.06 * Math.abs(gauss())); }
+    const starts = [0]; for (let r = 0; r < reps; r++) starts.push(starts[r] + periods[r]);
+    const dt = 1 / fsi, N = Math.round(starts[reps] * fsi), frames = [];
+    for (let n = 0; n < N; n++) {
+      const t = n * dt; let r = 0; while (r < reps - 1 && t >= starts[r + 1]) r++;
+      const phi = (t - starts[r]) / periods[r], sv = ramp(phi) * depths[r];
+      const J = joints(ex.pose(sv)); J.t = t; J.phi = phi; frames.push(J);
+    }
+    const g = 9.81, noise = opt.noise == null ? 0.25 : opt.noise, SIG = 2, KW = 6, KER = [];
+    for (let k = -KW; k <= KW; k++) KER.push(Math.exp(-0.5 * k * k / (SIG * SIG)));
+    const KS = KER.reduce((a, b) => a + b, 0);
+    const smoothed = arr => { const o = new Float64Array(N); for (let n = 0; n < N; n++) { let v = 0; for (let k = -KW; k <= KW; k++) v += KER[k + KW] * arr[Math.min(N - 1, Math.max(0, n + k))]; o[n] = v / KS; } return o; };
+    const PLACE = {
+      pocket: { get: f => f.pocket, ang: f => f.thigh, hangs: true },
+      wrist: { get: f => f.wrist, ang: f => f.fa, hangs: true },
+      ear: { get: f => f.head, ang: f => f.headAng, hangs: false },
+    };
+    const sensors = {};
+    for (const k in PLACE) {
+      const P = PLACE[k], px = smoothed(frames.map(f => P.get(f).x)), py = smoothed(frames.map(f => P.get(f).y)), ang = frames.map(P.ang);
+      const ax = new Float64Array(N), ay = new Float64Array(N), gy = new Float64Array(N), amag = new Float64Array(N), gmag = new Float64Array(N);
+      for (let n = 1; n < N - 1; n++) { ax[n] = (px[n + 1] - 2 * px[n] + px[n - 1]) / (dt * dt); ay[n] = (py[n + 1] - 2 * py[n] + py[n - 1]) / (dt * dt); gy[n] = (ang[n + 1] - ang[n - 1]) / (2 * dt); }
+      ax[0] = ax[1]; ay[0] = ay[1]; ax[N - 1] = ax[N - 2]; ay[N - 1] = ay[N - 2]; gy[0] = gy[1]; gy[N - 1] = gy[N - 2];
+      for (let n = 0; n < N; n++) {
+        const th = ang[n] * D, fx = ax[n], fy = ay[n] + g;
+        let u, fw;
+        if (P.hangs) { u = [-Math.sin(th), Math.cos(th)]; fw = [Math.cos(th), Math.sin(th)]; } else { u = [Math.sin(th), Math.cos(th)]; fw = [Math.cos(th), -Math.sin(th)]; }
+        const sx = fx * fw[0] + fy * fw[1] + noise * gauss(), sy = fx * u[0] + fy * u[1] + noise * gauss(), sz = noise * gauss();
+        amag[n] = Math.hypot(sx, sy, sz);
+        gmag[n] = Math.hypot(gy[n] + 3 * gauss(), 3 * gauss(), 3 * gauss());   // deg/s, the other two axes carry only noise in the side view
+      }
+      sensors[k] = { amag, gmag };
+    }
+    return { ex, T, fsi, dt, N, frames, starts: starts.slice(0, reps), sensors, L };
+  }
+  global.Exercise = { EX, simulate, joints, L };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+// ------------------------------------------------------------ shared helpers
+const $ = id => document.getElementById(id);
+const svgNS = 'http://www.w3.org/2000/svg';
+const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+const txt = (parent, x, y, s, attrs = {}) => { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; };
+const chart = $('chart'), tt = $('tt');
+const C = { blue: '#2a78d6', green: '#1baf7a', violet: '#4a3aa7', red: '#eb6834', grey: '#8f8f8f', rawDark: '#5c5c5c', ink: '#222', ink2: '#666', ink3: '#9a9a9a', far: '#b9b9b9' };
+const fmt = (v, d = 2) => (Math.round(v * Math.pow(10, d)) / Math.pow(10, d)).toFixed(d);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+function niceTicks(lo, hi, n = 6) {
+  const span = hi - lo, raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => span / s <= n) || mag * 10;
+  const out = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(6)); return out;
+}
+function panel(parent, box, xd, yd, o = {}) {
+  const { x, y, w, h } = box;
+  const sx = v => x + (v - xd[0]) / (xd[1] - xd[0]) * w, sy = v => y + h - (v - yd[0]) / (yd[1] - yd[0]) * h;
+  const grid = el('g', { class: 'grid' }, parent), axis = el('g', { class: 'axis' }, parent);
+  const xt = o.xt || niceTicks(xd[0], xd[1], o.nx || 8), yt = o.yt || niceTicks(yd[0], yd[1], o.ny || 5);
+  xt.forEach(v => { el('line', { x1: sx(v), x2: sx(v), y1: y, y2: y + h }, grid); if (!o.noxt) txt(axis, sx(v), y + h + 17, o.xf ? o.xf(v) : v, { 'text-anchor': 'middle' }); });
+  yt.forEach(v => { el('line', { x1: x, x2: x + w, y1: sy(v), y2: sy(v) }, grid); txt(axis, x - 8, sy(v) + 4, o.yf ? o.yf(v) : v, { 'text-anchor': 'end' }); });
+  el('path', { d: `M${x},${y}V${y + h}H${x + w}` }, axis);
+  if (o.xlabel) txt(parent, x + w, y + h + 38, o.xlabel, { class: 'axis-title', 'text-anchor': 'end' });
+  if (o.ylabel) { const t = txt(parent, 0, 0, o.ylabel, { class: 'axis-title', 'text-anchor': 'middle' }); t.setAttribute('transform', `translate(${x - (o.ylx || 62)},${y + h / 2}) rotate(-90)`); }
+  if (o.title) txt(parent, x, y - 8, o.title, { class: 'ptitle' });
+  const id = 'clip' + Math.random().toString(36).slice(2, 8);
+  const cp = el('clipPath', { id }, parent); el('rect', { x, y: y - 2, width: w, height: h + 4 }, cp);
+  const g = el('g', { 'clip-path': `url(#${id})` }, parent), top = el('g', {}, parent);
+  return { sx, sy, g, top, box, xd, yd };
+}
+function pathOf(xs, ys, n) { let d = ''; const m = n == null ? xs.length : n; for (let i = 0; i < m; i++) d += (i ? 'L' : 'M') + xs[i].toFixed(1) + ',' + ys[i].toFixed(1); return d; }
+function legend(parent, x, y, items, right) {
+  const rowH = 24, padX = 10, padY = 8;
+  const wdt = Math.max(...items.map(i => i.n.length)) * 10 + 2 * padX + 30;
+  if (right != null) x = right - wdt;
+  x = Math.min(x, W - wdt - 6);
+  el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, parent);
+  items.forEach((it, j) => {
+    const cy = y + padY + j * rowH + 6, cx = x + padX + 9;
+    if (it.k === 'dot') el('circle', { cx, cy, r: 5, fill: it.c }, parent);
+    else if (it.k === 'ring') el('circle', { cx, cy, r: 5.5, fill: 'none', stroke: it.c, 'stroke-width': 2.2 }, parent);
+    else el('line', { x1: x + padX, x2: x + padX + 18, y1: cy, y2: cy, stroke: it.c, 'stroke-width': it.w || (it.k === 'dash' ? 1.5 : it.k === 'dotted' ? 1.2 : 2.5), 'stroke-dasharray': it.k === 'dash' ? '5 4' : it.k === 'dotted' ? '2 3' : 'none' }, parent);
+    txt(parent, x + padX + 26, cy + 4, it.n, { class: 'axis-title', fill: 'var(--ink)' });
+  });
+  return wdt;
+}
+function tipAt(evt, html) {
+  tt.innerHTML = html; tt.style.display = 'block';
+  const wrap = chart.parentElement.getBoundingClientRect();
+  const px = evt.clientX - wrap.left, py = evt.clientY - wrap.top;
+  tt.style.left = (px + 16 + tt.offsetWidth > wrap.width ? px - tt.offsetWidth - 12 : px + 16) + 'px';
+  tt.style.top = Math.max(0, py - 10) + 'px';
+}
+function svgPoint(evt) { const pt = chart.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY; return pt.matrixTransform(chart.getScreenCTM().inverse()); }
+
+// ------------------------------------------------------------ dials (persist unless the user touched them)
+const dials = {}, dirty = {};
+function defDial(id, o) {
+  dials[id] = o; dirty[id] = false;
+  const inp = $(id), ev = inp.tagName === 'SELECT' ? 'change' : 'input';
+  inp.addEventListener(ev, e => { e.stopPropagation(); dirty[id] = true; showDial(id); onDial(id); });
+  inp.addEventListener('click', e => e.stopPropagation());
+  showDial(id);
+}
+function dial(id) { const v = $(id).value; return dials[id].parse ? dials[id].parse(v) : v; }
+function showDial(id) { const o = dials[id]; if (o.val) $(o.val).textContent = o.fmt ? o.fmt(dial(id)) : $(id).value; }
+function applyPresets(p, force = false) { for (const id in p || {}) if (force || !dirty[id]) { $(id).value = p[id]; showDial(id); } }
+
+
+// ------------------------------------------------------------ layout
+const W = 1400, H = 640;
+const FIG = { x: 0, y: 16, w: 420, h: 600 };
+const SIGX = 520, SIGW = 840;
+const TOP = { x: SIGX, y: 96, w: SIGW, h: 205 }, BOT = { x: SIGX, y: 355, w: SIGW, h: 205 };
+const WIN = 10, FS = 50, SCALE = 210, GROUND = FIG.y + FIG.h - 60;
+const L = Exercise.L;
+const PLACES = {
+  pocket: { name: 'Phone in a pocket', color: C.blue },
+  wrist: { name: 'Watch on the wrist', color: C.green },
+  ear: { name: 'Earbud', color: C.red },
+};
+const ACC_RANGE = [0, 20], GYR_RANGE = [0, 300];
+
+// ------------------------------------------------------------ simulation and derived series
+let SIM = null, D = {}, CX = 0;
+function rebuild() {
+  SIM = Exercise.simulate({ exercise: dial('ex'), reps: 6, fsi: 200, seed: 328 });
+  const step = SIM.fsi / FS, S = SIM.sensors[dial('place')], nW = Math.min(SIM.N - 1, Math.round(WIN * SIM.fsi));
+  D.ts = [], D.acc = [], D.gyr = [];
+  for (let n = 0; n <= nW; n += step) { D.ts.push(n * SIM.dt); D.acc.push(S.amag[n]); D.gyr.push(S.gmag[n]); }
+  D.reps = SIM.starts.filter(t => t > 0.01 && t <= WIN);
+  // centre the figure on its rest pose
+  const J = SIM.frames[0], xs = J.front ? [-0.5, 0.5] : [J.head.x, J.toe.x, J.heel.x, J.wrist.x, J.hip.x, J.knee.x, J.elbow.x];
+  CX = FIG.x + FIG.w / 2 - 0.5 * (Math.min(...xs) + Math.max(...xs)) * SCALE;
+}
+function frameAt(t) { return SIM.frames[clamp(Math.round(t * SIM.fsi), 0, SIM.N - 1)]; }
+
+// ------------------------------------------------------------ stick figure
+function drawFigure(parent, t) {
+  const f = frameAt(t), g = el('g', {}, parent);
+  const X = p => CX + p.x * SCALE, Y = p => GROUND - p.y * SCALE;
+  el('line', { x1: FIG.x + 10, x2: FIG.x + FIG.w - 10, y1: GROUND, y2: GROUND, stroke: C.ink2, 'stroke-width': 1.2 }, g);
+  const seg = (a, b, col, w) => el('line', { x1: X(a), y1: Y(a), x2: X(b), y2: Y(b), stroke: col, 'stroke-width': w, 'stroke-linecap': 'round' }, g);
+  const far = C.far, near = C.ink;
+  if (f.front) {   // frontal view: both arms mirrored, the sensor on the viewer's right arm
+    const mir = q => ({ x: -q.x, y: q.y });
+    if (f.lying) {   // seen from the foot of the bench: bench, shins in front, torso on the bench, head beyond it
+      const bx0 = X({ x: -0.16 }), bx1 = X({ x: 0.16 }), bt = Y({ y: 0.5 });
+      el('circle', { cx: X(f.head), cy: Y(f.head), r: 0.1 * SCALE, fill: '#fff', stroke: far, 'stroke-width': 4 }, g);
+      el('rect', { x: bx0, y: bt, width: bx1 - bx0, height: 9, rx: 2, fill: '#d9d9d9', stroke: C.ink3 }, g);
+      [bx0 + 14, bx1 - 14].forEach(x => el('line', { x1: x, x2: x, y1: bt + 9, y2: GROUND, stroke: C.ink3, 'stroke-width': 5 }, g));
+      el('ellipse', { cx: X({ x: 0 }), cy: Y({ y: 0.6 }), rx: 0.2 * SCALE, ry: 0.11 * SCALE, fill: '#fff', stroke: near, 'stroke-width': 4 }, g);
+      [-0.15, 0.15].forEach(x => { seg({ x, y: 0.5 }, { x, y: L.ankleH }, near, 9); el('ellipse', { cx: X({ x }), cy: Y({ y: 0.035 }), rx: 0.07 * SCALE, ry: 0.035 * SCALE, fill: near }, g); });
+    } else {         // standing, face on
+      seg(f.hip, { x: 0, y: f.sh.y }, near, 11); seg(f.shL, f.sh, near, 9);
+      [-0.11, 0.11].forEach(x => { seg({ x: x * 0.7, y: f.hip.y }, { x, y: L.ankleH }, near, 9); el('ellipse', { cx: X({ x }), cy: Y({ y: 0.035 }), rx: 0.07 * SCALE, ry: 0.035 * SCALE, fill: near }, g); });
+      seg({ x: 0, y: f.sh.y }, { x: 0, y: f.head.y }, near, 8);
+      el('circle', { cx: X({ x: 0, y: f.head.y + 0.085 }), cy: Y({ x: 0, y: f.head.y + 0.085 }), r: 0.1 * SCALE, fill: '#fff', stroke: near, 'stroke-width': 4 }, g);
+    }
+    seg(f.shL, mir(f.elbow), near, 8); seg(mir(f.elbow), mir(f.wrist), near, 8);
+    seg(f.sh, f.elbow, near, 8); seg(f.elbow, f.wrist, near, 8);
+    // the bar
+    const bw = f.wrist.x + 0.22;
+    el('line', { x1: X({ x: -bw }), x2: X({ x: bw }), y1: Y(f.wrist), y2: Y(f.wrist), stroke: C.ink2, 'stroke-width': 4 }, g);
+    [-bw, bw].forEach(x => el('rect', { x: X({ x }) - 4, y: Y(f.wrist) - 14, width: 8, height: 28, rx: 2, fill: C.ink2 }, g));
+  } else {
+    if (SIM.ex.prop === 'bench') {   // a bench under the trunk
+      const x0 = X({ x: f.hip.x - 0.85 }), x1 = X({ x: f.hip.x + 0.1 }), yt = Y({ y: 0.5 });
+      el('rect', { x: x0, y: yt, width: x1 - x0, height: 9, rx: 2, fill: '#d9d9d9', stroke: C.ink3 }, g);
+      [x0 + 22, x1 - 22].forEach(x => el('line', { x1: x, x2: x, y1: yt + 9, y2: GROUND, stroke: C.ink3, 'stroke-width': 5 }, g));
+    }
+    // both limbs move together in these exercises: draw the far side slightly offset behind, then the near side
+    const off = { x: 0.03, y: 0 };
+    const sh = p => ({ x: p.x + off.x, y: p.y + off.y });
+    seg(sh(f.hip), sh(f.knee), far, 9); seg(sh(f.knee), sh(f.ankle), far, 9);
+    el('path', { d: `M${X(sh(f.heel))},${Y(sh(f.heel))}L${X(sh(f.ankle))},${Y(sh(f.ankle))}L${X(sh(f.toe))},${Y(sh(f.toe))}Z`, fill: far, stroke: far, 'stroke-width': 5, 'stroke-linejoin': 'round' }, g);
+    seg(sh(f.sh), sh(f.elbow), far, 8); seg(sh(f.elbow), sh(f.wrist), far, 8);
+    seg(f.hip, f.sh, near, 11); seg(f.sh, f.head, near, 8);
+    const hc = { x: f.head.x + 0.085 * Math.sin(f.headAng * Math.PI / 180), y: f.head.y + 0.085 * Math.cos(f.headAng * Math.PI / 180) };
+    el('circle', { cx: X(hc), cy: Y(hc), r: 0.1 * SCALE, fill: '#fff', stroke: near, 'stroke-width': 4 }, g);
+    seg(f.hip, f.knee, near, 9); seg(f.knee, f.ankle, near, 9);
+    el('path', { d: `M${X(f.heel)},${Y(f.heel)}L${X(f.ankle)},${Y(f.ankle)}L${X(f.toe)},${Y(f.toe)}Z`, fill: near, stroke: near, 'stroke-width': 5, 'stroke-linejoin': 'round' }, g);
+    seg(f.sh, f.elbow, near, 8); seg(f.elbow, f.wrist, near, 8);
+    if (['curl', 'triceps'].includes(dial('ex'))) el('circle', { cx: X(f.wrist), cy: Y(f.wrist), r: 7, fill: C.ink2 }, g);
+  }
+  // sensors, the selected one in its colour
+  const sel = dial('place'), thighAng = f.thigh * Math.PI / 180, foreAng = f.fa * Math.PI / 180;
+  const earP = f.front ? { x: f.head.x + (f.lying ? 0.1 : 0.1), y: f.head.y + (f.lying ? 0 : 0.085) } : { x: f.head.x + 0.02 * Math.sin(f.headAng * Math.PI / 180), y: f.head.y + 0.06 * Math.cos(f.headAng * Math.PI / 180) };
+  const marks = { pocket: { p: f.pocket, rot: thighAng, w: 10, h: 18 }, wrist: { p: f.wrist, rot: foreAng, w: 12, h: 9 }, ear: { p: earP, rot: 0, w: 9, h: 9 } };
+  for (const k in marks) {
+    const m = marks[k], on = k === sel, pc = PLACES[k].color;
+    const gg = el('g', { transform: `translate(${X(m.p)},${Y(m.p)}) rotate(${-m.rot * 180 / Math.PI})` }, g);
+    el('rect', { x: -m.w / 2, y: -m.h / 2, width: m.w, height: m.h, rx: 2.5, fill: on ? pc : '#fff', stroke: on ? pc : C.ink2, 'stroke-width': on ? 2 : 1.5 }, gg);
+  }
+  txt(g, FIG.x + FIG.w / 2, GROUND + 34, SIM.ex.name, { class: 'mono', 'font-size': 17, 'font-weight': 700, fill: C.ink, 'text-anchor': 'middle' });
+  txt(g, FIG.x + FIG.w / 2, GROUND + 56, `t = ${fmt(t, 2)} s`, { class: 'mono', 'font-size': 15, fill: C.ink2, 'text-anchor': 'middle' });
+}
+
+// ------------------------------------------------------------ signal panels
+function repLines(P, tcur) { D.reps.forEach(r => { if (r > tcur) return; el('line', { x1: P.sx(r), x2: P.sx(r), y1: P.box.y, y2: P.box.y + P.box.h, stroke: C.ink3, 'stroke-width': 1.3, 'stroke-dasharray': '5 4' }, P.top); }); }
+function drawTrace(parent, box, arr, yd, o, tcur, col) {
+  const P = panel(parent, box, [0, WIN], yd, o);
+  const n = D.ts.findIndex(v => v > tcur); const m = n < 0 ? D.ts.length : n;
+  el('path', { d: pathOf(D.ts.map(P.sx), arr.map(v => P.sy(clamp(v, yd[0], yd[1]))), m), fill: 'none', stroke: col, 'stroke-width': 2.6, 'stroke-linejoin': 'round' }, P.g);
+  if (m > 0) el('circle', { cx: P.sx(D.ts[m - 1]), cy: P.sy(clamp(arr[m - 1], yd[0], yd[1])), r: 5, fill: col, stroke: '#fff', 'stroke-width': 2 }, P.g);
+  repLines(P, tcur);
+  return P;
+}
+function drawAll(progress) {
+  const t = progress * WIN, col = PLACES[dial('place')].color; chart.innerHTML = '';
+  drawFigure(chart, t);
+  txt(chart, SIGX, TOP.y - 40, `${SIM.ex.name} · ${PLACES[dial('place')].name}`, { class: 'sans', 'font-size': 26, 'font-weight': 700, fill: col });
+  // legend row on the accelerometer panel's title line, right-aligned
+  const ly = TOP.y - 8, items = [{ c: col, w: 2.6, n: 'sensor magnitude' }, { c: C.ink3, w: 1.5, d: '5 4', n: 'start of a repetition' }];
+  let x = SIGX + SIGW - items.reduce((s, it) => s + 26 + it.n.length * 8.8 + 16, 0);
+  items.forEach(it => { el('line', { x1: x, x2: x + 18, y1: ly - 5, y2: ly - 5, stroke: it.c, 'stroke-width': it.w, 'stroke-dasharray': it.d || 'none' }, chart); txt(chart, x + 26, ly, it.n, { class: 'axis-title', fill: 'var(--ink)' }); x += 26 + it.n.length * 8.8 + 16; });
+  PANELS = [
+    drawTrace(chart, TOP, D.acc, ACC_RANGE, { title: 'Accelerometer', ylabel: 'accel. magnitude (m/s²)', yt: [0, 5, 10, 15, 20], noxt: true, ylx: 66 }, t, col),
+    drawTrace(chart, BOT, D.gyr, GYR_RANGE, { title: 'Gyroscope', ylabel: 'angular rate (°/s)', yt: [0, 100, 200, 300], xlabel: 'time (s)', ylx: 66 }, t, col),
+  ];
+}
+let PANELS = [];
+// one plain sentence per exercise and placement: what the selected sensor sees and why
+const CAP = {
+  curl: { wrist: 'The forearm turns about the elbow, so the gyroscope sees each repetition clearly.',
+          pocket: 'The legs stand still during a curl, so the phone in the pocket sees only noise.',
+          ear: 'The head stays still during a curl, so the earbud sees only noise.' },
+  triceps: { wrist: 'The forearm swings about the elbow, so the gyroscope sees each repetition clearly.',
+             pocket: 'The legs rest on the bench, so the phone in the pocket sees only noise.',
+             ear: 'The head rests on the bench, so the earbud sees only noise.' },
+  crunch: { wrist: 'The arms move with the trunk, so the wrist turns and rises a little with each crunch.',
+            pocket: 'The legs stay bent and still, so the phone in the pocket sees only noise.',
+            ear: 'The head curls up with the trunk, so the earbud sees each crunch on the gyroscope.' },
+  bench: { wrist: 'The wrist moves straight up and down without turning, so only the accelerometer sees each repetition.',
+           pocket: 'The legs rest on the bench, so the phone in the pocket sees only noise.',
+           ear: 'The head rests on the bench, so the earbud sees only noise.' },
+  shoulder: { wrist: 'The wrist moves straight up and down without turning, so only the accelerometer sees each repetition.',
+              pocket: 'The legs stand still, so the phone in the pocket sees only noise.',
+              ear: 'The head stays still, so the earbud sees only noise.' },
+  squat: { pocket: 'The thigh tilts as the body sinks, so the gyroscope sees each squat clearly.',
+           wrist: 'The arms stay level and move down and up, so only the accelerometer sees each squat.',
+           ear: 'The head drops and tilts forward a little, so both sensors see each squat.' },
+  legraise: { pocket: 'The thigh swings about the hip, so the gyroscope sees each leg raise clearly.',
+              wrist: 'The arms rest on the floor, so the watch on the wrist sees only noise.',
+              ear: 'The head rests on the floor, so the earbud sees only noise.' },
+};
+const caption = () => CAP[dial('ex')][dial('place')];
+const STEPS = [
+  { title: 'A rotation-dominant exercise: the bicep curl', dur: 8, presets: { ex: 'curl', place: 'wrist' },
+    tag: () => `${FS} Hz`, subtitle: caption,
+    setup() {}, draw: drawAll },
+  { title: 'An acceleration-dominant exercise: the bench press', dur: 8, presets: { ex: 'bench', place: 'wrist' },
+    tag: () => `${FS} Hz`, subtitle: caption,
+    setup() {}, draw: drawAll },
+  { title: 'One exercise, three placements: the squat', dur: 8, presets: { ex: 'squat', place: 'pocket' },
+    tag: () => `${FS} Hz`, subtitle: caption,
+    setup() {}, draw: drawAll },
+  { title: 'A leg-driven exercise: the leg raise', dur: 8, presets: { ex: 'legraise', place: 'wrist' },
+    tag: () => `${FS} Hz`, subtitle: caption,
+    setup() {}, draw: drawAll },
+];
+
+// ------------------------------------------------------------ hover
+chart.addEventListener('mousemove', evt => {
+  const q = svgPoint(evt), P = PANELS.find(P => q.x >= P.box.x && q.x <= P.box.x + P.box.w && q.y >= P.box.y && q.y <= P.box.y + P.box.h);
+  if (!P) { tt.style.display = 'none'; return; }
+  const tq = clamp((q.x - P.box.x) / P.box.w * WIN, 0, WIN);
+  if (tq > progress * WIN) { tt.style.display = 'none'; return; }
+  const i = Math.min(D.ts.length - 1, Math.round(tq * FS));
+  tipAt(evt, `<div class="row"><span>t</span><b>${fmt(tq, 2)} s</b></div><div class="row"><span>accel. magnitude</span><span>${fmt(D.acc[i], 2)} m/s²</span></div><div class="row"><span>angular rate</span><span>${fmt(D.gyr[i], 0)} °/s</span></div>`);
+});
+
+// ------------------------------------------------------------ step machine
+let step = 0, progress = 0, playing = false, raf = 0, lastT = 0;
+const speedMult = () => parseFloat($('speed').value);
+function cur() { return STEPS[step]; }
+let lastCode = null;
+function updateHead() {
+  const d = cur();
+  $('title').innerHTML = d.title + (d.tag ? `<span class="tag">${d.tag()}</span>` : '');
+  $('subtitle').textContent = typeof d.subtitle === 'function' ? d.subtitle() : d.subtitle;
+  const code = typeof d.code === 'function' ? d.code() : (d.code || '');
+  if (code !== lastCode) { lastCode = code; $('code').hidden = !code; $('code').innerHTML = code; }
+  $('counter').textContent = `${step + 1} / ${STEPS.length}`;
+  const use = d.dials || Object.keys(dials); for (const id in dials) $(id).closest('.group').hidden = !use.includes(id);
+}
+function enterStep(k, completed = false) {
+  step = clamp(k, 0, STEPS.length - 1); stopPlay();
+  applyPresets(cur().presets);
+  try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {}
+  progress = 0; rebuild(); cur().setup();
+  if (!cur().dur || completed || speedMult() === 0) { progress = 1; cur().draw(1); updateHead(); }
+  else { cur().draw(0); updateHead(); startPlay(); }
+}
+function redraw() { rebuild(); cur().setup(); cur().draw(progress); updateHead(); }
+function onDial() { redraw(); }
+function tick(t) {
+  if (!playing) return;
+  const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+  progress = Math.min(1, progress + dt * speedMult() / cur().dur);
+  cur().draw(progress); updateHead();
+  if (progress >= 1) { stopPlay(); return; }
+  raf = requestAnimationFrame(tick);
+}
+function startPlay() { if (progress >= 1 || !cur().dur) return; playing = true; lastT = performance.now(); $('play').textContent = '⏸'; raf = requestAnimationFrame(tick); }
+function stopPlay() { playing = false; cancelAnimationFrame(raf); $('play').textContent = '▶'; }
+function finish() { stopPlay(); progress = 1; cur().draw(1); updateHead(); }
+function next() { if (progress < 1) { finish(); return; } if (step < STEPS.length - 1) enterStep(step + 1); }
+function prev() { if (step > 0) enterStep(step - 1, true); }
+function restart() { enterStep(step); }
+function wire() {
+  $('next').addEventListener('click', e => { e.stopPropagation(); next(); });
+  $('prev').addEventListener('click', e => { e.stopPropagation(); prev(); });
+  $('restart').addEventListener('click', e => { e.stopPropagation(); restart(); });
+  $('reset').addEventListener('click', e => { e.stopPropagation(); for (const id in dirty) dirty[id] = false; applyPresets({ ex: 'curl', place: 'wrist' }, true); applyPresets(cur().presets, true); restart(); });
+  $('play').addEventListener('click', e => { e.stopPropagation(); if (playing) stopPlay(); else if (progress >= 1) restart(); else startPlay(); });
+  $('speed').addEventListener('click', e => e.stopPropagation());
+  $('speed').addEventListener('change', e => { e.stopPropagation(); if (speedMult() === 0) finish(); });
+  $('slide').addEventListener('click', () => next());
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
+    else if (e.key === 'r' || e.key === 'R') restart();
+  });
+  chart.addEventListener('mouseleave', () => { tt.style.display = 'none'; });
+  const h = parseInt((location.hash || '').replace('#', ''), 10);
+  enterStep(h >= 1 && h <= STEPS.length ? h - 1 : 0);
+}
+defDial('ex', {});
+defDial('place', {});
+wire();
+
+})();
+</script>
+
+</body>
+</html>

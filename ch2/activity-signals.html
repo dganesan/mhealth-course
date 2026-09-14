@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Activity Signals by Sensor and Placement</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff; --ink: #222222; --ink-2: #666666; --ink-3: #9a9a9a;
+    --rule: #dcdcdc; --grid: #ececec; --raw: #8f8f8f; --raw-dot: #8c8c8c; --clean: #444444;
+    --window: rgba(34, 34, 34, 0.06); --window-edge: #222222;
+    --ma: #2a78d6; --med: #1baf7a; --wm: #4a3aa7; --ewma: #eb6834;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.4; padding-block: 10px 10px; padding-inline: 14px; -webkit-font-smoothing: antialiased; }
+  .stage { max-width: 1880px; margin: 0 auto; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; height: calc(100vh - 20px); }
+  .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 16px 30px 8px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 6px; min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none; }
+  .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
+  .head h1 { margin: 0; font-size: clamp(20px, 2.2vw, 28px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .code[hidden] { display: none; }
+  .code .p { color: var(--ma); font-weight: 700; }
+  .chart-wrap { position: relative; min-height: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
+  svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt .row { display: flex; gap: 10px; justify-content: space-between; }
+  .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
+  .foot .ctr { font-family: var(--mono); }
+  .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
+  .group { display:flex; align-items:center; gap:8px; }
+  .group[hidden] { display:none; }
+  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
+  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
+  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  button:hover, select:hover { border-color:var(--ink); }
+  button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
+  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
+  .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
+  .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
+  .grid line { stroke: var(--grid); stroke-width: 1; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
+  .ptitle { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ink); }
+  .raw-line { fill: none; stroke: var(--raw); stroke-width: 1.5; }
+  .out-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .thin-line { fill: none; stroke-width: 1.4; stroke-linejoin: round; }
+  .dash { stroke-dasharray: 5 4; }
+  .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
+  .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
+  .mono { font-family: var(--mono); }
+  .big { font-family: var(--mono); font-size: 22px; font-weight: 700; }
+  .badge { font-family: var(--mono); font-size: 15px; font-weight: 700; fill: var(--ink); }
+  .kept { fill: none; stroke: var(--ewma); stroke-width: 2.2; }
+  .cross { stroke: var(--raw-dot); stroke-width: 1.6; }
+  .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
+  @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
+  .hint { display:none !important; }
+  .group[hidden] { display:none; }
+  button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
+  button.primary.tb { min-width:52px; }
+</style>
+<div class="stage">
+  <section class="slide" id="slide" tabindex="0" aria-live="polite">
+    <div class="head">
+      <h1 id="title"></h1>
+      <p id="subtitle"></p>
+      <pre class="code" id="code" hidden></pre>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 1400 640" role="img" aria-label="Activity signal by sensor and placement"></svg>
+      <div class="tt" id="tt"></div>
+    </div>
+    <div class="foot">
+      <span>CS328 &nbsp;·&nbsp; Counting: Steps and Repetitions</span>
+      <span class="ctr" id="counter"></span>
+    </div>
+  </section>
+
+  <div class="bar">
+    <div class="group">
+      <button id="prev" class="tb" title="Previous step (←)">⏮</button>
+      <button id="play" class="primary tb" title="Play / pause (space)">▶</button>
+      <button id="next" class="tb" title="Next step (→)">⏭</button>
+      <button id="restart" class="tb" title="Restart this step (r)">↺</button>
+      <button id="reset" title="Reset dials to this step's presets">Reset dials</button>
+    </div>
+    <div class="group">
+      <label for="act">Activity</label>
+      <select id="act">
+        <option value="walk" selected>walking on flat ground</option>
+        <option value="up">walking upstairs</option>
+        <option value="down">walking downstairs</option>
+        <option value="run">running</option>
+        <option value="stand">standing</option>
+        <option value="sit">sitting</option>
+        <option value="lie">lying down</option>
+        <option value="cycle">cycling</option>
+        <option value="row">rowing</option>
+        <option value="swim">swimming</option>
+      </select>
+    </div>
+    <div class="group">
+      <label for="place">Sensor</label>
+      <select id="place">
+        <option value="pocket" selected>phone in pocket</option>
+        <option value="wrist">watch on wrist</option>
+        <option value="ear">earbud</option>
+      </select>
+    </div>
+    <div class="group">
+      <label for="speed">Speed</label>
+      <select id="speed">
+        <option value="0.25">very slow</option>
+        <option value="0.5">slow</option>
+        <option value="1" selected>normal</option>
+        <option value="2.5">fast</option>
+        <option value="0">instant</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+
+<script>
+(() => {
+// Kinematic activity model (side view). Each activity gives the pose as a function of time: hip
+// position, trunk pitch, head pitch, and for each leg and arm either joint angles or a target point
+// (a foot on the ground or a pedal, a hand on a handle) solved by two-link inverse kinematics.
+// The figure stays in place while the ground, the stairs or the water move past it.
+// Sensor readings: accelerometer = second difference of the sensor point's path plus gravity;
+// gyroscope = angular rate of the segment the sensor is attached to.
+(function (global) {
+  const D = Math.PI / 180, TAU = 2 * Math.PI;
+  const L = { thigh: 0.44, shank: 0.43, ankleH: 0.07, foot: 0.19, heel: 0.04, trunk: 0.50, neck: 0.20, uarm: 0.30, farm: 0.26 };
+  const STAND_Y = L.ankleH + L.thigh + L.shank;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const frac = v => v - Math.floor(v);
+  const lerp = (a, b, u) => a + (b - a) * u;
+  const S5 = u => { u = clamp(u, 0, 1); return u * u * u * (u * (6 * u - 15) + 10); };
+  const hermite = (p0, p1, m0, m1, u) => { const u2 = u * u, u3 = u2 * u; return (2 * u3 - 3 * u2 + 1) * p0 + (u3 - 2 * u2 + u) * m0 + (-2 * u3 + 3 * u2) * p1 + (u3 - u2) * m1; };
+  // two-link inverse kinematics: the angle of the first link (deg, from straight down, + forward) and the
+  // flexion of the middle joint that put the end of the chain on the target. bend = +1 puts the middle
+  // joint ahead of the root-to-target line (a knee), -1 behind it (an elbow).
+  function ik2(root, target, l1, l2, bend) {
+    const dx = target.x - root.x, dy = target.y - root.y;
+    const d = clamp(Math.hypot(dx, dy), 0.05, l1 + l2 - 0.002);
+    const theta = Math.atan2(dx, -dy);
+    const K = Math.acos(clamp((l1 * l1 + l2 * l2 - d * d) / (2 * l1 * l2), -1, 1));
+    const alpha = Math.acos(clamp((l1 * l1 + d * d - l2 * l2) / (2 * l1 * d), -1, 1));
+    return { a1: (theta + bend * alpha) / D, flex: (Math.PI - K) / D };
+  }
+
+  // ---- gait on a moving ground: a foot in stance moves back with the ground, then swings forward
+  function gaitFoot(G, ph) {
+    const Tsw = (1 - G.stance) * G.T, Tst = G.stance * G.T;
+    const vx = (G.lift.x - G.land.x) / Tst, vy = (G.lift.y - G.land.y) / Tst;
+    const floor = Math.min(G.land.y, G.lift.y) - L.ankleH;
+    if (ph < G.stance) { const u = ph / G.stance; return { x: lerp(G.land.x, G.lift.x, u), y: lerp(G.land.y, G.lift.y, u), on: true, floor }; }
+    const u = (ph - G.stance) / (1 - G.stance);
+    return { x: hermite(G.lift.x, G.land.x, vx * Tsw, vx * Tsw, u), y: hermite(G.lift.y, G.land.y, vy * Tsw, vy * Tsw, u) + G.clear * Math.sin(Math.PI * u), on: false, floor };
+  }
+  function gait(t, G) {
+    const phi = frac(t / G.T), c = Math.cos(2 * TAU * (phi - G.stance / 2));   // +1 at mid-stance of either leg
+    const hip = { x: G.sway * Math.sin(2 * TAU * (phi - G.stance / 2)), y: G.hipY + G.bob * c };
+    const swing = Math.cos(TAU * phi);   // +1 just as the near foot lands in front
+    return { hip, tau: G.tau + (G.tauSwing || 0) * c, pitch: 0,
+      legs: [{ ankle: gaitFoot(G, phi) }, { ankle: gaitFoot(G, frac(phi + 0.5)) }],
+      arms: [{ ua: -G.arm * swing, elbow: G.elbow }, { ua: G.arm * swing, elbow: G.elbow }] };
+  }
+  const q = 0.28, r = 0.17;   // stair run and rise
+  const WALK = { T: 1.1, stance: 0.6, land: { x: 0.33, y: L.ankleH }, lift: { x: -0.33, y: L.ankleH }, clear: 0.07, hipY: 0.895, bob: 0.025, sway: 0.012, tau: 3, arm: 18, elbow: 25 };
+  const RUN = { T: 0.72, stance: 0.35, land: { x: 0.26, y: L.ankleH }, lift: { x: -0.34, y: L.ankleH }, clear: 0.20, hipY: 0.86, bob: -0.045, sway: 0.02, tau: 9, arm: 32, elbow: 90 };
+  const UP = { T: 1.4, stance: 0.65, land: { x: 0.65 * q, y: 0.65 * r + L.ankleH }, lift: { x: -0.65 * q, y: -0.65 * r + L.ankleH }, clear: 0.10, hipY: 0.80, bob: 0.015, sway: 0, tau: 10, arm: 10, elbow: 30, stairs: 1 };
+  const DOWN = { T: 1.3, stance: 0.65, land: { x: 0.12, y: -0.65 * r + L.ankleH }, lift: { x: 0.12 - 1.3 * q, y: 0.65 * r + L.ankleH }, clear: 0.12, hipY: 0.76, bob: 0.02, sway: 0, tau: 2, arm: 10, elbow: 30, stairs: -1 };
+  const BIKE = { bb: { x: 0.12, y: 0.30 }, crank: 0.17, f: 1.3, hip: { x: 0, y: 1.02 }, tau: 38, bar: { x: 0.62, y: 1.0 }, wheel: 0.34, rear: -0.45, front: 0.62 };
+  const ROW = { T: 2.3, drive: 0.42, ankle: { x: 0.55, y: 0.24 }, hipY: 0.46, hipCatch: 0.10, hipFinish: -0.28, fly: { x: 1.05, y: 0.58 }, flyR: 0.24 };
+  const SWIM = { f: 0.7, kick: 2.6, water: 0.55 };
+
+  const ACT = {
+    walk: { name: 'Walking on flat ground', rate: '1.8 steps/s', gait: WALK, ground: 'belt', mark: 'foot strike', every: WALK.T / 2, span: [-0.7, 0.7], pose: t => gait(t, WALK) },
+    up: { name: 'Walking upstairs', rate: '1.4 steps/s', gait: UP, ground: 'stairs', mark: 'foot strike', every: UP.T / 2, span: [-0.9, 0.9], pose: t => gait(t, UP) },
+    down: { name: 'Walking downstairs', rate: '1.5 steps/s', gait: DOWN, ground: 'stairs', mark: 'foot strike', every: DOWN.T / 2, span: [-0.9, 0.9], pose: t => gait(t, DOWN) },
+    run: { name: 'Running', rate: '2.8 steps/s', gait: RUN, ground: 'belt', mark: 'foot strike', every: RUN.T / 2, span: [-0.7, 0.7], pose: t => gait(t, RUN) },
+    stand: { name: 'Standing', rate: 'still', ground: 'floor', span: [-0.5, 0.5], pose(t) {
+      const s = Math.sin(TAU * 0.3 * t);
+      return { hip: { x: 0.004 * s, y: STAND_Y - 0.003 }, tau: 2 + 0.8 * s, pitch: 0, legs: [{ thigh: 0, knee: 0 }, { thigh: 0, knee: 0 }], arms: [{ ua: -3, elbow: 8 }, { ua: -3, elbow: 8 }] }; } },
+    sit: { name: 'Sitting', rate: 'still', ground: 'chair', span: [-0.5, 0.6], pose(t) {
+      const s = Math.sin(TAU * 0.25 * t);
+      return { hip: { x: 0, y: 0.50 }, tau: 4 + 0.6 * s, pitch: 2, legs: [{ thigh: 90, knee: 90 }, { thigh: 90, knee: 90 }], arms: [{ ua: 30, elbow: 10 }, { ua: 30, elbow: 10 }] }; } },
+    lie: { name: 'Lying down', rate: 'still', ground: 'mat', span: [-0.95, 0.95], pose(t) {
+      return { hip: { x: 0, y: 0.10 }, tau: -90, pitch: 0, legs: [{ thigh: 90, knee: 0, sole: 90 }, { thigh: 90, knee: 0, sole: 90 }], arms: [{ ua: 90, elbow: 0 }, { ua: 90, elbow: 0 }] }; } },
+    cycle: { name: 'Cycling', rate: '78 rpm', ground: 'bike', mark: 'one pedal turn', every: 1 / BIKE.f, span: [-0.75, 1.1], pose(t) {
+      const th = TAU * BIKE.f * t, ped = a => ({ x: BIKE.bb.x - BIKE.crank * Math.sin(a), y: BIKE.bb.y - BIKE.crank * Math.cos(a) + 0.05 });   // bottom, back, top, front: the pedals turn forward
+      return { hip: BIKE.hip, tau: BIKE.tau, pitch: -30, legs: [{ ankle: ped(th), sole: 0 }, { ankle: ped(th + Math.PI), sole: 0 }], arms: [{ wrist: BIKE.bar }, { wrist: BIKE.bar }], crank: th }; } },
+    row: { name: 'Rowing', rate: '26 strokes/min', ground: 'rower', mark: 'start of a stroke', every: ROW.T, span: [-0.65, 1.3], scale: 195, pose(t) {
+      const phi = frac(t / ROW.T), drive = phi < ROW.drive;
+      const s = drive ? S5(phi / ROW.drive) : 1 - S5((phi - ROW.drive) / (1 - ROW.drive));              // 0 at the catch, 1 at the finish
+      const sa = drive ? S5((phi / ROW.drive - 0.3) / 0.7) : 1 - S5((phi - ROW.drive) / (1 - ROW.drive) / 0.7);   // the arms follow the legs
+      const hip = { x: lerp(ROW.hipCatch, ROW.hipFinish, s), y: ROW.hipY }, tau = lerp(22, -14, s);
+      const sh = { x: hip.x + L.trunk * Math.sin(tau * D), y: hip.y + L.trunk * Math.cos(tau * D) };
+      const wrist = { x: sh.x + lerp(0.50, 0.12, sa), y: sh.y + lerp(-0.22, -0.14, sa) };
+      return { hip, tau, pitch: -tau * 0.6, legs: [{ ankle: ROW.ankle, sole: 50 }, { ankle: ROW.ankle, sole: 50 }], arms: [{ wrist }, { wrist }], handle: wrist }; } },
+    swim: { name: 'Swimming', rate: '42 strokes/min', ground: 'water', mark: 'hand enters the water', every: 1 / SWIM.f, span: [-0.95, 0.95], pose(t) {
+      const ph = frac(SWIM.f * t), st = TAU * ph, k = TAU * SWIM.kick * t;
+      const turn = 360 * (ph - 0.10 * Math.sin(st));   // the hand moves fastest while it pulls under the body
+      const arm = a => { a = frac(a / 360) * 360; return { ua: a, elbow: 15 + 30 * Math.max(0, -Math.cos(a * D)) }; };
+      return { hip: { x: 0, y: 0.46 + 0.015 * Math.sin(st) }, tau: 90 + 2 * Math.sin(st), pitch: -8,
+        legs: [{ thigh: -90 + 6 * Math.sin(k), knee: 10, sole: 190 }, { thigh: -90 - 6 * Math.sin(k), knee: 10, sole: 190 }],
+        arms: [arm(90 - turn), arm(270 - turn)] }; } },
+  };
+
+  // joint positions for a pose
+  function joints(p) {
+    const tau = p.tau * D, hip = p.hip;
+    const sh = { x: hip.x + L.trunk * Math.sin(tau), y: hip.y + L.trunk * Math.cos(tau) };
+    const nk = (p.tau + p.pitch) * D;
+    const head = { x: sh.x + L.neck * Math.sin(nk), y: sh.y + L.neck * Math.cos(nk) };
+    const legs = p.legs.map(lg => {
+      let thigh = lg.thigh, knee = lg.knee;
+      if (lg.ankle) { const s = ik2(hip, lg.ankle, L.thigh, L.shank, 1); thigh = s.a1; knee = s.flex; }
+      const th = thigh * D, shk = (thigh - knee) * D;
+      const kneeP = { x: hip.x + L.thigh * Math.sin(th), y: hip.y - L.thigh * Math.cos(th) };
+      const ankle = { x: kneeP.x + L.shank * Math.sin(shk), y: kneeP.y - L.shank * Math.cos(shk) };
+      // sole angle from horizontal: flat when the foot is on the ground, else fixed to the shank, unless given
+      const on = lg.ankle ? lg.ankle.on : false;
+      const sole = lg.sole != null ? lg.sole * D : (on || lg.thigh != null) ? 0 : 0.5 * shk;
+      let fang = sole - Math.asin(L.ankleH / L.foot);
+      // a swinging foot turns with the shin but its toe never dips below the ground it left
+      if (lg.ankle && !on && lg.ankle.floor != null) fang = Math.max(fang, Math.asin(clamp((lg.ankle.floor - ankle.y) / L.foot, -1, 1)));
+      const toe = { x: ankle.x + L.foot * Math.cos(fang), y: ankle.y + L.foot * Math.sin(fang) };
+      const heel = { x: ankle.x - L.heel * Math.cos(fang) + L.ankleH * Math.sin(fang), y: ankle.y - L.heel * Math.sin(fang) - L.ankleH * Math.cos(fang) };
+      return { thigh, knee, kneeP, ankle, toe, heel, on };
+    });
+    const arms = p.arms.map(ar => {
+      let ua = ar.ua, elbow = ar.elbow;
+      if (ar.wrist) { const s = ik2(sh, ar.wrist, L.uarm, L.farm, -1); ua = s.a1; elbow = s.flex; }
+      const fa = ua + elbow;
+      const elbowP = { x: sh.x + L.uarm * Math.sin(ua * D), y: sh.y - L.uarm * Math.cos(ua * D) };
+      const wrist = { x: elbowP.x + L.farm * Math.sin(fa * D), y: elbowP.y - L.farm * Math.cos(fa * D) };
+      return { ua, fa, elbowP, wrist };
+    });
+    const th = legs[0].thigh * D;
+    const pocket = { x: hip.x + 0.42 * L.thigh * Math.sin(th) + 0.045 * Math.cos(th), y: hip.y - 0.42 * L.thigh * Math.cos(th) + 0.045 * Math.sin(th) };
+    const headAng = p.tau + p.pitch;
+    const headC = { x: head.x + 0.085 * Math.sin(nk), y: head.y + 0.085 * Math.cos(nk) };
+    return { hip, sh, head, headC, headAng, tau: p.tau, legs, arms, pocket, crank: p.crank, handle: p.handle };
+  }
+
+  function simulate(opt) {
+    const A = ACT[opt.activity], fsi = opt.fsi || 200, dur = opt.dur || 10.5;
+    let s = (opt.seed || 328) >>> 0; const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+    const gauss = () => { const u = 1 - rnd(), w = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * w); };
+    const dt = 1 / fsi, N = Math.round(dur * fsi), frames = [];
+    for (let n = 0; n < N; n++) { const J = joints(A.pose(n * dt)); J.t = n * dt; frames.push(J); }
+    const g = 9.81, noise = opt.noise == null ? 0.25 : opt.noise, SIG = 4, KW = 12, KER = [];
+    for (let k = -KW; k <= KW; k++) KER.push(Math.exp(-0.5 * k * k / (SIG * SIG)));
+    const KS = KER.reduce((a, b) => a + b, 0);
+    const smoothed = arr => { const o = new Float64Array(N); for (let n = 0; n < N; n++) { let v = 0; for (let k = -KW; k <= KW; k++) v += KER[k + KW] * arr[Math.min(N - 1, Math.max(0, n + k))]; o[n] = v / KS; } return o; };
+    const unwrap = arr => { const o = [arr[0]]; for (let i = 1; i < arr.length; i++) { let d = arr[i] - arr[i - 1]; d -= 360 * Math.round(d / 360); o.push(o[i - 1] + d); } return o; };
+    const PLACE = {
+      pocket: { get: f => f.pocket, ang: f => f.legs[0].thigh },
+      wrist: { get: f => f.arms[0].wrist, ang: f => f.arms[0].fa },
+      ear: { get: f => f.headC, ang: f => f.headAng },
+    };
+    const sensors = {};
+    for (const k in PLACE) {
+      const P = PLACE[k], px = smoothed(frames.map(f => P.get(f).x)), py = smoothed(frames.map(f => P.get(f).y)), ang = smoothed(unwrap(frames.map(P.ang)));
+      const amag = new Float64Array(N), gmag = new Float64Array(N);
+      for (let n = 0; n < N; n++) {
+        const m = Math.max(1, Math.min(N - 2, n));
+        const ax = (px[m + 1] - 2 * px[m] + px[m - 1]) / (dt * dt), ay = (py[m + 1] - 2 * py[m] + py[m - 1]) / (dt * dt) + g, gy = (ang[m + 1] - ang[m - 1]) / (2 * dt);
+        amag[n] = Math.hypot(ax + noise * gauss(), ay + noise * gauss(), noise * gauss());
+        gmag[n] = Math.hypot(gy + 3 * gauss(), 3 * gauss(), 3 * gauss());
+      }
+      sensors[k] = { amag, gmag };
+    }
+    const marks = []; if (A.every) for (let t = A.every; t < dur; t += A.every) marks.push(t);
+    return { act: A, fsi, dt, N, frames, sensors, marks, L };
+  }
+  global.Activity = { ACT, simulate, joints, L, STAND_Y, BIKE, ROW, SWIM, STAIR: { q, r } };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+// ------------------------------------------------------------ shared helpers
+const $ = id => document.getElementById(id);
+const svgNS = 'http://www.w3.org/2000/svg';
+const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+const txt = (parent, x, y, s, attrs = {}) => { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; };
+const chart = $('chart'), tt = $('tt');
+const C = { blue: '#2a78d6', green: '#1baf7a', violet: '#4a3aa7', red: '#eb6834', grey: '#8f8f8f', ink: '#222', ink2: '#666', ink3: '#9a9a9a', far: '#b9b9b9' };
+const fmt = (v, d = 2) => (Math.round(v * Math.pow(10, d)) / Math.pow(10, d)).toFixed(d);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const frac = v => v - Math.floor(v);
+function niceTicks(lo, hi, n = 6) {
+  const span = hi - lo, raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => span / s <= n) || mag * 10;
+  const out = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(6)); return out;
+}
+function panel(parent, box, xd, yd, o = {}) {
+  const { x, y, w, h } = box;
+  const sx = v => x + (v - xd[0]) / (xd[1] - xd[0]) * w, sy = v => y + h - (v - yd[0]) / (yd[1] - yd[0]) * h;
+  const grid = el('g', { class: 'grid' }, parent), axis = el('g', { class: 'axis' }, parent);
+  const xt = o.xt || niceTicks(xd[0], xd[1], o.nx || 8), yt = o.yt || niceTicks(yd[0], yd[1], o.ny || 5);
+  xt.forEach(v => { el('line', { x1: sx(v), x2: sx(v), y1: y, y2: y + h }, grid); if (!o.noxt) txt(axis, sx(v), y + h + 17, o.xf ? o.xf(v) : v, { 'text-anchor': 'middle' }); });
+  yt.forEach(v => { el('line', { x1: x, x2: x + w, y1: sy(v), y2: sy(v) }, grid); txt(axis, x - 8, sy(v) + 4, o.yf ? o.yf(v) : v, { 'text-anchor': 'end' }); });
+  el('path', { d: `M${x},${y}V${y + h}H${x + w}` }, axis);
+  if (o.xlabel) txt(parent, x + w, y + h + 38, o.xlabel, { class: 'axis-title', 'text-anchor': 'end' });
+  if (o.ylabel) { const t = txt(parent, 0, 0, o.ylabel, { class: 'axis-title', 'text-anchor': 'middle' }); t.setAttribute('transform', `translate(${x - (o.ylx || 62)},${y + h / 2}) rotate(-90)`); }
+  if (o.title) txt(parent, x, y - 8, o.title, { class: 'ptitle' });
+  const id = 'clip' + Math.random().toString(36).slice(2, 8);
+  const cp = el('clipPath', { id }, parent); el('rect', { x, y: y - 2, width: w, height: h + 4 }, cp);
+  const g = el('g', { 'clip-path': `url(#${id})` }, parent), top = el('g', {}, parent);
+  return { sx, sy, g, top, box, xd, yd };
+}
+function pathOf(xs, ys, n) { let d = ''; const m = n == null ? xs.length : n; for (let i = 0; i < m; i++) d += (i ? 'L' : 'M') + xs[i].toFixed(1) + ',' + ys[i].toFixed(1); return d; }
+function tipAt(evt, html) {
+  tt.innerHTML = html; tt.style.display = 'block';
+  const wrap = chart.parentElement.getBoundingClientRect();
+  const px = evt.clientX - wrap.left, py = evt.clientY - wrap.top;
+  tt.style.left = (px + 16 + tt.offsetWidth > wrap.width ? px - tt.offsetWidth - 12 : px + 16) + 'px';
+  tt.style.top = Math.max(0, py - 10) + 'px';
+}
+function svgPoint(evt) { const pt = chart.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY; return pt.matrixTransform(chart.getScreenCTM().inverse()); }
+
+// ------------------------------------------------------------ dials (persist unless the user touched them)
+const dials = {}, dirty = {};
+function defDial(id, o) {
+  dials[id] = o; dirty[id] = false;
+  const inp = $(id), ev = inp.tagName === 'SELECT' ? 'change' : 'input';
+  inp.addEventListener(ev, e => { e.stopPropagation(); dirty[id] = true; showDial(id); onDial(id); });
+  inp.addEventListener('click', e => e.stopPropagation());
+  showDial(id);
+}
+function dial(id) { const v = $(id).value; return dials[id].parse ? dials[id].parse(v) : v; }
+function showDial(id) { const o = dials[id]; if (o.val) $(o.val).textContent = o.fmt ? o.fmt(dial(id)) : $(id).value; }
+function applyPresets(p, force = false) { for (const id in p || {}) if (force || !dirty[id]) { $(id).value = p[id]; showDial(id); } }
+
+// ------------------------------------------------------------ layout
+const W = 1400, H = 640;
+const FIG = { x: 0, y: 16, w: 420, h: 600 };
+const SIGX = 520, SIGW = 840;
+const TOP = { x: SIGX, y: 96, w: SIGW, h: 205 }, BOT = { x: SIGX, y: 355, w: SIGW, h: 205 };
+const WIN = 10, FS = 50, GROUND = FIG.y + FIG.h - 60;
+const L = Activity.L, ACT = Activity.ACT;
+const PLACES = {
+  pocket: { name: 'Phone in a pocket', color: C.blue },
+  wrist: { name: 'Watch on the wrist', color: C.green },
+  ear: { name: 'Earbud', color: C.red },
+};
+const ACC_RANGE = [0, 30], GYR_RANGE = [0, 400];
+
+// ------------------------------------------------------------ simulation and derived series
+let SIM = null, D = {}, CX = 0, SC = 210;
+function rebuild() {
+  SIM = Activity.simulate({ activity: dial('act'), fsi: 200, seed: 328 });
+  const step = SIM.fsi / FS, S = SIM.sensors[dial('place')], nW = Math.min(SIM.N - 1, Math.round(WIN * SIM.fsi));
+  D.ts = [], D.acc = [], D.gyr = [];
+  for (let n = 0; n <= nW; n += step) { D.ts.push(n * SIM.dt); D.acc.push(S.amag[n]); D.gyr.push(S.gmag[n]); }
+  D.marks = SIM.marks.filter(t => t <= WIN);
+  SC = SIM.act.scale || 210;
+  CX = FIG.x + FIG.w / 2 - 0.5 * (SIM.act.span[0] + SIM.act.span[1]) * SC;
+}
+function frameAt(t) { return SIM.frames[clamp(Math.round(t * SIM.fsi), 0, SIM.N - 1)]; }
+
+// ------------------------------------------------------------ stick figure and its surroundings
+function drawFigure(parent, t) {
+  const f = frameAt(t), A = SIM.act, G = A.gait;
+  const cp = el('clipPath', { id: 'figclip' }, parent); el('rect', { x: FIG.x, y: FIG.y, width: FIG.w, height: FIG.h }, cp);
+  const g = el('g', { 'clip-path': 'url(#figclip)' }, parent);
+  const X = p => CX + p.x * SC, Y = p => GROUND - p.y * SC;
+  const Xm = x => CX + x * SC, Ym = y => GROUND - y * SC;
+  const seg = (a, b, col, w, par) => el('line', { x1: X(a), y1: Y(a), x2: X(b), y2: Y(b), stroke: col, 'stroke-width': w, 'stroke-linecap': 'round' }, par || g);
+  const far = C.far, near = C.ink;
+  const floorLine = () => el('line', { x1: FIG.x + 10, x2: FIG.x + FIG.w - 10, y1: GROUND + 2.5, y2: GROUND + 2.5, stroke: C.ink2, 'stroke-width': 1.2 }, g);
+
+  // ---- what the figure stands, sits or moves on
+  if (A.ground === 'floor' || A.ground === 'belt' || A.ground === 'bike' || A.ground === 'chair' || A.ground === 'mat' || A.ground === 'rower') floorLine();
+  if (A.ground === 'belt') {   // the ground slides back under the walker: ticks every 0.25 m
+    const v = (G.land.x - G.lift.x) / (G.stance * G.T), off = frac(v * t / 0.25) * 0.25;
+    for (let j = -1; j < FIG.w / SC / 0.25 + 2; j++) { const x = FIG.x + 10 + (j * 0.25 - off) * SC; el('line', { x1: x, x2: x, y1: GROUND + 2.5, y2: GROUND + 9, stroke: C.ink3, 'stroke-width': 1.2 }, g); }
+  }
+  if (A.ground === 'stairs') {   // the staircase slides down (climbing) or up (descending) past the walker
+    const { q, r } = Activity.STAIR, sgn = G.stairs, Ts = G.T / 2, ph = frac(t / Ts);
+    const ox = ph * q, oy = ph * sgn * r, x0 = G.land.x - 0.08;
+    const yk = k => sgn * 0.65 * r + k * sgn * r - oy, xk = k => x0 + k * q - ox;
+    let d = `M${Xm(xk(-7))},${Ym(yk(-7))}`;
+    for (let k = -7; k <= 7; k++) d += `H${Xm(xk(k + 1))}V${Ym(yk(k + 1))}`;
+    d += `V${FIG.y + FIG.h}H${Xm(xk(-7))}Z`;
+    el('path', { d, fill: '#f1f1f1', stroke: C.ink2, 'stroke-width': 1.2, 'stroke-linejoin': 'round' }, g);
+  }
+  if (A.ground === 'chair') {
+    const seat = 0.46;
+    el('rect', { x: Xm(-0.24), y: Ym(seat), width: 0.54 * SC, height: 0.035 * SC, rx: 2, fill: '#d9d9d9', stroke: C.ink3 }, g);
+    el('rect', { x: Xm(-0.27), y: Ym(1.02), width: 0.04 * SC, height: (1.02 - seat + 0.035) * SC, rx: 2, fill: '#d9d9d9', stroke: C.ink3 }, g);
+    [-0.21, 0.27].forEach(x => el('line', { x1: Xm(x), x2: Xm(x), y1: Ym(seat - 0.035), y2: GROUND, stroke: C.ink3, 'stroke-width': 5 }, g));
+  }
+  if (A.ground === 'mat') el('rect', { x: Xm(-0.98), y: Ym(0.03), width: 1.96 * SC, height: 0.03 * SC, rx: 3, fill: '#e4e4e4', stroke: C.ink3 }, g);
+  if (A.ground === 'bike') {
+    const B = Activity.BIKE, hubR = { x: B.bb.x + B.rear, y: B.wheel }, hubF = { x: B.bb.x + B.front, y: B.wheel }, seat = { x: 0, y: 0.98 }, head = { x: 0.55, y: 0.93 };
+    const rot = -2 * Math.PI * B.f * 2.0 * t;
+    [hubR, hubF].forEach(h => {
+      el('circle', { cx: X(h), cy: Y(h), r: B.wheel * SC, fill: 'none', stroke: C.ink3, 'stroke-width': 5 }, g);
+      for (let k = 0; k < 8; k++) { const a = rot + k * Math.PI / 4; el('line', { x1: X(h), y1: Y(h), x2: X(h) + B.wheel * SC * Math.cos(a), y2: Y(h) - B.wheel * SC * Math.sin(a), stroke: '#d0d0d0', 'stroke-width': 1.5 }, g); }
+      el('circle', { cx: X(h), cy: Y(h), r: 5, fill: C.ink3 }, g);
+    });
+    const fr = (a, b) => seg(a, b, C.ink3, 6);
+    fr(B.bb, seat); fr(B.bb, hubR); fr(seat, hubR); fr(B.bb, head); fr(seat, head); fr(head, hubF); fr(head, B.bar);
+    el('rect', { x: X(seat) - 0.1 * SC, y: Y(seat) - 5, width: 0.2 * SC, height: 8, rx: 4, fill: C.ink2 }, g);
+    el('circle', { cx: X(B.bb), cy: Y(B.bb), r: 0.085 * SC, fill: 'none', stroke: C.ink3, 'stroke-width': 3 }, g);
+    const pedal = { x: B.bb.x - B.crank * Math.sin(f.crank), y: B.bb.y - B.crank * Math.cos(f.crank) };
+    seg(B.bb, pedal, C.ink2, 4); el('line', { x1: X(pedal) - 12, x2: X(pedal) + 12, y1: Y(pedal), y2: Y(pedal), stroke: C.ink2, 'stroke-width': 5 }, g);
+  }
+  if (A.ground === 'rower') {
+    const R = Activity.ROW;
+    el('rect', { x: Xm(-0.55), y: Ym(0.40), width: 1.0 * SC, height: 0.04 * SC, rx: 2, fill: '#d9d9d9', stroke: C.ink3 }, g);   // rail
+    [-0.5, 0.4].forEach(x => el('line', { x1: Xm(x), x2: Xm(x), y1: Ym(0.36), y2: GROUND, stroke: C.ink3, 'stroke-width': 5 }, g));
+    el('rect', { x: X(f.hip) - 0.11 * SC, y: Ym(0.44), width: 0.22 * SC, height: 0.04 * SC, rx: 3, fill: C.ink2 }, g);   // seat
+    const a = 50 * Math.PI / 180, sole = { x: R.ankle.x + L.ankleH * Math.sin(a), y: R.ankle.y - L.ankleH * Math.cos(a) };
+    seg({ x: sole.x - 0.10 * Math.cos(a), y: sole.y - 0.10 * Math.sin(a) }, { x: sole.x + 0.22 * Math.cos(a), y: sole.y + 0.22 * Math.sin(a) }, C.ink3, 6);   // footplate
+    el('line', { x1: X(sole), x2: X(sole), y1: Y(sole), y2: GROUND, stroke: C.ink3, 'stroke-width': 5 }, g);
+    el('line', { x1: Xm(0.45), x2: X(R.fly), y1: Ym(0.30), y2: Ym(0.30), stroke: C.ink3, 'stroke-width': 6 }, g);
+    el('line', { x1: X(R.fly), x2: X(R.fly), y1: Ym(0.30), y2: GROUND, stroke: C.ink3, 'stroke-width': 6 }, g);
+    el('circle', { cx: X(R.fly), cy: Y(R.fly), r: R.flyR * SC, fill: '#f1f1f1', stroke: C.ink3, 'stroke-width': 5 }, g);   // flywheel
+    el('circle', { cx: X(R.fly), cy: Y(R.fly), r: 6, fill: C.ink3 }, g);
+  }
+
+  // ---- the figure: far limbs first, then trunk and head, then the near limbs (the sensors are on the near side)
+  const limb = (lg, col, w) => {
+    seg(f.hip, lg.kneeP, col, w); seg(lg.kneeP, lg.ankle, col, w);
+    el('path', { d: `M${X(lg.heel)},${Y(lg.heel)}L${X(lg.ankle)},${Y(lg.ankle)}L${X(lg.toe)},${Y(lg.toe)}Z`, fill: col, stroke: col, 'stroke-width': 4, 'stroke-linejoin': 'round' }, g);
+  };
+  const arm = (ar, col, w) => { seg(f.sh, ar.elbowP, col, w); seg(ar.elbowP, ar.wrist, col, w); };
+  limb(f.legs[1], far, 9); arm(f.arms[1], far, 8);
+  seg(f.hip, f.sh, near, 11); seg(f.sh, f.head, near, 8);
+  el('circle', { cx: X(f.headC), cy: Y(f.headC), r: 0.1 * SC, fill: '#fff', stroke: near, 'stroke-width': 4 }, g);
+  limb(f.legs[0], near, 9); arm(f.arms[0], near, 8);
+  if (A.ground === 'rower') {   // handle in the hands, chain to the flywheel
+    const R = Activity.ROW, hnd = f.arms[0].wrist;
+    el('line', { x1: X(hnd), x2: X(R.fly), y1: Y(hnd), y2: Y({ x: R.fly.x, y: R.fly.y + 0.05 }), stroke: C.ink2, 'stroke-width': 1.5 }, g);
+    el('line', { x1: X(hnd), x2: X(hnd), y1: Y(hnd) - 12, y2: Y(hnd) + 12, stroke: C.ink2, 'stroke-width': 5 }, g);
+  }
+  if (A.ground === 'water') {   // water in front of the swimmer, the surface rippling past
+    const wl = Activity.SWIM.water, y0 = Ym(wl);
+    let d = `M${FIG.x},${y0}`;
+    for (let x = FIG.x; x <= FIG.x + FIG.w; x += 6) d += `L${x},${y0 + 3 * Math.sin((x - 60 * t) / 14)}`;
+    el('path', { d: d + `V${FIG.y + FIG.h}H${FIG.x}Z`, fill: 'rgba(42,120,214,0.16)', stroke: 'none' }, g);
+    el('path', { d, fill: 'none', stroke: C.blue, 'stroke-width': 1.5, opacity: 0.6 }, g);
+  }
+  // sensors, the selected one in its colour
+  const sel = dial('place');
+  const th = f.legs[0].thigh * Math.PI / 180, fa = f.arms[0].fa * Math.PI / 180, ha = f.headAng * Math.PI / 180;
+  const earP = { x: f.headC.x - 0.02 * Math.cos(ha) + 0.0 * Math.sin(ha), y: f.headC.y - 0.02 * Math.sin(ha) - 0.0 };
+  const marks = { pocket: { p: f.pocket, rot: th, w: 10, h: 18 }, wrist: { p: f.arms[0].wrist, rot: fa, w: 12, h: 9 }, ear: { p: earP, rot: ha, w: 9, h: 9 } };
+  for (const k in marks) {
+    const m = marks[k], on = k === sel, pc = PLACES[k].color;
+    const gg = el('g', { transform: `translate(${X(m.p)},${Y(m.p)}) rotate(${-m.rot * 180 / Math.PI})` }, g);
+    el('rect', { x: -m.w / 2, y: -m.h / 2, width: m.w, height: m.h, rx: 2.5, fill: on ? pc : '#fff', stroke: on ? pc : C.ink2, 'stroke-width': on ? 2 : 1.5 }, gg);
+  }
+  txt(parent, FIG.x + FIG.w / 2, FIG.y + 26, A.name, { class: 'mono', 'font-size': 17, 'font-weight': 700, fill: C.ink, 'text-anchor': 'middle' });
+  txt(parent, FIG.x + FIG.w / 2, FIG.y + 48, `t = ${fmt(t, 2)} s`, { class: 'mono', 'font-size': 15, fill: C.ink2, 'text-anchor': 'middle' });
+}
+
+// ------------------------------------------------------------ signal panels
+function markLines(P, tcur) { D.marks.forEach(r => { if (r > tcur) return; el('line', { x1: P.sx(r), x2: P.sx(r), y1: P.box.y, y2: P.box.y + P.box.h, stroke: C.ink3, 'stroke-width': 1.3, 'stroke-dasharray': '5 4' }, P.top); }); }
+function drawTrace(parent, box, arr, yd, o, tcur, col) {
+  const P = panel(parent, box, [0, WIN], yd, o);
+  const n = D.ts.findIndex(v => v > tcur); const m = n < 0 ? D.ts.length : n;
+  el('path', { d: pathOf(D.ts.map(P.sx), arr.map(v => P.sy(clamp(v, yd[0], yd[1]))), m), fill: 'none', stroke: col, 'stroke-width': 2.6, 'stroke-linejoin': 'round' }, P.g);
+  if (m > 0) el('circle', { cx: P.sx(D.ts[m - 1]), cy: P.sy(clamp(arr[m - 1], yd[0], yd[1])), r: 5, fill: col, stroke: '#fff', 'stroke-width': 2 }, P.g);
+  markLines(P, tcur);
+  return P;
+}
+function drawAll(progress) {
+  const t = progress * WIN, col = PLACES[dial('place')].color; chart.innerHTML = '';
+  drawFigure(chart, t);
+  txt(chart, SIGX, TOP.y - 40, `${SIM.act.name} · ${PLACES[dial('place')].name}`, { class: 'sans', 'font-size': 26, 'font-weight': 700, fill: col });
+  // legend row on the accelerometer panel's title line, right-aligned
+  const ly = TOP.y - 8, items = [{ c: col, w: 2.6, n: 'sensor magnitude' }];
+  if (SIM.act.mark) items.push({ c: C.ink3, w: 1.5, d: '5 4', n: SIM.act.mark });
+  let x = SIGX + SIGW - items.reduce((s, it) => s + 26 + it.n.length * 8.8 + 16, 0);
+  items.forEach(it => { el('line', { x1: x, x2: x + 18, y1: ly - 5, y2: ly - 5, stroke: it.c, 'stroke-width': it.w, 'stroke-dasharray': it.d || 'none' }, chart); txt(chart, x + 26, ly, it.n, { class: 'axis-title', fill: 'var(--ink)' }); x += 26 + it.n.length * 8.8 + 16; });
+  PANELS = [
+    drawTrace(chart, TOP, D.acc, ACC_RANGE, { title: 'Accelerometer', ylabel: 'accel. magnitude (m/s²)', yt: [0, 10, 20, 30], noxt: true, ylx: 66 }, t, col),
+    drawTrace(chart, BOT, D.gyr, GYR_RANGE, { title: 'Gyroscope', ylabel: 'angular rate (°/s)', yt: [0, 100, 200, 300, 400], xlabel: 'time (s)', ylx: 66 }, t, col),
+  ];
+}
+let PANELS = [];
+// one plain sentence per activity and placement: what the selected sensor sees and why
+const STILL = 'Nothing moves, so the sensor reads gravity alone and the gyroscope stays near zero.';
+const CAP = {
+  walk: { pocket: 'The thigh swings back and forth, so both sensors show every step.',
+          wrist: 'The arm swings once per two steps, so the gyroscope peaks once per stride.',
+          ear: 'The head bobs with each step but barely turns, so only the accelerometer sees the steps.' },
+  up: { pocket: 'The thigh lifts high for each stair, so the gyroscope swings are wide but slower than walking.',
+        wrist: 'The arms swing less on stairs, so the watch sees weaker peaks than on flat ground.',
+        ear: 'The head rises with each stair, so the earbud sees each step as a small acceleration bump.' },
+  down: { pocket: 'The thigh reaches down for each stair, so the gyroscope swings are smaller than going up.',
+          wrist: 'The arms swing less on stairs, so the watch sees weaker peaks than on flat ground.',
+          ear: 'The head drops with each stair, so the earbud sees each step as a small acceleration bump.' },
+  run: { pocket: 'The thigh swings fast and far, so both sensors show large peaks at every step.',
+         wrist: 'The arms pump hard, so both sensors show large peaks, one per stride.',
+         ear: 'The head bounces with each step but barely turns, so only the accelerometer sees the run.' },
+  stand: { pocket: STILL, wrist: STILL, ear: STILL },
+  sit: { pocket: STILL, wrist: STILL, ear: STILL },
+  lie: { pocket: STILL, wrist: STILL, ear: STILL },
+  cycle: { pocket: 'The thigh pumps up and down with the pedals, so both sensors show every pedal turn.',
+           wrist: 'The hands rest on the handlebar, so the watch on the wrist sees only noise.',
+           ear: 'The head stays still, so the earbud sees only noise.' },
+  row: { pocket: 'The thigh folds and unfolds with each stroke, so the gyroscope shows every stroke.',
+         wrist: 'The arms reach and pull with each stroke, so the gyroscope shows every stroke clearly.',
+         ear: 'The trunk rocks with each stroke, so the earbud sees a gentle wave on both sensors.' },
+  swim: { pocket: 'The legs kick fast but not far, so the phone sees a quick, small ripple.',
+          wrist: 'The arm circles with each stroke, so both sensors show every stroke strongly.',
+          ear: 'The head stays in line with the body, so the earbud sees almost nothing.' },
+};
+const caption = () => CAP[dial('act')][dial('place')];
+const tag = () => `${FS} Hz · ${SIM.act.rate}`;
+const STEPS = [
+  { title: 'Walking on flat ground', dur: 8, presets: { act: 'walk', place: 'pocket' }, tag, subtitle: caption, setup() {}, draw: drawAll },
+  { title: 'Walking upstairs', dur: 8, presets: { act: 'up', place: 'pocket' }, tag, subtitle: caption, setup() {}, draw: drawAll },
+  { title: 'Walking downstairs', dur: 8, presets: { act: 'down', place: 'pocket' }, tag, subtitle: caption, setup() {}, draw: drawAll },
+  { title: 'Running', dur: 8, presets: { act: 'run', place: 'pocket' }, tag, subtitle: caption, setup() {}, draw: drawAll },
+  { title: 'Standing, sitting and lying down', dur: 8, presets: { act: 'stand', place: 'pocket' }, tag, subtitle: caption, setup() {}, draw: drawAll },
+  { title: 'Cycling', dur: 8, presets: { act: 'cycle', place: 'pocket' }, tag, subtitle: caption, setup() {}, draw: drawAll },
+  { title: 'Rowing', dur: 8, presets: { act: 'row', place: 'wrist' }, tag, subtitle: caption, setup() {}, draw: drawAll },
+  { title: 'Swimming', dur: 8, presets: { act: 'swim', place: 'wrist' }, tag, subtitle: caption, setup() {}, draw: drawAll },
+];
+
+// ------------------------------------------------------------ hover
+chart.addEventListener('mousemove', evt => {
+  const q = svgPoint(evt), P = PANELS.find(P => q.x >= P.box.x && q.x <= P.box.x + P.box.w && q.y >= P.box.y && q.y <= P.box.y + P.box.h);
+  if (!P) { tt.style.display = 'none'; return; }
+  const tq = clamp((q.x - P.box.x) / P.box.w * WIN, 0, WIN);
+  if (tq > progress * WIN) { tt.style.display = 'none'; return; }
+  const i = Math.min(D.ts.length - 1, Math.round(tq * FS));
+  tipAt(evt, `<div class="row"><span>t</span><b>${fmt(tq, 2)} s</b></div><div class="row"><span>accel. magnitude</span><span>${fmt(D.acc[i], 2)} m/s²</span></div><div class="row"><span>angular rate</span><span>${fmt(D.gyr[i], 0)} °/s</span></div>`);
+});
+
+// ------------------------------------------------------------ step machine
+let step = 0, progress = 0, playing = false, raf = 0, lastT = 0;
+const speedMult = () => parseFloat($('speed').value);
+function cur() { return STEPS[step]; }
+let lastCode = null;
+function updateHead() {
+  const d = cur();
+  $('title').innerHTML = d.title + (d.tag ? `<span class="tag">${d.tag()}</span>` : '');
+  $('subtitle').textContent = typeof d.subtitle === 'function' ? d.subtitle() : d.subtitle;
+  const code = typeof d.code === 'function' ? d.code() : (d.code || '');
+  if (code !== lastCode) { lastCode = code; $('code').hidden = !code; $('code').innerHTML = code; }
+  $('counter').textContent = `${step + 1} / ${STEPS.length}`;
+  const use = d.dials || Object.keys(dials); for (const id in dials) $(id).closest('.group').hidden = !use.includes(id);
+}
+function enterStep(k, completed = false) {
+  step = clamp(k, 0, STEPS.length - 1); stopPlay();
+  applyPresets(cur().presets);
+  try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {}
+  progress = 0; rebuild(); cur().setup();
+  if (!cur().dur || completed || speedMult() === 0) { progress = 1; cur().draw(1); updateHead(); }
+  else { cur().draw(0); updateHead(); startPlay(); }
+}
+function redraw() { rebuild(); cur().setup(); cur().draw(progress); updateHead(); }
+function onDial() { redraw(); }
+function tick(t) {
+  if (!playing) return;
+  const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+  progress = Math.min(1, progress + dt * speedMult() / cur().dur);
+  cur().draw(progress); updateHead();
+  if (progress >= 1) { stopPlay(); return; }
+  raf = requestAnimationFrame(tick);
+}
+function startPlay() { if (progress >= 1 || !cur().dur) return; playing = true; lastT = performance.now(); $('play').textContent = '⏸'; raf = requestAnimationFrame(tick); }
+function stopPlay() { playing = false; cancelAnimationFrame(raf); $('play').textContent = '▶'; }
+function finish() { stopPlay(); progress = 1; cur().draw(1); updateHead(); }
+function next() { if (progress < 1) { finish(); return; } if (step < STEPS.length - 1) enterStep(step + 1); }
+function prev() { if (step > 0) enterStep(step - 1, true); }
+function restart() { enterStep(step); }
+function wire() {
+  $('next').addEventListener('click', e => { e.stopPropagation(); next(); });
+  $('prev').addEventListener('click', e => { e.stopPropagation(); prev(); });
+  $('restart').addEventListener('click', e => { e.stopPropagation(); restart(); });
+  $('reset').addEventListener('click', e => { e.stopPropagation(); for (const id in dirty) dirty[id] = false; applyPresets({ act: 'walk', place: 'pocket' }, true); applyPresets(cur().presets, true); restart(); });
+  $('play').addEventListener('click', e => { e.stopPropagation(); if (playing) stopPlay(); else if (progress >= 1) restart(); else startPlay(); });
+  $('speed').addEventListener('click', e => e.stopPropagation());
+  $('speed').addEventListener('change', e => { e.stopPropagation(); if (speedMult() === 0) finish(); });
+  $('slide').addEventListener('click', () => next());
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
+    else if (e.key === 'r' || e.key === 'R') restart();
+  });
+  chart.addEventListener('mouseleave', () => { tt.style.display = 'none'; });
+  const h = parseInt((location.hash || '').replace('#', ''), 10);
+  enterStep(h >= 1 && h <= STEPS.length ? h - 1 : 0);
+}
+defDial('act', {});
+defDial('place', {});
+wire();
+
+})();
+</script>
+
+</body>
+</html>

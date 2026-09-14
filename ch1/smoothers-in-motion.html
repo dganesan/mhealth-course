@@ -80,6 +80,7 @@
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
   .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
+  .group[hidden] { display: none; }
   .code .p { color: var(--ma); font-weight: 700; }
   .code .k { color: var(--ink-2); }
 
@@ -109,7 +110,7 @@
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
   button:disabled { opacity:.4; cursor:default; }
-  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  input[type=range] { accent-color:var(--ma); width:120px; height:30px; cursor:pointer; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
 
@@ -171,9 +172,20 @@
       <button id="reset" title="Reset all dials to defaults">Reset dials</button>
     </div>
     <div class="group">
+      <label for="filter">Filter</label>
+      <select id="filter">
+        <option value="0">input signal</option>
+        <option value="1">moving average</option>
+        <option value="2">median</option>
+        <option value="3">EWMA</option>
+        <option value="4">all three</option>
+        <option value="5">cascade</option>
+      </select>
+    </div>
+    <div class="group">
       <label for="scenario">Signal</label>
       <select id="scenario">
-        <option value="combo">sine + step edge + outliers</option>
+        <option value="combo">sine + edge + outliers</option>
         <option value="a">(a) smooth + noise</option>
         <option value="b">(b) edges + noise</option>
         <option value="c">(c) smooth + outliers</option>
@@ -583,6 +595,11 @@
     $('subtitle').textContent = d.subtitle;
     $('code').hidden = !d.code; $('code').innerHTML = d.code || '';
     $('counter').textContent = `${step + 1} / ${steps.length}`;
+    $('filter').value = String(step);
+    // show only the dials the step uses: w for the window filters, α for the EWMA, both when compared
+    const useW = ['ma', 'med', 'all', 'cascade'].includes(d.id), useA = ['ewma', 'all'].includes(d.id);
+    $('win').closest('.group').hidden = !useW;
+    $('alpha').closest('.group').hidden = !useA;
     try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {}
     $('prev').disabled = step === 0;
     $('next').disabled = step === steps.length - 1 && cursorDone();
@@ -673,6 +690,7 @@
     else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
     else if (e.key === 'r' || e.key === 'R') restart();
   });
+  $('filter').addEventListener('change', e => { enterStep(parseInt(e.target.value, 10)); });
   $('scenario').addEventListener('change', e => { scenario = e.target.value; rebuild(); });
   $('win').addEventListener('input', e => { w = parseInt(e.target.value, 10); $('winVal').textContent = w; rebuild(); });
   $('reset').addEventListener('click', e => { e.stopPropagation(); scenario = 'combo'; w = 9; alphaMode = '0.2'; speed = 14; $('scenario').value = 'combo'; $('win').value = 9; $('winVal').textContent = 9; $('alpha').value = '0.2'; $('speed').value = '14'; rebuild(); });
