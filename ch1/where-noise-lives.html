@@ -447,10 +447,6 @@
       title: '60 Hz powerline interference', tagFn: () => `noise: ${NOISE_NAME[noiseSel]} · ${amp.toFixed(1)}×`,
       subtitle: 'Where 60 Hz powerline noise appears in the time trace and in the spectrum.',
       annot: 'x = signal + sin(2π·60t)   →   notch filter' },
-    { id: 'nyq', base: 2.5, window: 0.2, with120: true, preset: { noise: 'all', amp: 1 },
-      title: 'Upper limit of the spectrum: the Nyquist frequency', tagFn: () => `f_N = fs/2 = ${NYQ} Hz · noise: ${NOISE_NAME[noiseSel]}`,
-      subtitle: 'How the spectrum ends at half the sampling rate.',
-      annot: 'f_N = fs / 2 = 1000 / 2 = 500 Hz' },
   ];
 
   // ------------------------------------------------------------ layout
@@ -643,25 +639,6 @@
       drawBands(sel, noiseVisible(p));
       timePath(x);
       drawSpectrum(m, sel, 1, true);
-    }
-    else if (d.id === 'nyq') {
-      const { x, spec: m } = stateAt(d, 1);
-      drawBands(sel, noiseVisible(1));
-      timePath(x);
-      drawSpectrum(m, sel, 1, true);
-      const f = p * NYQ;
-      el('line', { x1: fx(f), x2: fx(f), y1: Y0 - 4, y2: Y1, stroke: 'var(--ink)', 'stroke-width': 1.6 }, G.callouts);
-      if (p >= 1) {
-        el('rect', { x: fx(NYQ) + 1, y: Y0 - 4, width: 40, height: Y1 - Y0 + 4, fill: 'rgba(0,0,0,0.05)' }, G.callouts);
-        const yTop = Y0 + 8 + G.legendH.spec + 18;
-        const t1 = el('text', { x: fx(NYQ) - 6, y: yTop, 'text-anchor': 'end' }, G.callouts); t1.textContent = 'Nyquist frequency  f_N = fs/2 = 500 Hz'; t1.setAttribute('style', 'font-weight:700;fill:#222');
-        const t2 = el('text', { x: fx(NYQ) - 6, y: yTop + 16, 'text-anchor': 'end' }, G.callouts); t2.textContent = 'two samples per cycle: the fastest oscillation the samples can represent';
-        const t3 = el('text', { x: fx(NYQ) + 6, y: (Y0 + Y1) / 2, 'text-anchor': 'start' }, G.callouts); t3.textContent = '> f_N'; t3.setAttribute('style', 'font-family:Menlo,monospace;fill:#9a9a9a');
-        const t4 = el('text', { x: fx(NYQ) + 6, y: (Y0 + Y1) / 2 + 16, 'text-anchor': 'start' }, G.callouts); t4.textContent = 'not'; t4.setAttribute('style', 'fill:#9a9a9a');
-        const t5 = el('text', { x: fx(NYQ) + 6, y: (Y0 + Y1) / 2 + 32, 'text-anchor': 'start' }, G.callouts); t5.textContent = 'shown'; t5.setAttribute('style', 'fill:#9a9a9a');
-      } else {
-        const tl = el('text', { x: fx(f) + (f > 400 ? -8 : 8), y: Y1 - 10, 'text-anchor': f > 400 ? 'end' : 'start' }, G.callouts); tl.textContent = `${Math.round(f)} Hz`; tl.setAttribute('style', 'font-weight:700;fill:#222');
-      }
     }
     $('title').innerHTML = d.title + `<span class="tag">${d.tagFn()}</span>`;
   }
