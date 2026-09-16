@@ -236,7 +236,7 @@
       title: () => fs > 2 * f ? `Sampling above the Nyquist rate: the ${kHz(f)} tone is recovered`
         : fs === 2 * f ? `Sampling exactly at the Nyquist rate: the ${kHz(f)} tone is ambiguous`
         : `Sampling below the Nyquist rate: the ${kHz(f)} tone looks like ${kHz(foldAbs(f, fs))}`,
-      tag: () => aliasTag(),
+      tag: () => `fs = ${kHz(fs)}  ·  2f = ${kHz(2 * f)}`,
       subtitle: '',
       formula: () => [`Nyquist rate 2f = ${kHz(2 * f)}`, `fs = ${kHz(fs)}  ${fs > 2 * f ? '>' : fs === 2 * f ? '=' : '<'}  2f`]
     },
