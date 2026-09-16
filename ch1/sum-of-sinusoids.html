@@ -283,8 +283,8 @@ function drawSpectrum(m, opts = {}) {
   const yt = txt(g, 0, 0, 'amplitude', { class: 'axis-title', 'text-anchor': 'middle' }); yt.setAttribute('transform', `translate(${box.x - 70},${box.y + box.h / 2}) rotate(-90)`);
   txt(g, box.x, box.y - 22, isWalk() ? 'spectrum: recording (grey) and sum' : 'spectrum of the sum', { class: 'ptitle' });
   if (isWalk() && opts.fit != null) {
-    txt(g, box.x - 70, box.y + box.h + 96, 'sum vs recording', { class: 'ptitle' });
-    txt(g, box.x - 70, box.y + box.h + 130, `${Math.round(100 * opts.fit)}% of the variation`, { class: 'fit' });
+    txt(g, box.x + box.w / 2, box.y + box.h + 96, 'sum vs recording', { class: 'ptitle', 'text-anchor': 'middle' });
+    txt(g, box.x + box.w / 2, box.y + box.h + 130, `${Math.round(100 * opts.fit)}% of the variation`, { class: 'fit', 'text-anchor': 'middle' });
   }
   if (isWalk()) REC_SPEC.forEach(c => { if (c.f <= FMAX) el('line', { x1: sx(c.f), x2: sx(c.f), y1: sy(0), y2: sy(c.A), class: 'rec-stem' }, g); });
   COMP.forEach((c, k) => {
