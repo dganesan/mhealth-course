@@ -209,6 +209,11 @@
 
   // ------------------------------------------------------------ steps
   // preset: values a step applies to controls the user has NOT touched. sweep: which control Play animates.
+  // one wording for every step where the sampling rate matters: is fs above or below the Nyquist rate 2f?
+  const nyqTitle = () => fs > 2 * f ? `Sampling above the Nyquist rate: the ${kHz(f)} tone is recovered`
+    : fs === 2 * f ? `Sampling exactly at the Nyquist rate: the ${kHz(f)} tone is ambiguous`
+    : `Sampling below the Nyquist rate: the ${kHz(f)} tone looks like ${kHz(foldAbs(f, fs))}`;
+  const nyqTag = () => `fs = ${kHz(fs)}  ·  2f = ${kHz(2 * f)}`;
   const steps = [
     {
       id: 'tone', dur: 3.0, preset: { f: 7000, fs: 10000 },
@@ -219,24 +224,22 @@
     },
     {
       id: 'sample', dur: 3.5, preset: { f: 7000, fs: 10000 },
-      title: () => `Sampling the tone at ${kHz(fs)}`,
-      tag: () => `fs = ${kHz(fs)}  ·  one sample every ${(1000 / fs).toFixed(3)} ms`,
-      subtitle: 'Only the dots are recorded, not the curve between them.',
+      title: () => dirty.fs ? nyqTitle() : `Sampling the tone at ${kHz(fs)}`,
+      tag: () => dirty.fs ? nyqTag() : `fs = ${kHz(fs)}  ·  one sample every ${(1000 / fs).toFixed(3)} ms`,
+      subtitle: '',
       formula: () => [`x[n] = x(n / fs)`, `fs / f = ${(fs / f).toFixed(2)} samples per cycle`]
     },
     {
       id: 'alias', dur: 3.0, preset: { f: 7000, fs: 10000 },
-      title: () => foldAbs(f, fs) === f ? `The samples determine the ${kHz(f)} tone` : `The same samples fit a ${kHz(foldAbs(f, fs))} tone`,
-      tag: () => aliasTag(),
+      title: nyqTitle,
+      tag: nyqTag,
       subtitle: '',
       formula: () => [`f_alias = | f − round(f / fs) · fs |`, `= | ${f} − ${Math.round(f / fs)} · ${fs} | = ${foldAbs(f, fs)} Hz`]
     },
     {
       id: 'nyquist', dur: 9.0, preset: { f: 7000, fs: FS_MIN }, sweep: 'fs',
-      title: () => fs > 2 * f ? `Sampling above the Nyquist rate: the ${kHz(f)} tone is recovered`
-        : fs === 2 * f ? `Sampling exactly at the Nyquist rate: the ${kHz(f)} tone is ambiguous`
-        : `Sampling below the Nyquist rate: the ${kHz(f)} tone looks like ${kHz(foldAbs(f, fs))}`,
-      tag: () => `fs = ${kHz(fs)}  ·  2f = ${kHz(2 * f)}`,
+      title: nyqTitle,
+      tag: nyqTag,
       subtitle: '',
       formula: () => [`Nyquist rate 2f = ${kHz(2 * f)}`, `fs = ${kHz(fs)}  ${fs > 2 * f ? '>' : fs === 2 * f ? '=' : '<'}  2f`]
     },
