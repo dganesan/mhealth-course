@@ -342,7 +342,7 @@ const STEPS = [
   {
     title: 'Rebuilding a real walking signal', get dur() { return 2.5 * COMP.length; },
     tag: () => `${COMP.length} sinusoids · stride ${fmt(STRIDE, 2)} Hz · step ${fmt(2 * STRIDE, 2)} Hz`,
-    subtitle: 'The largest sinusoids of a real walking recording, added largest first.',
+    subtitle: '',
     presets: { example: 'walk', k: 10 },
     setup() {}, draw(p) { STEPS[1].draw(p); }
   }
