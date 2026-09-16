@@ -285,7 +285,7 @@ const STREAM = [7.34,8.62,9.28,9.96,10.24,10.09,9.56,9.31,9.01,9.42,9.8,9.8,12.2
   function setup() {
     const d = cur();
     PAGE.setup(d);   // page computes its live quantities first, so the tag below reads them
-    $('title').innerHTML = d.title() + (d.tag ? `<span class="tag">${d.tag()}</span>` : '');
+    $('title').innerHTML = (typeof d.title === 'function' ? d.title() : d.title) + (d.tag ? `<span class="tag">${d.tag()}</span>` : '');
     $('subtitle').textContent = typeof d.subtitle === 'function' ? d.subtitle() : d.subtitle;
     const code = typeof d.code === 'function' ? d.code() : (d.code || '');
     $('code').hidden = !code; $('code').innerHTML = code;
@@ -296,7 +296,7 @@ const STREAM = [7.34,8.62,9.28,9.96,10.24,10.09,9.56,9.31,9.01,9.42,9.8,9.8,12.2
   function finish() { ENG.t = span(); stopPlay(); render(); }
   function tick(now) {
     if (!ENG.playing) return;
-    const dt = Math.min(0.1, (now - ENG.lastT) / 1000); ENG.lastT = now;
+    const dt = Math.max(0, Math.min(0.1, (now - ENG.lastT) / 1000)); ENG.lastT = now;
     ENG.t += dt * speedFactor() * span() / (PAGE.durNormal || 6);
     if (ENG.t >= span()) { finish(); return; }
     render();

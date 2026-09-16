@@ -357,8 +357,8 @@
   function enterStep(k, completed = false) {
     stopPlay(); step = k;
     const d = STEPS[k];
-    $('title').innerHTML = d.title() + `<span class="tag">${d.tag()}</span>`;
-    $('subtitle').textContent = d.subtitle();
+    $('title').innerHTML = (typeof d.title === 'function' ? d.title() : d.title) + `<span class="tag">${d.tag()}</span>`;
+    $('subtitle').textContent = (typeof d.subtitle === 'function' ? d.subtitle() : d.subtitle);
     $('counter').textContent = `${step + 1} / ${STEPS.length}`;
     try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {}
     prog = 0;
@@ -379,7 +379,7 @@
   function next() { if (prog < 1) { finish(); return; } if (step < STEPS.length - 1) enterStep(step + 1); }
   function prev() { if (step > 0) enterStep(step - 1, true); }
   function restart() { enterStep(step); }
-  function retitle() { const d = STEPS[step]; $('title').innerHTML = d.title() + `<span class="tag">${d.tag()}</span>`; }
+  function retitle() { const d = STEPS[step]; $('title').innerHTML = (typeof d.title === 'function' ? d.title() : d.title) + `<span class="tag">${d.tag()}</span>`; }
 
   $('next').addEventListener('click', e => { e.stopPropagation(); next(); });
   $('prev').addEventListener('click', e => { e.stopPropagation(); prev(); });

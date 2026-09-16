@@ -60,6 +60,10 @@
   .trace { fill: none; stroke-width: 3.1; stroke-linejoin: round; stroke-linecap: round; }
   .faint { fill: none; stroke: var(--raw); stroke-width: 1.4; opacity: .55; }
   .stem { stroke-width: 4; stroke-linecap: round; }
+  .rec { fill: none; stroke: #9a9a9a; stroke-width: 2; stroke-dasharray: 6 4; }
+  .rec-stem { stroke: #c4c4c4; stroke-width: 2; }
+  .stem-lab { font-family: var(--sans); font-size: 20px; font-weight: 700; }
+  .fit { font-family: var(--mono); font-size: 26px; font-weight: 700; fill: var(--ink); }
   .ptitle { font-family: var(--sans); font-size: 20px; font-weight: 700; fill: var(--ink); }
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 15px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   @media (prefers-reduced-motion: reduce) { .fade { transition: none !important; } }
@@ -93,7 +97,7 @@
     <div class="group">
       <label for="example">Example</label>
       <select id="example">
-        <option value="walk" selected>walking-like</option>
+        <option value="walk" selected>real walking</option>
         <option value="random">random</option>
       </select>
       <button id="shuffle" title="Draw a new random set of sinusoids">New random</button>
@@ -132,16 +136,38 @@ const chart = $('chart');
 const COL = Array.from({ length: 10 }, (_, k) => `var(--c${k})`);
 
 // ------------------------------------------------------------ signal
-const FS = 100, DUR = 4, N = FS * DUR, T = Array.from({ length: N }, (_, i) => i / FS);
+const FS = 100, DUR = 4.24, N = Math.round(FS * DUR), T = Array.from({ length: N }, (_, i) => i / FS);
 let seed = 7;
 function rng() { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }
+// A real walking recording: acceleration magnitude, phone in a pocket, 50 Hz
+// (CS328-Notebooks/data/inPocket-Steps/accelerometer.csv, 4.24 s = exactly five strides, starting 9 s into the walk).
+const REC_FS = 50;
+const REC = [18.90,20.45,19.36,13.75,11.92,11.16,6.92,5.94,7.36,9.27,9.81,8.55,8.22,9.49,14.40,20.10,16.73,16.51,20.81,19.90,20.08,21.11,16.71,9.05,6.90,4.78,4.71,4.69,4.54,5.29,4.49,4.57,5.67,8.49,6.55,7.73,13.61,14.66,16.75,16.64,25.70,28.12,19.86,18.50,18.50,12.59,11.20,10.28,7.83,6.01,6.66,9.43,9.58,8.32,9.75,9.44,13.27,20.97,19.87,19.55,23.05,23.32,19.95,20.52,13.46,7.24,6.47,7.93,7.07,7.01,5.39,5.16,5.38,5.39,9.16,8.87,7.04,12.32,12.06,11.26,16.65,20.65,24.52,22.83,19.36,17.36,15.89,13.32,11.76,10.65,10.14,7.65,6.55,6.80,6.41,7.60,8.23,9.62,11.25,12.68,15.72,18.76,21.78,20.09,20.20,21.00,17.51,10.88,9.34,7.26,7.60,6.13,5.02,5.08,5.47,5.04,6.08,6.87,8.31,6.40,10.85,11.23,10.67,17.40,20.30,29.45,23.70,20.10,21.16,19.13,15.78,11.07,6.44,6.02,5.95,8.82,9.94,8.46,8.99,9.43,12.85,15.83,18.88,20.49,20.66,19.92,19.52,20.99,20.51,12.22,8.04,7.06,6.13,5.31,4.53,4.63,5.85,5.41,5.57,6.19,5.33,6.77,8.44,9.82,8.33,14.10,14.99,25.22,25.99,19.43,22.29,19.82,16.15,17.20,12.05,8.37,6.97,7.51,8.11,7.60,8.64,8.55,9.18,11.87,18.52,20.47,21.90,20.56,19.58,19.69,18.53,11.58,7.97,8.15,8.54,6.21,3.38,3.25,4.45,5.77,4.80,5.79,5.60,5.37,7.59,10.46,11.16,17.02,14.14,27.11,28.29,19.33];
+const RN = REC.length, REC_MEAN = REC.reduce((a, b) => a + b, 0) / RN;
+// its Fourier series: one sinusoid per frequency k / 4.24 s, largest first; all of them together rebuild the recording exactly
+const REC_SPEC = (() => {
+  const out = [];
+  for (let k = 1; k < RN / 2; k++) {
+    let re = 0, im = 0;
+    for (let n = 0; n < RN; n++) { const a = 2 * Math.PI * k * n / RN; re += REC[n] * Math.cos(a); im -= REC[n] * Math.sin(a); }
+    out.push({ f: k * REC_FS / RN, A: 2 * Math.hypot(re, im) / RN, ph: Math.atan2(im, re) });
+  }
+  return out;
+})();
+const STRIDE = REC_FS / RN * 5;                               // five strides in the window
 function walkComponents(K) {
-  // gravity plus a step cadence and its harmonics, like an accelerometer magnitude while walking
-  const amps = [2.0, 0.9, 0.45, 0.25, 0.15, 0.1, 0.07, 0.05, 0.035], phs = [0.4, 1.9, 0.8, 2.6, 1.2, 3.0, 0.3, 2.2, 1.5];
-  const base = [{ f: 0, A: 9.8, ph: 0, name: 'gravity (0 Hz)' }];
-  amps.forEach((A, i) => base.push({ f: Math.round(1.8 * (i + 1) * 10) / 10, A, ph: phs[i] }));
-  return base.slice(0, K);
+  const named = f => Math.abs(f - STRIDE) < 1e-6 ? ' stride' : Math.abs(f - 2 * STRIDE) < 1e-6 ? ' step' : '';
+  const top = REC_SPEC.slice().sort((a, b) => b.A - a.A).slice(0, K - 1)
+    .map(c => Object.assign({}, c, { name: `${fmt(c.f, 2)} Hz`, tag: named(c.f).trim() }));
+  return [{ f: 0, A: REC_MEAN, ph: 0, name: 'mean (0 Hz)' }, ...top];
 }
+// share of the recording's variation that a sum of sinusoids reproduces, at the recording's own sample times
+function varianceExplained(ys) {
+  let se = 0, st = 0;
+  for (let n = 0; n < RN; n++) { const v = ys[2 * n]; se += (REC[n] - v) ** 2; st += (REC[n] - REC_MEAN) ** 2; }
+  return 1 - se / st;
+}
+const isWalk = () => dial('example') === 'walk';
 function randomComponents(K) {
   const out = [];
   const fHi = Math.max(6, 1.4 * K);                        // wider band when there are many sinusoids
@@ -216,15 +242,15 @@ function drawLane(box, comp, k, upto, opts = {}) {
 }
 function drawSum(box, ys, upto, opts = {}) {
   const g = el('g', {}, chart);
-  const lo = Math.min(...SUM), hi = Math.max(...SUM), pad = 0.1 * (hi - lo || 1);
+  const lo = Math.min(...SUM, ...(opts.rec ? REC : [])), hi = Math.max(...SUM, ...(opts.rec ? REC : [])), pad = 0.1 * (hi - lo || 1);
   const sy = yScale(box, lo - pad, hi + pad);
   const gr = el('g', { class: 'grid' }, g);
   const ticks = niceTicks(lo - pad, hi + pad, 4);
   const ax = el('g', { class: 'axis' }, g);
   ticks.forEach(v => { el('line', { x1: box.x, x2: box.x + box.w, y1: sy(v), y2: sy(v) }, gr); txt(ax, box.x - 10, sy(v) + 5, fmt(v, 1), { 'text-anchor': 'end' }); });
   el('path', { d: `M${box.x},${box.y}V${box.y + box.h}H${box.x + box.w}` }, ax);
-  for (let t = 0; t <= DUR; t++) { el('line', { x1: xs(t), x2: xs(t), y1: box.y, y2: box.y + box.h }, gr); txt(ax, xs(t), box.y + box.h + 20, t, { 'text-anchor': 'middle' }); }
-  txt(g, box.x + box.w, box.y + box.h + 20, 'time (s)', { class: 'axis-title', 'text-anchor': 'end', dx: -40 });
+  for (let t = 0; t <= Math.floor(DUR); t++) { el('line', { x1: xs(t), x2: xs(t), y1: box.y, y2: box.y + box.h }, gr); txt(ax, xs(t), box.y + box.h + 20, t, { 'text-anchor': 'middle' }); }
+  txt(g, xs(Math.floor(DUR) - 0.5), box.y + box.h + 22, 'time (s)', { class: 'axis-title', 'text-anchor': 'middle' });
   txt(g, box.x - 66, box.y + box.h / 2 - 4, opts.label || 'sum', { class: 'lane-lab', fill: 'var(--ink)', 'text-anchor': 'end' });
   if (opts.sub) {
     const sp = opts.sub.indexOf(' ');
@@ -234,13 +260,14 @@ function drawSum(box, ys, upto, opts = {}) {
   const cid = 'clip' + Math.random().toString(36).slice(2, 8);
   el('rect', { x: box.x, y: box.y - 2, width: box.w, height: box.h + 4 }, el('clipPath', { id: cid }, g));
   const cg = el('g', { 'clip-path': `url(#${cid})` }, g);
+  if (opts.rec) { let d = ''; for (let n = 0; n < RN; n++) d += (n ? 'L' : 'M') + xs(n / REC_FS).toFixed(1) + ',' + sy(REC[n]).toFixed(1); el('path', { d, class: 'rec' }, cg); }
   if (opts.prev) el('path', { d: pathOf(opts.prev, sy), class: 'faint' }, cg);
   el('path', { d: pathOf(ys, sy, upto), class: 'trace', stroke: opts.color || 'var(--ink)', 'stroke-width': 3 }, cg);
   return g;
 }
 function drawPlus(boxAbove, boxBelow, k, on, sign = '+', color) {
   const y = (boxAbove.y + boxAbove.h + boxBelow.y) / 2 + 16;
-  const t = txt(chart, COMP.length > 5 ? LX - 150 : LX - 64, y, sign, { class: 'plus' + (on ? ' on' : ''), 'text-anchor': 'middle', 'font-size': Math.min(60, Math.round(boxAbove.h * 0.85)) });
+  const t = txt(chart, LX - 150, y, sign, { class: 'plus' + (on ? ' on' : ''), 'text-anchor': 'middle', 'font-size': Math.min(60, Math.round(boxAbove.h * 0.85)) });
   if (color) t.setAttribute('fill', color);
 }
 function drawSpectrum(m, opts = {}) {
@@ -254,11 +281,16 @@ function drawSpectrum(m, opts = {}) {
   el('path', { d: `M${box.x},${box.y}V${box.y + box.h}H${box.x + box.w}` }, ax);
   txt(g, box.x + box.w / 2, box.y + box.h + 44, 'frequency (Hz)', { class: 'axis-title', 'text-anchor': 'middle' });
   const yt = txt(g, 0, 0, 'amplitude', { class: 'axis-title', 'text-anchor': 'middle' }); yt.setAttribute('transform', `translate(${box.x - 70},${box.y + box.h / 2}) rotate(-90)`);
-  txt(g, box.x, box.y - 22, 'spectrum of the sum', { class: 'ptitle' });
+  txt(g, box.x, box.y - 22, isWalk() ? 'spectrum: recording (grey) and sum' : 'spectrum of the sum', { class: 'ptitle' });
+  if (isWalk() && opts.fit != null) {
+    txt(g, box.x - 70, box.y + box.h + 96, 'sum vs recording', { class: 'ptitle' });
+    txt(g, box.x - 70, box.y + box.h + 130, `${Math.round(100 * opts.fit)}% of the variation`, { class: 'fit' });
+  }
+  if (isWalk()) REC_SPEC.forEach(c => { if (c.f <= FMAX) el('line', { x1: sx(c.f), x2: sx(c.f), y1: sy(0), y2: sy(c.A), class: 'rec-stem' }, g); });
   COMP.forEach((c, k) => {
     const on = k < m;
     el('line', { x1: sx(c.f), x2: sx(c.f), y1: sy(0), y2: sy(on ? c.A : 0), class: 'stem', stroke: COL[k] }, g);
-    if (on) { el('circle', { cx: sx(c.f), cy: sy(c.A), r: 6, fill: COL[k], stroke: '#fff', 'stroke-width': 1.5 }, g); }
+    if (on) { el('circle', { cx: sx(c.f), cy: sy(c.A), r: 6, fill: COL[k], stroke: '#fff', 'stroke-width': 1.5 }, g); if (c.tag) txt(g, sx(c.f) + 10, sy(c.A) + 6, c.tag, { class: 'stem-lab', fill: COL[k] }); }
     else el('circle', { cx: sx(c.f), cy: sy(0), r: 4, fill: 'none', stroke: COL[k], 'stroke-width': 1.5, opacity: .6 }, g);
   });
   return g;
@@ -302,15 +334,16 @@ const STEPS = [
       for (let k = 0; k + 1 < lanes.length; k++) drawPlus(lanes[k], lanes[k + 1], k, k + 1 <= m, '+', !done && k + 1 === m ? COL[m] : null);
       drawPlus(lanes[K - 1], sum, 0, m >= K, '=', !done && m === 0 ? COL[0] : null);
       const ys = done ? SUM : partialSum(m + 1), prev = done || m === 0 ? null : partialSum(m);
-      drawSum(sum, ys, done ? N : Math.max(2, Math.round(q * N)), { label: done ? 'sum' : `sum of ${m + 1}`, sub: done ? `${K} sinusoids` : `adding ${COMP[m].name || fmt(COMP[m].f, 1) + ' Hz'}`, prev, color: done ? null : COL[m] });
-      drawSpectrum(done ? K : m + (q >= 1 ? 1 : 0));
+      drawSum(sum, ys, done ? N : Math.max(2, Math.round(q * N)), { label: done ? 'sum' : `sum of ${m + 1}`, sub: done ? `${K} sinusoids` : `adding ${COMP[m].name || fmt(COMP[m].f, 1) + ' Hz'}`, prev, color: done ? null : COL[m], rec: isWalk() });
+      const shown = done ? K : m + (q >= 1 ? 1 : 0);
+      drawSpectrum(shown, { fit: isWalk() ? (shown ? varianceExplained(partialSum(shown)) : 0) : null });
     }
   },
   {
-    title: 'Building a walking-like signal', get dur() { return 2.5 * COMP.length; },
-    tag: () => `${COMP.length} sinusoids · cadence ${COMP[1] ? fmt(COMP[1].f, 1) : '–'} Hz`,
-    subtitle: 'Gravity plus a step cadence and its harmonics looks like an accelerometer magnitude.',
-    presets: { example: 'walk', k: 4 },
+    title: 'Rebuilding a real walking signal', get dur() { return 2.5 * COMP.length; },
+    tag: () => `${COMP.length} sinusoids · stride ${fmt(STRIDE, 2)} Hz · step ${fmt(2 * STRIDE, 2)} Hz`,
+    subtitle: 'The largest sinusoids of a real walking recording, added largest first.',
+    presets: { example: 'walk', k: 10 },
     setup() {}, draw(p) { STEPS[1].draw(p); }
   }
 ];

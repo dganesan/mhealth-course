@@ -508,8 +508,8 @@
     const d = steps[step];
     chart.innerHTML = '';
     d.draw(cursor);
-    $('title').innerHTML = d.title() + `<span class="tag">${d.tag()}</span>`;
-    $('subtitle').textContent = d.subtitle();
+    $('title').innerHTML = (typeof d.title === 'function' ? d.title() : d.title) + `<span class="tag">${d.tag()}</span>`;
+    $('subtitle').textContent = (typeof d.subtitle === 'function' ? d.subtitle() : d.subtitle);
     const code = d.code ? d.code() : '';
     $('code').hidden = !code; $('code').innerHTML = code;
     $('counter').textContent = `${step + 1} / ${steps.length}`;

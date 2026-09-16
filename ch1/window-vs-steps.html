@@ -689,7 +689,7 @@
     drawLegends();
     const d = steps[step];
     $('title').innerHTML = (typeof d.title === 'function' ? d.title() : d.title) + `<span class="tag">${d.tag()}</span>`;
-    $('subtitle').textContent = d.subtitle();
+    $('subtitle').textContent = (typeof d.subtitle === 'function' ? d.subtitle() : d.subtitle);
     const code = typeof d.code === 'function' ? d.code() : d.code;
     $('code').hidden = !code; $('code').innerHTML = code || '';
     G.formula.textContent = d.formula();

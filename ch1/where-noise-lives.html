@@ -699,7 +699,7 @@
   function finish() { p = 1; stopPlay(); render(); }
   function tick(now) {
     if (!playing) return;
-    const dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
+    const dt = Math.max(0, Math.min(0.1, (now - lastT) / 1000)); lastT = now;
     const dur = STEPS[step].base * mult;
     p = Math.min(1, p + dt / dur);
     render();

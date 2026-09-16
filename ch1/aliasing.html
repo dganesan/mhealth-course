@@ -228,17 +228,17 @@
       id: 'alias', dur: 3.0, preset: { f: 7000, fs: 10000 },
       title: () => foldAbs(f, fs) === f ? `The samples determine the ${kHz(f)} tone` : `The same samples fit a ${kHz(foldAbs(f, fs))} tone`,
       tag: () => aliasTag(),
-      subtitle: () => foldAbs(f, fs) === f
-        ? `How the samples determine the original tone when sampling is fast enough.`
-        : `How the same samples also fit a slower tone.`,
+      subtitle: '',
       formula: () => [`f_alias = | f − round(f / fs) · fs |`, `= | ${f} − ${Math.round(f / fs)} · ${fs} | = ${foldAbs(f, fs)} Hz`]
     },
     {
       id: 'nyquist', dur: 9.0, preset: { f: 7000, fs: FS_MIN }, sweep: 'fs',
-      title: () => 'Sampling rate and the Nyquist criterion',
+      title: () => fs > 2 * f ? `Sampling above the Nyquist rate: the ${kHz(f)} tone is recovered`
+        : fs === 2 * f ? `Sampling exactly at the Nyquist rate: the ${kHz(f)} tone is ambiguous`
+        : `Sampling below the Nyquist rate: the ${kHz(f)} tone looks like ${kHz(foldAbs(f, fs))}`,
       tag: () => aliasTag(),
       subtitle: '',
-      formula: () => [`f_N = fs / 2 = ${kHz(fs / 2)}`, `no aliasing  ⇔  fs > 2f = ${kHz(2 * f)}`]
+      formula: () => [`Nyquist rate 2f = ${kHz(2 * f)}`, `fs = ${kHz(fs)}  ${fs > 2 * f ? '>' : fs === 2 * f ? '=' : '<'}  2f`]
     },
     {
       id: 'wagon', dur: 9.0, preset: { f: F_MIN, fs: 10000 }, sweep: 'f',
@@ -379,8 +379,8 @@
       verdict(ok);
     }
     drawFormula(d.formula());
-    $('title').innerHTML = d.title() + `<span class="tag">${d.tag()}</span>`;
-    $('subtitle').textContent = d.subtitle();
+    $('title').innerHTML = (typeof d.title === 'function' ? d.title() : d.title) + `<span class="tag">${d.tag()}</span>`;
+    $('subtitle').textContent = (typeof d.subtitle === 'function' ? d.subtitle() : d.subtitle);
   }
 
   // ------------------------------------------------------------ hover

@@ -385,12 +385,12 @@
   }
 
   // ------------------------------------------------------------ step machinery
-  function retitle() { const d = STEPS[step]; $('title').innerHTML = d.title() + `<span class="tag">${d.tag()}</span>`; }
+  function retitle() { const d = STEPS[step]; $('title').innerHTML = (typeof d.title === 'function' ? d.title() : d.title) + `<span class="tag">${d.tag()}</span>`; }
   function enterStep(k, completed = false) {
     stopPlay(); step = k; applyPresets(k);
     const d = STEPS[k];
     retitle();
-    $('subtitle').textContent = d.subtitle();
+    $('subtitle').textContent = (typeof d.subtitle === 'function' ? d.subtitle() : d.subtitle);
     $('counter').textContent = `${step + 1} / ${STEPS.length}`;
     try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {}
     prog = 0;
