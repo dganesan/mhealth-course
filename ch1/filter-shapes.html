@@ -135,6 +135,7 @@
     <div class="group" id="g-ftype">
       <label for="ftype">Filter</label>
       <select id="ftype">
+        <option value="overview">all four (overview)</option>
         <option value="lowpass">low-pass</option>
         <option value="highpass">high-pass</option>
         <option value="bandpass">band-pass</option>
@@ -178,7 +179,7 @@
       </select>
     </div>
    </div>
-   <div class="row dials">
+   <div class="row dials" id="dials-row">
     <div class="group" id="g-cut">
       <label for="cut1" id="cut1-label">Cutoff</label>
       <input type="range" id="cut1" min="2" max="480" step="1" value="100">
@@ -493,6 +494,13 @@
   // ------------------------------------------------------------ steps (presets apply only to dials the user has not touched)
   const STEPS = [
     {
+      id: 'overview', anim: 'sweep',
+      title: 'Four filter shapes',
+      tag: () => 'Butterworth · order 4 · fs = 1000 Hz',
+      subtitle: '',
+      code: () => `b, a = butter(4, cutoff, btype=${P("'lowpass'")} | ${P("'highpass'")} | ${P("'bandpass'")} | ${P("'bandstop'")}, fs=${FS})`,
+    },
+    {
       id: 'lp', anim: 'sweep',
       title: liveTitle,
       tag: c => `${FT[c.ftype]} · ${cutText(c)} · n = ${c.order}`,
@@ -528,7 +536,7 @@
 
   // ------------------------------------------------------------ layout
   const W = 1540, H = 700;
-  const R = { x0: 84, x1: 744, y0: 34, y1: 290 };
+  const R = { x0: 84, x1: 744, y0: 34, y1: 290 }, PANEL_R = R;
   const S = { x0: 844, x1: W - 30, y0: 34, y1: 290 };
   const TP = { x0: 84, x1: W - 30, y0: 385, y1: 660 };
   const fx = (p, f) => p.x0 + (f / 500) * (p.x1 - p.x0);
@@ -558,10 +566,11 @@
   const currentOrder = () => ctl.order;
 
   // ------------------------------------------------------------ panels
-  function drawResponse(Hc, o) {
+  function drawResponse(Hc, o, R = PANEL_R) {
     const { ftype, c1, c2, front } = o;
+    const gy = g => R.y1 - g * (R.y1 - R.y0) / 1.1;
     const lo = Math.min(c1, c2), hi = Math.max(c1, c2);
-    let s = `<text class="ptitle" x="${R.x0}" y="${R.y0 - 14}"><tspan font-weight="700">frequency response</tspan>  gain</text>`;
+    let s = o.head != null ? o.head : `<text class="ptitle" x="${R.x0}" y="${R.y0 - 14}"><tspan font-weight="700">frequency response</tspan>  gain</text>`;
     const bands = [];
     if (ftype === 'lowpass') bands.push(['pass', 0, c1], ['stop', c1, 500]);
     else if (ftype === 'highpass') bands.push(['stop', 0, c1], ['pass', c1, 500]);
@@ -584,10 +593,37 @@
     const lim = front == null ? 500 : Math.round(front);
     const pts = []; for (let f = 0; f <= lim; f++) pts.push([fx(R, f), gy(Hc[f])]);
     s += `<path d="${path(pts)}" fill="none" stroke="var(--sig)" stroke-width="2.4" stroke-linejoin="round"/>`;
-    if (front != null && front < 500) s += `<circle cx="${fx(R, lim)}" cy="${gy(Hc[lim])}" r="4.5" fill="var(--sig)" stroke="#fff" stroke-width="2"/>`;
+    if (front != null && front < 500 && front > 0) s += `<circle cx="${fx(R, lim)}" cy="${gy(Hc[lim])}" r="4.5" fill="var(--sig)" stroke="#fff" stroke-width="2"/>`;
+    if (o.noLegend) return s;
     const items = [];
     items.push({ name: '|H(f)|', color: 'var(--sig)' });
     s += Hc[500] > 0.5 ? legend(R.x1 - 6, R.y1 - 6 - (14 + items.length * 28), items, 'end') : legend(R.x1 - 6, R.y0 + 6, items, 'end');
+    return s;
+  }
+
+
+  // overview: the four shapes side by side, each drawn with its own step's preset cutoffs
+  const OV = [
+    { ftype: 'lowpass', name: 'Low-pass', does: 'keeps low frequencies', use: 'for high-frequency noise' },
+    { ftype: 'highpass', name: 'High-pass', does: 'keeps high frequencies', use: 'for baseline drift' },
+    { ftype: 'bandpass', name: 'Band-pass', does: 'keeps one band', use: 'for a known signal band' },
+    { ftype: 'bandstop', name: 'Notch (band-stop)', does: 'removes one band', use: 'for 60 Hz noise' },
+  ];
+  const OV_BOX = [
+    { x0: 84, x1: 744, y0: 62, y1: 282 }, { x0: 864, x1: W - 30, y0: 62, y1: 282 },
+    { x0: 84, x1: 744, y0: 420, y1: 640 }, { x0: 864, x1: W - 30, y0: 420, y1: 640 },
+  ];
+  function drawOverview(p) {
+    let s = '';
+    OV.forEach((o, k) => {
+      const set = STEPS.find(st => st.set && st.set.ftype === o.ftype).set;
+      const d = design(o.ftype, set.c1, set.c2, 4);
+      const B = OV_BOX[k];
+      const q = Math.max(0, Math.min(1, p * OV.length - k));
+      const head = `<text x="${B.x0}" y="${B.y0 - 24}" font-family="var(--sans)" font-size="26" fill="var(--ink)"><tspan font-weight="700">${esc(o.name)}</tspan><tspan fill="var(--ink-2)">  ${esc(o.does)}</tspan></text>`
+        + `<text x="${B.x1}" y="${B.y0 - 24}" font-family="var(--sans)" font-size="22" fill="var(--noise)" text-anchor="end">${esc(o.use)}</text>`;
+      s += drawResponse(d.H, { ftype: o.ftype, c1: set.c1, c2: set.c2, front: q * 500, head, noLegend: true }, B);
+    });
     return s;
   }
 
@@ -680,7 +716,8 @@
   function render() {
     const st = STEPS[step], c = ctl, inp = INPUTS[c.input];
     let svg = '';
-    {
+    if (st.id === 'overview') { svg += drawOverview(prog); hoverScale = null; }
+    else {
       const d = design(c.ftype, c.c1, c.c2, c.order);
       const front = st.anim === 'sweep' ? prog * 500 : null;
       svg += drawResponse(d.H, { ftype: c.ftype, c1: c.c1, c2: c.c2, front });
@@ -701,6 +738,7 @@
     const pt = chart.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
     const p = pt.matrixTransform(chart.getScreenCTM().inverse());
     const hov = chart.querySelector('#hover'); if (!hov) return;
+    if (STEPS[step].id === 'overview') { unhover(); return; }
     let html = '';
     if (p.x >= TP.x0 && p.x <= TP.x1 && p.y >= TP.y0 && p.y <= TP.y1 && hoverScale) {
       const hs = hoverScale;
@@ -727,15 +765,19 @@
 
   // ------------------------------------------------------------ dials <-> state
   function syncUI() {
+    const ov = STEPS[step].id === 'overview';
+    ['g-order', 'g-input', 'g-mode', 'dials-row'].forEach(id => { $(id).hidden = ov; });
     $('ftype').value = ctl.ftype; $('cut1').value = ctl.c1; $('cut2').value = ctl.c2; $('order').value = ctl.order; $('input').value = ctl.input; $('mode').value = ctl.mode;
     const band = isBand(ctl.ftype);
     $('g-cut2').hidden = !band;
     $('cut1-label').textContent = band ? 'Lower cutoff' : 'Cutoff';
     $('cut1-val').textContent = `${ctl.c1} Hz`; $('cut2-val').textContent = `${ctl.c2} Hz`;
+    if (ov) $('ftype').value = 'overview';
   }
   function readUI(id) {
     if (id) dirty[id] = true;
-    ctl.ftype = $('ftype').value; ctl.c1 = +$('cut1').value; ctl.c2 = +$('cut2').value; ctl.order = +$('order').value; ctl.input = $('input').value; ctl.mode = $('mode').value;
+    if ($('ftype').value !== 'overview') ctl.ftype = $('ftype').value;
+    ctl.c1 = +$('cut1').value; ctl.c2 = +$('cut2').value; ctl.order = +$('order').value; ctl.input = $('input').value; ctl.mode = $('mode').value;
     if (isBand(ctl.ftype) && ctl.c2 <= ctl.c1) ctl.c2 = Math.min(495, ctl.c1 + 4);
     syncUI();
     render();
@@ -799,7 +841,7 @@
   });
   $('speed').addEventListener('change', e => { speed = parseFloat(e.target.value); if (speed === 0 && !done()) finish(); });
   ['order', 'input', 'mode'].forEach(id => $(id).addEventListener('change', () => readUI(id)));
-  $('ftype').addEventListener('change', () => { const k = STEPS.findIndex(s => s.set.ftype === $('ftype').value); ['ftype', 'cut1', 'cut2', 'input'].forEach(id => { dirty[id] = false; }); enterStep(k); });
+  $('ftype').addEventListener('change', () => { const k = STEPS.findIndex(s => $('ftype').value === 'overview' ? s.id === 'overview' : s.set && s.set.ftype === $('ftype').value); ['ftype', 'cut1', 'cut2', 'input'].forEach(id => { dirty[id] = false; }); enterStep(k); });
   ['cut1', 'cut2'].forEach(id => $(id).addEventListener('input', () => readUI(id)));
   chart.addEventListener('mousemove', hover);
   chart.addEventListener('mouseleave', unhover);
