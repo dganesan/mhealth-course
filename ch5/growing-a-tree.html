@@ -20,53 +20,62 @@
   .stage { max-width: 1880px; margin: 0 auto; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; height: calc(100vh - 20px); }
   .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 16px 30px 8px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 6px; min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none; }
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
-  .head h1 { margin: 0; font-size: clamp(20px, 2.2vw, 28px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
-  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
-  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
-  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .head h1 { margin: 0; font-size: clamp(24px, 2.4vw, 36px); font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
+  .head p:empty { display: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
   .code .p { color: var(--ma); font-weight: 700; }
   .chart-wrap { position: relative; min-height: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
-  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 15px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 14px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
-  .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
-  .group { display:flex; align-items:center; gap:8px; }
-  .group label { font-size:13px; font-weight:700; color:var(--ink); }
-  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
-  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  .bar { display:flex; flex-direction:column; gap:12px; padding:12px 24px;
+         border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:19px; color:var(--ink); }
+  .bar .row { display:flex; justify-content:flex-start; align-items:center; gap:16px 32px; flex-wrap:wrap; }
+  .bar .row.dials .group { flex:1 1 0; }
+  .bar .row.dials input[type=range] { flex:1 1 auto; width:auto; }
+  .group { display:flex; align-items:center; gap:10px; }
+  .group label { font-size:18px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; white-space:nowrap; }
+  .val { font-family:var(--mono); font-size:19px; font-weight:700; color:var(--ma); min-width:5ch; white-space:nowrap; }
+  button, select { font:inherit; font-size:18px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:6px; padding:9px 16px; cursor:pointer; }
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
+  input[type=range] { -webkit-appearance:none; appearance:none; accent-color:var(--ma); width:260px; height:36px; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; box-shadow:0 0 0 1.5px var(--ma); margin-top:-9px; }
+  input[type=range]::-moz-range-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-moz-range-thumb { width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   svg text { white-space: pre; }
-  .grid line { stroke: var(--grid); stroke-width: 1; }
-  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
+  .grid line { stroke: var(--grid); stroke-width: 1.3; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1.3; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 22px; fill: var(--ink-2); }
   .box { fill: #fafafa; stroke: var(--ink-3); stroke-width: 1; }
   .box.win { stroke: var(--ma); stroke-width: 2; fill: #eef4fc; }
-  .pid { font-family: var(--mono); font-size: 15px; font-weight: 700; fill: #fff; text-anchor: middle; pointer-events: none; }
-  .lab { font-family: var(--sans); font-size: 15px; fill: var(--ink); }
+  .pid { font-family: var(--mono); font-size: 20px; font-weight: 700; fill: #fff; text-anchor: middle; pointer-events: none; }
+  .lab { font-family: var(--sans); font-size: 20px; fill: var(--ink); }
   .lab.b { font-weight: 700; }
-  .lab.sub { fill: var(--ink-2); font-size: 15px; }
-  .num { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
-  .formula { font-family: var(--mono); font-size: 17px; fill: var(--ink); }
+  .lab.sub { fill: var(--ink-2); font-size: 20px; }
+  .num { font-family: var(--mono); font-size: 20px; fill: var(--ink); }
+  .formula { font-family: var(--mono); font-size: 22px; fill: var(--ink); }
   .formula.hi { fill: var(--ma); font-weight: 700; }
-  .q { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ma); text-anchor: middle; }
+  .q { font-family: var(--sans); font-size: 20px; font-weight: 700; fill: var(--ma); text-anchor: middle; }
   .branch { stroke: var(--ink-3); stroke-width: 1.2; fill: none; }
   .node-new { stroke: var(--ma); stroke-width: 3; }
   .curve { fill: none; stroke: var(--ink); stroke-width: 2; }
-  .ptitle { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ink); }
+  .ptitle { font-family: var(--sans); font-size: 20px; font-weight: 700; fill: var(--ink); }
   @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
   .hint { display:none !important; }
-  button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
-  button.primary.tb { min-width:52px; }
+  button.tb { min-width:54px; padding:9px 12px; font-size:22px; line-height:1; }
+  button.primary.tb { min-width:64px; }
 </style>
 
 <div class="stage">
@@ -87,27 +96,13 @@
   </section>
 
   <div class="bar">
+   <div class="row">
     <div class="group">
       <button id="prev" class="tb" title="Previous step (←)">⏮</button>
       <button id="play" class="primary tb" title="Play / pause (space)">▶</button>
       <button id="next" class="tb" title="Next step (→)">⏭</button>
       <button id="restart" class="tb" title="Restart this step (r)">↺</button>
       <button id="reset" title="Reset all dials to defaults">Reset dials</button>
-    </div>
-    <div class="group">
-      <label for="depth">max_depth</label>
-      <input type="range" id="depth" min="1" max="15" step="1" value="1">
-      <span class="val" id="depthVal">1</span>
-    </div>
-    <div class="group">
-      <label for="minleaf">min_samples_leaf</label>
-      <input type="range" id="minleaf" min="1" max="20" step="1" value="1">
-      <span class="val" id="minleafVal">1</span>
-    </div>
-    <div class="group">
-      <label for="minsplit">min_samples_split</label>
-      <input type="range" id="minsplit" min="2" max="40" step="1" value="2">
-      <span class="val" id="minsplitVal">2</span>
     </div>
     <div class="group">
       <label for="crit">criterion</label>
@@ -126,7 +121,24 @@
         <option value="0">instant</option>
       </select>
     </div>
-    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+   </div>
+   <div class="row dials">
+    <div class="group">
+      <label for="depth">max_depth</label>
+      <input type="range" id="depth" min="1" max="15" step="1" value="1">
+      <span class="val" id="depthVal">1</span>
+    </div>
+    <div class="group">
+      <label for="minleaf">min_samples_leaf</label>
+      <input type="range" id="minleaf" min="1" max="20" step="1" value="1">
+      <span class="val" id="minleafVal">1</span>
+    </div>
+    <div class="group">
+      <label for="minsplit">min_samples_split</label>
+      <input type="range" id="minsplit" min="2" max="40" step="1" value="2">
+      <span class="val" id="minsplitVal">2</span>
+    </div>
+   </div>
   </div>
 </div>
 
@@ -200,11 +212,11 @@
 
   const codeLine = () => `DecisionTreeClassifier(criterion=<b class="p">'${crit}'</b>, max_depth=<b class="p">${maxDepth >= 15 ? 'None' : maxDepth}</b>, min_samples_split=<b class="p">${minSplit}</b>, min_samples_leaf=<b class="p">${minLeaf}</b>)`;
   const STEP_DEFS = [
-    { depth: 1, title: 'Depth 1: the root split', subtitle: 'How the root split divides the feature plane into two regions.' },
-    { depth: 2, title: 'Depth 2: each side splits again', subtitle: 'How each side of the root split is split again.' },
-    { depth: 3, title: 'Depth 3: the chapter\'s pruned tree', subtitle: 'Growing the tree to max_depth = 3 and the regions it produces.' },
-    { depth: 4, title: 'Depth 4: thin bands appear', subtitle: 'How one more level adds thin regions around small groups of windows.' },
-    { depth: 15, title: 'No depth cap: every leaf pure', subtitle: 'How the tree splits until every leaf is pure when max_depth is unlimited.' }
+    { depth: 1, title: 'Depth 1: the root split', subtitle: '' },
+    { depth: 2, title: 'Depth 2: each side splits again', subtitle: '' },
+    { depth: 3, title: 'Depth 3: the chapter\'s pruned tree', subtitle: '' },
+    { depth: 4, title: 'Depth 4: thin bands appear', subtitle: '' },
+    { depth: 15, title: 'No depth cap: every leaf pure', subtitle: '' }
   ];
   function buildSteps() {
     return STEP_DEFS.map(s => Object.assign({}, s, { presets: { depth: s.depth }, code: codeLine, frames: order.length, rate: Math.max(1.2, order.length / 10) }));
@@ -235,8 +247,8 @@
     txt(0, 0, 'std of a_y', 'axis-title', { 'text-anchor': 'middle', transform: `translate(${SX0 - 56}, ${(SY0 + SY1) / 2}) rotate(-90)` }, G.back);
     TRAIN.forEach((d, i) => { el('circle', { cx: xs(d[0]), cy: ys(d[1]), r: 4.5, fill: CCOL[d[2]], stroke: '#fff', 'stroke-width': 1, 'data-i': i }, G.pts); });
     // legend
-    const rowH = 24, padX = 10, padY = 8, items = CLS.map((c, k) => ({ c: CCOL[k], n: `${c} (window)` })).concat(CLS.map((c, k) => ({ c: CCOL[k], n: `${c} region`, rect: true })), [{ c: '#444', n: 'split boundary', line: true }]);
-    const wdt = 172, x0 = SX1 - wdt - 8, y0 = SY0 + 8;
+    const rowH = 28, padX = 10, padY = 8, items = CLS.map((c, k) => ({ c: CCOL[k], n: `${c} (window)` })).concat(CLS.map((c, k) => ({ c: CCOL[k], n: `${c} region`, rect: true })), [{ c: '#444', n: 'split boundary', line: true }]);
+    const wdt = 36 + Math.max(...items.map(i => i.n.length)) * 11 + 2 * padX, x0 = SX1 - wdt - 8, y0 = SY0 + 8;
     el('rect', { x: x0, y: y0, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, G.legend);
     items.forEach((it, j) => {
       const y = y0 + padY + j * rowH + 6;
@@ -278,13 +290,13 @@
     // leaf-ordered layout: each visible leaf gets a column; internal nodes sit over the middle of their leaves
     const leaves = leavesAt(tree, Infinity, shown), dep = Math.max(1, treeDepth(tree, Infinity, shown));
     const colW = (TX1 - TX0) / leaves.length, rowH = Math.min(78, (TY1 - TY0) / (dep + 1));
-    const big = leaves.length <= 16, mid = leaves.length <= 32;
-    const NW = Math.min(150, colW * 0.92 * (big ? 1 : 1)), NH = big ? 44 : mid ? 26 : 14;
+    const big = leaves.length <= 16 && colW * 0.92 >= 60, mid = leaves.length <= 32;
+    const NW = Math.min(200, colW * 0.92), NH = big ? 48 : mid ? 26 : 14;
     let col = 0;
-    const pos = new Map();
+    const pos = new Map(), span = new Map();
     (function place(n) {
-      if (n.kids && shown.has(n.id)) { place(n.kids[0]); place(n.kids[1]); pos.set(n.id, (pos.get(n.kids[0].id) + pos.get(n.kids[1].id)) / 2); }
-      else pos.set(n.id, TX0 + (col++ + 0.5) * colW);
+      if (n.kids && shown.has(n.id)) { place(n.kids[0]); place(n.kids[1]); pos.set(n.id, (pos.get(n.kids[0].id) + pos.get(n.kids[1].id)) / 2); span.set(n.id, span.get(n.kids[0].id) + span.get(n.kids[1].id)); }
+      else { pos.set(n.id, TX0 + (col++ + 0.5) * colW); span.set(n.id, 1); }
     })(tree);
     (function draw(n, parent) {
       const x = pos.get(n.id), y = TY0 + n.depth * rowH, isLeaf = !(n.kids && shown.has(n.id));
@@ -294,13 +306,15 @@
         const px_ = pos.get(parent.id), py_ = TY0 + parent.depth * rowH + NH;
         el('line', { class: 'branch', x1: px_, y1: py_, x2: x, y2: y, stroke: isNew ? 'var(--ma)' : undefined }, G.tree);
       }
-      const w = isLeaf ? Math.min(NW, colW * 0.92) : Math.min(NW, Math.max(colW * 0.92, big ? 150 : 60));
+      const w = isLeaf ? Math.min(NW, colW * 0.92) : Math.min(big ? 200 : 120, span.get(n.id) * colW - 10);
       el('rect', { x: x - w / 2, y, width: w, height: NH, rx: 4, fill: isLeaf ? CCOL[n.cls] : '#fff', 'fill-opacity': isLeaf ? (pure ? .55 : .22) : 1, stroke: isNew ? 'var(--ma)' : isLeaf ? CCOL[n.cls] : 'var(--ink-3)', 'stroke-width': isNew ? 3 : 1.2 }, G.tree);
       if (big) {
-        if (isLeaf) { txt(x, y + 18, CLS[n.cls], 'lab b', { 'text-anchor': 'middle', 'font-size': w < 80 ? 11 : 13 }, G.tree); txt(x, y + 35, w < 80 ? `n=${n.n}` : `n=${n.n} (${n.ct.join('·')})`, 'num', { 'text-anchor': 'middle', 'font-size': w < 80 ? 10 : 11 }, G.tree); }
-        else { txt(x, y + 18, `${n.split.f === 0 ? 'mean' : 'std'} ≤ ${n.split.t.toFixed(2)}`, 'q', { 'font-size': w < 100 ? 11 : 14 }, G.tree); txt(x, y + 35, w < 100 ? `n=${n.n}` : `n=${n.n} (${n.ct.join('·')})`, 'num', { 'text-anchor': 'middle', 'font-size': 15 }, G.tree); }
+        const fsL = Math.min(20, Math.max(11, Math.floor(w / 6.2))), full = w >= 180, fsN = Math.min(18, Math.max(11, Math.floor(w / (full ? 10.5 : 4.5)))), cnt = full ? `n=${n.n} (${n.ct.join('·')})` : `n=${n.n}`;
+        if (isLeaf) { txt(x, y + 20, CLS[n.cls], 'lab b', { 'text-anchor': 'middle', style: `font-size:${fsL}px` }, G.tree); txt(x, y + 40, cnt, 'num', { 'text-anchor': 'middle', style: `font-size:${fsN}px` }, G.tree); }
+        else { txt(x, y + 20, `${n.split.f === 0 ? 'mean' : 'std'} ≤ ${n.split.t.toFixed(2)}`, 'q', { style: `font-size:${fsL}px` }, G.tree); txt(x, y + 40, cnt, 'num', { 'text-anchor': 'middle', style: `font-size:${fsN}px` }, G.tree); }
       } else if (mid) {
-        txt(x, y + 17, isLeaf ? `n=${n.n}` : `${n.split.f === 0 ? 'm' : 's'}≤${n.split.t.toFixed(1)}`, 'num', { 'text-anchor': 'middle', 'font-size': 15, fill: isLeaf ? 'var(--ink)' : 'var(--ma)' }, G.tree);
+        const fsM = Math.min(18, Math.max(11, Math.floor(w / 3.3)));
+        txt(x, y + 19, isLeaf ? `n=${n.n}` : `${n.split.f === 0 ? 'm' : 's'}≤${n.split.t.toFixed(1)}`, 'num', { 'text-anchor': 'middle', style: `font-size:${fsM}px`, fill: isLeaf ? 'var(--ink)' : 'var(--ma)' }, G.tree);
       }
       if (!isLeaf) { draw(n.kids[0], n); draw(n.kids[1], n); }
     })(tree, null);

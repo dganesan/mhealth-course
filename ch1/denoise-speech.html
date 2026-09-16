@@ -1,0 +1,858 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Denoising a Speech Recording</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff;
+    --ink: #222222;
+    --ink-2: #666666;
+    --ink-3: #9a9a9a;
+    --rule: #dcdcdc;
+    --grid: #ececec;
+    --raw: #8f8f8f;
+    --raw-dot: #8c8c8c;
+    --clean: #444444;
+    --ma: #2a78d6;
+    --notch: #1baf7a;
+    --noise: #eb6834;
+    --hp: #1baf7a;
+    --lp: #4a3aa7;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--sans); font-size: 15px; line-height: 1.4;
+    padding-block: 10px 10px; padding-inline: 14px; -webkit-font-smoothing: antialiased;
+  }
+  .stage { max-width: 1880px; margin: 0 auto; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; height: calc(100vh - 20px); }
+  .slide {
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 6px;
+    padding: 16px 30px 8px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 6px;
+    min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none;
+  }
+  .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
+  .head h1 { margin: 0; font-size: clamp(24px, 2.4vw, 36px); font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
+  .head p:empty { display: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .code[hidden] { display: none; }
+  .code .p { color: var(--ma); font-weight: 700; }
+  .code .k { color: var(--ink-2); }
+
+  .chart-wrap { position: relative; min-height: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
+  svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
+  .tt {
+    position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px;
+    padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2;
+  }
+  .tt .row { display: flex; gap: 12px; justify-content: space-between; }
+  .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 14px; color: var(--ink-3); padding: 0; pointer-events: none; }
+  .foot .ctr { font-family: var(--mono); }
+
+  .bar { display:flex; flex-direction:column; gap:12px; padding:12px 24px;
+         border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:19px; color:var(--ink); }
+  .bar .row { display:flex; justify-content:flex-start; align-items:center; gap:16px 32px; flex-wrap:wrap; }
+  .bar .row.dials .group { flex:1 1 0; }
+  .bar .row.dials input[type=range] { flex:1 1 auto; width:auto; }
+  .group { display:flex; align-items:center; gap:10px; }
+  .group label { font-size:18px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; white-space:nowrap; }
+  .val { font-family:var(--mono); font-size:19px; font-weight:700; color:var(--ma); min-width:5ch; white-space:nowrap; }
+  button, select { font:inherit; font-size:18px; color:var(--ink); background:#fff; border:1px solid #9a9a9a;
+                   border-radius:6px; padding:9px 16px; cursor:pointer; }
+  button:hover, select:hover { border-color:var(--ink); }
+  button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
+  button.on { background:#eef4fc; border-color:var(--ma); color:var(--ma); font-weight:700; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
+  input[type=range] { -webkit-appearance:none; appearance:none; accent-color:var(--ma); width:260px; height:36px; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; box-shadow:0 0 0 1.5px var(--ma); margin-top:-9px; }
+  input[type=range]::-moz-range-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-moz-range-thumb { width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; }
+  input[type=range].narrow { width: 260px; }
+  .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
+  .hint kbd { font-family: var(--mono); background: #fff; border: 1px solid var(--rule); border-radius: 3px; padding: 0 5px; font-size: 11px; }
+
+  .grid line { stroke: var(--grid); stroke-width: 1; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
+  .ptitle { font-family: var(--sans); font-size: 21px; fill: var(--ink); font-weight: 700; }
+  .axis-title { font-family: var(--sans); font-size: 22px; fill: var(--ink-2); }
+  .raw-line { fill: none; stroke: var(--raw); stroke-width: 2; }
+  .clean-line { fill: none; stroke: var(--clean); stroke-width: 2; stroke-dasharray: 6 5; opacity: .8; }
+  .out-line { fill: none; stroke-width: 3.4; stroke-linejoin: round; stroke-linecap: round; }
+  .dot { stroke: #fff; stroke-width: 1.4; }
+  .legend rect.bg { fill: #fff; fill-opacity: .9; stroke: var(--rule); }
+  .legend text { font-family: var(--sans); font-size: 24px; fill: var(--ink); }
+  .legend line { stroke-width: 4; }
+  .anno { font-family: var(--mono); font-size: 19px; fill: var(--ink); }
+  .anno.muted { fill: var(--ink-3); }
+  .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
+  .lg text { font-family: var(--sans); font-size: 22px; fill: var(--ink); }
+  .wave { stroke-width: 1; stroke-linejoin: round; }
+  .spec-line { fill: none; stroke-width: 1.5; stroke-linejoin: round; }
+  .resp { fill: none; stroke-width: 2.8; stroke-linejoin: round; stroke-linecap: round; }
+  .band { fill: url(#hatch); }
+  .band-edge { stroke: #555; stroke-width: 1; stroke-dasharray: 3 3; }
+  .band-label { font-family: var(--sans); font-size: 20px; font-weight: 700; fill: var(--noise); paint-order: stroke; stroke: #fff; stroke-width: 4px; stroke-linejoin: round; }
+  .band-label.sig { fill: var(--ma); }
+  .bracket { stroke: var(--ma); stroke-width: 2; fill: none; }
+  .stage-text { font-family: var(--mono); font-size: 20px; font-weight: 700; paint-order: stroke; stroke: #fff; stroke-width: 4px; stroke-linejoin: round; }
+  .cursor-line { stroke: var(--ink); stroke-width: 2.2; }
+
+  @media (max-width: 720px) {
+    .slide { padding: 18px 16px 12px; min-height: 0; }
+    .hint { display: none; }
+    input[type=range], input[type=range].narrow { width: 120px; }
+  }
+  .hint { display:none !important; }
+  button.tb { min-width:54px; padding:9px 12px; font-size:22px; line-height:1; }
+  button.primary.tb { min-width:64px; }
+</style>
+
+<div class="stage">
+  <section class="slide" id="slide" tabindex="0" aria-live="polite">
+    <div class="head">
+      <h1 id="title"></h1>
+      <p id="subtitle"></p>
+      <pre class="code" id="code" hidden></pre>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 1584 730" role="img" aria-label="Speech recording with added noise: time trace, spectrum, filter responses and the filtered result"></svg>
+      <div class="tt" id="tt"></div>
+    </div>
+    <div class="foot">
+      <span>CS328 &nbsp;·&nbsp; Sensor Data Smoothing and Filtering</span>
+      <span class="ctr" id="counter"></span>
+    </div>
+  </section>
+
+  <div class="bar">
+   <div class="row">
+    <div class="group">
+      <button id="prev" class="tb" title="Previous step (←)">⏮</button>
+      <button id="play" class="primary tb" title="Play / pause (space)">▶</button>
+      <button id="next" class="tb" title="Next step (→)">⏭</button>
+      <button id="restart" class="tb" title="Restart this step (r)">↺</button>
+      <button id="reset" title="Clear your dial changes and use the presets">Reset dials</button>
+    </div>
+    <div class="group">
+      <label for="speed">Speed</label>
+      <select id="speed">
+        <option value="4">very slow</option>
+        <option value="2">slow</option>
+        <option value="1" selected>normal</option>
+        <option value="0.5">fast</option>
+        <option value="0">instant</option>
+      </select>
+    </div>
+    <div class="group">
+      <button id="playNoisy" title="Listen to the noisy recording">▶ Play noisy</button>
+      <button id="playFilt" title="Listen to the filtered recording (current dial values)">▶ Play filtered</button>
+    </div>
+   </div>
+   <div class="row dials">
+    <div class="group">
+      <label for="hp">High-pass cutoff</label>
+      <input type="range" id="hp" class="narrow" min="50" max="500" step="10" value="200">
+      <span class="val" id="hpval">200 Hz</span>
+    </div>
+    <div class="group">
+      <label for="lp">Low-pass cutoff</label>
+      <input type="range" id="lp" class="narrow" min="1000" max="7000" step="100" value="3400">
+      <span class="val" id="lpval">3400 Hz</span>
+    </div>
+   </div>
+  </div>
+</div>
+
+<script>
+// Butterworth IIR design + filtering, mirroring scipy.signal.butter / lfilter / filtfilt.
+// Design path: analog Butterworth prototype (zpk) -> lp2lp / lp2hp / lp2bp / lp2bs -> bilinear -> SOS.
+// Usage:
+//   const sos = butter(4, 100, 1000, 'lowpass');            // cutoff Hz, fs Hz
+//   const sos = butter(4, [58, 62], 1000, 'bandstop');
+//   const y = sosfilt(sos, x);                              // causal (lfilter)
+//   const y = sosfiltfilt(sos, x);                          // zero-phase (filtfilt)
+//   const mag = sosFreqz(sos, fHz, fs);                     // |H| at one frequency
+(function (global) {
+  // ---- minimal complex arithmetic
+  const C = (re, im = 0) => ({ re, im });
+  const cadd = (a, b) => C(a.re + b.re, a.im + b.im);
+  const csub = (a, b) => C(a.re - b.re, a.im - b.im);
+  const cmul = (a, b) => C(a.re * b.re - a.im * b.im, a.re * b.im + a.im * b.re);
+  const cdiv = (a, b) => { const d = b.re * b.re + b.im * b.im; return C((a.re * b.re + a.im * b.im) / d, (a.im * b.re - a.re * b.im) / d); };
+  const csqrt = a => { const r = Math.hypot(a.re, a.im); const re = Math.sqrt(Math.max(0, (r + a.re) / 2)); const im = Math.sign(a.im || 1) * Math.sqrt(Math.max(0, (r - a.re) / 2)); return C(re, im); };
+  const cscale = (a, s) => C(a.re * s, a.im * s);
+
+  function buttap(N) { // analog prototype poles, unit cutoff
+    const p = [];
+    for (let k = 1; k <= N; k++) { const th = Math.PI * (2 * k - 1) / (2 * N); p.push(C(-Math.sin(th), Math.cos(th))); }
+    return { z: [], p, k: 1 };
+  }
+  function lp2lp(zpk, wo) { return { z: zpk.z.map(v => cscale(v, wo)), p: zpk.p.map(v => cscale(v, wo)), k: zpk.k * Math.pow(wo, zpk.p.length - zpk.z.length) }; }
+  function lp2hp(zpk, wo) {
+    const z = zpk.z.map(v => cdiv(C(wo), v)), p = zpk.p.map(v => cdiv(C(wo), v));
+    const deg = zpk.p.length - zpk.z.length;
+    for (let i = 0; i < deg; i++) z.push(C(0));
+    let num = C(1), den = C(1);
+    zpk.z.forEach(v => { num = cmul(num, cscale(v, -1)); });
+    zpk.p.forEach(v => { den = cmul(den, cscale(v, -1)); });
+    const kk = cdiv(num, den);
+    return { z, p, k: zpk.k * kk.re };
+  }
+  function lp2bp(zpk, wo, bw) {
+    const deg = zpk.p.length - zpk.z.length;
+    const tr = v => { const s = cscale(v, bw / 2); const r = csqrt(csub(cmul(s, s), C(wo * wo))); return [cadd(s, r), csub(s, r)]; };
+    const z = [], p = [];
+    zpk.z.forEach(v => z.push(...tr(v)));
+    zpk.p.forEach(v => p.push(...tr(v)));
+    for (let i = 0; i < deg; i++) z.push(C(0));
+    return { z, p, k: zpk.k * Math.pow(bw, deg) };
+  }
+  function lp2bs(zpk, wo, bw) {
+    const deg = zpk.p.length - zpk.z.length;
+    const tr = v => { const s = cdiv(C(bw / 2), v); const r = csqrt(csub(cmul(s, s), C(wo * wo))); return [cadd(s, r), csub(s, r)]; };
+    const z = [], p = [];
+    zpk.z.forEach(v => z.push(...tr(v)));
+    zpk.p.forEach(v => p.push(...tr(v)));
+    for (let i = 0; i < deg; i++) { z.push(C(0, wo)); z.push(C(0, -wo)); }
+    let num = C(1), den = C(1);
+    zpk.z.forEach(v => { num = cmul(num, cscale(v, -1)); });
+    zpk.p.forEach(v => { den = cmul(den, cscale(v, -1)); });
+    const kk = cdiv(num, den);
+    return { z, p, k: zpk.k * kk.re };
+  }
+  function bilinear(zpk, fs) {
+    const fs2 = 2 * fs;
+    const deg = zpk.p.length - zpk.z.length;
+    const tr = v => cdiv(cadd(C(fs2), v), csub(C(fs2), v));
+    const z = zpk.z.map(tr), p = zpk.p.map(tr);
+    for (let i = 0; i < deg; i++) z.push(C(-1));
+    let num = C(1), den = C(1);
+    zpk.z.forEach(v => { num = cmul(num, csub(C(fs2), v)); });
+    zpk.p.forEach(v => { den = cmul(den, csub(C(fs2), v)); });
+    const kk = cdiv(num, den);
+    return { z, p, k: zpk.k * kk.re };
+  }
+  // pair conjugates -> second-order sections [b0,b1,b2,a0,a1,a2]
+  function zpk2sos(zpk) {
+    const pairUp = arr => {
+      const rest = arr.slice(); const pairs = [];
+      while (rest.length) {
+        const a = rest.shift();
+        if (Math.abs(a.im) < 1e-9) { // real: pair with the nearest real
+          let j = rest.findIndex(v => Math.abs(v.im) < 1e-9);
+          if (j >= 0) { pairs.push([a, rest.splice(j, 1)[0]]); } else pairs.push([a]);
+        } else {
+          let j = rest.findIndex(v => Math.abs(v.re - a.re) < 1e-7 && Math.abs(v.im + a.im) < 1e-7);
+          if (j >= 0) { pairs.push([a, rest.splice(j, 1)[0]]); } else pairs.push([a, C(a.re, -a.im)]);
+        }
+      }
+      return pairs;
+    };
+    const poly = pr => { // (x - r1)(x - r2) -> real coefficients [1, c1, c2]
+      if (pr.length === 1) return [1, -pr[0].re, 0];
+      const s = cadd(pr[0], pr[1]), m = cmul(pr[0], pr[1]);
+      return [1, -s.re, m.re];
+    };
+    // sort poles by closeness to the unit circle so each section pairs zeros nearby (stability of cascade)
+    const P = zpk.p.slice().sort((a, b) => Math.hypot(b.re, b.im) - Math.hypot(a.re, a.im));
+    const Z = zpk.z.slice();
+    const pp = pairUp(P);
+    const sos = [];
+    pp.forEach((pair, idx) => {
+      // choose the zero(s) nearest this pole pair
+      const zs = [];
+      for (let n = 0; n < pair.length && Z.length; n++) {
+        let best = 0, bd = Infinity;
+        Z.forEach((v, j) => { const d = Math.hypot(v.re - pair[0].re, Math.abs(v.im) - Math.abs(pair[0].im)); if (d < bd) { bd = d; best = j; } });
+        const zz = Z.splice(best, 1)[0];
+        zs.push(zz);
+        if (Math.abs(zz.im) > 1e-9) { // also remove its conjugate
+          const cj = Z.findIndex(v => Math.abs(v.re - zz.re) < 1e-7 && Math.abs(v.im + zz.im) < 1e-7);
+          if (cj >= 0) { zs.push(Z.splice(cj, 1)[0]); n++; }
+        }
+      }
+      const b = zs.length ? poly(zs) : [1, 0, 0];
+      const a = poly(pair);
+      const g = idx === 0 ? zpk.k : 1;
+      sos.push([b[0] * g, b[1] * g, b[2] * g, a[0], a[1], a[2]]);
+    });
+    return sos;
+  }
+
+  function butter(N, cutoffHz, fs, btype = 'lowpass') {
+    const warp = f => 2 * fs * Math.tan(Math.PI * f / fs);
+    let zpk = buttap(N);
+    if (btype === 'lowpass') zpk = lp2lp(zpk, warp(cutoffHz));
+    else if (btype === 'highpass') zpk = lp2hp(zpk, warp(cutoffHz));
+    else {
+      const w1 = warp(cutoffHz[0]), w2 = warp(cutoffHz[1]);
+      const bw = w2 - w1, wo = Math.sqrt(w1 * w2);
+      zpk = btype === 'bandpass' ? lp2bp(zpk, wo, bw) : lp2bs(zpk, wo, bw);
+    }
+    return zpk2sos(bilinear(zpk, fs));
+  }
+
+  function sosfilt(sos, x, zi) { // direct form II transposed, per section
+    let y = Float64Array.from(x);
+    const st = zi || sos.map(() => [0, 0]);
+    sos.forEach(([b0, b1, b2, a0, a1, a2], s) => {
+      const z = st[s]; const out = new Float64Array(y.length);
+      for (let n = 0; n < y.length; n++) {
+        const xn = y[n];
+        const yn = b0 * xn + z[0];
+        z[0] = b1 * xn - a1 * yn + z[1];
+        z[1] = b2 * xn - a2 * yn;
+        out[n] = yn;
+      }
+      y = out;
+    });
+    return y;
+  }
+  // steady-state initial conditions for a step of amplitude 1 (like scipy sosfilt_zi)
+  function sosfiltZi(sos) {
+    let scale = 1;
+    return sos.map(([b0, b1, b2, a0, a1, a2]) => {
+      // solve for zi such that output is constant for constant input (scale)
+      const g = (b0 + b1 + b2) / (1 + a1 + a2); // dc gain of this section
+      const z0 = scale * ((b1 - a1 * b0) + (b2 - a2 * b0)) / (1 + a1 + a2) * 1; // approx via steady state
+      // exact: z1 = scale*(b2 - a2*b0)... use the standard linear solve
+      // Steady state: y = g*scale; z0 = y - b0*scale; z1 = z0 - (b1*scale - a1*y)
+      const y = g * scale;
+      const zz0 = y - b0 * scale;
+      const zz1 = zz0 - (b1 * scale - a1 * y);
+      scale = y;
+      return [zz0, zz1];
+    });
+  }
+  function sosfiltfilt(sos, x) {
+    const n = x.length;
+    const pad = Math.min(n - 1, 3 * 3 * sos.length); // ~ 3 * (order) samples (scipy: 3*max(len(a),len(b)))
+    // odd extension
+    const ext = new Float64Array(n + 2 * pad);
+    for (let i = 0; i < pad; i++) ext[i] = 2 * x[0] - x[pad - i];
+    for (let i = 0; i < n; i++) ext[pad + i] = x[i];
+    for (let i = 0; i < pad; i++) ext[pad + n + i] = 2 * x[n - 1] - x[n - 2 - i];
+    const zi = sosfiltZi(sos);
+    let y = sosfilt(sos, ext, zi.map(z => [z[0] * ext[0], z[1] * ext[0]]));
+    y.reverse();
+    y = sosfilt(sos, y, zi.map(z => [z[0] * y[0], z[1] * y[0]]));
+    y.reverse();
+    return y.slice(pad, pad + n);
+  }
+  function sosFreqz(sos, fHz, fs) { // magnitude response at a frequency (Hz)
+    const w = 2 * Math.PI * fHz / fs;
+    const e1 = C(Math.cos(-w), Math.sin(-w)), e2 = C(Math.cos(-2 * w), Math.sin(-2 * w));
+    let H = C(1);
+    sos.forEach(([b0, b1, b2, a0, a1, a2]) => {
+      const num = cadd(C(b0), cadd(cscale(e1, b1), cscale(e2, b2)));
+      const den = cadd(C(a0), cadd(cscale(e1, a1), cscale(e2, a2)));
+      H = cmul(H, cdiv(num, den));
+    });
+    return Math.hypot(H.re, H.im);
+  }
+  function sosPhase(sos, fHz, fs) {
+    const w = 2 * Math.PI * fHz / fs;
+    const e1 = C(Math.cos(-w), Math.sin(-w)), e2 = C(Math.cos(-2 * w), Math.sin(-2 * w));
+    let H = C(1);
+    sos.forEach(([b0, b1, b2, a0, a1, a2]) => {
+      const num = cadd(C(b0), cadd(cscale(e1, b1), cscale(e2, b2)));
+      const den = cadd(C(a0), cadd(cscale(e1, a1), cscale(e2, a2)));
+      H = cmul(H, cdiv(num, den));
+    });
+    return Math.atan2(H.im, H.re);
+  }
+
+  // ---- real FFT magnitude (radix-2, zero-padded), returns {f, mag} one-sided, mag scaled 2/N
+  function rfftMag(x, fs) {
+    let N = 1; while (N < x.length) N <<= 1;
+    const re = new Float64Array(N), im = new Float64Array(N);
+    for (let i = 0; i < x.length; i++) re[i] = x[i];
+    for (let i = 1, j = 0; i < N; i++) { // bit reversal
+      let bit = N >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit;
+      if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; }
+    }
+    for (let len = 2; len <= N; len <<= 1) {
+      const ang = -2 * Math.PI / len, wr = Math.cos(ang), wi = Math.sin(ang);
+      for (let i = 0; i < N; i += len) {
+        let cr = 1, ci = 0;
+        for (let j = 0; j < len / 2; j++) {
+          const ur = re[i + j], ui = im[i + j];
+          const vr = re[i + j + len / 2] * cr - im[i + j + len / 2] * ci;
+          const vi = re[i + j + len / 2] * ci + im[i + j + len / 2] * cr;
+          re[i + j] = ur + vr; im[i + j] = ui + vi;
+          re[i + j + len / 2] = ur - vr; im[i + j + len / 2] = ui - vi;
+          const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t;
+        }
+      }
+    }
+    const half = N / 2 + 1, f = new Float64Array(half), mag = new Float64Array(half);
+    for (let k = 0; k < half; k++) { f[k] = k * fs / N; mag[k] = 2 * Math.hypot(re[k], im[k]) / x.length; }
+    return { f, mag };
+  }
+
+  const api = { butter, sosfilt, sosfiltfilt, sosFreqz, sosPhase, rfftMag };
+  if (typeof module !== 'undefined') module.exports = api;
+  global.Butter = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+// Speech clip: CS328-Notebooks/data/Audio-Emotion/neutral/neutral_DC_n01.wav (SAVEE), first 3 s, resampled to 16 kHz, 8-bit
+// 48000 signed 8-bit samples at 16 kHz (3 s), base64. The clip itself is clean; the page adds the noise.
+window.SPEECH = { fs: 16000, n: 48000, b64: 'ChAODw8PDw8PDw8PDw8PDw8ODg8PDg8ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODw8PDg8PDg4ODg4ODg4ODg4ODg4ODw8PDw8PDw8PDw8PDw8PDw8PDg8PDw8PDw8PDw8ODw4PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8ODg8PDw8PDw8PDw8PDw8PDg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODw8PDw8PDw8PDw8PDw8ODg4ODg4ODg4ODg4PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw4ODw8PDg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDg4ODg8PDw8PDw4PDw8ODw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw4ODw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw4ODg4ODw8PDg4ODg8PDw4ODw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDg4ODg4PDw8PDw4ODw4PDw8PDw8ODg4PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8ODg8PDw8PDg4ODw8PDw8PDw8PDw8PDw8PDw4ODg8PDw8PDg4ODg8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw4ODg4ODw8PDg4ODg4PDw8PDw8PDw8PDw8PDw8ODg4ODw4ODg4ODg4ODg4ODg4ODg4ODg8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8ODg8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDxAPDxAQDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw4PDw4PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDg4ODg4ODg4ODg4ODg4ODg4ODw4PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDg8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDg4ODg4PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8ODg4ODg4ODg4ODg4ODg8PDw8PDw8PDw8PDw8PDw8PDw8PDg4ODg8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8ODg4ODg4ODg4ODg4ODg4ODg4PDw8PDw8PDw8PDw8PDg4ODg4ODg4ODg4ODg4ODw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8ODg4PDw8PDw8PDw8PDw8PDw8PDw8PDg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw4ODg4ODg4ODg4ODg4ODg4ODg4ODw4ODg4ODg4ODg4ODg4ODg4ODg4ODw8PDg4ODg4ODg4ODg4ODg4ODg4ODw8PDw8PDw8PDw8PDw8PDw8PDw8ODg4ODg4ODg4ODw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8ODg4ODg4ODg8ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg8PDw8PDw8PDw4ODg4ODg4ODg4PDw8PDw8PDw8PDw8PDw8ODg4ODg4ODg4ODg4ODg4ODg4ODg8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4PDw8ODg4ODg8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw4ODg4PDg8PDw4PDw8ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODw8PDw8PDw8ODg4ODg4ODg4ODg8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw4ODg8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODw8PDw8PDw8PDw4ODg4ODg4ODw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDg4ODg4ODg4PDw8PDw8PDw8PDw8PDg4PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8ODg4ODg4ODg8PDw8PDw8PDw8PDw8PDw8PDw8PDg4ODg4ODg4ODg8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDg8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw4ODg4ODg4ODw8PDw8PDw8PDg4ODg4ODg4ODg4PDg4PDw8PDw4ODg4ODg4PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw4ODg4ODg4ODg4ODg4PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDg4ODg4PDw8PDw8PDw8PDw8PDw8ODg4ODg4PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4PDw8PDw8PDw8PDw4PDw8ODg4ODg4ODg4ODg4ODg4ODg8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw4PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDg4ODg4ODg4ODg4ODg4ODg4ODw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw4PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw4ODg4ODg4ODw8PDw4ODg4PDg4ODw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDg4ODw8PDg4PDw8PDw8PDw8PDw8PDw8PDw8PDg4PDw4ODg4ODg4ODg4ODg4ODg4ODw8PDw8PDw8PDw8PDw8PDg4ODg4PDw4ODg4PDw4ODg8PDw8ODg4ODw8ODg4ODw8PDg4ODw8PDg4PDw8PDw8PDw8PDw8ODg8PDw8ODg8PDw4ODg4PDw4ODg4ODg4ODg4ODg4ODg4ODg8PDw4ODw8PDw4ODw8PDg4PDw8ODg8PDw8PDw8PDg8PDw8ODg8PDg4ODg4ODg4ODg4ODg4ODg4ODw4ODg4PDw4ODg8PDw4ODg8PDw4ODg8PDw4PDw8PDw8PDw4ODxAQDw4ODxAQDw4PEBAPDg8PDw8PDw8PDw4PDw8PDg4PDw8ODQ4ODw8NDQ0ODw4ODg4PDg4PDg4ODg8PDg4ODw8PDg0ODw8PDg4PDw8PEA8ODg4QEA8ODg4QEA8NDQ8QDw4NDg8PDw0ODw4ODg8QDw4NDhAQEA4NDxAQDw4PEA8PDg8QEA8NDhERDw0ODw8PDg4PDw8ODhAQDg0NEBAPDw4NDw8PDg0ODg4ODg4ODg4ODw8ODQ4PDg8PDQ0ODw8PDg4NDg4ODw4ODg4PDxAPDQ4PEBAPDw8ODg8QDw8PDg8QEA8NDg8PEA8ODQ4QEA8PDg4PDg8PDw4NDhARDw0NDxARDw4ODhAQEA8ODg8QDw4ODQ4QEA8LDQ8PEA8NDg0OEQ8ODQwODxARDgwMDhAQDw4MDA8QEA4NDw4NDhAPDg4ODg8QEA0NDxAREA0PEBAQDw8PDhAREQ4LDRASEQ0NDQ8QEBEPDQ4NDxEREAwMEBISDgsNDxAQEA4MDQ8QEA8NDA4REQ0MDg8QDw8PDA4PDxAPDw4NDRARDwwMDhAPDw4LDg8PEA4ODg0ODg4QDg4PDQ8QDw8NDRAREQ8LDA8REQ8ODQwPERAPDg4ODxAQDwwNEBAREQ4LCw4UEwsKDBATDw0NDA8REhAOCwsPExMQDAsNERISDwsNDxESEA4LDhITEQ0NDg4REQ8ODQ8PDw8NDA8REQ4KDRERDwwPEg8LDRASEQwKDxITDgkOEBARDg4PDQ0QEhAMCw0QEhEKCg0QFBAMDAoOEhERDQoNDhETEAwKDBAUEwwKCw4TEA8QCgwQDxAQDwwLEBEPDQ4ODg8PDw4MDhERDgsOEBISDAoOERMRDAwMDhESEA0NDQ0PERMPCgwQExIODQwOEhIPDAsPEREODQ8PDQ0PERAMCw4QEg4JDQ8QEQ0MDw8PDQ4REA4LDRIPDAwOERIPCQsQEhALDxEPDQsPEhEPDQ0PDw4SEA0QDA0QDhEPDg4NEA4NEBEODQ8QDg4PDwwOEBAQDQwM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Dg8PDw4NDAwNDxAREREQDw8QERESEhEQDw4ODg8PDw8ODQwMDQ4ODw4ODg0NDg8PEBAQDw8PEBAQEBAQEBAQEBAQEBAPDw4ODg4ODg0NDQ0NDQ0NDQ0NDQ0NDg4ODg8PDw8PDw8PDw8PDw8PDw8PDw8PDw8ODg4ODg8PDg4NDQ0NDg4ODg4ODg4ODg8PDw8PDw8PEBAQEBAQEA8PDw8PDw8PDg4ODg4ODg4ODg4ODg4ODg4ODg4ODw8PDw8PDxAQEBAPDxARERAQDw4PDxAQDw8ODg4ODg4ODg4ODg0NDQ4ODg8ODg0NDg4PEBAQDw4ODw8QEBAPDg8PDw4NDAwODxAPDQsMDQ4PDw4NDQ0ODw8PDw4ODg8PDw8PDw8PDw8ODg8PDw8PDw8ODg4PDw4ODQ0NDg8ODg4PDxARERAPEBAQEREQEA8PDw8PDg4PDw4ODg4NDQ4PDg0ODg4ODg8PDw8PDw8ODxAQDw8PDw8PDw4ODg4NDg0NDg0MDA0NDQ0PDw4ODxAPDw8PDxAPDw8ODw8PDg4ODg4ODg4ODQ4ODg4ODg0ODQ0PEA4PDw4ODg4PEBAPDw8QDg4RDw4PEA8MDBAPDA0QDwsNEQ4LEBEODxAQDQ0REg8QEgwKDxQQChIVCAUSEgoKEhQMCQwREAcKFxIKEBQLCBAQCxEYEQgNFA0IERQQDA8PCgsLDRAMEBUMBg4TBwwaDgoUDQkOEA4REw0REggLEw4MEhMOCwsPDAsUEwkQEwYLFA8LDxINDRENCxEPChQYCAkYDwQQGg8LEQ0ODQsTEQwOEwwJDxAQDBAXDAgTDQgWFQwREQoMDw0PExAPEQ0MDAsSEg4REg4KDQoMExMSDQ8QBA8UCBEbDwYNFAYLFw4KERgNBBIQBhYUBhMUCA0QEQ0KERYMDhcKChAQDgsTFAkNFAwJEQ4KERQPCxIUBQwaCQYaEwUOGQoDFxEDExgMDBIRBQwTDBAVDgwTCwcSEggQGg0KDhALBxURChQQCg0RDQcRFgcTFwUOEwcLFhAIFBcICBUPBhMWDQsQFAoKEg0NEhMOCg4TCQ0VCg0VCw4SDQ4NDhAREQ8RFAwGFBYGDhkPCRMSCAwSEA4REg0MDxEMChASDg8QDhEMChMRCRMWCg0UDAgRFgoQFgsLDxALDREODg0PDw0NDg8OEBENEBAPDQ8NEBIKEREJERAJDRMRCg8VCAkWCg0RDxAIDRQKDRMNDREQDQ4RDwwQEQwNFA8JFBELDg4TCQ0YCAwUCwwRDwwQEgwMFBEIDxcLDBUSCg8VCw0SDxAOEhALEBELDhMNDxIPDA4ODhAQDxEQChASChATDg8RDw4PDw8PDw4REAoPFAkLFA8JDRYNCxIODAwQEQ8NERALEBANEA0QEQ4PDhALDBINDg8RDQkSEQkREwoNFBAJDRINDRERDwsQEwkOFgsMExAODREOChQPCRUSCA0UDgkUEgkREQ8KERQIDxMMDRARDA4SDwwOERALEBIMCxASCwwWDQkTDwkSDwgUEAoRDg0NEBIKDhIPCw8SDAwSEAsOEgwPEAsSDwkRFAoLFA4MDhEPCRUOChULCxYMCRMPChEPDQ8QDgsSEQgSFAkNFBAIERMLDxMNDBMPDA8QEAoREgoQEwoPEgoPEwsOEw0LERILDBQOCRMQCg4TEQcREwsPDhASCQ8TDQoPFA0LDhIPBxIVBg4UCw8MEBIKDhMPCBESCg0TDgsREAsPEAwQEQwNEw4LEBEOCg8RDwoQEwgOFQoQDw4RDBENDRMPDA4TDAsTDQ8OEA4NEA4MEQ8NDxEODg4RDw0QEAwQDw8ODhENDxEKERILDhEODg0PDwwPDQ8TCQwWCwwTDgwQEQ0NDw0ODw8PDhAMDBINCxIQCg4TDAsSDBAPCxMOCxAODhAMDhENDRANDg0QEQoREQwODxEMEBIJEBMKDxINDBIODBIOCxARDAwTEggNFwoKFg4MEA4RDA0UCw0UDA0RDg4MEBMKDRQLDBIODA8PDBAQDAwRDgsRDwsQDwsOEQ4NDxANDBEPCw8PDQ4RDwsMFAwIFREIDxMMDRAODw4PDw0RDQsREAoQFAgOEwsPEAwQDw4ODxIMChUSCQ8UDggSFAoNFBEHEBUKDBQPCxERDBEODBMOCxIQDQ4PFAoMFgwNEg4NEA8MFAsNFQoOEg4NDREPDBAQDg4NERAJERENDBIPChIQCw8QDg0QEAsQEQoPEQ0ODhMJCxgJCRYQCQ4UDQkSEQUTEwkQDw4PDQ8SDQwRDw0OEA4LDxMLDRUKDBIODw8ODhEQChETCgwUEAsNFA4GFBQIDxIODg4PEQwNEg4NEQ0PDg0QDxAKEBQJDRMPCg4UDgsPEA8NDg8SDAsTDwwOEg8IEhQIDhMODA0RDwwQDg4PDQ8PDQ8NEg4KEg4NDw0QDg8QChIQCBETDAoTEwUPFwgMEg4PDhANDBQJDhYKDBARDA0SDBAPCxQPChIODREPDg4PDw0OEBANDhINDBMOCxASDA4QDQ4PDw0NEQ8KERAKERAKDxENCxASCwsREgkOEg0MDxAPDQ4PEQsPEQ0PDw4PDg4ODxAMDhANDREPDBAODw8NDxALDhEPChESCw0SDwsPEQ4PDg8SCw0TDgwPEBAMDhEODw4OEw4KExIJDxQMCxMQCg8RDw0OEg4LEA8ODQ8RDA4RDQ0QDwwRDwsSDwoOEgwLEw8LDhAODA8QDgwPDw8ODA8PDBAQDA4PDQ4QDg4NDxANDQ8PCw4TDQwQDwwNEg8LEA8ODw0MEQ4NEBEOCw8QDQ4PDw4ODw8QDA0RDg8RDQ0QDg0REQ0ODhEQDA8ODRAQDg8PDA4REA4PEA0OEQ4PDg0QEA8PDQ0PDg8PDw4NDhAPDQ4QDQ4QDg0PDQ4PDw4NDg4NDw4ODg0ODw4ODQ0ODw8ODQ0PDg4QDg0ODxAODA8ODw8PDw0ODw8PDg0QDw4PDg0NEBEODg8NDxAPDw4PEBAQDg4PEBAREA4ODxAQDw8ODxEPDQ8ODg8QDg0PDg4PDw4ODw8PDg4ODg8QDw4NDQ4ODg4MDQ4NDg0MDAwODg0NDQwMDQ4NDQ0MDQ0NDA0NDQ4ODg4ODg8PDw8QEBAQEBERERESEhESEhESEhIRERIRERISERIREBISERERERISExIQERISEhERERESEhEQEBAQEBAPDQ0MDAsJCAcGBQMCAf////7+/f39/v8AAQIEBwgJCw0PERMUFRYYGRkZGhkZGRkYFxYWFRQUExMTExMSEhMTFBUVFRYXFhcYGBkaGxoaGhkaGxwcHBsbGxsaGBcXFxYVEQsHBAMB/vr18e7r6efm5+nr6+zt8PX8AgcLDxMXGx8iJikqKigmIyIgHhsXEg0JBAH9+/n39vPx8fL1+Pv9AAMGCw8UGR0gIyYoKSssLi4tKygmJCMgHhwaGBUSERAREhISEhQVFxkcHyIlKCkrLC0uLi4tKyomHxcOCAP/+O/k2tLOy8nGxcbIyszQ1+Hs9/8GDRUeJy40OTw+Pjw4NTIvLCUeFg8JA/759fLv7evp6eru8fX4+v4DCA0RFhodICIkJSYnKCclIyAfHRwaGBYVExISERIUFhcYGhsdICMmKCkqKysrKyssLCwrKSgmJSMgHhwbGRQMAvn08/Ls49jRzc3OzMvN0dXY297m8v8JDhIXHygvNDc6PDw6NjEtKygjHBQMBgH9+fXy7+3r6ejq7PDz9vj7/wQKDxMXGx4hIyUnKSorKSgmJCMiIB4bGRcVFBISEhITExQVFxkcHh8hIiQlJiYmJiYlJCQkJCQjIiEgHx4dHBsXEQkA+fbz7+fc0szKysrJyMrO09fb4uz4BAwSFx4nMDc7PT8/Pjw3MzAuKSIZEAkE//r18Ozo5uPi4+bq7vH0+P0DChAWGyAlKCosLzEzMzEtKyknJSEeGhcUEQ4MCgoKCgkICQsOERMWGBocHyIkJScoKCgoKCcnJiYlIyIgHx4bGBYUEg4G/fby8e7o39bQz9HS0tHT19zh5uv0/gkRFhsgJy81OTo6OTg1Mi4qJiEbEwwFAPv49PDt6ejo6ert7/P2+v4DCA4UGh4hJScqLC4vLy4sKSYjIR8cGBMPDQoJBwYFBQUFBggKDRATFhgbHiAjJScoKSkoKCgnJiUjIiEgHx4dGxoXFhUUEw4G/vj29vTu5dzX19na2NfY29/j5+vz/AYNERUaISowNDU1NDQ0Mi8rJyMdFxAJBQH9+fXw7Ovr6+3u8PL1+f0CBgwRFhodICMmKSssLCsqKCcmJCEeGxcUEg8NCwkIBwYGBwgKDQ8RExUYGx4hIyUmJygoKSkpKCclJSMiIB8eGxkWFBMQDAX99vPy8ezk3NbW2Nvb29rc4OXr8Pf/Bw4UGR4jKjA0NjU0MjEwLismIRsWEQwHA//7+PTx7+7u7/Dx8vT3+/8ECAwPExcbHiAjJScoKCgnJyYlJCEeGxkWFBIQDgwKCgkJCgsMDhARExYYGx4gIiMlJicoKCkpKCgnJiUjISAeHBoVDgX++ff18Ofc08/Q09XT0M/R197l7PP6AQkQFx4mLTM4Ojo6Ojo6ODUwKSMeGhYRCwX/+fXy7+3s6urq6uzv8vb7/wMHCxAVGh4iJScpKy0tLS0sKigmJCEeGxgVEhAPDQsKCQkKCw0OEBETFhkcHiAhIyUmJygpKSkpKCclIyEfHBgSCgL8+Pby7OPa1NPU19jW1NPW2+Pq8Pb7AQgPFx4lKi4yNDY3Nzc2NTIuKSQgGxcTDQgC/vr39fLw7+3t7e7w8vX3+v4CBwsQFBcbHyMnKSssLS0uLi0sKickIiAdGxkWFBIQDw4ODg4PDxESFBYYGRsdHyIkJicoKCcnJyYmJCAYDwgEAgD68eXb1tXX19bRzszP1Nzj6O3x9/4GDxceIygsLzI1Nzk5NzUyLywpJiIdGBMOCgYC//v49fPx8PDw8fLz9Pb6/gIGCg0RFRoeIiYoKiwtLi8wLy4sKignJSMgHRoYFhUTEhEQDw8PEBAREhMUFhcZGhscHR4eHh8fHxwYEg0JBwUC/PTs5uPi4uDe2tfX2d3i5+vu8vb9BAsRFhoeIiYqLC4vMDAvLy0rKSYjHxwYFRENCQUC//z59/Xz8vHy8vT2+Pr9AQUJDhIXHB8iJSgrLjAxMjIxMC8uLSsoJiMgHhwaGBYUEhEQEBAQEBARERITFBUVFhcXGBcUEAwJCAcFAfr07uvq6ejm5OHg4OPm6u3v8vX6AAUKDhIWGR0gIyUnKCkqKioqKSclIyEfHBkWEg8MCQYDAP37+fj29fT09ff5+vz/AQUJDhIWGRwgIyYpKy0uLi8vLy8uLCspJyUjIR8dGxoYFhQTEhIREREREBAQEBAREREQDgsIBgUEAwD79vLw7+/u7evp6Ojq7fDy9Pb5/AAFCAwPEhQXGhweICEiIyMkJCMjISAeHRsZFxQSDwwJBgQB//37+fj39/j5+vv9/wIFCQ0RFRgcHyImKSstLi8wMDAwMC4tKykoJiQiIB0bGRcWFBMSERAQDw4ODQ4ODQwKBwUDAwH//Pj08fDv7u3s6unp6uzu8PL19/r+AQUICw4RFBYYGhscHR4fICAgHx8eHh0cGxkXFRMREA4LCQcFAwEA//7+/v7+/wACBAcJDA4RFBcaHSAjJScpKywtLi4uLi0sKyooJyQiIB8dGxkXFhQTEhEQDg0NDAwLCQcFAwEA//369/Ty8O/u7u3s7Ozt7vDy9ff5/P8CBQgLDhATFRcYGhscHR0eHh4dHR0cGxoYFxYUExEPDQsJCAYFBAMCAgEBAgMEBQYICgwOERMVFxocHyEjJCYnKCkqKiopKSgoJyYkIyEfHh0bGhgWFRQSERAPDg0MCggGAwIA/v369/Ty8O/v7u3s6+vs7vDx8/X3+v0BBAcKDA8SFRcZGhscHR4fHx8eHh0dHBsaGBYVFBMREA4MCgkICAcGBAQEBAUGBgcICQsNEBETFRcZGx0fICIjJCUmJiYmJiUlJCQjISAfHh0cGxkYFxYVExIRDw4NDAoIBgUDAQD+/Pr49vX08/Lx8fDw8fL09fb4+fv+AAMFBwkLDhASFBUWFxgZGhoaGhkZGBgWFRQTEhEQDg0LCwoJCAgHBwcHCAkJCgsNDhASExQWGBocHR8gISIjJCQkJCQjIyIhIB8eHRwaGRgXFhUUExIREBAPDg4NDAwLCwoJCAgHBgUEAwIBAAD//v39/Pz8/Pz8/f3+/wABAgMEBgcJCgsMDQ8QEBESEhMTExMTExISEREQDw8ODQ0MCwsLCgoKCgoLCwwNDg8QERITFRYXGBkaGxwdHh4fHx8fHx8eHh0dHBsaGRgXFhQTEhEQDw4NDQwLCwoKCgkJCQkJCQkJCQkJCQkJCQkJCQkJCAgICAcHBwcHBwcHBwcHBwcICAgJCQkKCgsLCwwMDAwMDA0NDQ0NDQ0NDQ0NDQ0NDQ4ODg4PDxARERISExQVFhYXFxgYGRkZGRkZGRkZGRgYFxYWFRUUExMSEREQEA8ODg0NDQ0MDAwMDAwMDAwMDAwNDQ0NDQ0NDQwMDAwMDAsLCwsLCgoKCgoKCgoKCgoKCgoLCwsLCwsMDAwMDAwNDQ0NDQ0ODg4ODg8PDw8QEBAQEBERERISEhITExMTFBQUFBQUFBQUFBQUFBMTExISEhEREBAQDw8PDg4ODg4NDQ0NDQ0NDQ0NDQ0NDg4ODg4ODg4ODg4ODQ0NDQ0NDAwMDAwMDAwMDAwMDAwNDQ0NDQ0NDQ4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg8PDw8QEBAQERERERESEhISEhISEhISEhIREREREREQEBAQDw8PDw8ODg4ODg0NDQ0NDQwMDAwMDAwNDQ0NDQ0ODg4ODg4ODw8PDw8PDw8PDw8ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODw8PDw8PDw8PDxAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEA8PDw8PDw8PDw8PDw8PDw8PDg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDg4ODg4ODg0NDQ0NDQ0NDQ0NDAwMDAwNDQ0NDQ0NDQ0NDQ4ODg4ODg4ODg4ODg8PDw8PDw8PDw8PDw8PDw8PDw8QEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEA8PDw8PDw8PDw8PDw8PDw4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4PDw8PDw8PDw8QEBAQEBAQEBAQEBAQEBAQEBAPDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODQ0NDg4ODg4ODg4ODg4ODg4ODg8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8ODw8PDg4ODg4ODg4PDg4ODw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8ODw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8ODg8PDw8ODg4ODg4ODg4ODg4ODg4ODg8ODg4ODg4PDw4ODw8ODg8PDg4PDgwOEA4ODw8NDhAPDg8QDg4PDw4PDw8PDw8ODg8PDg4PDg4ODg4ODg4ODg4ODg4PDw4ODg4ODw8PDg8PDw8ODg8PDg8PDg4PDg8PDg4PDg4PDw4ODw4ODw8ODhAPDg4ODg4PDw8ODxAPDxAPDxAQDw4QDw8QEA8ODg8PDw8PDw4ODw4ODw8PDw8PDg4PDw8PDw8ODhAPDhAQDg8QDg4QDw4PDw4ODw4ODw4ODw4ODg4ODw8ODg4ODg4ODg8ODg4ODg8ODg8PDg8PDg4QDw0OEA4NDxAODhAPDg4ODw4PDw0NDw8ODhAODQ8QDg4QDw4QDw0PDw4PEA4OEA8OEA8ODxAPDg4PDw8PDw8ODg8ODg4ODw4NDg8ODg4PDg4ODw4NDhAPDQ8QDQ0REA0OEA4NEA8NDg8PDg0ODg4ODw8NDQ8PDQ4QDgwPEA0MDxANDhAPDQ4QDw0PEA8NDxEODRAQDQ8RDw4PDw4PEA8PDw4ODw8ODg4PDg4QDg0PEA8PDw4PEBEPDw8ODxEQDg4QDw8QDw0NDxAPDg4ODg4PDw4NDg8ODg8ODQ4QDw0NDg8PDw8ODQ4PDw8ODg8PDxAODQ4QDg4PDg0ODw4ODg0ODg4ODg0ODw8ODg4ODw8PDg8ODg8QDg4PDw8PDw4ODg8QDw4PDg8PDw8PDg4PDw4PDw4ODw8ODg8ODg4ODw4ODw8ODg8PDg8PDg8PDw8PDw8PDw4PDw4ODg4ODg8ODQ4ODg4ODg0ODg4ODg4ODg4ODg4ODg8ODg8ODg8PDg4PDg4ODw8ODg8ODg4ODg4PDw4ODg8ODw8PDw8PDw8PDw8PDg8PDw4PDw8ODw8ODg4PDg4ODg4ODg4ODg4ODg4ODg8PDw8PDw8PDxAQDw8QDw8PDw8PEBAPDw8PDw8PDg4ODg4ODg0NDQ0NDQ0NDQ0NDQ0NDQ4ODg4PDw8PDw8PEBAQEBAQEBAQEBAQDw8PDw8PDw4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg8PDw8PDw8PDw8PDw8PDw4PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDg8ODg4ODg4ODg4ODQ0NDQ0NDQ0NDQ0ODg4ODg4ODg8PDw8PDw8QDw8QEBAQEBAQEA8PDw8PDw8ODg4ODg4ODg0NDQ0NDQ0NDQ0NDQ0ODg4ODg4ODg8PDw8PDw8PEBAPDw8PEA8QEA8PDw8PDw8PDw8PDw8PDw8PDw8ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDg4O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ExISEhERERAQEBAQEBAQEBAQERERERAQEBAQEBAQDw8PDw4ODg4ODg0NDQ0NDQ0NDQ0MDAwLCwoJCQgHBgUFBAMCAgIBAQAAAAAAAQEBAgIDAwQFBgcICAkKCwwNDg8QERISExMUFBQVFRUVFRUVFRUUFBMTExMSEhISEREREREQEBAQEA8PDw8PDw8QEBAQERESEhMTFBQVFRYXFxgYGRkZGRkZGRkYGBcXFhUUExIREA8PDg0MDAsLCgoKCQkJCQkJCQkKCgoKCgsLDAwMDAwMDAwMDAwLCwsKCgkJCAcHBgYFBQUEBAQEBAQEBAUFBQYGBwcICAkJCgoLDA0NDg8PEBESEhMUFBUVFhYXFxcXFxcXFxcWFhUVFRQTExISEREREBAQDw8PDw8PDw8QEBAQEBERERISEhISEhISEhISEhEREREREBAQEA8PDw4ODg4ODQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDAwMDAwLCwsLCwoKCgoKCgoKCgoKCgoKCgoKCwsLCwsLCwsMDAwMDAwNDQ4ODw8PDw8PDxAQERISEhERERESEhISEhERERERERISEhEREBAQERERERERERAQEBAQEBAQEA8PDw8PDw8PEBAQEBAQEBAQEBAQEBAPDw8PDw8PDw8PDg4ODg4ODg4ODg0NDg4ODg4ODQ0NDQ0MDAwMDAwMDA0NDQ0NDQ0ODg4ODg4ODw8PDw8PDw8PDw8PDw8ODg4ODg4NDQwMCwsLCwsLCwoJCAcICgsNDxAQEBEREhMUFRUVFRUVFRUVFBMSERAQEBAPDQoIBgQEBgcJCwsMDAwMDA0OEBEREhMTFBQUFBMTExMTFBMTEhEQDw8ODg4ODg4ODg4ODg4ODg8PEBAQEBAQEA8PDw4NDAsLCgoKCgkKCgsLDAwNDg4PDxARERISExISEhERERAQEA8ODQwLCgoKCQkKCgoLCwwMDQ0ODg8QERESEREREBAQEBAQEREQEA8PDw4ODw8PDxAPDw8PDw8PDxAREhITExMTEhISEhISEhISERAQDw4ODQ4ODg0ODQ0NDQ0MDA0NDQ4ODw4PDg4NDQ0MDAwMCwsLCgoKCgkJCgoKCgoKCQkJCQkKCwsMDQ0ODg4ODg4ODxAREhMTExQUFBUWFhcXFxcXFxcXFxcXFxcXFhYVFBMSEhEREBAQEA8QEBAQERES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GhAHBAcQFBMTDwsJCQ4SEQsHCg8WGg7//QkXGhEMBwQKDw0MDg0JCgwODQgJCAkRExAJAQMLFBUKBQgNDwwLCgoPEA4LDQ8JCAwQFhIMCgsOEhMOCREVEg8LDAsNFRURDgoKDA8SExEODA8SEhMODRITFxkOCxIRFBYVFw8OFhAPERESERQSCw0OEA4OFBIRDwgLDBEUDw8ODw8NDw4NFBEMEhQPCggSFg0QEQ4PCw4NCxEREQ0IDwwKEQwNEAwQDgcIDBIUDAkLCw8RCwsNFBMHBw4UFAoIDw8RFA0FCxIUEw0KCw0TEAcLEhMQCwoNDhERCw8UEQ0JDhESEw0PExASEQ4RDxETEBARDg0QEREODRMRCg8SDxAPEA8LFRYMDAsOFRISDQURFw8MCw8UDgsQEA8ODA4PDw8PEg8HDhINDxIODQ0NDw4NEA4NDg4PDQ4PDQwOEw8MEAwKDw8TEwsKCg4VDw4OCQ0QExIKDAsOFQ8QDwgNDhEWDgwODA8QExQKCRETEQ4RDQkPExQQCQ8SCg0RFBUHBg8RGA8IDQ8TDwwQDw8ODBITEg8JCg8VFQ8RDAsPDRISDxELDRMNDg4NDQwSFhALCw0MDxUVEQ0MCwwOERUREg4EDhISFQgLEwwTFg0IBA4WEBYVBwYLEBMQExQMCgsNFRAQEwoODw0VDwoPDBAUEBEKCA4QFRMNDQgMEREUDQsPEA8MDRAPDw0REQsNDQ4QDhIPDREKDRENEA0QEg8ODA8MDBETEgwKDgwOEQ8OEA8ODw4LChAVDw8QCAwPDhMNDhMOEQ8NDgoQERQTDw8KCgoUGBERCQkRDRAOEBILDxIQDQwNDA8TFBAMDg0MDREUFBAMDAoPEg0REg0ODQ8QCw4ODhQQDw0KDw0PEg4REA4PCg4RDxIPDA4SEQsNDRESEBANDgwPEA4RDg8ODxQLCQ8PEBEQDgwOEQ4MDA8TERAOCw4PDRAQEBEPDg0MDhATDw0ODxMPDA0MEQ8RFgwKDQ0SEQ8QDhEODRAODw8NEA8QEQ0NCw4PDxQPDQ4NDw4OEBAQDw8NDQ4QEg8NDAwUEg4RCQsQDxMQDQ8MDhEODg8PEBAPDQ4ODxAMDhEQEA0MDQ0OEBAPEBAODAsOERISDw0KDhAPEQ8PDw4QDw8ODBASEA0ODw4PDxARDw8ODRAREA4MDxAQERAODAwO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Dw8PDw8QEBAQEBAQEBAQEBAQEBAQEBAQEBAPDw8PDw8PDw8PEBAQEBAQEBAQEBAQEBAQEBAQEA8PDw8PDw8ODg4ODg4ODg4ODg4ODg4ODg4PDw8PDw8ODg4ODg4ODg4ODg4ODg0NDQ0NDQ0NDQ0NDQ4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDxAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQDw8PDw8PDw8PDw4ODw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8ODg4ODg4ODg4ODg4ODg8PDw8PDw8PDw8PDw8PDw8PDw4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8ODg4ODg4ODg4ODw8PDw8PDw8PDw8PEBAQEBAPDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8QEBAQEBAPDw8PDw8PDw8PDw8PDw4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg8PDg4PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8ODg8PDg4ODw8PDw8ODg8PDw8PDw8PDw8PDw8PDw8PDw8PDw8ODw8ODg8PDw4ODg4ODg4PDg4ODw8PDw8PDw8PDw8PDxAQDw8PDw8PDw8PDw4ODw8PDxAQEBAPDw4PDw8PDw8ODg0NDQ0NDg8PCgYJERQPDA4RDw8RExEREhIPDg8PEBERDw8QDw4ODg0NDg8NDAsLCwwOEA8MCQkKDA0NDQ4QEREREhQWGBgWExMUExIRERAODg4MCgkKCgoLCggICgwNDQ4PDxESExIRERISEhISEBARERAODg8PDg0MDAsLDAwLCwsMDAwNDQwMDQ4ODw8ODg8QEA8PEBAQEA8PDw8QDw4NDQ4ODQwODgwNEBAODhEQDxASEg8QEREQEREQEBEREA8PDw8PDw8PDw8QEREQEBEREBAQDw4PEA8ODg4NDQ4NDAwMDAsLCgoKCwsLCwsLCwsLCwsLCwwMDAwMDQ4PDg4P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Dg0LCwoKCgoKCwsMDQ8QERITFBQUFBMSERAQDw4NDQwMDAwMDQ0ODxAREhMUFBMTEhIREREQEA8ODQ0MDAwMDQ0ODg8PDw8PDw8PEBAQEBAPDw4ODg4ODw8PEBAQEBARERAQEBAQDw8ODg4NDQ0NDQ0NDQ0NDg4ODg8PDw8PDw8PDg4ODg4NDQ0NDQ0NDQ4ODg4PDw8PDw8PDg4PDw4ODg4ODg4ODg0NDQ0ODQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0ODg8PDw8QEBAQEBAQEBAQEBAQDw8PDw8QEBAQEBAQEA8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDg4ODg4ODg4ODg4ODg8PDw8PDw8PDw8PDw8ODg4ODg4ODg4NDQ4ODg4ODg4ODg4ODg4NDQ0NDQ0NDQ0NDQ0NDQ0NDg4ODg4PDw8PDw8PDw8PDw4ODg4ODg4ODg4ODg4ODg4PDw8PDw8PDw8QEBAQDw8PDw8PDxAQDxAQEBAQEBAQEA8PDw8PDw8PDw8PDw8PDw8PDw4ODw8PDw8PDw8PDw8ODg4ODg4ODg4ODg4ODg4ODw8PDw8PDw8PDw4ODg4ODg4NDQ0NDQ0ODg4ODg4ODg4ODg4ODg4ODg4NDQ0NDQ0NDQ4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODw8PDw8PDw8QEBAQEBAQEA8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDg4ODg4ODg4ODg4ODg4PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4PDg8PDw8PDw8PDw8PDw8PDw8PDw4ODg4ODg4ODg4ODg8ODg4ODg4ODg4ODg8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDg4ODg4O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' };
+</script>
+<script>
+// Pure signal code for the page (no DOM): decoding, the added noise, envelopes, spectra, the filter chain
+// and the playback samples. Exposed as SpeechDSP so it can be exercised outside the browser.
+(function (global) {
+  const B = global.Butter;
+  function decode(b64) { // base64 -> signed 8-bit -> /127 -> Float32Array, mean removed (the 8-bit clip has a DC offset)
+    const s = atob(b64), n = s.length, out = new Float32Array(n);
+    let mean = 0;
+    for (let i = 0; i < n; i++) { let v = s.charCodeAt(i); if (v > 127) v -= 256; out[i] = v / 127; mean += out[i]; }
+    mean /= n;
+    for (let i = 0; i < n; i++) out[i] -= mean;
+    return out;
+  }
+  function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+  function gauss(r) { const u = 1 - r(), v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+  // added noise: low rumble (white noise low-passed at 120 Hz, rms 0.08, like a fan or handling noise) + hiss (white, sigma 0.03, high-passed at 4 kHz)
+  function addNoise(clean, fs) {
+    const n = clean.length, r = rng(328);
+    const white = new Float64Array(n); for (let i = 0; i < n; i++) white[i] = gauss(r);
+    const hiss = B.sosfiltfilt(B.butter(4, 4000, fs, 'highpass'), white);
+    const white2 = new Float64Array(n); for (let i = 0; i < n; i++) white2[i] = gauss(r);
+    const rumble = B.sosfiltfilt(B.butter(4, 120, fs, 'lowpass'), white2);
+    let rr = 0; for (let i = 0; i < n; i++) rr += rumble[i] * rumble[i]; rr = Math.sqrt(rr / n);
+    const noise = new Float64Array(n), noisy = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+      noise[i] = 0.08 * rumble[i] / rr + 0.03 * hiss[i];
+      noisy[i] = clean[i] + noise[i];
+    }
+    return { noise, noisy };
+  }
+  // min/max per pixel column for drawing the full waveform
+  function envelope(x, cols) {
+    const n = x.length, mn = new Float32Array(cols), mx = new Float32Array(cols);
+    for (let c = 0; c < cols; c++) {
+      const a = Math.floor(c * n / cols), b = Math.max(a + 1, Math.floor((c + 1) * n / cols));
+      let lo = Infinity, hi = -Infinity;
+      for (let i = a; i < b && i < n; i++) { if (x[i] < lo) lo = x[i]; if (x[i] > hi) hi = x[i]; }
+      mn[c] = lo; mx[c] = hi;
+    }
+    return { mn, mx };
+  }
+  // Hann-windowed |X(f)| in dB (amplitude 1 sinusoid = 0 dB)
+  function specDb(x, fs) {
+    const n = x.length, w = new Float64Array(n);
+    for (let i = 0; i < n; i++) w[i] = x[i] * (0.5 - 0.5 * Math.cos(2 * Math.PI * i / (n - 1)));
+    const { f, mag } = B.rfftMag(w, fs);
+    const db = new Float64Array(f.length);
+    for (let k = 0; k < f.length; k++) db[k] = 20 * Math.log10(2 * mag[k] + 1e-12);
+    return { f, db, binHz: f[1] };
+  }
+  function chain(x, hp, lp, fs) {
+    const sosHP = B.butter(4, hp, fs, 'highpass'), sosLP = B.butter(4, lp, fs, 'lowpass');
+    return { sosHP, sosLP, y: B.sosfiltfilt(sosLP, B.sosfiltfilt(sosHP, x)) };
+  }
+  const power = a => { let s = 0; for (let i = 0; i < a.length; i++) s += a[i] * a[i]; return s / a.length; };
+  function snrDb(clean, y) { let ps = 0, pe = 0; for (let i = 0; i < clean.length; i++) { ps += clean[i] * clean[i]; const e = y[i] - clean[i]; pe += e * e; } return 10 * Math.log10(ps / pe); }
+  // samples for an AudioBuffer: Float32, clipped to [-1, 1]
+  function playbackSamples(x) {
+    const out = new Float32Array(x.length);
+    for (let i = 0; i < x.length; i++) out[i] = Math.max(-1, Math.min(1, x[i]));
+    return out;
+  }
+  const api = { decode, addNoise, envelope, specDb, chain, power, snrDb, playbackSamples };
+  if (typeof module !== 'undefined') module.exports = api;
+  global.SpeechDSP = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+<script>
+(() => {
+  const B = window.Butter, D = window.SpeechDSP;
+  const FS = window.SPEECH.fs, DUR = 3;
+  const clean = D.decode(window.SPEECH.b64);
+  const N = clean.length;
+  const { noise, noisy } = D.addNoise(clean, FS);
+
+  // ------------------------------------------------------------ layout
+  const W = 1584, H = 730;
+  const X0 = 84, X1 = W - 80, COLS = X1 - X0;
+  const T = { y0: 44, y1: 318 }, S = { y0: 414, y1: 682 };
+  const YR = 1.25, FMAX = 8000, DBLO = -95, DBHI = 5;
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+  const ty = v => (T.y0 + T.y1) / 2 - (v / YR) * (T.y1 - T.y0) / 2;
+  const fx = f => X0 + (f / FMAX) * COLS;
+  const sy = db => S.y1 - ((Math.max(DBLO, Math.min(DBHI, db)) - DBLO) / (DBHI - DBLO)) * (S.y1 - S.y0);
+
+  // ------------------------------------------------------------ signals
+  const envNoisy = D.envelope(noisy, COLS);
+  const specNoisy = D.specDb(noisy, FS);
+  const pNoise = D.power(noise), snrIn = D.snrDb(clean, noisy);
+  const PRESET = { hp: 200, lp: 3400 };
+  let hp = PRESET.hp, lp = PRESET.lp;
+  const dirty = { hp: false, lp: false };
+  let cur = null; // filtered result for the current dial values
+  function recompute() {
+    if (cur && cur.hp === hp && cur.lp === lp) return;
+    const c = D.chain(noisy, hp, lp, FS);
+    const nf = D.chain(noise, hp, lp, FS).y;
+    cur = { hp, lp, sosHP: c.sosHP, sosLP: c.sosLP, y: c.y, env: D.envelope(c.y, COLS), spec: D.specDb(c.y, FS),
+            snrOut: D.snrDb(clean, c.y), noiseLeft: 100 * D.power(nf) / pNoise };
+  }
+
+  // ------------------------------------------------------------ steps
+  const P = v => `<b class="p">${v}</b>`;
+  const tag = () => `HP ${hp} Hz · LP ${lp} Hz · fs = 16 kHz`;
+  const STEPS = [
+    { id: 'raw', dur: 3, title: 'Speech recording with added noise', tag,
+      subtitle: 'Low rumble and hiss were added to a real 3 s voice recording.' },
+    { id: 'spec', dur: 3, title: 'Spectrum of the noisy recording', tag,
+      subtitle: 'Rumble below 200 Hz, hiss above 4 kHz, and speech between 300 Hz and 3400 Hz.' },
+    { id: 'design', dur: 4, title: 'Designing the filters from the spectrum', tag,
+      subtitle: 'A high-pass filter removes the rumble and a low-pass filter removes the hiss.',
+      code: () => p < 0.5 ? `b_hp, a_hp = butter(4, ${P(hp)}, btype='highpass', fs=${FS})`
+                          : `b_lp, a_lp = butter(4, ${P(lp)}, btype='lowpass', fs=${FS})` },
+    { id: 'result', dur: 3, title: 'Filtered recording', tag,
+      subtitle: '',
+      code: () => `y = filtfilt(b_lp, a_lp, filtfilt(b_hp, a_hp, x))    <span class="k"># high-pass ${P(hp)} Hz, then low-pass ${P(lp)} Hz</span>` },
+  ];
+  const txt = v => typeof v === 'function' ? v() : v;
+
+  // ------------------------------------------------------------ static frame
+  const $ = id => document.getElementById(id);
+  const chart = $('chart');
+  let G = {};
+  function drawFrame(withSpec) {
+    chart.innerHTML = '';
+    const defs = el('defs', {}, chart);
+    const pat = el('pattern', { id: 'hatch', width: 8, height: 8, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, defs);
+    el('rect', { width: 8, height: 8, fill: 'rgba(235,104,52,0.10)' }, pat);
+    el('line', { x1: 0, y1: 0, x2: 0, y2: 8, stroke: 'rgba(235,104,52,0.45)', 'stroke-width': 1.2 }, pat);
+    const grid = el('g', { class: 'grid' }, chart), axis = el('g', { class: 'axis' }, chart);
+    // time panel
+    el('text', { x: X0, y: T.y0 - 12, class: 'ptitle' }, chart).textContent = 'time domain';
+    [-1, -0.5, 0, 0.5, 1].forEach(v => {
+      el('line', { x1: X0, x2: X1, y1: ty(v), y2: ty(v) }, grid);
+      el('text', { x: X0 - 8, y: ty(v) + 4, 'text-anchor': 'end' }, axis).textContent = v;
+    });
+    for (let s = 0; s <= DUR + 1e-9; s += 0.5) {
+      const x = X0 + (s / DUR) * COLS;
+      el('line', { x1: x, x2: x, y1: T.y0, y2: T.y1 }, grid);
+      el('text', { x, y: T.y1 + 18, 'text-anchor': 'middle' }, axis).textContent = s.toFixed(1);
+    }
+    el('path', { d: `M${X0},${T.y0}V${T.y1}H${X1}` }, axis);
+    el('text', { x: X1, y: T.y1 + 40, class: 'axis-title', 'text-anchor': 'end' }, chart).textContent = 'time (s)';
+    el('text', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${X0 - 58}, ${(T.y0 + T.y1) / 2}) rotate(-90)` }, chart).textContent = 'amplitude';
+    // spectrum panel (absent on the first step)
+    if (withSpec) {
+      el('text', { x: X0, y: S.y0 - 12, class: 'ptitle' }, chart).textContent = 'frequency domain (FFT)';
+      for (let db = -80; db <= 0; db += 20) {
+        el('line', { x1: X0, x2: X1, y1: sy(db), y2: sy(db) }, grid);
+        el('text', { x: X0 - 8, y: sy(db) + 4, 'text-anchor': 'end' }, axis).textContent = db;
+      }
+      for (let f = 0; f <= FMAX; f += 1000) {
+        el('line', { x1: fx(f), x2: fx(f), y1: S.y0, y2: S.y1 }, grid);
+        el('text', { x: fx(f), y: S.y1 + 18, 'text-anchor': 'middle' }, axis).textContent = f / 1000;
+      }
+      el('path', { d: `M${X0},${S.y0}V${S.y1}H${X1}` }, axis);
+      el('text', { x: X1, y: S.y1 + 40, class: 'axis-title', 'text-anchor': 'end' }, chart).textContent = 'frequency (kHz)';
+      el('text', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${X0 - 58}, ${(S.y0 + S.y1) / 2}) rotate(-90)` }, chart).textContent = 'magnitude (dB)';
+    }
+    G.specBands = el('g', {}, chart);
+    G.specLines = el('g', {}, chart);
+    G.specLabels = el('g', {}, chart);
+    G.stage = el('g', {}, chart);
+    G.timeLines = el('g', {}, chart);
+    G.cursor = el('g', {}, chart);
+    G.legT = el('g', { class: 'lg' }, chart);
+    G.legS = el('g', { class: 'lg' }, chart);
+    G.readout = el('g', {}, chart);
+    G.hover = el('g', {}, chart);
+    el('rect', { x: X0, y: T.y0, width: COLS, height: T.y1 - T.y0, fill: 'transparent', 'data-panel': 'time' }, chart);
+    if (withSpec) el('rect', { x: X0, y: S.y0, width: COLS, height: S.y1 - S.y0, fill: 'transparent', 'data-panel': 'spec' }, chart);
+  }
+
+  // ------------------------------------------------------------ drawing helpers
+  // waveform as a min/max envelope polygon, up to `upto` pixel columns
+  function drawWave(env, upto, color, opacity) {
+    if (upto < 1) return;
+    let d = '';
+    for (let c = 0; c < upto; c++) d += (c ? 'L' : 'M') + (X0 + c) + ',' + ty(env.mx[c]).toFixed(1);
+    for (let c = upto - 1; c >= 0; c--) d += 'L' + (X0 + c) + ',' + ty(env.mn[c]).toFixed(1);
+    el('path', { class: 'wave', d: d + 'Z', fill: color, stroke: color, opacity }, G.timeLines);
+  }
+  // per-column max of a dB spectrum, columns c0..c1 (inclusive)
+  function specPath(spec, c0, c1) {
+    let d = '';
+    for (let c = c0; c <= c1 && c <= COLS; c++) {
+      const fA = (c / COLS) * FMAX, fB = ((c + 1) / COLS) * FMAX;
+      const kA = Math.floor(fA / spec.binHz), kB = Math.max(kA + 1, Math.floor(fB / spec.binHz));
+      let m = -Infinity; for (let k = kA; k < kB && k < spec.db.length; k++) m = Math.max(m, spec.db[k]);
+      d += (d ? 'L' : 'M') + (X0 + c).toFixed(1) + ',' + sy(m).toFixed(1);
+    }
+    return d;
+  }
+  function respPath(sos, lim) {
+    let d = '';
+    for (let c = 0; c <= lim && c <= COLS; c++) {
+      const f = Math.max(0.5, (c / COLS) * FMAX);
+      const db = 20 * Math.log10(B.sosFreqz(sos, f, FS) + 1e-12);
+      d += (d ? 'L' : 'M') + (X0 + c).toFixed(1) + ',' + sy(db).toFixed(1);
+    }
+    return d;
+  }
+  const BANDS = [
+    { lo: 0, hi: 200, lines: ['low rumble', 'below 200 Hz'], x: fx(200) + 8, y: S.y0 + 44 },
+    { lo: 4000, hi: FMAX, lines: ['hiss above 4 kHz'], x: fx(4000) + 10, y: S.y0 + 130 },
+  ];
+  const SPEECH = { lo: 300, hi: 3400 };
+  // noise bands (hatched) and the speech band bracket, revealed up to frequency `upF`
+  function drawBands(upF) {
+    BANDS.forEach(b => {
+      if (upF <= b.lo) return;
+      const hi = Math.min(b.hi, upF);
+      el('rect', { class: 'band', x: fx(b.lo), y: S.y0, width: fx(hi) - fx(b.lo), height: S.y1 - S.y0 }, G.specBands);
+      if (b.lo > 0) el('line', { class: 'band-edge', x1: fx(b.lo), x2: fx(b.lo), y1: S.y0, y2: S.y1 }, G.specBands);
+      if (b.hi < FMAX && upF >= b.hi) el('line', { class: 'band-edge', x1: fx(b.hi), x2: fx(b.hi), y1: S.y0, y2: S.y1 }, G.specBands);
+      if (upF >= b.hi) b.lines.forEach((s, i) => { el('text', { class: 'band-label', x: b.x, y: b.y + 24 * i }, G.specLabels).textContent = s; });
+    });
+    if (upF > SPEECH.lo) {
+      const a = fx(SPEECH.lo), bx = fx(Math.min(SPEECH.hi, upF)), y = S.y0 + 20;
+      el('path', { class: 'bracket', d: `M${a},${y + 8}V${y}H${bx}` + (upF >= SPEECH.hi ? `V${y + 8}` : '') }, G.specLabels);
+      if (upF >= SPEECH.hi) el('text', { class: 'band-label sig', x: fx(SPEECH.hi) - 8, y: S.y0 + 46, 'text-anchor': 'end' }, G.specLabels).textContent = 'speech band 300–3400 Hz';
+    }
+  }
+  // the spectrum trace up to column `lim`; the parts inside noise bands repainted orange-red
+  function drawSpectrum(spec, lim, color, width, opacity, paintBands) {
+    el('path', { class: 'spec-line', d: specPath(spec, 0, lim), stroke: color, 'stroke-width': width, opacity }, G.specLines);
+    if (!paintBands) return;
+    BANDS.forEach(b => {
+      const c0 = Math.floor(b.lo / FMAX * COLS), c1 = Math.min(lim, Math.ceil(b.hi / FMAX * COLS));
+      if (c1 > c0) el('path', { class: 'spec-line', d: specPath(spec, c0, c1), stroke: 'var(--noise)', 'stroke-width': width + 0.3 }, G.specLines);
+    });
+  }
+  function stageList(n) {
+    const rows = [[`1  high-pass ${hp} Hz`, 'var(--hp)'], [`2  low-pass ${lp} Hz`, 'var(--lp)']];
+    for (let i = 0; i < n; i++) el('text', { class: 'stage-text', x: X1 - 10, y: S.y0 + 32 + 28 * i, 'text-anchor': 'end', fill: rows[i][1] }, G.stage).textContent = rows[i][0];
+  }
+  // legend as one row on the panel-title line: swatch + name
+  function legendRow(group, x0, y, items) {
+    let x = x0; const sw = 22;
+    items.forEach(it => {
+      if (it.box) el('rect', { x, y: y - 12, width: sw, height: 14, fill: 'rgba(235,104,52,0.18)', stroke: 'var(--noise)', 'stroke-width': .8 }, group);
+      else el('line', { x1: x, x2: x + sw, y1: y - 6, y2: y - 6, stroke: it.color, 'stroke-width': it.dash ? 2.5 : 4, 'stroke-dasharray': it.dash ? '6 4' : 'none' }, group);
+      const t = el('text', { x: x + sw + 8, y }, group); t.textContent = it.label;
+      const tw = (t.getComputedTextLength && t.getComputedTextLength()) || it.label.length * 11;
+      x += sw + 8 + tw + 26;
+    });
+  }
+  function readout() {
+    const t = el('text', { x: X1, y: T.y0 - 12, class: 'anno', 'text-anchor': 'end', fill: 'var(--ma)', 'font-weight': '700' }, G.readout);
+    t.textContent = `SNR ${snrIn.toFixed(1)} dB → ${cur.snrOut.toFixed(1)} dB · noise power left ${cur.noiseLeft < 1 ? cur.noiseLeft.toFixed(2) : cur.noiseLeft.toFixed(1)} %`;
+  }
+
+  // ------------------------------------------------------------ state
+  let step = 0, p = 0, playing = false, raf = 0, lastT = 0, mult = 1, codePhase = -1;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function render() {
+    const d = STEPS[step];
+    ['specBands', 'specLines', 'specLabels', 'stage', 'timeLines', 'legT', 'legS', 'readout'].forEach(k => { G[k].innerHTML = ''; });
+    const lim = Math.floor(p * COLS);
+    // time panel
+    if (d.id === 'raw') drawWave(envNoisy, Math.max(1, lim), 'var(--clean)', 1);
+    else if (d.id !== 'result') drawWave(envNoisy, COLS, 'var(--clean)', 1);
+    else { drawWave(envNoisy, COLS, 'var(--raw)', .5); drawWave(cur.env, Math.max(1, lim), 'var(--ma)', 1); }
+    legendRow(G.legT, X0 + 160, T.y0 - 12, d.id !== 'result' ? [{ label: 'noisy recording', color: 'var(--clean)' }]
+      : [{ label: 'noisy recording', color: 'var(--raw)' }, { label: `filtered`, color: 'var(--ma)' }]);
+    if (d.id === 'result' && p >= 1) readout();
+    // spectrum panel
+    if (d.id === 'spec') {
+      drawBands(p * FMAX);
+      drawSpectrum(specNoisy, lim, 'var(--clean)', 1.5, 1, true);
+      legendRow(G.legS, X0 + 290, S.y0 - 12, [{ label: 'noisy recording', color: 'var(--clean)' }, { label: 'noise bands', box: true }]);
+    } else if (d.id === 'design') {
+      drawBands(FMAX);
+      drawSpectrum(specNoisy, COLS, 'var(--clean)', 1.5, 1, true);
+      const rHP = Math.min(1, p / 0.5), rLP = Math.max(0, (p - 0.5) / 0.5);
+      if (rHP > 0) el('path', { class: 'resp', d: respPath(cur.sosHP, Math.floor(rHP * COLS)), stroke: 'var(--hp)', 'stroke-dasharray': '10 6' }, G.specLines);
+      if (rLP > 0) el('path', { class: 'resp', d: respPath(cur.sosLP, Math.floor(rLP * COLS)), stroke: 'var(--lp)' }, G.specLines);
+      stageList(rLP > 0 ? 2 : rHP > 0 ? 1 : 0);
+      legendRow(G.legS, X0 + 290, S.y0 - 12, [{ label: 'noisy recording', color: 'var(--clean)' }, { label: 'noise bands', box: true },
+        { label: 'high-pass |H(f)| (dashed)', color: 'var(--hp)', dash: true }, { label: 'low-pass |H(f)|', color: 'var(--lp)' }]);
+      const phase = p < 0.5 ? 0 : 1; if (phase !== codePhase) { codePhase = phase; renderHead(); }
+    } else if (d.id === 'result') {
+      drawSpectrum(specNoisy, COLS, 'var(--raw)', 1.2, .55, false);
+      drawSpectrum(cur.spec, lim, 'var(--ma)', 1.6, 1, false);
+      stageList(2);
+      legendRow(G.legS, X0 + 290, S.y0 - 12, [{ label: 'noisy recording', color: 'var(--raw)' }, { label: 'filtered', color: 'var(--ma)' }]);
+    }
+  }
+  function renderHead() {
+    const d = STEPS[step];
+    $('title').innerHTML = txt(d.title) + `<span class="tag">${txt(d.tag)}</span>`;
+    $('subtitle').textContent = txt(d.subtitle);
+    const code = txt(d.code);
+    $('code').hidden = !code; $('code').innerHTML = code || '';
+  }
+
+  // ------------------------------------------------------------ dials
+  function setDials() {
+    $('hp').value = hp; $('hpval').textContent = `${hp} Hz`;
+    $('lp').value = lp; $('lpval').textContent = `${lp} Hz`;
+  }
+  function dialChanged() { setDials(); recompute(); renderHead(); render(); }
+
+  // ------------------------------------------------------------ step control
+  function enterStep(k, completed = false) {
+    step = Math.max(0, Math.min(STEPS.length - 1, k));
+    stopPlay();
+    if (!dirty.hp) hp = PRESET.hp;
+    if (!dirty.lp) lp = PRESET.lp;
+    setDials(); recompute();
+    p = 0; codePhase = -1;
+    drawFrame(step >= 1);
+    renderHead();
+    $('counter').textContent = `${step + 1} / ${STEPS.length}`;
+    try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {}
+    if (completed || mult === 0 || reduceMotion) finish(); else { render(); startPlay(); }
+  }
+  const done = () => p >= 1;
+  function finish() { stopPlay(); p = 1; render(); }
+  function tick(now) {
+    if (!playing) return;
+    const dt = Math.max(0, Math.min(0.1, (now - lastT) / 1000)); lastT = now;
+    p = Math.min(1, p + dt / (STEPS[step].dur * mult));
+    render();
+    if (p >= 1) { finish(); return; }
+    raf = requestAnimationFrame(tick);
+  }
+  function startPlay() { if (done()) return; playing = true; lastT = performance.now(); $('play').textContent = '⏸'; raf = requestAnimationFrame(tick); }
+  function stopPlay() { playing = false; cancelAnimationFrame(raf); $('play').textContent = '▶'; }
+  function next() { if (!done()) { finish(); return; } if (step < STEPS.length - 1) enterStep(step + 1); }
+  function prev() { if (step > 0) enterStep(step - 1, true); }
+  function restart() { enterStep(step); }
+
+  // ------------------------------------------------------------ playback (Web Audio)
+  let actx = null, srcNode = null, playingKey = null, playStart = 0, cursorRaf = 0;
+  function makeBuffer(ctx, x) {
+    const buf = ctx.createBuffer(1, x.length, FS);
+    buf.getChannelData(0).set(D.playbackSamples(x));
+    return buf;
+  }
+  function updatePlayButtons() {
+    $('playNoisy').textContent = playingKey === 'noisy' ? '■ Stop' : '▶ Play noisy';
+    $('playFilt').textContent = playingKey === 'filt' ? '■ Stop' : '▶ Play filtered';
+    $('playNoisy').classList.toggle('on', playingKey === 'noisy');
+    $('playFilt').classList.toggle('on', playingKey === 'filt');
+  }
+  function drawCursor(t) {
+    G.cursor.innerHTML = '';
+    if (t == null || t < 0 || t > DUR) return;
+    const x = X0 + (t / DUR) * COLS;
+    el('line', { class: 'cursor-line', x1: x, x2: x, y1: T.y0, y2: T.y1 }, G.cursor);
+  }
+  function cursorTick() {
+    if (!srcNode || !actx) { drawCursor(null); return; }
+    drawCursor(actx.currentTime - playStart);
+    cursorRaf = requestAnimationFrame(cursorTick);
+  }
+  function stopAudio() {
+    if (srcNode) { const s = srcNode; srcNode = null; playingKey = null; try { s.stop(); } catch (_) {} }
+    playingKey = null; cancelAnimationFrame(cursorRaf); drawCursor(null); updatePlayButtons();
+  }
+  function toggleAudio(key) {
+    if (playingKey === key) { stopAudio(); return; }
+    stopAudio();
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') actx.resume();
+    recompute();
+    const src = actx.createBufferSource();
+    src.buffer = makeBuffer(actx, key === 'noisy' ? noisy : cur.y);
+    src.connect(actx.destination);
+    src.onended = () => { if (srcNode === src) { srcNode = null; playingKey = null; cancelAnimationFrame(cursorRaf); drawCursor(null); updatePlayButtons(); } };
+    srcNode = src; playingKey = key; playStart = actx.currentTime;
+    src.start();
+    updatePlayButtons();
+    cancelAnimationFrame(cursorRaf); cursorRaf = requestAnimationFrame(cursorTick);
+  }
+
+  // ------------------------------------------------------------ hover
+  const tt = $('tt');
+  const fmt3 = v => (Math.round(v * 1000) / 1000).toFixed(3);
+  function hover(evt) {
+    const panel = evt.target.getAttribute && evt.target.getAttribute('data-panel');
+    if (!panel) { unhover(); return; }
+    const pt = chart.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+    const q = pt.matrixTransform(chart.getScreenCTM().inverse());
+    G.hover.innerHTML = '';
+    const d = STEPS[step];
+    let html = '';
+    if (panel === 'time') {
+      const i = Math.max(0, Math.min(N - 1, Math.round((q.x - X0) / COLS * (N - 1))));
+      el('line', { class: 'crosshair', x1: q.x, x2: q.x, y1: T.y0, y2: T.y1 }, G.hover);
+      html = `<div class="row"><span>t</span><b>${(i / FS).toFixed(3)} s</b></div><div class="row"><span><i class="sw" style="background:#444"></i>noisy</span><span>${fmt3(noisy[i])}</span></div>`;
+      if (d.id === 'result') html += `<div class="row"><span><i class="sw" style="background:#2a78d6"></i>filtered</span><span>${fmt3(cur.y[i])}</span></div>`;
+    } else {
+      const f = Math.max(0, Math.min(FMAX, (q.x - X0) / COLS * FMAX));
+      const spec = d.id === 'result' ? cur.spec : specNoisy, k = Math.round(f / spec.binHz);
+      el('line', { class: 'crosshair', x1: q.x, x2: q.x, y1: S.y0, y2: S.y1 }, G.hover);
+      html = `<div class="row"><span>f</span><b>${f.toFixed(0)} Hz</b></div><div class="row"><span>${d.id === 'result' ? 'filtered' : 'noisy'}</span><span>${Math.max(DBLO, spec.db[k]).toFixed(1)} dB</span></div>`;
+      if (d.id === 'design') html += `<div class="row"><span><i class="sw" style="background:#1baf7a"></i>|H| high-pass</span><span>${(20 * Math.log10(B.sosFreqz(cur.sosHP, Math.max(0.5, f), FS) + 1e-12)).toFixed(1)} dB</span></div>` +
+        `<div class="row"><span><i class="sw" style="background:#4a3aa7"></i>|H| low-pass</span><span>${(20 * Math.log10(B.sosFreqz(cur.sosLP, Math.max(0.5, f), FS) + 1e-12)).toFixed(1)} dB</span></div>`;
+    }
+    tt.innerHTML = html; tt.style.display = 'block';
+    const wrap = chart.parentElement.getBoundingClientRect();
+    const cx = evt.clientX - wrap.left, cy = evt.clientY - wrap.top;
+    tt.style.left = (cx + 16 + tt.offsetWidth > wrap.width ? cx - tt.offsetWidth - 12 : cx + 16) + 'px';
+    tt.style.top = Math.max(0, cy - 10) + 'px';
+  }
+  function unhover() { tt.style.display = 'none'; if (G.hover) G.hover.innerHTML = ''; }
+
+  // ------------------------------------------------------------ wiring
+  $('next').addEventListener('click', e => { e.stopPropagation(); next(); });
+  $('prev').addEventListener('click', e => { e.stopPropagation(); prev(); });
+  $('restart').addEventListener('click', e => { e.stopPropagation(); restart(); });
+  $('reset').addEventListener('click', e => { e.stopPropagation(); dirty.hp = dirty.lp = false; enterStep(step); });
+  $('play').addEventListener('click', e => { e.stopPropagation(); if (playing) stopPlay(); else if (done()) restart(); else startPlay(); });
+  $('playNoisy').addEventListener('click', e => { e.stopPropagation(); toggleAudio('noisy'); });
+  $('playFilt').addEventListener('click', e => { e.stopPropagation(); toggleAudio('filt'); });
+  $('slide').addEventListener('click', () => next());
+  document.addEventListener('keydown', e => {
+    if (['SELECT', 'INPUT'].includes(e.target.tagName)) return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
+    else if (e.key === 'r' || e.key === 'R') restart();
+  });
+  // sliders: recompute the chain and redraw at the current progress; no replay
+  $('hp').addEventListener('input', e => { dirty.hp = true; hp = parseInt(e.target.value, 10); dialChanged(); });
+  $('lp').addEventListener('input', e => { dirty.lp = true; lp = parseInt(e.target.value, 10); dialChanged(); });
+  $('speed').addEventListener('change', e => { mult = parseFloat(e.target.value); if (mult === 0) finish(); });
+  chart.addEventListener('mousemove', hover);
+  chart.addEventListener('mouseleave', unhover);
+
+  mult = parseFloat($('speed').value);
+  const h = parseInt((location.hash || '').replace('#', ''), 10);
+  enterStep(h >= 1 && h <= STEPS.length ? h - 1 : 0);
+})();
+</script>
+
+</body>
+</html>

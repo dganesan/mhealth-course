@@ -20,52 +20,61 @@
   .stage { max-width: 1880px; margin: 0 auto; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; height: calc(100vh - 20px); }
   .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 16px 30px 8px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 6px; min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none; }
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
-  .head h1 { margin: 0; font-size: clamp(20px, 2.2vw, 28px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
-  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
-  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
-  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .head h1 { margin: 0; font-size: clamp(24px, 2.4vw, 36px); font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
+  .head p:empty { display: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
   .code .p { color: var(--ma); font-weight: 700; }
   .chart-wrap { position: relative; min-height: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
-  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 15px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 14px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
-  .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
-  .group { display:flex; align-items:center; gap:8px; }
-  .group label { font-size:13px; font-weight:700; color:var(--ink); }
-  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
-  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  .bar { display:flex; flex-direction:column; gap:12px; padding:12px 24px;
+         border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:19px; color:var(--ink); }
+  .bar .row { display:flex; justify-content:flex-start; align-items:center; gap:16px 32px; flex-wrap:wrap; }
+  .bar .row.dials .group { flex:1 1 0; }
+  .bar .row.dials input[type=range] { flex:1 1 auto; width:auto; }
+  .group { display:flex; align-items:center; gap:10px; }
+  .group label { font-size:18px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; white-space:nowrap; }
+  .val { font-family:var(--mono); font-size:19px; font-weight:700; color:var(--ma); min-width:5ch; white-space:nowrap; }
+  button, select { font:inherit; font-size:18px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:6px; padding:9px 16px; cursor:pointer; }
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
+  input[type=range] { -webkit-appearance:none; appearance:none; accent-color:var(--ma); width:260px; height:36px; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; box-shadow:0 0 0 1.5px var(--ma); margin-top:-9px; }
+  input[type=range]::-moz-range-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-moz-range-thumb { width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
   svg text { white-space: pre; }
-  .grid line { stroke: var(--grid); stroke-width: 1; }
-  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
+  .grid line { stroke: var(--grid); stroke-width: 1.3; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1.3; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 22px; fill: var(--ink-2); }
   .box { fill: #fafafa; stroke: var(--ink-3); stroke-width: 1; }
   .box.win { stroke: var(--ma); stroke-width: 2; fill: #eef4fc; }
-  .pid { font-family: var(--mono); font-size: 15px; font-weight: 700; fill: #fff; text-anchor: middle; pointer-events: none; }
-  .lab { font-family: var(--sans); font-size: 15px; fill: var(--ink); }
+  .pid { font-family: var(--mono); font-size: 20px; font-weight: 700; fill: #fff; text-anchor: middle; pointer-events: none; }
+  .lab { font-family: var(--sans); font-size: 20px; fill: var(--ink); }
   .lab.b { font-weight: 700; }
-  .lab.sub { fill: var(--ink-2); font-size: 15px; }
-  .num { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
-  .formula { font-family: var(--mono); font-size: 17px; fill: var(--ink); }
+  .lab.sub { fill: var(--ink-2); font-size: 20px; }
+  .num { font-family: var(--mono); font-size: 20px; fill: var(--ink); }
+  .formula { font-family: var(--mono); font-size: 22px; fill: var(--ink); }
   .formula.hi { fill: var(--ma); font-weight: 700; }
-  .q { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ma); text-anchor: middle; }
+  .q { font-family: var(--sans); font-size: 20px; font-weight: 700; fill: var(--ma); text-anchor: middle; }
   .branch { stroke: var(--ink-3); stroke-width: 1.2; fill: none; }
   .curve { fill: none; stroke: var(--ink); stroke-width: 2; }
-  .ptitle { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ink); }
+  .ptitle { font-family: var(--sans); font-size: 20px; font-weight: 700; fill: var(--ink); }
   @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
   .hint { display:none !important; }
-  button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
-  button.primary.tb { min-width:52px; }
+  button.tb { min-width:54px; padding:9px 12px; font-size:22px; line-height:1; }
+  button.primary.tb { min-width:64px; }
 </style>
 
 <div class="stage">
@@ -86,6 +95,7 @@
   </section>
 
   <div class="bar">
+   <div class="row">
     <div class="group">
       <button id="prev" class="tb" title="Previous step (←)">⏮</button>
       <button id="play" class="primary tb" title="Play / pause (space)">▶</button>
@@ -115,7 +125,7 @@
         <option value="0">instant</option>
       </select>
     </div>
-    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+   </div>
   </div>
 </div>
 
@@ -164,10 +174,10 @@
     return out;   // [{node, answer}, ..., {node: leaf}]
   }
   const STEP_DEFS = [
-    { kind: 'tree', title: 'The cardiac risk tree', subtitle: 'The structure of the cardiac risk tree with its questions, branches, and leaves.' },
-    { kind: 'walk', presets: { age: '40–55', fh: 'No', ex: 'Regularly' }, title: 'Predicting for a new patient', subtitle: 'How the answers of a new patient lead from the root to a leaf.' },
-    { kind: 'walk', presets: { age: '>55', fh: 'Yes', ex: 'Rarely' }, title: 'A second patient lands at a different leaf', subtitle: 'How the answers of a different patient lead to a different leaf.' },
-    { kind: 'walk', presets: { age: '<40', fh: 'Yes', ex: 'Regularly' }, title: 'Reaching a mixed leaf', subtitle: 'How a patient can reach a leaf with a mix of Low and High patients.' }
+    { kind: 'tree', title: 'Cardiac risk tree', subtitle: '' },
+    { kind: 'walk', presets: { age: '40–55', fh: 'No', ex: 'Regularly' }, title: 'Predicting for a new patient', subtitle: '' },
+    { kind: 'walk', presets: { age: '>55', fh: 'Yes', ex: 'Rarely' }, title: 'Second patient, different leaf', subtitle: '' },
+    { kind: 'walk', presets: { age: '<40', fh: 'Yes', ex: 'Regularly' }, title: 'Reaching a mixed leaf', subtitle: '' }
   ];
   const AGE_TXT = { '<40': 'under 40', '40–55': '40–55', '>55': 'over 55' };
   const codeLine = () => `predictions = dt.predict(X_test)     # X_test: age <b class="p">${AGE_TXT[age]}</b>, family history <b class="p">${fh}</b>, exercise <b class="p">${ex}</b>`;
@@ -198,14 +208,14 @@
         el('rect', { x: n.x - LW / 2, y: n.y - LH / 2, width: LW, height: LH, rx: 5, fill: c, 'fill-opacity': .18, stroke: c, 'stroke-width': 1.5 }, G.nodes);
         txt(n.x, n.y + 5, n.label === '?' ? '?' : `${n.label} risk`, 'lab b', { 'text-anchor': 'middle', fill: c }, G.nodes);
         // training patients at this leaf
-        const r = 9, gap = 22, x0 = n.x - ((n.set.length - 1) * gap) / 2;
-        n.set.forEach((p, i) => { const g = el('g', { 'data-id': p[0] }, G.nodes); el('circle', { cx: x0 + i * gap, cy: n.y + LH / 2 + 18, r, fill: CCOL[p[4]], stroke: '#fff', 'stroke-width': 1.5 }, g); txt(x0 + i * gap, n.y + LH / 2 + 22, p[0], 'pid', {}, g); });
-        txt(n.x, n.y + LH / 2 + 44, `${n.counts[0]} L · ${n.counts[1]} H`, 'num', { 'text-anchor': 'middle', 'font-size': 15, fill: 'var(--ink-2)' }, G.nodes);
+        const r = 12, gap = 27, x0 = n.x - ((n.set.length - 1) * gap) / 2;
+        n.set.forEach((p, i) => { const g = el('g', { 'data-id': p[0] }, G.nodes); el('circle', { cx: x0 + i * gap, cy: n.y + LH / 2 + 21, r, fill: CCOL[p[4]], stroke: '#fff', 'stroke-width': 1.5 }, g); txt(x0 + i * gap, n.y + LH / 2 + 27, p[0], 'pid', { style: 'font-size:16px' }, g); });
+        txt(n.x, n.y + LH / 2 + 52, `${n.counts[0]} L · ${n.counts[1]} H`, 'num', { 'text-anchor': 'middle', style: 'font-size:17px', fill: 'var(--ink-2)' }, G.nodes);
       }
     })(T);
     // legend
     const items = [{ n: 'decision node (tests one feature)', stroke: 'var(--ma)', fill: '#fff' }, { n: 'Low-risk leaf', fill: CCOL.Low }, { n: 'High-risk leaf', fill: CCOL.High }, { n: 'mixed leaf (tie)', fill: CCOL['?'] }, { n: 'training patient (colour = risk)', dot: true }];
-    const rowH = 24, padX = 10, padY = 8, wdt = 28 + Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX, x0 = W - wdt - 10, y0 = 8;
+    const rowH = 24, padX = 10, padY = 5, wdt = 28 + Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX, x0 = W - wdt - 6, y0 = 2;
     el('rect', { x: x0, y: y0, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, G.legend);
     items.forEach((it, j) => {
       const y = y0 + padY + j * rowH + 6;

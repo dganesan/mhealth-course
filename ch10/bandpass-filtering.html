@@ -59,10 +59,9 @@
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
   .head h1 {
     margin: 0;
-    font-size: clamp(20px, 2.2vw, 28px);
+    font-size: clamp(24px, 2.4vw, 36px);
     font-weight: 700;
     letter-spacing: -0.01em;
-    text-wrap: balance;
     line-height: 1.15;
   }
   .head h1 .tag {
@@ -76,51 +75,63 @@
     background: #f4f4f4;
     padding: 2px 8px;
     border-radius: 4px;
+    white-space: nowrap;
   }
-  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
+  .head p:empty { display: none; }
 
   .chart-wrap { position: relative; min-height: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
   .tt {
     position: absolute; pointer-events: none; display: none;
     background: #fff; border: 1px solid var(--rule); border-radius: 4px;
-    padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink);
+    padding: 6px 9px; font-family: var(--mono); font-size: 15px; color: var(--ink);
+    box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2;
+  }
     box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2;
   }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
 
-  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 14px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
 
   /* ---------- control bar ---------- */
-  .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
-  .group { display:flex; align-items:center; gap:8px; }
-  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
-  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
-  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  .bar { display:flex; flex-direction:column; gap:12px; padding:12px 24px;
+         border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:19px; color:var(--ink); }
+  .bar .row { display:flex; justify-content:flex-start; align-items:center; gap:16px 32px; flex-wrap:wrap; }
+  .bar .row.dials .group { flex:1 1 0; }
+  .bar .row.dials input[type=range] { flex:1 1 auto; width:auto; }
+  .group { display:flex; align-items:center; gap:10px; }
+  .group label { font-size:18px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; white-space:nowrap; }
+  .val { font-family:var(--mono); font-size:19px; font-weight:700; color:var(--ma); min-width:5ch; white-space:nowrap; }
+  button, select { font:inherit; font-size:18px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:6px; padding:9px 16px; cursor:pointer; }
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
+  input[type=range] { -webkit-appearance:none; appearance:none; accent-color:var(--ma); width:260px; height:36px; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; box-shadow:0 0 0 1.5px var(--ma); margin-top:-9px; }
+  input[type=range]::-moz-range-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-moz-range-thumb { width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
 
   /* ---------- svg parts ---------- */
-  .grid line { stroke: var(--grid); stroke-width: 1; }
-  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
-  .raw-line { fill: none; stroke: var(--raw-dot); stroke-width: 1.5; }
-  .out-line { fill: none; stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
-  .zero-line { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 3; }
-  .cursor-line { stroke: var(--ink); stroke-width: 1; stroke-dasharray: 4 3; opacity: .7; }
+  .grid line { stroke: var(--grid); stroke-width: 1.3; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1.3; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 22px; fill: var(--ink-2); }
+  .raw-line { fill: none; stroke: var(--raw-dot); stroke-width: 2.0; }
+  .out-line { fill: none; stroke-width: 2.9; stroke-linejoin: round; stroke-linecap: round; }
+  .zero-line { stroke: var(--ink-3); stroke-width: 1.3; stroke-dasharray: 2 3; }
+  .cursor-line { stroke: var(--ink); stroke-width: 1.3; stroke-dasharray: 4 3; opacity: .7; }
   .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
-  .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
+  .dlabel { font-family: var(--sans); font-size: 17px; font-weight: 700; }
   .mono { font-family: var(--mono); }
-  .note { font-family: var(--mono); font-size: 15px; fill: var(--ink); white-space: pre; }
-  .note-big { font-family: var(--mono); font-size: 22px; font-weight: 700; white-space: pre; }
-  .callout text { font-family: var(--sans); font-size: 15px; fill: var(--ink-2); }
+  .note { font-family: var(--mono); font-size: 20px; fill: var(--ink); white-space: pre; }
+  .note-big { font-family: var(--mono); font-size: 26px; font-weight: 700; white-space: pre; }
+  .callout text { font-family: var(--sans); font-size: 20px; fill: var(--ink-2); }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
 
   @media (max-width: 720px) {
@@ -129,8 +140,8 @@
   }
 
   .hint { display:none !important; }
-  button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
-  button.primary.tb { min-width:52px; }
+  button.tb { min-width:54px; padding:9px 12px; font-size:22px; line-height:1; }
+  button.primary.tb { min-width:64px; }
 </style>
 
 <div class="stage">
@@ -150,22 +161,13 @@
   </section>
 
   <div class="bar">
+   <div class="row">
     <div class="group">
       <button id="prev" class="tb" title="Previous step (←)">⏮</button>
       <button id="play" class="primary tb" title="Play / pause (space)">▶</button>
       <button id="next" class="tb" title="Next step (→)">⏭</button>
       <button id="restart" class="tb" title="Restart this step (r)">↺</button>
       <button id="reset" title="Reset all dials to the step's presets">Reset dials</button>
-    </div>
-    <div class="group">
-      <label for="flo">Low cutoff</label>
-      <input type="range" id="flo" min="0.1" max="1.5" step="0.1" value="0.5">
-      <span class="val" id="floVal">0.5 Hz</span>
-    </div>
-    <div class="group">
-      <label for="fhi">High cutoff</label>
-      <input type="range" id="fhi" min="2" max="12" step="0.5" value="4">
-      <span class="val" id="fhiVal">4.0 Hz</span>
     </div>
     <div class="group">
       <label for="speed">Speed</label>
@@ -177,7 +179,19 @@
         <option value="0">instant</option>
       </select>
     </div>
-    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play &nbsp; <kbd>r</kbd> restart</span>
+   </div>
+   <div class="row dials">
+    <div class="group">
+      <label for="flo">Low cutoff</label>
+      <input type="range" id="flo" min="0.1" max="1.5" step="0.1" value="0.5">
+      <span class="val" id="floVal">0.5 Hz</span>
+    </div>
+    <div class="group">
+      <label for="fhi">High cutoff</label>
+      <input type="range" id="fhi" min="2" max="12" step="0.5" value="4">
+      <span class="val" id="fhiVal">4.0 Hz</span>
+    </div>
+   </div>
   </div>
 </div>
 
@@ -448,21 +462,21 @@
   const STEPS = [
     {
       series: null,
-      title: 'The raw PPG recording',
+      title: 'Raw PPG recording',
       tag: () => `fs = ${FS} Hz · 20-second slice`,
-      subtitle: 'The raw fingertip PPG signal and its slowly drifting baseline.'
+      subtitle: ''
     },
     {
       series: 'hp',
       title: 'High-pass filtering removes the baseline drift',
       tag: () => `f_lo = ${f1(flo)} Hz · order ${ORDER}`,
-      subtitle: 'How a high-pass filter removes the slow baseline drift from the PPG.'
+      subtitle: ''
     },
     {
       series: 'bp',
       title: 'Band-pass filtering to the cardiac band',
       tag: () => `${f1(flo)}–${f1(fhi)} Hz · order ${ORDER}`,
-      subtitle: 'How adding a low-pass filter keeps only the cardiac band of the PPG.'
+      subtitle: ''
     }
   ];
   const SER = {
@@ -516,9 +530,9 @@
   }
   function legend(x, y, items) {
     const g = el('g', {}, chart);
-    const rowH = 24, padX = 10, padY = 8;
-    const wdt = Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX + 40;
-    x = Math.min(x, W - wdt - 6);
+    const rowH = 30, padX = 10, padY = 8;
+    const wdt = Math.max(...items.map(i => i.n.length)) * 11 + 2 * padX + 40;
+    x = Math.min(x, W - PR - wdt - 8);
     el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
     items.forEach((it, j) => {
       const yy = y + padY + j * rowH + 6;
@@ -533,12 +547,12 @@
     outRange();
     panelAxes(TOP, ysTop, rawLo, rawHi, 0.2, 'raw PPG', !s);
     G.rawPath = el('path', { class: 'raw-line' }, chart);
-    legend(PL + 12, TOP.y0 + 8, [{ c: 'var(--raw-dot)', n: 'raw PPG (fingertip, 125 Hz)' }]);
+    legend(W, TOP.y0 + 8, [{ c: 'var(--raw-dot)', n: 'raw PPG (fingertip, 125 Hz)' }]);
     if (s) {
       panelAxes(BOT, ysBot, outLo, outHi, 0.2, SER[s].ylabel, true);
       el('line', { class: 'zero-line', x1: PL, x2: W - PR, y1: ysBot(0), y2: ysBot(0) }, chart);
       G.outPath = el('path', { class: 'out-line', stroke: SER[s].color }, chart);
-      legend(PL + 12, BOT.y0 + 8, [{ c: SER[s].color, n: SER[s].name() }]);
+      legend(W, BOT.y0 + 32, [{ c: SER[s].color, n: SER[s].name() }]);
       const note = el('text', { x: W - PR - 8, y: BOT.y0 + 20, class: 'note', 'text-anchor': 'end' }, chart);
       note.textContent = s === 'hp'
         ? `butter(${ORDER}, ${f1(flo)}, btype='high')  →  filtfilt`

@@ -38,45 +38,54 @@
     min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none;
   }
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
-  .head h1 { margin: 0; font-size: clamp(20px, 2.2vw, 28px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
-  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
-  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
-  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .head h1 { margin: 0; font-size: clamp(24px, 2.4vw, 36px); font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
+  .head p:empty { display: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
   .code .p { color: var(--ma); font-weight: 700; }
   .chart-wrap { position: relative; min-height: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
-  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 15px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 14px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
-  .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
-  .group { display:flex; align-items:center; gap:8px; }
-  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
-  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
-  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  .bar { display:flex; flex-direction:column; gap:12px; padding:12px 24px;
+         border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:19px; color:var(--ink); }
+  .bar .row { display:flex; justify-content:flex-start; align-items:center; gap:16px 32px; flex-wrap:wrap; }
+  .bar .row.dials .group { flex:1 1 0; }
+  .bar .row.dials input[type=range] { flex:1 1 auto; width:auto; }
+  .group { display:flex; align-items:center; gap:10px; }
+  .group label { font-size:18px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; white-space:nowrap; }
+  .val { font-family:var(--mono); font-size:19px; font-weight:700; color:var(--ma); min-width:5ch; white-space:nowrap; }
+  button, select { font:inherit; font-size:18px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:6px; padding:9px 16px; cursor:pointer; }
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
+  input[type=range] { -webkit-appearance:none; appearance:none; accent-color:var(--ma); width:260px; height:36px; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; box-shadow:0 0 0 1.5px var(--ma); margin-top:-9px; }
+  input[type=range]::-moz-range-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-moz-range-thumb { width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
-  .grid line { stroke: var(--grid); stroke-width: 1; }
-  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
-  .out-line { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
-  .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
-  .mono { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
-  .mono-big { font-family: var(--mono); font-size: 16px; fill: var(--ink); }
-  .blk-text { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: #fff; pointer-events: none; }
-  .label { font-family: var(--sans); font-size: 15px; fill: var(--ink-2); }
+  .grid line { stroke: var(--grid); stroke-width: 1.3; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1.3; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 22px; fill: var(--ink-2); }
+  .out-line { fill: none; stroke-width: 3.2; stroke-linejoin: round; stroke-linecap: round; }
+  .dlabel { font-family: var(--sans); font-size: 17px; font-weight: 700; }
+  .mono { font-family: var(--mono); font-size: 20px; fill: var(--ink); }
+  .mono-big { font-family: var(--mono); font-size: 21px; fill: var(--ink); }
+  .blk-text { font-family: var(--sans); font-size: 20px; font-weight: 700; fill: #fff; pointer-events: none; }
+  .label { font-family: var(--sans); font-size: 20px; fill: var(--ink-2); }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
   @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
   .hint { display:none !important; }
-  button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
-  button.primary.tb { min-width:52px; }
+  button.tb { min-width:54px; padding:9px 12px; font-size:22px; line-height:1; }
+  button.primary.tb { min-width:64px; }
 </style>
 
 <div class="stage">
@@ -97,22 +106,13 @@
   </section>
 
   <div class="bar">
+   <div class="row">
     <div class="group">
       <button id="prev" class="tb" title="Previous step (←)">⏮</button>
       <button id="play" class="primary tb" title="Play / pause (space)">▶</button>
       <button id="next" class="tb" title="Next step (→)">⏭</button>
       <button id="restart" class="tb" title="Restart this step (r)">↺</button>
       <button id="reset" title="Reset all dials to the step presets">Reset dials</button>
-    </div>
-    <div class="group">
-      <label for="valPct">Validation share</label>
-      <input type="range" id="valPct" min="10" max="30" step="5" value="20">
-      <span class="val" id="valPctVal">20%</span>
-    </div>
-    <div class="group">
-      <label for="testPct">Test share</label>
-      <input type="range" id="testPct" min="10" max="30" step="5" value="20">
-      <span class="val" id="testPctVal">20%</span>
     </div>
     <div class="group">
       <label for="kfold">Folds K</label>
@@ -127,11 +127,6 @@
       </select>
     </div>
     <div class="group">
-      <label for="depth">max_depth</label>
-      <input type="range" id="depth" min="1" max="15" step="1" value="5">
-      <span class="val" id="depthVal">5</span>
-    </div>
-    <div class="group">
       <label for="speed">Speed</label>
       <select id="speed">
         <option value="3">very slow</option>
@@ -141,7 +136,24 @@
         <option value="0">instant</option>
       </select>
     </div>
-    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+   </div>
+   <div class="row dials">
+    <div class="group">
+      <label for="valPct">Validation share</label>
+      <input type="range" id="valPct" min="10" max="30" step="5" value="20">
+      <span class="val" id="valPctVal">20%</span>
+    </div>
+    <div class="group">
+      <label for="testPct">Test share</label>
+      <input type="range" id="testPct" min="10" max="30" step="5" value="20">
+      <span class="val" id="testPctVal">20%</span>
+    </div>
+    <div class="group">
+      <label for="depth">max_depth</label>
+      <input type="range" id="depth" min="1" max="15" step="1" value="5">
+      <span class="val" id="depthVal">5</span>
+    </div>
+   </div>
   </div>
 </div>
 
@@ -170,7 +182,7 @@
   const f3 = v => v.toFixed(3);
 
   function legend(parent, x, y, items) {
-    const rowH = 24, padX = 10, padY = 8;
+    const rowH = 30, padX = 10, padY = 8;
     const wdt = Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX + 34;
     x = Math.min(x, W - wdt - 6);
     const g = el('g', {}, parent);
@@ -210,9 +222,9 @@
   const steps = [
     {
       id: 'data',
-      title: () => 'The data set: labeled windows',
+      title: () => 'Data set: labeled windows',
       tag: () => `N = ${N} windows · 6 activities`,
-      subtitle: () => 'The labeled windows of sensor data before anything is held out.',
+      subtitle: '',
       presets: {},
       frames: () => N, rate: 22,
       draw: drawData,
@@ -221,7 +233,7 @@
       id: 'split',
       title: () => 'Splitting into training, validation and test sets',
       tag: () => { const s = split(); return `train ${s.n[0]} · validation ${s.n[1]} · test ${s.n[2]}`; },
-      subtitle: () => 'Shuffling the windows and assigning each to the training, validation or test set.',
+      subtitle: '',
       presets: { val: 20, test: 20 },
       frames: () => N, rate: 22,
       draw: drawSplit,
@@ -229,9 +241,9 @@
     },
     {
       id: 'loop',
-      title: () => 'The train/validate loop over max_depth',
+      title: () => 'Train/validate loop over max_depth',
       tag: () => { const s = split(); return `train ${s.n[0]} · validation ${s.n[1]} · test ${s.n[2]}`; },
-      subtitle: () => 'Scoring each candidate max_depth on the validation set to choose the best one.',
+      subtitle: '',
       presets: { val: 20, test: 20 },
       frames: () => DEPTHS * 3 + 6, rate: 0.55,
       draw: drawLoop,
@@ -240,7 +252,7 @@
       id: 'kfold',
       title: () => `${state.K}-fold cross-validation`,
       tag: () => `K = ${state.K} · max_depth = ${state.depth}`,
-      subtitle: () => 'How each fold serves as the validation set once and the K scores are averaged.',
+      subtitle: 'Each fold serves as the validation set once and the K scores are averaged.',
       presets: { K: 5, depth: 5 },
       frames: () => state.K * 3 + 3, rate: 0.6,
       draw: drawKfold,
@@ -248,9 +260,9 @@
     },
     {
       id: 'subject',
-      title: () => 'Random split versus split by subject (GroupKFold)',
+      title: 'Random split vs split by subject (GroupKFold)',
       tag: () => `K = ${state.K} · fold 1 held out`,
-      subtitle: () => 'Comparing a random split with GroupKFold, which keeps each subject on one side.',
+      subtitle: 'GroupKFold keeps each subject on one side of the split.',
       presets: { K: 5 },
       frames: () => 240 / state.K + 10 * 24 / state.K + 6, rate: 4,
       draw: drawSubject,
@@ -304,7 +316,8 @@
       const w = bw * n / N;
       el('rect', { x, y: by, width: w, height: bh, fill: c, stroke: c === C.test ? C.testEdge : 'none' }, g);
       const wfull = bw * tot / N;
-      if (wfull > 60) text(x + wfull / 2, by + bh + 22, `${name}  ${n} / ${tot}  (${Math.round(100 * tot / N)}%)`, { class: 'mono', 'text-anchor': 'middle' }, g);
+      const anc = name === 'training' ? 'start' : 'end', tx = anc === 'start' ? x : x + wfull - (name === 'test' ? 0 : 8);
+      if (wfull > 60) text(tx, by + bh + 22, `${name}  ${n} / ${tot}  (${Math.round(100 * tot / N)}%)`, { class: 'mono', 'text-anchor': anc }, g);
       x += wfull;
     });
     text(bx, by - 8, 'roles assigned so far', { class: 'label' }, g);
@@ -368,7 +381,7 @@
     text(GX, 100, 'candidate settings: max_depth = 1 … 15', { class: 'label' }, g);
 
     accAxes(g, LP, ACC0, ACC1);
-    legend(g, LP.x1 - 250, LP.y1 - 84, [
+    legend(g, LP.x1 - 250, LP.y1 - 112, [
       { c: C.train, n: 'training accuracy' }, { c: C.val, n: 'validation accuracy' },
       { c: C.ink, n: 'test accuracy (scored once)', dot: true, r: 5 }]);
     const path = (arr, upto, col) => {
@@ -387,7 +400,7 @@
       text(xd(bestI + 1) + 16, ya(s.val[bestI]) + 28, `best validation depth = ${bestI + 1}  (${f3(s.val[bestI])})`, { class: 'mono' }, g);
       if (tail >= 5) {
         el('circle', { cx: xd(bestI + 1), cy: ya(s.test[bestI]), r: 7, fill: C.ink, stroke: '#fff', 'stroke-width': 2, 'data-tt': `test accuracy ${f3(s.test[bestI])}` }, g);
-        text(xd(bestI + 1) + 16, ya(s.test[bestI]) - 14, `test accuracy = ${f3(s.test[bestI])}`, { class: 'mono-big', 'font-weight': 700 }, g);
+        text(xd(bestI + 1) + 16, Math.min(ya(s.test[bestI]), LP.y0 + 4) - 14, `test accuracy = ${f3(s.test[bestI])}`, { class: 'mono-big', 'font-weight': 700 }, g);
       }
     }
   }
@@ -441,7 +454,7 @@
   function drawSubject(cur) {
     const K = state.K;
     const g = el('g', {}, chart);
-    legend(g, W - 330, 8, [{ c: C.train, n: 'training window', sq: true }, { c: C.val, n: 'validation window (fold 1)', sq: true }]);
+    legend(g, W - 330, 92 + NS * (SPC + 13) + 38, [{ c: C.train, n: 'training window', sq: true }, { c: C.val, n: 'validation window (fold 1)', sq: true }]);
     const nValRand = Math.round(NS * NW / K);
     const nSubjVal = Math.max(1, Math.round(NS / K));
     const f1 = Math.min(cur, nValRand);                       // random panel progress

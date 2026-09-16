@@ -20,40 +20,49 @@
   .stage { max-width: 1880px; margin: 0 auto; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; height: calc(100vh - 20px); }
   .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 16px 30px 8px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 6px; min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none; }
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
-  .head h1 { margin: 0; font-size: clamp(20px, 2.2vw, 28px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
-  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
-  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .head h1 { margin: 0; font-size: clamp(24px, 2.4vw, 36px); font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
+  .head p:empty { display: none; }
   .chart-wrap { position: relative; min-height: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
-  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 15px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
-  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 14px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
-  .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
-  .group { display:flex; align-items:center; gap:8px; }
-  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
-  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
-  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  .bar { display:flex; flex-direction:column; gap:12px; padding:12px 24px;
+         border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:19px; color:var(--ink); }
+  .bar .row { display:flex; justify-content:flex-start; align-items:center; gap:16px 32px; flex-wrap:wrap; }
+  .bar .row.dials .group { flex:1 1 0; }
+  .bar .row.dials input[type=range] { flex:1 1 auto; width:auto; }
+  .group { display:flex; align-items:center; gap:10px; }
+  .group label { font-size:18px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; white-space:nowrap; }
+  .val { font-family:var(--mono); font-size:19px; font-weight:700; color:var(--ma); min-width:5ch; white-space:nowrap; }
+  button, select { font:inherit; font-size:18px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:6px; padding:9px 16px; cursor:pointer; }
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
+  input[type=range] { -webkit-appearance:none; appearance:none; accent-color:var(--ma); width:260px; height:36px; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; box-shadow:0 0 0 1.5px var(--ma); margin-top:-9px; }
+  input[type=range]::-moz-range-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-moz-range-thumb { width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
-  .grid line { stroke: var(--grid); stroke-width: 1; }
-  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
-  .ptitle { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ink); }
-  .mono { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
+  .grid line { stroke: var(--grid); stroke-width: 1.3; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1.3; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 22px; fill: var(--ink-2); }
+  .ptitle { font-family: var(--sans); font-size: 20px; font-weight: 700; fill: var(--ink); }
+  .mono { font-family: var(--mono); font-size: 20px; fill: var(--ink); }
   .big { font-family: var(--mono); font-weight: 700; }
-  .trace { fill: none; stroke-width: 1.8; stroke-linejoin: round; }
-  .legend text { font-family: var(--sans); font-size: 15px; fill: var(--ink); }
+  .trace { fill: none; stroke-width: 2.3; stroke-linejoin: round; }
+  .legend text { font-family: var(--sans); font-size: 20px; fill: var(--ink); }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
   @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
   .hint { display:none !important; }
-  button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
-  button.primary.tb { min-width:52px; }
+  button.tb { min-width:54px; padding:9px 12px; font-size:22px; line-height:1; }
+  button.primary.tb { min-width:64px; }
 </style>
 
 <div class="stage">
@@ -73,6 +82,7 @@
   </section>
 
   <div class="bar">
+   <div class="row">
     <div class="group">
       <button id="prev" class="tb" title="Previous step (←)">⏮</button>
       <button id="play" class="primary tb" title="Play / pause (space)">▶</button>
@@ -115,7 +125,7 @@
         <option value="0">instant</option>
       </select>
     </div>
-    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+   </div>
   </div>
 </div>
 
@@ -163,7 +173,7 @@
   const fmt = (v, d = 3) => v.toFixed(d);
   function legend(items, x, y, parent) {
     const g = el('g', { class: 'legend' }, parent);
-    const rowH = 24, padX = 10, padY = 8;
+    const rowH = 30, padX = 10, padY = 8;
     const wdt = Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX + 34;
     x = Math.min(x, W - wdt - 6);
     el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
@@ -191,26 +201,26 @@
   const STEPS = [
     { id: 'traces', dur: 10, presets: {},
       title: () => 'One 2.56-second window per activity', tag: () => '50 Hz · 128 samples · total-acceleration magnitude',
-      subtitle: () => 'The acceleration magnitude of one window for each activity.' },
+      subtitle: '' },
     { id: 'features', dur: 12, presets: {},
       title: () => `Six features from one window of one channel`, tag: () => `${ACT[act]} · ${chan}`,
-      subtitle: () => 'How the six features of one channel are computed as the window fills.' },
+      subtitle: '' },
     { id: 'vector', dur: 12, presets: {},
       title: () => 'Nine channels × six features = 54-dimensional vector', tag: () => `${ACT[act]} window`,
-      subtitle: () => 'Laying the six features of every channel end to end into one feature vector.' },
+      subtitle: '' },
     { id: 'importance', dur: 10, presets: {},
       title: () => 'Top 15 features by random-forest importance', tag: () => '200 trees · max_depth = 10 · 54 features',
-      subtitle: () => 'The top features ranked by random-forest importance, colored by sensor channel.' },
+      subtitle: '' },
   ];
 
   // ------------------------------------------------------------ drawing
   function drawTraces(p) {
     chart.innerHTML = '';
-    const cols = 3, rows = 2, gx = 84, gy = 34, colGap = 84, pw = (W - gx - 30 - (cols - 1) * colGap) / cols, ph = (H - gy - 100 - (rows - 1) * 60) / rows;
+    const cols = 3, rows = 2, gx = 84, gy = 34, colGap = 84, pw = (W - gx - 30 - (cols - 1) * colGap) / cols, ph = (H - gy - 150 - (rows - 1) * 56) / rows;
     const nNow = Math.max(1, Math.min(N, Math.round(p * N)));
     for (let a = 1; a <= 6; a++) {
       const c = (a - 1) % cols, rr = Math.floor((a - 1) / cols);
-      const x0 = gx + c * (pw + colGap), y0 = gy + rr * (ph + 60);
+      const x0 = gx + c * (pw + colGap), y0 = gy + rr * (ph + 56);
       const g = el('g', {}, chart);
       const sx = i => x0 + i / (N - 1) * pw, sy = v => y0 + ph - (v - 0.5) / (1.9 - 0.5) * ph;
       frame(g, x0, y0, pw, ph, i => sx(i * SR), sy, [0, 0.5, 1, 1.5, 2, 2.5], [0.5, 1, 1.5], v => v, v => v.toFixed(1));
@@ -225,7 +235,7 @@
       if (p < 1) el('line', { class: 'crosshair', x1: sx(nNow - 1), x2: sx(nNow - 1), y1: y0, y2: y0 + ph }, g);
       el('line', { x1: x0, x2: x0 + pw, y1: sy(1), y2: sy(1), stroke: 'var(--ink-3)', 'stroke-dasharray': '4 4' }, g);
     }
-    legend([{ c: '#2a78d6', n: 'dynamic activity (walking variants)' }, { c: '#4a3aa7', n: 'static posture (sitting, standing, laying)' }, { c: 'var(--ink-3)', n: '1 g (gravity)', dash: true }], W - 300, H - 52, chart);
+    legend([{ c: '#2a78d6', n: 'dynamic activity (walking variants)' }, { c: '#4a3aa7', n: 'static posture (sitting, standing, laying)' }, { c: 'var(--ink-3)', n: '1 g (gravity)', dash: true }], W - 300, H - 106, chart);
   }
 
   function drawFeatures(p) {
@@ -235,7 +245,7 @@
     const specP = clamp01((p - 0.7) / 0.3);
     const st = runningStats(x, nNow);
     const lo = Math.min(...x), hi = Math.max(...x), pad = 0.15 * (hi - lo || 1);
-    const yLo = lo - pad, yHi = hi + pad;
+    const yLo = lo - pad, yHi = hi + pad * 2.9;
     // left: time series
     const x0 = 86, y0 = 30, pw = 700, ph = 400;
     const g = el('g', {}, chart);
@@ -255,7 +265,8 @@
     el('circle', { cx: sx(iMax), cy: sy(x[iMax]), r: 6, fill: 'none', stroke: '#eb6834', 'stroke-width': 2 }, g);
     el('circle', { cx: sx(iMin), cy: sy(x[iMin]), r: 6, fill: 'none', stroke: '#1baf7a', 'stroke-width': 2 }, g);
     if (nNow < N) el('line', { class: 'crosshair', x1: sx(nNow - 1), x2: sx(nNow - 1), y1: y0, y2: y0 + ph }, g);
-    legend([{ c: 'var(--ink)', n: `${chan}, samples so far` }, { c: 'var(--raw)', n: 'samples not yet in the window', dot: true }, { c: '#2a78d6', n: 'running mean', dash: true }, { c: '#2a78d6', n: 'mean ± std', box: true, op: 0.25 }, { c: '#eb6834', n: 'maximum', dot: true }, { c: '#1baf7a', n: 'minimum', dot: true }], x0 + pw - 250, y0 + 8, chart);
+    legend([{ c: 'var(--ink)', n: `${chan}, samples so far` }, { c: 'var(--raw)', n: 'samples not yet in the window', dot: true }, { c: '#2a78d6', n: 'running mean', dash: true }], x0 + 14, y0 + 8, chart);
+    legend([{ c: '#2a78d6', n: 'mean ± std', box: true, op: 0.25 }, { c: '#eb6834', n: 'maximum', dot: true }, { c: '#1baf7a', n: 'minimum', dot: true }], x0 + 384, y0 + 8, chart);
     // right: spectrum
     const spec = spectrum(x);
     const sx0 = x0 + pw + 74, sy0 = 30, spw = W - 40 - (x0 + pw + 74), sph = 400;
@@ -271,8 +282,8 @@
     if (specP > 0) {
       spec.forEach((s, k) => { if (k === 0) return; const hgt = (fy(0) - fy(s.mag)) * specP; el('rect', { x: fx(s.f) - 2.5, y: fy(0) - hgt, width: 5, height: hgt, fill: s.f <= 10 ? '#2a78d6' : 'var(--raw)' }, g2); });
       if (specP >= 1) { el('line', { x1: fx(df), x2: fx(df), y1: sy0 + 30, y2: fy(0), stroke: '#eb6834', 'stroke-width': 1.5, 'stroke-dasharray': '4 3' }, g2); txt(fx(df) + 6, sy0 + 44, `dominant ${df.toFixed(2)} Hz`, { class: 'mono', fill: '#eb6834', 'font-weight': 700 }, g2); }
-    } else txt(sx0 + spw / 2, sy0 + sph / 2, 'FFT after the window is full', { class: 'axis-title', 'text-anchor': 'middle' }, g2);
-    legend([{ c: '#2a78d6', n: 'FFT magnitude, 0–10 Hz', box: true }, { c: 'var(--raw)', n: 'FFT magnitude above 10 Hz', box: true }, { c: '#eb6834', n: 'dominant frequency', dash: true }], sx0 + spw - 226, sy0 + 26, chart);
+    } else txt(sx0 + spw / 2, sy0 + sph / 2 + 50, 'FFT after the window is full', { class: 'axis-title', 'text-anchor': 'middle' }, g2);
+    legend([{ c: '#2a78d6', n: 'FFT magnitude, 0–10 Hz', box: true }, { c: 'var(--raw)', n: 'FFT magnitude above 10 Hz', box: true }, { c: '#eb6834', n: 'dominant frequency', dash: true }], sx0 + spw - 226, sy0 + 100, chart);
     // feature readout row
     const ry = 508;
     const vals = [['mean', fmt(st.mean)], ['std', fmt(st.std)], ['min', fmt(st.min)], ['max', fmt(st.max)], ['dom_freq', specP >= 1 ? df.toFixed(2) + ' Hz' : '—'], ['energy', fmt(st.energy, 1)]];
@@ -288,7 +299,7 @@
 
   function drawVector(p) {
     chart.innerHTML = '';
-    const x0 = 250, y0 = 60, cw = (W - 250 - 60) / 6, ch = 50;
+    const x0 = 250, y0 = 60, cw = (W - 250 - 60) / 6, ch = 46;
     const nCells = Math.round(p * 54);
     const g = el('g', {}, chart);
     FEATS.forEach((f, j) => txt(x0 + j * cw + cw / 2, y0 - 12, f, { class: 'ptitle', 'text-anchor': 'middle' }, g));
@@ -309,12 +320,12 @@
     if (nCells > 0 && nCells < 54) { const k = nCells - 1, i = Math.floor(k / 6), j = k % 6; el('rect', { x: x0 + j * cw, y: y0 + i * ch, width: cw, height: ch, fill: 'none', stroke: 'var(--ink)', 'stroke-width': 2 }, g); }
     el('rect', { x: x0, y: y0, width: 6 * cw, height: 9 * ch, fill: 'none', stroke: 'var(--ink-3)' }, g);
     txt(x0, y0 + 9 * ch + 30, `feature vector for this window: ${nCells} of 54 values   ·   index = 6 × channel + feature`, { class: 'mono', fill: 'var(--ink-2)' }, g);
-    legend(Object.values(FAMILY).map(f => ({ c: f.color, n: f.name, box: true, op: 0.5 })), x0 + 6 * cw - 190, y0 + 9 * ch + 14, chart);
+    legend(Object.values(FAMILY).map(f => ({ c: f.color, n: f.name, box: true, op: 0.5 })), x0 + 6 * cw - 190, y0 + 9 * ch + 46, chart);
   }
 
   function drawImportance(p) {
     chart.innerHTML = '';
-    const x0 = 250, y0 = 24, bw = W - x0 - 60, rowH = 36;
+    const x0 = 310, y0 = 24, bw = W - x0 - 60, rowH = 36;
     const mx = 0.1;
     const g = el('g', {}, chart);
     const sx = v => x0 + v / mx * bw;
@@ -327,11 +338,11 @@
       const fam = FAMILY[famOf(name)];
       const y = y0 + i * rowH;
       txt(x0 - 10, y + rowH / 2 + 5, name, { class: 'mono', 'text-anchor': 'end', fill: t > 0 ? 'var(--ink)' : 'var(--ink-3)' }, g);
-      txt(x0 - 200, y + rowH / 2 + 5, `${i + 1}.`, { class: 'axis-title', 'text-anchor': 'end' }, g);
+      txt(x0 - 268, y + rowH / 2 + 5, `${i + 1}.`, { class: 'axis-title', 'text-anchor': 'end' }, g);
       el('rect', { x: x0, y: y + 6, width: (sx(v) - x0) * t, height: rowH - 12, fill: fam.color, opacity: 0.9, rx: 2 }, g);
       if (t >= 1) txt(sx(v) + 8, y + rowH / 2 + 5, v.toFixed(3), { class: 'mono', fill: 'var(--ink-2)' }, g);
     });
-    legend(Object.values(FAMILY).map(f => ({ c: f.color, n: f.name, box: true })), x0 + bw - 190, y0 + 15 * rowH - 80, chart);
+    legend(Object.values(FAMILY).map(f => ({ c: f.color, n: f.name, box: true })), x0 + bw - 190, y0 + 15 * rowH - 130, chart);
   }
 
   function render() {

@@ -38,65 +38,76 @@
     min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none;
   }
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
-  .head h1 { margin: 0; font-size: clamp(20px, 2.2vw, 28px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
-  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
-  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .head h1 { margin: 0; font-size: clamp(24px, 2.4vw, 36px); font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
+  .head p:empty { display: none; }
   .chart-wrap { position: relative; min-height: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
-  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 15px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 14px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
 
-  .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px;
-         border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
-  .group { display:flex; align-items:center; gap:8px; }
-  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
-  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
-  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a;
-                   border-radius:5px; padding:7px 13px; cursor:pointer; }
+  .bar { display:flex; flex-direction:column; gap:12px; padding:12px 24px;
+         border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:19px; color:var(--ink); }
+  .bar .row { display:flex; justify-content:flex-start; align-items:center; gap:16px 32px; flex-wrap:wrap; }
+  .bar .row.dials .group { flex:1 1 0; }
+  .bar .row.dials input[type=range] { flex:1 1 auto; width:auto; }
+  .group { display:flex; align-items:center; gap:10px; }
+  .group label { font-size:18px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; white-space:nowrap; }
+  .val { font-family:var(--mono); font-size:19px; font-weight:700; color:var(--ma); min-width:5ch; white-space:nowrap; }
+  button, select { font:inherit; font-size:18px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:6px; padding:9px 16px; cursor:pointer; }
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
+  input[type=range] { -webkit-appearance:none; appearance:none; accent-color:var(--ma); width:260px; height:36px; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; box-shadow:0 0 0 1.5px var(--ma); margin-top:-9px; }
+  input[type=range]::-moz-range-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-moz-range-thumb { width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; }
   input[type=checkbox] { accent-color:var(--ma); width:18px; height:18px; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family: var(--mono); background: #fff; border: 1px solid var(--rule); border-radius: 3px; padding: 0 5px; font-size: 11px; }
 
-  .grid line { stroke: var(--grid); stroke-width: 1; }
-  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
-  .axis-title, .ptitle { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
+  .grid line { stroke: var(--grid); stroke-width: 1.3; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1.3; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
+  .axis-title, .ptitle { font-family: var(--sans); font-size: 22px; fill: var(--ink-2); }
   .ptitle { font-weight: 700; fill: var(--ink); }
-  .annot { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
-  .sig-line { fill: none; stroke: var(--sig); stroke-width: 1.6; stroke-linejoin: round; }
+  .annot { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
+  .sig-line { fill: none; stroke: var(--sig); stroke-width: 2.1; stroke-linejoin: round; }
   .faint { fill: none; stroke: var(--probe); stroke-width: 1.4; opacity: .55; stroke-dasharray: 4 3; }
-  .probe-line { fill: none; stroke: var(--probe); stroke-width: 1.6; stroke-dasharray: 5 4; }
+  .probe-line { fill: none; stroke: var(--probe); stroke-width: 2.1; stroke-dasharray: 5 4; }
   .product { fill: var(--probe); opacity: .18; stroke: none; }
-  .spec-line { fill: none; stroke: var(--sig); stroke-width: 1.5; stroke-linejoin: round; }
+  .spec-line { fill: none; stroke: var(--sig); stroke-width: 2.0; stroke-linejoin: round; }
   .spec-noise { fill: none; stroke: var(--noise); stroke-width: 1.8; stroke-linejoin: round; }
   .band { fill: url(#hatch); }
   .band-edge { stroke: #555; stroke-width: 1; stroke-dasharray: 3 3; }
-  .band-label { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--noise); }
-  .dlabel { font-family: var(--sans); font-size: 12px; font-weight: 700; }
+  .band-label { font-family: var(--sans); font-size: 20px; font-weight: 700; fill: var(--noise); }
+  .dlabel { font-family: var(--sans); font-size: 16px; font-weight: 700; }
   .legend rect.box { fill: #fff; fill-opacity: .9; stroke: var(--rule); stroke-width: 1; }
-  .legend text { font-family: var(--sans); font-size: 15px; fill: var(--ink); }
-  .callout text { font-family: var(--sans); font-size: 15px; fill: var(--ink-2); }
-  .callout line { stroke: var(--ink-2); stroke-width: 1.2; }
+  .legend text { font-family: var(--sans); font-size: 20px; fill: var(--ink); }
+  .callout text { font-family: var(--sans); font-size: 20px; fill: var(--ink-2); }
+  .callout line { stroke: var(--ink-2); stroke-width: 1.6; }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
   .arrow { stroke: var(--ink-2); stroke-width: 1.6; fill: none; }
   .arrow-head { fill: var(--ink-2); }
-  .arrow-text { font-family: var(--mono); font-size: 15px; font-weight: 700; fill: var(--ink); }
+  .arrow-text { font-family: var(--mono); font-size: 20px; font-weight: 700; fill: var(--ink); }
 
   @media (max-width: 720px) {
     .slide { padding: 18px 16px 12px; min-height: 0; }
     .hint { display: none; }
-    input[type=range] { width: 140px; }
+  input[type=range] { -webkit-appearance:none; appearance:none; accent-color:var(--ma); width:260px; height:36px; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; box-shadow:0 0 0 1.5px var(--ma); margin-top:-9px; }
+  input[type=range]::-moz-range-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-moz-range-thumb { width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; }
   }
   .hint { display:none !important; }
-  button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
-  button.primary.tb { min-width:52px; }
+  button.tb { min-width:54px; padding:9px 12px; font-size:22px; line-height:1; }
+  button.primary.tb { min-width:64px; }
 </style>
 
 <div class="stage">
@@ -116,6 +127,7 @@
   </section>
 
   <div class="bar">
+   <div class="row">
     <div class="group">
       <button id="prev" class="tb" title="Previous step (←)">⏮</button>
       <button id="play" class="primary tb" title="Play / pause (space)">▶</button>
@@ -134,11 +146,6 @@
       </select>
     </div>
     <div class="group">
-      <label for="amp">Noise amplitude</label>
-      <input type="range" id="amp" min="0" max="2" step="0.1" value="1">
-      <span class="val" id="ampv">1.0×</span>
-    </div>
-    <div class="group">
       <label for="speed">Speed</label>
       <select id="speed">
         <option value="4">very slow</option>
@@ -148,7 +155,14 @@
         <option value="0">instant</option>
       </select>
     </div>
-    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play &nbsp; <kbd>r</kbd> restart</span>
+   </div>
+   <div class="row dials">
+    <div class="group">
+      <label for="amp">Noise amplitude</label>
+      <input type="range" id="amp" min="0" max="2" step="0.1" value="1">
+      <span class="val" id="ampv">1.0×</span>
+    </div>
+   </div>
   </div>
 </div>
 
@@ -393,7 +407,7 @@
   const FS = 1000, N = 1000, NYQ = FS / 2;
   const t = Float64Array.from({ length: N }, (_, i) => i / FS);
   const tone = f => Float64Array.from(t, v => Math.sin(2 * Math.PI * f * v));
-  const s50 = tone(50), s120 = tone(120), hum = tone(60);
+  const s35 = tone(35), s125 = tone(125), hum = tone(60);
   function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
   function gauss(r) { const u = 1 - r(), v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
   const r1 = rng(328), r2 = rng(2026);
@@ -428,35 +442,35 @@
   const fmt = (v, d = 2) => (Math.round(v * 10 ** d) / 10 ** d).toFixed(d);
   const STEPS = [
     { id: 'one', base: 3, window: 0.2, with120: false, preset: { noise: 'none', amp: 1 },
-      title: 'A single sinusoid and its spectrum', tagFn: () => '50 Hz · fs = 1000 Hz',
-      subtitle: 'How a single sinusoid appears as one spike in the spectrum.',
-      annot: 'x(t) = sin(2π·50·t)' },
+      title: 'One sinusoid and its spectrum', tagFn: () => '35 Hz · fs = 1000 Hz',
+      subtitle: '',
+      annot: 'x(t) = sin(2π·35·t)' },
     { id: 'two', base: 4, window: 0.2, with120: true, preset: { noise: 'none', amp: 1 },
-      title: 'Sum of two sinusoids', tagFn: () => '50 Hz + 120 Hz',
-      subtitle: 'How adding a second sinusoid adds a second spike to the spectrum.',
-      annot: 'x(t) = sin(2π·50t) + sin(2π·120t)' },
+      title: 'Sum of two sinusoids', tagFn: () => '35 Hz + 125 Hz',
+      subtitle: '',
+      annot: 'x(t) = sin(2π·35t) + sin(2π·125t)' },
     { id: 'hf', base: 3, window: 0.2, with120: true, preset: { noise: 'hf', amp: 1 },
       title: 'High-frequency noise above 200 Hz', tagFn: () => `noise: ${NOISE_NAME[noiseSel]} · ${amp.toFixed(1)}×`,
-      subtitle: 'Where high-frequency noise appears in the time trace and in the spectrum.',
+      subtitle: '',
       annot: 'x = signal + noise_HF   →   low-pass filter' },
     { id: 'lf', base: 3, window: 1.0, with120: true, preset: { noise: 'lf', amp: 1 },
       title: 'Low-frequency baseline drift', tagFn: () => `noise: ${NOISE_NAME[noiseSel]} · ${amp.toFixed(1)}×`,
-      subtitle: 'Where slow baseline drift appears in the time trace and in the spectrum.',
+      subtitle: '',
       annot: 'x = signal + noise_LF   →   high-pass filter' },
     { id: 'hum', base: 3, window: 0.2, with120: true, preset: { noise: 'hum', amp: 1 },
       title: '60 Hz powerline interference', tagFn: () => `noise: ${NOISE_NAME[noiseSel]} · ${amp.toFixed(1)}×`,
-      subtitle: 'Where 60 Hz powerline noise appears in the time trace and in the spectrum.',
+      subtitle: '',
       annot: 'x = signal + sin(2π·60t)   →   notch filter' },
     { id: 'all', base: 3, window: 0.4, with120: true, preset: { noise: 'all', amp: 1 },
-      title: 'All three noise types together', tagFn: () => `noise: ${NOISE_NAME[noiseSel]} · ${amp.toFixed(1)}×`,
-      subtitle: 'Where high-frequency noise, drift and 60 Hz noise appear together, each in its own band.',
+      title: 'All three noises together', tagFn: () => `noise: ${NOISE_NAME[noiseSel]} · ${amp.toFixed(1)}×`,
+      subtitle: '',
       annot: 'x = signal + all three noises' },
   ];
 
   // ------------------------------------------------------------ layout
   const W = 1260, H = 560;
   const L = { x0: 84, x1: 590 }, R = { x0: 756, x1: W - 30 };
-  const Y0 = 48, Y1 = 500;
+  const Y0 = 66, Y1 = 500;
   const svgNS = 'http://www.w3.org/2000/svg';
   const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
 
@@ -496,7 +510,7 @@
   function legendEntries(d) {
     const noiseOn = noiseSel !== 'none' && amp > 0;
     const time = [{ name: noiseOn ? 'signal + noise' : 'signal', color: 'var(--sig)' }];
-    if (d.id === 'two') time.push({ name: '120 Hz component (dashed)', color: 'var(--probe)', dash: true });
+    if (d.id === 'two') time.push({ name: '125 Hz component (dashed)', color: 'var(--probe)', dash: true });
     const spec = [{ name: 'signal tones', color: 'var(--sig)' }];
     if (noiseOn) spec.push({ name: 'noise', color: 'var(--noise)' });
     return { time, spec };
@@ -511,8 +525,8 @@
 
     el('text', { x: L.x0, y: 20, class: 'ptitle' }, chart).textContent = 'time domain';
     el('text', { x: R.x0, y: 20, class: 'ptitle' }, chart).textContent = 'frequency domain (FFT)';
-    // formula annotation, right-aligned on the time-panel title line
-    el('text', { x: L.x1, y: 20, class: 'annot', 'text-anchor': 'end' }, chart).textContent = d.annot;
+    // formula annotation on its own line under the time-panel title (too long to share the title row)
+    el('text', { x: L.x0, y: 48, class: 'annot' }, chart).textContent = d.annot;
 
     const ax = (L.x1 + R.x0 - 70) / 2, ay = (Y0 + Y1) / 2;   // keep the FFT arrow clear of the vertical y title
     el('path', { class: 'arrow', d: `M${ax - 36},${ay}H${ax + 28}` }, chart);
@@ -541,7 +555,7 @@
     G.labels = el('g', {}, chart);
     G.callouts = el('g', { class: 'callout' }, chart);
     const le = legendEntries(d);
-    G.legendH = { time: legend(chart, L.x0 + 8, Y0 + 8, le.time, false), spec: legend(chart, R.x1 - 8, Y0 + 8, le.spec, true) };
+    G.legendH = { time: legend(chart, L.x1 - 8, Y0 + 8, le.time, true), spec: legend(chart, R.x1 - 8, Y0 + 8, le.spec, true) };
     G.hover = el('g', {}, chart);
     el('rect', { x: L.x0, y: Y0, width: L.x1 - L.x0, height: Y1 - Y0, fill: 'transparent', 'data-panel': 'time' }, chart);
     el('rect', { x: R.x0, y: Y0, width: R.x1 - R.x0, height: Y1 - Y0, fill: 'transparent', 'data-panel': 'spec' }, chart);
@@ -566,9 +580,11 @@
       el('rect', { class: 'band', x: fx(lo), y: Y0, width: fx(hi) - fx(lo), height: Y1 - Y0 }, G.band);
       el('line', { class: 'band-edge', x1: fx(lo), x2: fx(lo), y1: Y0, y2: Y1 }, G.band);
       if (hi < NYQ) el('line', { class: 'band-edge', x1: fx(hi), x2: fx(hi), y1: Y0, y2: Y1 }, G.band);
-      const anchor = 'start';
-      const xx = k === 'hf' ? fx(lo) + 6 : fx(hi) + 6;
-      const yy = k === 'hum' && sel === 'all' ? Y0 + 30 : Y0 + 14;
+      // the high-frequency band label sits at the right edge under the legend; the others stack at the top left
+      const hf = k === 'hf';
+      const anchor = hf ? 'end' : 'start';
+      const xx = hf ? R.x1 - 8 : fx(hi) + 6;
+      const yy = hf ? Y0 + 8 + ((G.legendH && G.legendH.spec) || 62) + 22 : k === 'hum' && sel === 'all' ? Y0 + 36 : Y0 + 14;
       el('text', { class: 'band-label', x: xx, y: yy, 'text-anchor': anchor }, G.band).textContent = lab;
     });
   }
@@ -582,8 +598,8 @@
     G.labels.innerHTML = '';
     const put = (f, txt, color, anchor = 'middle', dx = 0, y) => { y = y ?? Math.max(Y0 + 12, fy(m[f]) - 8); el('text', { class: 'dlabel', x: fx(f) + dx, y, 'text-anchor': anchor, fill: color }, G.labels).textContent = txt; };
     const crowded = humOn && m[60] > 0.05;
-    if (m[50] > 0.05) put(50, '50 Hz', 'var(--sig)', crowded ? 'end' : 'middle', crowded ? -5 : 0);
-    if (with120 && m[120] > 0.05) put(120, '120 Hz', 'var(--sig)', crowded ? 'start' : 'middle', crowded ? 6 : 0);
+    if (m[35] > 0.05) put(35, '35 Hz', 'var(--sig)');
+    if (with120 && m[125] > 0.05) put(125, '125 Hz', 'var(--sig)');
     if (crowded) put(60, '60 Hz', 'var(--noise)', 'start', 8, (fy(m[60]) + Y1) / 2);
   }
 
@@ -596,9 +612,9 @@
 
   // the signal on screen for step d at progress p, computed from the CURRENT dials
   function baseSignal(d, q) {
-    if (!d.with120) return s50;
-    if (d.id === 'two') { const g = Math.max(0, (q - 0.5) / 0.5); return Float64Array.from(s50, (v, i) => v + g * s120[i]); }
-    return Float64Array.from(s50, (v, i) => v + s120[i]);
+    if (!d.with120) return s35;
+    if (d.id === 'two') { const g = Math.max(0, (q - 0.5) / 0.5); return Float64Array.from(s35, (v, i) => v + g * s125[i]); }
+    return Float64Array.from(s35, (v, i) => v + s125[i]);
   }
   const fadeSteps = new Set(['hf', 'lf', 'hum', 'all']);
   function stateAt(d, q) {
@@ -628,7 +644,7 @@
         const q = p / 0.5, n = Math.max(1, Math.floor(q * (winN() - 1)));
         const { x, spec: m } = stateAt(d, 0);
         timePath(x);
-        timePath(s120, n, 'faint');
+        timePath(s125, n, 'faint');
         drawSpectrum(m, sel, 1, false);
         el('line', { x1: fx(120), x2: fx(120), y1: fy(0), y2: fy(q), stroke: 'var(--probe)', 'stroke-width': 1.5, 'stroke-dasharray': '4 3', opacity: .6 }, G.spec);
       } else {

@@ -59,10 +59,9 @@
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
   .head h1 {
     margin: 0;
-    font-size: clamp(20px, 2.2vw, 28px);
+    font-size: clamp(24px, 2.4vw, 36px);
     font-weight: 700;
     letter-spacing: -0.01em;
-    text-wrap: balance;
     line-height: 1.15;
   }
   .head h1 .tag {
@@ -78,8 +77,9 @@
     border-radius: 4px;
     white-space: nowrap;
   }
-  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
-  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
+  .head p:empty { display: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
   .code .p { color: var(--ma); font-weight: 700; }
 
@@ -88,56 +88,66 @@
   .tt {
     position: absolute; pointer-events: none; display: none;
     background: #fff; border: 1px solid var(--rule); border-radius: 4px;
-    padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink);
+    padding: 6px 9px; font-family: var(--mono); font-size: 15px; color: var(--ink);
+    box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2;
+  }
     box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2;
   }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
 
-  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 14px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
 
   /* ---------- control bar ---------- */
-  .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
-  .group { display:flex; align-items:center; gap:8px; }
-  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
-  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
-  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  .bar { display:flex; flex-direction:column; gap:12px; padding:12px 24px;
+         border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:19px; color:var(--ink); }
+  .bar .row { display:flex; justify-content:flex-start; align-items:center; gap:16px 32px; flex-wrap:wrap; }
+  .bar .row.dials .group { flex:1 1 0; }
+  .bar .row.dials input[type=range] { flex:1 1 auto; width:auto; }
+  .group { display:flex; align-items:center; gap:10px; }
+  .group label { font-size:18px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; white-space:nowrap; }
+  .val { font-family:var(--mono); font-size:19px; font-weight:700; color:var(--ma); min-width:5ch; white-space:nowrap; }
+  button, select { font:inherit; font-size:18px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:6px; padding:9px 16px; cursor:pointer; }
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
+  input[type=range] { -webkit-appearance:none; appearance:none; accent-color:var(--ma); width:260px; height:36px; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; box-shadow:0 0 0 1.5px var(--ma); margin-top:-9px; }
+  input[type=range]::-moz-range-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-moz-range-thumb { width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
 
   /* ---------- svg parts ---------- */
-  .grid line { stroke: var(--grid); stroke-width: 1; }
-  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
-  .raw-line { fill: none; stroke: var(--raw); stroke-width: 1.5; }
-  .out-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
-  .thin-line { fill: none; stroke-width: 1.3; stroke-linejoin: round; }
+  .grid line { stroke: var(--grid); stroke-width: 1.3; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1.3; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 22px; fill: var(--ink-2); }
+  .raw-line { fill: none; stroke: var(--raw); stroke-width: 2.0; }
+  .out-line { fill: none; stroke-width: 2.6; stroke-linejoin: round; stroke-linecap: round; }
+  .thin-line { fill: none; stroke-width: 1.7; stroke-linejoin: round; }
   .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
-  .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
-  .mono { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
-  .mono-2 { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
-  .note { font-family: var(--sans); font-size: 15px; fill: var(--ink-2); }
+  .dlabel { font-family: var(--sans); font-size: 17px; font-weight: 700; }
+  .mono { font-family: var(--mono); font-size: 20px; fill: var(--ink); }
+  .mono-2 { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
+  .note { font-family: var(--sans); font-size: 20px; fill: var(--ink-2); }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
-  .cursor-line { stroke: var(--ink); stroke-width: 1; stroke-dasharray: 3 3; opacity: .7; }
+  .cursor-line { stroke: var(--ink); stroke-width: 1.3; stroke-dasharray: 3 3; opacity: .7; }
 
   @media (max-width: 720px) {
     .slide { padding: 18px 16px 12px; min-height: 0; }
     .hint { display: none; }
   }
 
-  .cell { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
-  .th { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ink); }
+  .cell { font-family: var(--mono); font-size: 20px; fill: var(--ink); }
+  .th { font-family: var(--sans); font-size: 20px; font-weight: 700; fill: var(--ink); }
   .stage-name { font-family: var(--sans); font-size: 15px; font-weight: 700; }
   .stage-sub { font-family: var(--sans); font-size: 11px; }
   .hint { display:none !important; }
-  button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
-  button.primary.tb { min-width:52px; }
+  button.tb { min-width:54px; padding:9px 12px; font-size:22px; line-height:1; }
+  button.primary.tb { min-width:64px; }
 </style>
 
 <div class="stage">
@@ -158,17 +168,13 @@
   </section>
 
   <div class="bar">
+   <div class="row">
     <div class="group">
       <button id="prev" class="tb" title="Previous step (←)">⏮</button>
       <button id="play" class="primary tb" title="Play / pause (space)">▶</button>
       <button id="next" class="tb" title="Next step (→)">⏭</button>
       <button id="restart" class="tb" title="Restart this step (r)">↺</button>
       <button id="reset" title="Reset all dials to the step's presets">Reset dials</button>
-    </div>
-    <div class="group">
-      <label for="win">Window length</label>
-      <input type="range" id="win" min="0" max="3" step="1" value="1">
-      <span class="val" id="winVal">2 s</span>
     </div>
     <div class="group">
       <label for="speed">Speed</label>
@@ -180,7 +186,14 @@
         <option value="instant">instant</option>
       </select>
     </div>
-    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+   </div>
+   <div class="row dials">
+    <div class="group">
+      <label for="win">Window length</label>
+      <input type="range" id="win" min="0" max="3" step="1" value="1">
+      <span class="val" id="winVal">2 s</span>
+    </div>
+   </div>
   </div>
 </div>
 
@@ -219,9 +232,10 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
     if (o.yTitle) { const t = txt(parent, 0, 0, o.yTitle, { class: 'axis-title', 'text-anchor': 'middle' }); t.setAttribute('transform', `translate(${o.x0 - (o.yTx || 62)},${(o.y0 + o.y1) / 2}) rotate(-90)`); }
   }
   // conventional legend on a white 90 % rounded rect
-  function drawLegend(parent, x, y, items) {
-    const rowH = 24, padX = 10, padY = 8;
-    const wdt = Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX + 40;
+  function drawLegend(parent, x, y, items, right) {
+    const rowH = 30, padX = 10, padY = 8;
+    const wdt = Math.max(...items.map(i => i.n.length)) * 11 + 2 * padX + 40;
+    if (right) x = x - wdt;   // x is the right edge
     x = Math.min(x, W - wdt - 6);
     const g = el('g', {}, parent);
     el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
@@ -372,16 +386,16 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
     durNormal: 6,
     steps: [
       { id: 'collect', title: () => 'Stage 1: collect labeled sensor data', tag: () => '50 Hz · 12 s · Walking 8 s + Sitting 4 s', span: () => DUR,
-        subtitle: 'Collecting three-axis acceleration with an activity label while the user walks then sits.' },
+        subtitle: 'Three-axis acceleration with an activity label while the user walks then sits.' },
       { id: 'prep', title: () => 'Stage 2: pre-process with a band-pass filter', tag: () => 'band-pass 0.5–5 Hz · filtfilt', span: () => DUR,
-        subtitle: 'Filtering the acceleration magnitude with a 0.5–5 Hz band-pass.',
-        code: `b, a = butter(3, [0.5/(SR/2), 5.0/(SR/2)], btype='bandpass'); filtered = filtfilt(b, a, magnitude)` },
+        subtitle: '0.5–5 Hz band-pass on the acceleration magnitude.',
+        code: `b, a = butter(3, [0.5, 5.0], btype='bandpass', fs=50); filtered = filtfilt(b, a, magnitude)` },
       { id: 'window', title: () => `Stage 3: segment into ${w()}-second windows`, tag: () => `w = ${w()} s = ${w() * FS} samples · ${WS.length} windows`, span: () => DUR,
-        subtitle: 'Segmenting the filtered stream into consecutive windows, each labeled by its activity.' },
+        subtitle: '' },
       { id: 'features', title: () => 'Stage 4: extract features from each window', tag: () => `${WS.length} rows × 2 features + label`, span: () => DUR,
-        subtitle: 'Extracting a feature vector and label from each window to build a table.' },
+        subtitle: '' },
       { id: 'classify', title: () => 'Stage 5: classify each feature vector', tag: () => `${WS.length} windows → ${WS.length} labels`, span: () => DUR,
-        subtitle: 'Classifying each feature vector to produce one activity label per window.' }
+        subtitle: '' }
     ],
     setup(step) {
       WS = windows();
@@ -411,7 +425,7 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
   const P0 = { x0: 80, x1: XR, y0: 150, y1: 560, yAx: 592 };
   const TB1 = { x: 790, y: 176, w: XR - 790, cw: [96, 158, 158, 212] }, TB2 = { x: 48, y: 176, w: 532, cw: [84, 133, 133, 182] };
   const HEAD = ['window', 'var', 'f_dom', 'label'];
-  const CB = { x: 660, y: 320, w: 230, h: 80 };                     // classifier box
+  const CB = { x: 645, y: 320, w: 262, h: 80 };                     // classifier box
   const LA = { x0: 955, x1: XR, y: 330, h: 60 };                   // output label stream
   const xs = t => P.x0 + (t / DUR) * (P.x1 - P.x0);
   const ys = v => P.y1 - ((v - YR[0]) / (YR[1] - YR[0])) * (P.y1 - P.y0);
@@ -420,7 +434,7 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
   function axes(yTitle) { drawAxes(G.static, { x0: P.x0, x1: P.x1, y0: P.y0, y1: P.yAx, xs, ys, xTicks: [0, 2, 4, 6, 8, 10, 12], yTicks: YT, xTitle: 'time (seconds)', yTitle }); }
   function strip() { LABELS.forEach(l => { const a = xs(l.t0), b = xs(l.t1); el('rect', { x: a, y: P.y1 + 6, width: b - a, height: P.yAx - P.y1 - 10, fill: ACT_COL[l.name], 'fill-opacity': .35 }, G.static); txt(G.static, (a + b) / 2, P.yAx - 9, `label: ${l.name}`, { class: 'dlabel', 'text-anchor': 'middle', fill: 'var(--ink)' }); }); }
   const labelItems = () => LABELS.map(l => ({ c: ACT_COL[l.name], n: `label: ${l.name}`, fill: true }));
-  function legend(items) { drawLegend(G.static, P.x1 - 232, P.y1 - items.length * 18 - 22, items); }   // bottom band of each panel is empty
+  function legend(items) { drawLegend(G.static, P.x1 - 6, P.y1 - (items.length * 30 + 12) - 6, items, true); }   // bottom-right of the panel (above the label strip) is empty: sitting traces stay near the middle
   function cursorLine(t, upto) { if (t < DUR - 1e-9) { el('line', { class: 'cursor-line', x1: xs(t), x2: xs(t), y1: P.y0, y2: P.y1 }, G.dyn); txt(G.dyn, xs(t) + 6, P.y1 - 8, `t = ${fmt(t, 2)} s · sample ${upto + 1}`, { class: 'mono-2' }); } }
 
   // ---- the five stage boxes across the top, as in the chapter's pipeline figure
@@ -454,8 +468,8 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
       if (doneW) el('line', { x1: xe, x2: xe, y1: P.y0, y2: P.y1, stroke: 'var(--ink-2)', 'stroke-width': .8, 'stroke-dasharray': '4 3' }, G.dyn);
       if (!doneW) return;
       const small = xe - xa < 70;
-      txt(G.dyn, (xa + xe) / 2, P.y0 + 74, small ? `${win.k}` : `window ${win.k}`, { class: 'dlabel', 'text-anchor': 'middle', fill: 'var(--ink)' });
-      if (!small) txt(G.dyn, (xa + xe) / 2, P.y0 + 89, win.label, { class: 'mono', 'text-anchor': 'middle', fill: ACT_COL[win.label] });
+      txt(G.dyn, (xa + xe) / 2, P.y0 + 70, small ? `${win.k}` : `window ${win.k}`, { class: 'dlabel', 'text-anchor': 'middle', fill: 'var(--ink)' });
+      if (!small) txt(G.dyn, (xa + xe) / 2, P.y0 + 94, win.label, { class: 'mono', 'text-anchor': 'middle', fill: ACT_COL[win.label] });
       if (withRows) { const fresh = t < DUR - 1e-9 && win.b > t - w() * 0.6; drawRow(TB1, win, j, rh, fresh, true); if (fresh) active = j; }
     });
     if (active >= 0) {
@@ -520,7 +534,7 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
       txt(G.dyn, (xt + CB.x) / 2, Math.min(y, CB.y + CB.h / 2) - 10, `(${fmt(win.var, 1)}, ${win.fdom == null ? '—' : fmt(win.fdom, 1)})`, { class: 'mono', 'text-anchor': 'middle', fill: COL.blue });
       const cx = (lx(win.a) + lx(win.b)) / 2;
       el('path', { d: `M${CB.x + CB.w + 4},${CB.y + CB.h / 2}C${CB.x + CB.w + 40},${CB.y + CB.h / 2} ${cx - 30},${LA.y + LA.h + 40} ${cx},${LA.y + LA.h + 8}`, fill: 'none', stroke: COL.blue, 'stroke-width': 1.6, 'marker-end': 'url(#arr)' }, G.dyn);
-      txt(G.dyn, CB.x + CB.w + 34, CB.y + CB.h / 2 - 10, win.label, { class: 'dlabel', fill: ACT_COL[win.label] });
+      txt(G.dyn, CB.x + CB.w + 18, CB.y + CB.h / 2 - 10, win.label, { class: 'dlabel', fill: ACT_COL[win.label] });
     }
   }
 

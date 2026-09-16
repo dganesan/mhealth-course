@@ -20,38 +20,47 @@
   .stage { max-width: 1880px; margin: 0 auto; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; height: calc(100vh - 20px); }
   .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 16px 30px 8px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 6px; min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none; }
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
-  .head h1 { margin: 0; font-size: clamp(20px, 2.2vw, 28px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
-  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
-  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .head h1 { margin: 0; font-size: clamp(24px, 2.4vw, 36px); font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
+  .head p:empty { display: none; }
   .chart-wrap { position: relative; min-height: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
-  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 15px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
-  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 14px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
-  .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
-  .group { display:flex; align-items:center; gap:8px; }
-  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
-  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
-  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  .bar { display:flex; flex-direction:column; gap:12px; padding:12px 24px;
+         border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:19px; color:var(--ink); }
+  .bar .row { display:flex; justify-content:flex-start; align-items:center; gap:16px 32px; flex-wrap:wrap; }
+  .bar .row.dials .group { flex:1 1 0; }
+  .bar .row.dials input[type=range] { flex:1 1 auto; width:auto; }
+  .group { display:flex; align-items:center; gap:10px; }
+  .group label { font-size:18px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; white-space:nowrap; }
+  .val { font-family:var(--mono); font-size:19px; font-weight:700; color:var(--ma); min-width:5ch; white-space:nowrap; }
+  button, select { font:inherit; font-size:18px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:6px; padding:9px 16px; cursor:pointer; }
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
+  input[type=range] { -webkit-appearance:none; appearance:none; accent-color:var(--ma); width:260px; height:36px; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; box-shadow:0 0 0 1.5px var(--ma); margin-top:-9px; }
+  input[type=range]::-moz-range-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-moz-range-thumb { width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
-  .grid line { stroke: var(--grid); stroke-width: 1; }
-  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
-  .ptitle { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ink); }
-  .mono { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
+  .grid line { stroke: var(--grid); stroke-width: 1.3; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1.3; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 22px; fill: var(--ink-2); }
+  .ptitle { font-family: var(--sans); font-size: 20px; font-weight: 700; fill: var(--ink); }
+  .mono { font-family: var(--mono); font-size: 20px; fill: var(--ink); }
   .big { font-family: var(--mono); font-weight: 700; }
-  .legend text { font-family: var(--sans); font-size: 15px; fill: var(--ink); }
+  .legend text { font-family: var(--sans); font-size: 20px; fill: var(--ink); }
   @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
   .hint { display:none !important; }
-  button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
-  button.primary.tb { min-width:52px; }
+  button.tb { min-width:54px; padding:9px 12px; font-size:22px; line-height:1; }
+  button.primary.tb { min-width:64px; }
 </style>
 
 <div class="stage">
@@ -71,17 +80,13 @@
   </section>
 
   <div class="bar">
+   <div class="row">
     <div class="group">
       <button id="prev" class="tb" title="Previous step (←)">⏮</button>
       <button id="play" class="primary tb" title="Play / pause (space)">▶</button>
       <button id="next" class="tb" title="Next step (→)">⏭</button>
       <button id="restart" class="tb" title="Restart this step (r)">↺</button>
       <button id="reset" title="Reset all dials to the step presets">Reset dials</button>
-    </div>
-    <div class="group">
-      <label for="depth">max_depth</label>
-      <input type="range" id="depth" min="0" max="8" step="1" value="4">
-      <span class="val" id="depthVal">10</span>
     </div>
     <div class="group">
       <label for="speed">Speed</label>
@@ -93,7 +98,14 @@
         <option value="0">instant</option>
       </select>
     </div>
-    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+   </div>
+   <div class="row dials">
+    <div class="group">
+      <label for="depth">max_depth</label>
+      <input type="range" id="depth" min="0" max="8" step="1" value="4">
+      <span class="val" id="depthVal">10</span>
+    </div>
+   </div>
   </div>
 </div>
 
@@ -123,7 +135,7 @@
   function blues(f) { const a = [247, 251, 255], b = [8, 48, 107]; const c = a.map((v, i) => Math.round(v + (b[i] - v) * Math.pow(f, 0.85))); return `rgb(${c[0]},${c[1]},${c[2]})`; }
   function legend(items, x, y, parent) {
     const g = el('g', { class: 'legend' }, parent);
-    const rowH = 24, padX = 10, padY = 8;
+    const rowH = 30, padX = 10, padY = 8;
     const wdt = Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX + 34;
     x = Math.min(x, W - wdt - 6);
     el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
@@ -145,19 +157,19 @@
   const STEPS = [
     { id: 'split', dur: 10, presets: {},
       title: () => 'Subject-wise train / test split', tag: () => '30 subjects · 10299 windows',
-      subtitle: () => 'Assigning every window of each subject to either the training set or the test set.' },
+      subtitle: '' },
     { id: 'folds', dur: 12, presets: { di: 4 },
       title: () => 'GroupKFold over the 21 training subjects', tag: () => `max_depth = ${depthLabel()} · 100 trees · 5 folds`,
-      subtitle: () => 'How GroupKFold holds out a different set of subjects for validation in each fold.' },
+      subtitle: '' },
     { id: 'sweep', dur: 10, presets: { di: 4 },
-      title: () => 'Training and cross-validation accuracy versus max_depth', tag: () => `chosen max_depth = ${depthLabel()}`,
-      subtitle: () => 'Comparing training accuracy and cross-validation accuracy as max_depth increases.' },
+      title: 'Training and cross-validation accuracy vs max_depth', tag: () => `chosen max_depth = ${depthLabel()}`,
+      subtitle: '' },
     { id: 'test', dur: 14, presets: {},
       title: () => 'Single evaluation on the 9 held-out subjects', tag: () => 'max_depth = 10 · 200 trees · 2947 windows',
-      subtitle: () => 'Filling the confusion matrix as the refit forest classifies the held-out subjects.' },
+      subtitle: '' },
     { id: 'errors', dur: 6, presets: {},
       title: () => 'Structure of the errors', tag: () => 'accuracy 88.5%',
-      subtitle: () => 'The two blocks of errors, among the walking variants and between sitting and standing.' },
+      subtitle: 'Two blocks: among the walking variants, and between sitting and standing.' },
   ];
   function applyPresets(k) { const p = STEPS[k].presets; if (p.di !== undefined && !dirty.depth) { di = p.di; $('depth').value = di; $('depthVal').textContent = depthLabel(); } }
 
@@ -188,16 +200,16 @@
     txt(60, 300, 'test subjects (held out until the single final evaluation)', { class: 'ptitle' }, g);
     if (testDone.length) subjectStrip(g, testDone, 60, 310, teW * scale, 56, () => '#eb6834');
     const rx = 60, ry = 420;
-    el('rect', { x: rx, y: ry, width: 480, height: 150, rx: 6, fill: '#f6f7f9', stroke: 'var(--rule)' }, g);
+    el('rect', { x: rx, y: ry, width: 440, height: 150, rx: 6, fill: '#f6f7f9', stroke: 'var(--rule)' }, g);
     txt(rx + 20, ry + 34, 'train', { class: 'axis-title' }, g);
     txt(rx + 20, ry + 68, `${trainDone.length} subjects · ${trW} windows`, { class: 'big', 'font-size': 24, fill: '#2a78d6' }, g);
     txt(rx + 20, ry + 104, 'test', { class: 'axis-title' }, g);
     txt(rx + 20, ry + 138, `${testDone.length} subjects · ${teW} windows`, { class: 'big', 'font-size': 24, fill: '#eb6834' }, g);
-    el('rect', { x: rx + 520, y: ry, width: W - rx - 520 - 60, height: 150, rx: 6, fill: '#f6f7f9', stroke: 'var(--rule)' }, g);
-    txt(rx + 540, ry + 34, 'per window: 9 channels × 128 samples  →  54 features', { class: 'mono', fill: 'var(--ink-2)' }, g);
-    txt(rx + 540, ry + 68, 'body_acc x,y,z · total_acc x,y,z · body_gyro x,y,z', { class: 'mono', fill: 'var(--ink-2)' }, g);
-    txt(rx + 540, ry + 102, 'mean · std · min · max · dom_freq · energy', { class: 'mono', fill: 'var(--ink-2)' }, g);
-    txt(rx + 540, ry + 136, 'classes: walking · upstairs · downstairs · sitting · standing · laying', { class: 'mono', fill: 'var(--ink-2)', 'font-size': 15 }, g);
+    el('rect', { x: rx + 480, y: ry, width: W - rx - 480 - 60, height: 150, rx: 6, fill: '#f6f7f9', stroke: 'var(--rule)' }, g);
+    txt(rx + 500, ry + 34, 'per window: 9 channels × 128 samples  →  54 features', { class: 'mono', fill: 'var(--ink-2)' }, g);
+    txt(rx + 500, ry + 68, 'body_acc x,y,z · total_acc x,y,z · body_gyro x,y,z', { class: 'mono', fill: 'var(--ink-2)' }, g);
+    txt(rx + 500, ry + 102, 'mean · std · min · max · dom_freq · energy', { class: 'mono', fill: 'var(--ink-2)' }, g);
+    txt(rx + 500, ry + 136, 'classes: walking · upstairs · downstairs · sitting · standing · laying', { class: 'mono', fill: 'var(--ink-2)', style: 'font-size:18px' }, g);
     legend([{ c: '#2a78d6', n: 'training subject (21)', box: true }, { c: '#eb6834', n: 'test subject (9)', box: true }, { c: '#d9d9d9', n: 'not yet assigned', box: true }], W - 250, 118, chart);
   }
 
@@ -206,7 +218,7 @@
     const g = el('g', {}, chart);
     const trainSubs = ALL.filter(s => !s.test);
     const sw = SWEEP[di];
-    const x0 = 120, y0 = 30, rowH = 74, stripW = W - x0 - 400;
+    const x0 = 120, y0 = 30, rowH = 74, stripW = W - x0 - 440;
     txt(x0, y0 - 8, '21 training subjects (block width ∝ windows)', { class: 'axis-title' }, g);
     txt(x0 + stripW + 40, y0 - 8, 'this fold', { class: 'axis-title' }, g);
     for (let k = 0; k < 5; k++) {
@@ -217,9 +229,9 @@
       subjectStrip(g, trainSubs, x0, y, stripW, 48, s => t > 0 ? (val.has(s.id) ? '#4a3aa7' : '#2a78d6') : '#d9d9d9');
       if (t > 0) {
         const bx = x0 + stripW + 40;
-        el('rect', { x: bx, y: y + 4, width: 300, height: 40, rx: 4, fill: '#f6f7f9', stroke: 'var(--rule)' }, g);
+        el('rect', { x: bx, y: y + 4, width: 360, height: 40, rx: 4, fill: '#f6f7f9', stroke: 'var(--rule)' }, g);
         txt(bx + 10, y + 30, `train ${(sw.train[k] * t).toFixed(3)}`, { class: 'mono', fill: '#2a78d6', 'font-weight': 700 }, g);
-        txt(bx + 150, y + 30, `validation ${(sw.cv[k] * t).toFixed(3)}`, { class: 'mono', fill: '#4a3aa7', 'font-weight': 700 }, g);
+        txt(bx + 155, y + 30, `validation ${(sw.cv[k] * t).toFixed(3)}`, { class: 'mono', fill: '#4a3aa7', 'font-weight': 700 }, g);
       }
       if (t > 0 && t < 1) el('rect', { x: x0 - 4, y: y - 4, width: stripW + 6, height: 56, fill: 'none', stroke: 'var(--ink)', 'stroke-dasharray': '4 3' }, g);
     }
@@ -228,8 +240,8 @@
     el('rect', { x: x0, y: yb, width: W - x0 - 60, height: 96, rx: 6, fill: '#f6f7f9', stroke: 'var(--rule)' }, g);
     txt(x0 + 20, yb + 30, `max_depth = ${depthLabel()}`, { class: 'ptitle' }, g);
     txt(x0 + 20, yb + 68, done ? `mean CV accuracy = ${mean(sw.cv).toFixed(3)} ± ${sd(sw.cv).toFixed(3)}    ·    mean training accuracy = ${mean(sw.train).toFixed(3)}` : 'mean CV accuracy = … (over the 5 validation folds)', { class: 'big', 'font-size': 20, fill: done ? 'var(--ink)' : 'var(--ink-3)' }, g);
-    txt(x0 + 720, yb + 30, 'a subject is never in both the training and the validation part of a fold', { class: 'axis-title' }, g);
-    legend([{ c: '#2a78d6', n: 'training subjects of the fold', box: true }, { c: '#4a3aa7', n: 'validation subjects of the fold', box: true }], W - 300, H - 60, chart);
+    txt(W - 80, yb + 30, 'a subject is never in both the training and the validation part of a fold', { class: 'axis-title', 'text-anchor': 'end' }, g);
+    legend([{ c: '#2a78d6', n: 'training subjects of the fold', box: true }, { c: '#4a3aa7', n: 'validation subjects of the fold', box: true }], W - 300, H - 84, chart);
   }
 
   function drawSweep(p) {
@@ -272,9 +284,9 @@
     if (di < nPts) {
       txt(xd + (di > 5 ? -8 : 8), sy(trm[di]) - 14, `train ${trm[di].toFixed(3)}`, { class: 'mono', fill: '#eb6834', 'font-weight': 700, 'text-anchor': di > 5 ? 'end' : 'start' }, g);
       txt(xd + (di > 5 ? -8 : 8), sy(cvm[di]) + 22, `CV ${cvm[di].toFixed(3)} ± ${cvs[di].toFixed(3)}`, { class: 'mono', fill: '#2a78d6', 'font-weight': 700, 'text-anchor': di > 5 ? 'end' : 'start' }, g);
-      txt(xd + (di > 5 ? -8 : 8), sy(0.56), `max_depth = ${depthLabel()} · gap ${(trm[di] - cvm[di]).toFixed(3)}`, { class: 'mono', fill: 'var(--ink-2)', 'text-anchor': di > 5 ? 'end' : 'start' }, g);
+      txt(xd + (di > 5 ? -8 : 8), sy(0.66), `max_depth = ${depthLabel()} · gap ${(trm[di] - cvm[di]).toFixed(3)}`, { class: 'mono', fill: 'var(--ink-2)', 'text-anchor': di > 5 ? 'end' : 'start' }, g);
     }
-    legend([{ c: '#eb6834', n: 'training accuracy (mean of 5 folds)' }, { c: '#2a78d6', n: '5-fold GroupKFold CV accuracy', dash: true }, { c: '#2a78d6', n: '± 1 std across folds', box: true, op: 0.2 }, { c: 'var(--ink-2)', n: 'max_depth dial', dash: true }], W - PR - 300, PT + ph - 100, chart);
+    legend([{ c: '#eb6834', n: 'training accuracy (mean of 5 folds)' }, { c: '#2a78d6', n: '5-fold GroupKFold CV accuracy', dash: true }, { c: '#2a78d6', n: '± 1 std across folds', box: true, op: 0.2 }, { c: 'var(--ink-2)', n: 'max_depth dial', dash: true }], W - PR - 300, PT + ph - 140, chart);
   }
 
   function confusionUpTo(nWin) {
@@ -295,10 +307,10 @@
     el('rect', { x: x0, y: y0, width: 6 * cell, height: 6 * cell, fill: 'none', stroke: 'var(--ink-3)' }, g);
     ACT.forEach((n, i) => {
       txt(x0 - 8, y0 + i * cell + cell / 2 + 4, n, { class: 'axis-title', 'text-anchor': 'end' }, g);
-      txt(x0 + i * cell + cell / 2, y0 + 6 * cell + 16, n, { class: 'axis-title', 'text-anchor': 'middle' }, g);
+      txt(x0 + i * cell + cell / 2, y0 + 6 * cell + 16 + (i % 2 ? 24 : 0), n, { class: 'axis-title', 'text-anchor': 'middle' }, g);
     });
-    txt(x0 + 3 * cell, y0 + 6 * cell + 36, 'predicted activity', { class: 'axis-title', 'text-anchor': 'middle' }, g);
-    txt(x0 - 104, y0 + 3 * cell, 'actual activity', { class: 'axis-title', 'text-anchor': 'middle', transform: `rotate(-90 ${x0 - 104} ${y0 + 3 * cell})` }, g);
+    txt(x0 + 3 * cell, y0 + 6 * cell + 62, 'predicted activity', { class: 'axis-title', 'text-anchor': 'middle' }, g);
+    txt(x0 - 140, y0 + 3 * cell, 'actual activity', { class: 'axis-title', 'text-anchor': 'middle', transform: `rotate(-90 ${x0 - 140} ${y0 + 3 * cell})` }, g);
   }
 
   function drawTest(p) {
@@ -312,24 +324,24 @@
     txt(60, 30, 'test subjects, windows classified', { class: 'ptitle' }, g);
     subs.forEach((s, k) => {
       const n = TEST[s], done = Math.max(0, Math.min(n, nWin - offset));
-      const y = 50 + k * 46;
+      const y = 50 + k * 44;
       txt(60, y + 18, `subject ${s}`, { class: 'mono' }, g);
-      el('rect', { x: 170, y: y + 4, width: 300, height: 20, fill: '#eeeeee', rx: 3 }, g);
-      el('rect', { x: 170, y: y + 4, width: 300 * done / n, height: 20, fill: '#eb6834', rx: 3 }, g);
+      el('rect', { x: 190, y: y + 4, width: 280, height: 20, fill: '#eeeeee', rx: 3 }, g);
+      el('rect', { x: 190, y: y + 4, width: 280 * done / n, height: 20, fill: '#eb6834', rx: 3 }, g);
       txt(480, y + 18, `${done} / ${n}`, { class: 'mono', fill: 'var(--ink-2)' }, g);
       offset += n;
     });
-    const by = 50 + subs.length * 46 + 14;
+    const by = 50 + subs.length * 44 + 14;
     el('rect', { x: 60, y: by, width: 480, height: 90, rx: 6, fill: '#f6f7f9', stroke: 'var(--rule)' }, g);
     txt(80, by + 30, `windows classified: ${nWin} of ${T.y.length}`, { class: 'mono', fill: 'var(--ink-2)' }, g);
     txt(80, by + 70, nWin ? `accuracy so far  ${(100 * correct / nWin).toFixed(1)}%` : 'accuracy so far  —', { class: 'big', 'font-size': 24, fill: p >= 1 ? 'var(--ink)' : '#2a78d6' }, g);
     // right: matrix
-    drawMatrix(g, cm, W - 6 * 84 - 96, 40, 84);
+    drawMatrix(g, cm, W - 6 * 80 - 96, 40, 80);
     // colour key
-    const kx = W - 6 * 84 - 96, ky = 40 + 6 * 84 + 52;
+    const kx = W - 6 * 80 - 96, ky = 40 + 6 * 80 + 80;
     for (let i = 0; i < 40; i++) el('rect', { x: kx + i * 4, y: ky, width: 4, height: 12, fill: blues(i / 39) }, chart);
     txt(kx + 172, ky + 11, 'fraction of the actual class (row)', { class: 'axis-title' }, chart);
-    legend([{ c: '#eb6834', n: 'windows classified so far', box: true }, { c: '#eeeeee', n: 'windows still to classify', box: true }], 60, H - 62, chart);
+    legend([{ c: '#eb6834', n: 'windows classified so far', box: true }, { c: '#eeeeee', n: 'windows still to classify', box: true }], 60, H - 84, chart);
   }
 
   function drawErrors(p) {
@@ -360,7 +372,7 @@
       txt(rx, y + 28, `${cross} errors across blocks`, { class: 'big', 'font-size': 18, fill: 'var(--ink)' }, g);
       txt(rx, y + 60, `total errors ${T.y.length - cm.reduce((a, r, i) => a + r[i], 0)} of ${T.y.length}`, { class: 'mono', fill: 'var(--ink-2)' }, g);
     }
-    legend(blocks.map(b => ({ c: b.c, n: b.name })), rx, H - 84, chart);
+    legend(blocks.map(b => ({ c: b.c, n: b.name })), rx, H - 110, chart);
   }
 
   function render() {

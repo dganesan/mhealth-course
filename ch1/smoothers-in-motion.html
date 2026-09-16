@@ -59,10 +59,9 @@
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
   .head h1 {
     margin: 0;
-    font-size: clamp(20px, 2.2vw, 28px);
+    font-size: clamp(24px, 2.4vw, 36px);
     font-weight: 700;
     letter-spacing: -0.01em;
-    text-wrap: balance;
     line-height: 1.15;
   }
   .head h1 .tag {
@@ -76,9 +75,11 @@
     background: #f4f4f4;
     padding: 2px 8px;
     border-radius: 4px;
+    white-space: nowrap;
   }
-  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
-  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
+  .head p:empty { display: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
   .group[hidden] { display: none; }
   .code .p { color: var(--ma); font-weight: 700; }
@@ -89,50 +90,60 @@
   .tt {
     position: absolute; pointer-events: none; display: none;
     background: #fff; border: 1px solid var(--rule); border-radius: 4px;
-    padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink);
+    padding: 6px 9px; font-family: var(--mono); font-size: 15px; color: var(--ink);
+    box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2;
+  }
     box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2;
   }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
 
 
-  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 14px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
 
   /* ---------- control bar ---------- */
-  .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
-  .group { display:flex; align-items:center; gap:8px; }
-  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
-  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
-  button, select, input[type=text] { font:inherit; font-size: 15px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  .bar { display:flex; flex-direction:column; gap:12px; padding:12px 24px;
+         border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:19px; color:var(--ink); }
+  .bar .row { display:flex; justify-content:flex-start; align-items:center; gap:16px 32px; flex-wrap:wrap; }
+  .bar .row.dials .group { flex:1 1 0; }
+  .bar .row.dials input[type=range] { flex:1 1 auto; width:auto; }
+  .group { display:flex; align-items:center; gap:10px; }
+  .group label { font-size:18px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; white-space:nowrap; }
+  .val { font-family:var(--mono); font-size:19px; font-weight:700; color:var(--ma); min-width:5ch; white-space:nowrap; }
+  button, select, input[type=text] { font:inherit; font-size:18px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:6px; padding:9px 16px; cursor:pointer; }
   input[type=text] { font-family:var(--mono); cursor:text; flex:1 1 260px; min-width:200px; }
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
   button:disabled { opacity:.4; cursor:default; }
-  input[type=range] { accent-color:var(--ma); width:120px; height:30px; cursor:pointer; }
+  input[type=range] { -webkit-appearance:none; appearance:none; accent-color:var(--ma); width:260px; height:36px; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; box-shadow:0 0 0 1.5px var(--ma); margin-top:-9px; }
+  input[type=range]::-moz-range-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-moz-range-thumb { width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
 
   /* ---------- svg parts ---------- */
-  .grid line { stroke: var(--grid); stroke-width: 1; }
-  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
-  .raw-line { fill: none; stroke: var(--raw); stroke-width: 1.5; }
+  .grid line { stroke: var(--grid); stroke-width: 1.3; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1.3; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 22px; fill: var(--ink-2); }
+  .raw-line { fill: none; stroke: var(--raw); stroke-width: 2.0; }
   .raw-dot { fill: var(--raw-dot); }
-  .clean-line { fill: none; stroke: var(--clean); stroke-width: 1.5; stroke-dasharray: 5 4; opacity: .7; }
-  .out-line { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+  .clean-line { fill: none; stroke: var(--clean); stroke-width: 2.0; stroke-dasharray: 5 4; opacity: .7; }
+  .out-line { fill: none; stroke-width: 3.2; stroke-linejoin: round; stroke-linecap: round; }
   .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
   .win-dot { stroke: #fff; stroke-width: 1.5; }
   .med-ring { fill: none; stroke-width: 2; }
   .connector { stroke-width: 1; stroke-dasharray: 2 3; fill: none; }
-  .out-dot { stroke: #fff; stroke-width: 2; }
+  .out-dot { stroke: #fff; stroke-width: 2.6; }
   .wbar { opacity: .85; }
-  .wlabel { font-family: var(--sans); font-size: 15px; fill: var(--ink-3); }
-  .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
-  .callout text { font-family: var(--sans); font-size: 15px; fill: var(--ink-2); }
-  .callout line { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 3; }
+  .wlabel { font-family: var(--sans); font-size: 20px; fill: var(--ink-3); }
+  .dlabel { font-family: var(--sans); font-size: 17px; font-weight: 700; }
+  .callout text { font-family: var(--sans); font-size: 20px; fill: var(--ink-2); }
+  .callout line { stroke: var(--ink-3); stroke-width: 1.3; stroke-dasharray: 2 3; }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
 
   @media (max-width: 720px) {
@@ -142,8 +153,8 @@
   }
   @media (prefers-reduced-motion: reduce) { .fade { transition: none !important; } }
   .hint { display:none !important; }
-  button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
-  button.primary.tb { min-width:52px; }
+  button.tb { min-width:54px; padding:9px 12px; font-size:22px; line-height:1; }
+  button.primary.tb { min-width:64px; }
 </style>
 
 <div class="stage">
@@ -164,6 +175,7 @@
   </section>
 
   <div class="bar">
+   <div class="row">
     <div class="group">
       <button id="prev" class="tb" title="Previous step (←)">⏮</button>
       <button id="play" class="primary tb" title="Play / pause (space)">▶</button>
@@ -192,11 +204,6 @@
       </select>
     </div>
     <div class="group">
-      <label for="win">Window w</label>
-      <input type="range" id="win" min="3" max="41" step="2" value="9">
-      <span class="val" id="winVal">9</span>
-    </div>
-    <div class="group">
       <label for="alpha">EWMA α</label>
       <select id="alpha">
         <option value="0.1">0.1</option>
@@ -215,7 +222,14 @@
         <option value="0">instant</option>
       </select>
     </div>
-    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+   </div>
+   <div class="row dials">
+    <div class="group">
+      <label for="win">Window w</label>
+      <input type="range" id="win" min="3" max="41" step="2" value="9">
+      <span class="val" id="winVal">9</span>
+    </div>
+   </div>
   </div>
 </div>
 
@@ -298,8 +312,8 @@
     return [
       {
         id: 'raw', series: null,
-        title: 'The input signal', tag: `N = ${N} samples`,
-        subtitle: 'The noisy input signal and the clean signal each filter tries to recover.',
+        title: 'Input signal', tag: `N = ${N} samples`,
+        subtitle: '',
         formula: `xᵢ = cleanᵢ + noiseᵢ`,
         takeaway: 'Every filter below replaces each sample by a summary of its neighborhood. What differs is <strong>which</strong> neighbors count, and <strong>how much</strong>.'
       },
@@ -307,7 +321,7 @@
         id: 'ma', series: 'ma',
         title: 'Moving average', tag: `w = ${w}`,
         code: `ma  = data.rolling(window=<b class="p">${w}</b>, center=<b class="p">True</b>).mean()`,
-        subtitle: `Sliding a window along the signal and averaging the samples inside it.`,
+        subtitle: '',
         formula: `sᵢ = (1/w) · Σₖ₌₋ₘ..ₘ xᵢ₊ₖ        w = 2M+1 = ${w}\n\nweights:  1/w, 1/w, …, 1/w   (flat)`,
         takeaway: `Noise averages out nicely. But the <strong>outlier is smeared</strong> into a bump ${w} samples wide, and the <strong>step edge becomes a ramp</strong> ${w} samples wide.`
       },
@@ -315,7 +329,7 @@
         id: 'med', series: 'med',
         title: 'Median filter', tag: `w = ${w}`,
         code: `med = data.rolling(window=<b class="p">${w}</b>, center=<b class="p">True</b>).median()`,
-        subtitle: `Sliding the same window and taking the median of the samples inside it.`,
+        subtitle: '',
         formula: `sᵢ = median( xᵢ₋ₘ, …, xᵢ₊ₘ )\n\nno weights: pick the middle of the sorted window`,
         takeaway: `One outlier can never be the middle value, so it <strong>vanishes</strong>. The <strong>step edge stays sharp</strong>. Cost: a sort per sample, and smooth peaks get slightly flattened.`
       },
@@ -323,22 +337,22 @@
         id: 'ewma', series: 'ewma',
         title: 'Exponentially weighted moving average', tag: `α = ${aTxt}`,
         code: `ema = data.ewm(alpha=<b class="p">${aTxt}</b>, adjust=<b class="p">False</b>).mean()`,
-        subtitle: `How the EWMA blends each new sample with the previous output.`,
+        subtitle: '',
         formula: `sᵢ = α · xᵢ + (1−α) · sᵢ₋₁\n\nweights on xᵢ₋ₖ:  α(1−α)ᵏ`,
         takeaway: `One multiply-add per sample and no buffer, so it is the cheapest. Because it only looks <strong>backward</strong>, the output <strong>lags</strong>: it trails the step, and the outlier decays over roughly 1/α samples.`
       },
       {
         id: 'all', series: 'all',
-        title: 'The three filters compared', tag: `w = ${w}  ·  α = ${aTxt}`,
-        subtitle: 'Comparing all three filter outputs on the same signal.',
+        title: 'Comparing MA, median and EWMA filters', tag: `w = ${w}  ·  α = ${aTxt}`,
+        subtitle: '',
         formula: `<span class="lbl">Same neighborhood, different summary</span>flat mean · middle value · triangle mean · geometric memory`,
         takeaway: `<strong>Average</strong> and <strong>weighted mean</strong> smear outliers, <strong>median</strong> deletes them, <strong>EWMA</strong> lags. Choose by what your noise looks like and what structure you must keep.`
       },
       {
         id: 'cascade', series: 'cascade',
-        title: 'Cascading two filters: effect of order', tag: `w = ${w} each`,
+        title: 'Cascading median and moving average filters', tag: `w = ${w} each`,
         code: `out = data.rolling(window=<b class="p">${w}</b>, center=True).median().rolling(window=<b class="p">${w}</b>, center=True).mean()`,
-        subtitle: 'Comparing median then moving average with moving average then median.',
+        subtitle: '',
         formula: `<span class="lbl">Recipe</span>median (kills spikes)  →  moving average (smooths the rest)\n\nreverse order: the average spreads each spike over w samples first, and the median can no longer find a majority to outvote it`,
         takeaway: `<strong>Median first</strong> deletes the glitches and then smooths cleanly. <strong>Average first</strong> turns each glitch into a wide bump that the median then keeps. Order the stages so each removes what the next one cannot.`
       }
@@ -403,7 +417,7 @@
     // weights strip baseline + label
     G.strip = el('g', {}, chart);
     el('line', { x1: PL, x2: W - PR, y1: stripBottom, y2: stripBottom, stroke: 'var(--rule)' }, G.strip);
-    G.stripLabel = el('text', { x: PL - 10, y: stripBottom - 4, class: 'wlabel', 'text-anchor': 'end' }, G.strip);
+    G.stripLabel = el('text', { x: PL, y: stripBottom + 24, class: 'wlabel', 'text-anchor': 'start' }, G.strip);
     G.stripLabel.textContent = 'weights';
     G.wbars = el('g', {}, G.strip);
     // signal layers
@@ -474,7 +488,7 @@
       { k: 'med',  wts: Array.from({ length: K }, (_, j) => j === Mk ? 1 : 0.28), pick: true },
       { k: 'ewma', wts: Array.from({ length: K }, (_, j) => j > Mk ? 0 : Math.pow(1 - a, Mk - j)), causal: true },
     ];
-    const gw = K * (bw + gapx) + 118;
+    const gw = K * (bw + gapx) + 160;
     const total = groups.length * gw + (groups.length - 1) * 30;
     let x = PL + ((W - PL - PR) - total) / 2;
     groups.forEach(g => {
@@ -545,8 +559,8 @@
     });
     // direct labels
     const finals = keys.filter(k => STATIC(series) || upto >= N - 1).map(k => ({ k, y: ys(out[k][N - 1]) })).sort((a, b) => a.y - b.y);
-    for (let j = 1; j < finals.length; j++) if (finals[j].y - finals[j - 1].y < 16) finals[j].y = finals[j - 1].y + 16;
-    for (let j = finals.length - 2; j >= 0; j--) if (finals[j + 1].y - finals[j].y < 16) finals[j].y = finals[j + 1].y - 16;
+    for (let j = 1; j < finals.length; j++) if (finals[j].y - finals[j - 1].y < 21) finals[j].y = finals[j - 1].y + 21;
+    for (let j = finals.length - 2; j >= 0; j--) if (finals[j + 1].y - finals[j].y < 21) finals[j].y = finals[j + 1].y - 21;
     finals.forEach(f => {
       const t = el('text', { x: W - PR + 10, y: f.y + 4, class: 'dlabel', fill: SERIES[f.k].color }, G.labels);
       t.textContent = SERIES[f.k].name;
@@ -617,13 +631,14 @@
     const s = steps[step].series;
     const items = [{ c: 'var(--raw)', n: 'input (noisy)' }, { c: 'var(--clean)', n: 'clean signal', dash: true }];
     KEYS(s).forEach(k => items.push({ c: SERIES[k].color, n: (k === 'ma' || k === 'med' || k === 'wm') ? `${SERIES[k].name} w=${w}` : k === 'ewma' ? `EWMA α=${alphaVal().toFixed(2)}` : SERIES[k].name }));
-    const rowH = 24, padX = 10, padY = 8;
-    const wdt = 12 + Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX + 22;
-    el('rect', { x: PL + 10, y: PT + 8, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, G.legend);
+    const rowH = 28, padX = 10, padY = 8;
+    const wdt = 12 + Math.max(...items.map(i => i.n.length)) * 11.5 + 2 * padX + 22;
+    const LX = W - PR - 10 - wdt;   // top right of the panel, clear of the traces drawing in from the left
+    el('rect', { x: LX, y: PT + 6, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, G.legend);
     items.forEach((it, j) => {
-      const y = PT + 8 + padY + j * rowH + 6;
-      el('line', { x1: PL + 10 + padX, x2: PL + 10 + padX + 18, y1: y, y2: y, stroke: it.c, 'stroke-width': it.dash ? 1.5 : 2.5, 'stroke-dasharray': it.dash ? '5 4' : 'none' }, G.legend);
-      const t = el('text', { x: PL + 10 + padX + 26, y: y + 4, class: 'axis-title', fill: 'var(--ink)' }, G.legend); t.textContent = it.n;
+      const y = PT + 6 + padY + j * rowH + 6;
+      el('line', { x1: LX + padX, x2: LX + padX + 18, y1: y, y2: y, stroke: it.c, 'stroke-width': it.dash ? 1.5 : 2.5, 'stroke-dasharray': it.dash ? '5 4' : 'none' }, G.legend);
+      const t = el('text', { x: LX + padX + 26, y: y + 4, class: 'axis-title', fill: 'var(--ink)' }, G.legend); t.textContent = it.n;
     });
   }
   function cursorDone() { return !steps[step].series || STATIC(steps[step].series) || cursor >= N - 1; }

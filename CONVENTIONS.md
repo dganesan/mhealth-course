@@ -22,7 +22,14 @@ tooltip and step machinery from the reference page:
 `<VIZ>/ch1/smoothers-in-motion.html` (VIZ is given in your task). Read it fully first. Reuse its
 CSS verbatim where possible. Key facts of the template:
 - White ground, Helvetica Neue bold titles (#222), grey #666 secondary, Menlo for math/numbers,
-  matplotlib-like axes: thin grey grid, mono tick labels, axis titles in 12 px sans.
+  matplotlib-like axes: thin grey grid, mono tick labels.
+- PROJECTOR SIZES (the pages are projected in lecture; everything must read from the back of
+  the room at 1920x1080): title clamp(24px,2.4vw,36px), subtitle clamp(18px,1.7vw,24px), code
+  line clamp(15px,1.4vw,21px), footer 14 px. Inside the SVG (viewBox units): axis tick text
+  20 px mono, panel titles 21 px bold, axis titles 22 px, legend text 24 px on 34 px rows in a
+  box sized to its longest entry, badges/annotations 19-20 px; traces 2-3.4 px wide.
+  Legends go at the TOP RIGHT of their panel so traces drawing in from the left are never
+  covered (or on the panel-title row when the top right is taken).
 - Colors: blue #2a78d6 (primary series / controls accent), green #1baf7a, violet #4a3aa7,
   orange-red #eb6834 (noise, errors, "bad"), grey #8f8f8f raw input, dashed #444 clean target.
   Categorical classes: blue, orange-red, green, violet in that order.
@@ -32,18 +39,22 @@ CSS verbatim where possible. Key facts of the template:
 
 ## Page anatomy (each step of a page)
 1. `<h1>` title in a plain academic register: informative, not sensational. Examples:
-   "Sampling rate and the Nyquist criterion", "Effect of window length on the peak count",
+   "Sampling rate and the Nyquist criterion", "Peak count vs window length",
    "Splitting a node on one feature". Never "Why X can't Y", "The price of", "wagon wheel".
-   A mono tag chip after the title shows live parameter values, e.g. `w = 9 · α = 0.2`.
-2. ONE short, plain sentence under the title saying what the animation shows. It must read
-   instantly: ≤ 15 words, one idea, no semicolons, no metaphors, no stacked clauses, no numbers
-   unless essential, no "watch how the rhythm sits on every axis" style phrasing.
-   GOOD: "How the angle of the phone affects the reading on each axis."
-   GOOD: "Filtering the magnitude to keep only walking frequencies."
-   BAD:  "Ten seconds from a phone in a pocket: the walking rhythm is on every axis, each offset
-         by its share of gravity." (the instructor rejected this: it confuses more than it explains)
-   It runs the full slide width (`.head p { max-width: none; color:#444; font-size: clamp(15px,1.6vw,18px) }`)
-   and must never wrap to a second line (≈ 110 characters max).
+   No leading article ("Raw ECG recording", not "The raw ECG recording"); "vs", not "versus".
+   The title must stay on one line: no `text-wrap: balance` on `.head h1`, and the mono tag
+   chip after it (live parameter values, e.g. `w = 9 · α = 0.2`) is `white-space: nowrap` so
+   only the chip drops to a second line on a narrow screen. If the title reflects a dial
+   (filter type, input signal), build it from the live state, never a fixed string.
+2. The second line (`subtitle`) is OPTIONAL and usually absent (`subtitle: ''`; the page must
+   hide an empty line: `.head p:empty { display: none; }`). Keep one only when it states a
+   fact the chart and title do not already show: data provenance ("Thirty seconds of a real
+   pulse recording, sampled at 125 Hz"), a mechanism ("Each cell adds its local cost to the
+   cheapest of its three neighbours"), or the point of the step ("The window mean fails to
+   separate standing from walking"). Never a restatement of the title ("How a low-pass filter
+   removes high-frequency noise" under "Low-pass filtering of high-frequency noise").
+   When kept: one plain sentence, ≤ 15 words, no "How ..." / "Comparing ..." openers, no
+   metaphors, no stacked clauses, and it must never wrap at 1920 px (≈ 110 characters).
    No other prose anywhere: no notes, no takeaways, no formula blocks below the chart.
    Essential formulas go inside the SVG as a short Menlo annotation.
    Axes must end where the data ends: never an x-axis to 10 s when the trace stops at 6 s.
@@ -55,14 +66,27 @@ CSS verbatim where possible. Key facts of the template:
 4. Footer.
 
 ## Controls (the "dials")
-- Control bar under the slide with this CSS (copy it):
-  .bar { display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center; padding:14px 18px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
-  .group { display:flex; align-items:center; gap:8px; }
-  .group label { font-size:13px; font-weight:700; color:var(--ink); }
-  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
-  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+- Control bar under the slide, in TWO ROWS: `<div class="row">` holds the transport buttons,
+  the selects and Speed, packed to the left; `<div class="row dials">` holds the sliders, each
+  group stretching so the sliders fill the row edge to edge (omit the row if there are no
+  sliders). CSS (copy it):
+  .bar { display:flex; flex-direction:column; gap:12px; padding:12px 24px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:19px; color:var(--ink); }
+  .bar .row { display:flex; justify-content:flex-start; align-items:center; gap:16px 32px; flex-wrap:wrap; }
+  .bar .row.dials .group { flex:1 1 0; }
+  .bar .row.dials input[type=range] { flex:1 1 auto; width:auto; }
+  .group { display:flex; align-items:center; gap:10px; }
+  .group label { font-size:18px; font-weight:700; color:var(--ink); white-space:nowrap; }
+  .group[hidden] { display:none; }
+  .val { font-family:var(--mono); font-size:19px; font-weight:700; color:var(--ma); min-width:5ch; white-space:nowrap; }
+  button, select { font:inherit; font-size:18px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:6px; padding:9px 16px; cursor:pointer; }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
-  input[type=range] { accent-color:var(--ma); width:200px; height:30px; cursor:pointer; }
+  button.tb { min-width:54px; padding:9px 12px; font-size:22px; line-height:1; }
+  button.primary.tb { min-width:64px; }
+  input[type=range] { -webkit-appearance:none; appearance:none; accent-color:var(--ma); width:260px; height:36px; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; box-shadow:0 0 0 1.5px var(--ma); margin-top:-9px; }
+  input[type=range]::-moz-range-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-moz-range-thumb { width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; }
 - Order: Prev / Play / Next / Restart / Reset dials, then the parameter dials, then Speed.
 - Every slider has a bold blue mono `.val` readout beside it. Labels sentence-case, dark.
 - Speed menu: very slow / slow / normal / fast / instant. Animations must be meaningful at

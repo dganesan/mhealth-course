@@ -20,38 +20,47 @@
   .stage { max-width: 1880px; margin: 0 auto; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; height: calc(100vh - 20px); }
   .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 16px 30px 8px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 6px; min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none; }
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
-  .head h1 { margin: 0; font-size: clamp(20px, 2.2vw, 28px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
-  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
-  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .head h1 { margin: 0; font-size: clamp(24px, 2.4vw, 36px); font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
+  .head p:empty { display: none; }
   .chart-wrap { position: relative; min-height: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
-  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 15px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
-  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 14px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
-  .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
-  .group { display:flex; align-items:center; gap:8px; }
-  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
-  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
-  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  .bar { display:flex; flex-direction:column; gap:12px; padding:12px 24px;
+         border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:19px; color:var(--ink); }
+  .bar .row { display:flex; justify-content:flex-start; align-items:center; gap:16px 32px; flex-wrap:wrap; }
+  .bar .row.dials .group { flex:1 1 0; }
+  .bar .row.dials input[type=range] { flex:1 1 auto; width:auto; }
+  .group { display:flex; align-items:center; gap:10px; }
+  .group label { font-size:18px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; white-space:nowrap; }
+  .val { font-family:var(--mono); font-size:19px; font-weight:700; color:var(--ma); min-width:5ch; white-space:nowrap; }
+  button, select { font:inherit; font-size:18px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:6px; padding:9px 16px; cursor:pointer; }
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
+  input[type=range] { -webkit-appearance:none; appearance:none; accent-color:var(--ma); width:260px; height:36px; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; box-shadow:0 0 0 1.5px var(--ma); margin-top:-9px; }
+  input[type=range]::-moz-range-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-moz-range-thumb { width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
-  .grid line { stroke: var(--grid); stroke-width: 1; }
-  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
-  .ptitle { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ink); }
-  .mono { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
+  .grid line { stroke: var(--grid); stroke-width: 1.3; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1.3; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 22px; fill: var(--ink-2); }
+  .ptitle { font-family: var(--sans); font-size: 20px; font-weight: 700; fill: var(--ink); }
+  .mono { font-family: var(--mono); font-size: 20px; fill: var(--ink); }
   .big { font-family: var(--mono); font-weight: 700; }
-  .legend text { font-family: var(--sans); font-size: 15px; fill: var(--ink); }
+  .legend text { font-family: var(--sans); font-size: 20px; fill: var(--ink); }
   @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
   .hint { display:none !important; }
-  button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
-  button.primary.tb { min-width:52px; }
+  button.tb { min-width:54px; padding:9px 12px; font-size:22px; line-height:1; }
+  button.primary.tb { min-width:64px; }
 </style>
 
 <div class="stage">
@@ -71,6 +80,7 @@
   </section>
 
   <div class="bar">
+   <div class="row">
     <div class="group">
       <button id="prev" class="tb" title="Previous step (←)">⏮</button>
       <button id="play" class="primary tb" title="Play / pause (space)">▶</button>
@@ -110,7 +120,7 @@
         <option value="0">instant</option>
       </select>
     </div>
-    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+   </div>
   </div>
 </div>
 
@@ -150,7 +160,7 @@
   function blues(f) { const a = [247, 251, 255], b = [8, 48, 107]; const c = a.map((v, i) => Math.round(v + (b[i] - v) * Math.pow(f, 0.85))); return `rgb(${c[0]},${c[1]},${c[2]})`; }
   function legend(items, x, y, parent) {
     const g = el('g', { class: 'legend' }, parent);
-    const rowH = 24, padX = 10, padY = 8;
+    const rowH = 30, padX = 10, padY = 8;
     const wdt = Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX + 34;
     x = Math.min(x, W - wdt - 6);
     el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
@@ -171,16 +181,16 @@
   const STEPS = [
     { id: 'streams', dur: 10, presets: { fam: 'all' },
       title: () => 'Three exercises: accuracy by sensor stream and feature family', tag: () => 'leave-one-subject-out · 93 sequences',
-      subtitle: () => 'Comparing accuracy across feature families for the gyroscope, the accelerometer and both.' },
+      subtitle: '' },
     { id: 'dir', dur: 10, presets: {},
-      title: () => 'Magnitude versus three-axis DTW on both sensors', tag: () => 'stacked T+F+D · 84% → 97%',
-      subtitle: () => 'Comparing DTW computed on the magnitude signal with DTW computed on all three axes.' },
+      title: 'Magnitude vs three-axis DTW on both sensors', tag: () => 'stacked T+F+D · 84% → 97%',
+      subtitle: '' },
     { id: 'prog', dur: 10, presets: {},
       title: () => 'All 39 exercises: adding one dimension at a time', tag: () => '1284 sequences · chance 2.6%',
-      subtitle: () => 'How accuracy on all 39 exercises rises as each new dimension is added.' },
+      subtitle: '' },
     { id: 'pairs', dur: 12, presets: { pair: -1 },
       title: () => 'Residual errors: confusable variant pairs', tag: () => '39-class model · subject-grouped 5-fold',
-      subtitle: () => 'The confusion matrix of the 39-class model, with the confusable exercise pairs outlined.' },
+      subtitle: '' },
   ];
   function applyPresets(k) {
     const p = STEPS[k].presets;
@@ -214,8 +224,9 @@
       });
     });
     el('line', { x1: PL, x2: W - PR, y1: sy(33.3), y2: sy(33.3), stroke: 'var(--ink-3)', 'stroke-dasharray': '6 4' }, g);
+    el('rect', { x: W - PR - 4 - 312, y: sy(33.3) - 26, width: 316, height: 27, fill: '#fff', 'fill-opacity': 0.85 }, g);
     txt(W - PR - 4, sy(33.3) - 6, 'chance for three classes (33%)', { class: 'axis-title', 'text-anchor': 'end' }, g);
-    legend(STREAMS.map(s => ({ c: s.color, n: s.name, box: true })).concat([{ c: 'var(--ink-3)', n: 'chance (33%)', dash: true }]), PL + 14, PT + 8, chart);
+    legend(STREAMS.map(s => ({ c: s.color, n: s.name, box: true })).concat([{ c: 'var(--ink-3)', n: 'chance (33%)', dash: true }]), PL + gw * 1.5 - 96, PT + 8, chart);
     txt(W - PR, PT + 14, 'stacked T+F+D, both sensors: 84%', { class: 'mono', 'text-anchor': 'end', fill: 'var(--ink-2)' }, g);
   }
 
@@ -233,7 +244,7 @@
 
   function drawDir(p) {
     chart.innerHTML = '';
-    const cell = 110, y0 = 140, gap = 190, x0 = (W - (2 * 3 * cell + gap)) / 2 + 30;
+    const cell = 120, y0 = 120, gap = 190, x0 = (W - (2 * 3 * cell + gap)) / 2 + 30;
     DIR.forEach((d, k) => {
       const t = clamp01(p * 2 - k);
       const gx = x0 + k * (3 * cell + gap);
@@ -249,7 +260,7 @@
         if (k === 0) txt(gx - 8, y0 + i * cell + cell / 2 + 4, n, { class: 'axis-title', 'text-anchor': 'end' }, g);
       });
       txt(gx + 1.5 * cell, y0 + 3 * cell + 38, 'predicted', { class: 'axis-title', 'text-anchor': 'middle' }, g);
-      if (k === 0) txt(gx - 112, y0 + 1.5 * cell, 'true exercise', { class: 'axis-title', 'text-anchor': 'middle', transform: `rotate(-90 ${gx - 112} ${y0 + 1.5 * cell})` }, g);
+      if (k === 0) txt(gx - 150, y0 + 1.5 * cell, 'true exercise', { class: 'axis-title', 'text-anchor': 'middle', transform: `rotate(-90 ${gx - 150} ${y0 + 1.5 * cell})` }, g);
       const errs = Math.round((d.m[0][2] + d.m[2][0]) * t);
       txt(gx + 1.5 * cell, y0 + 3 * cell + 78, t > 0 ? `lateral raise ↔ crunch errors: ${errs}` : '', { class: 'mono', 'text-anchor': 'middle', fill: '#eb6834', 'font-weight': 700 }, g);
     });
@@ -281,17 +292,17 @@
       txt(cx, PT + ph + 24, b.label, { class: 'ptitle', 'text-anchor': 'middle' }, g);
       txt(cx, PT + ph + 42, ['gyroscope magnitude, T+F', 'gyroscope magnitude, T+F+D', 'both magnitudes, T+F+D', 'both sensors, 3-axis DTW'][i], { class: 'axis-title', 'text-anchor': 'middle' }, g);
       if (i > 0 && t >= 1) txt(cx, sy(v) - 34, `+${(b.v - PROG[i - 1].v).toFixed(0)} points`, { class: 'mono', 'text-anchor': 'middle', fill: 'var(--ink-2)' }, g);
-      if (i === 1 && t >= 1) txt(cx, sy(v) + 24, 'same features on 3 exercises: 82%', { class: 'axis-title', 'text-anchor': 'middle', fill: '#fff' }, g);
+      if (i === 1 && t >= 1) txt(cx, sy(v) - 58, 'same features on 3 exercises: 82%', { class: 'axis-title', 'text-anchor': 'middle' }, g);
     });
     el('line', { x1: PL, x2: W - PR, y1: sy(CHANCE39), y2: sy(CHANCE39), stroke: 'var(--ink-3)', 'stroke-dasharray': '6 4' }, g);
     txt(W - PR - 4, sy(CHANCE39) - 6, `chance (${CHANCE39}%)`, { class: 'axis-title', 'text-anchor': 'end' }, g);
-    txt(W - PR, PT + 14, 'final: 70.5% accuracy · 69.1% balanced accuracy', { class: 'mono', 'text-anchor': 'end', fill: 'var(--ink-2)' }, g);
+    txt(W - PR, PT - 12, 'final: 70.5% accuracy · 69.1% balanced accuracy', { class: 'mono', 'text-anchor': 'end', fill: 'var(--ink-2)' }, g);
     legend([{ c: '#2a78d6', n: 'accuracy on all 39 exercises', box: true }, { c: 'var(--ink-3)', n: 'chance (2.6%)', dash: true }], PL + 14, PT + 8, chart);
   }
 
   function drawPairs(p) {
     chart.innerHTML = '';
-    const n = PAIR_NAMES.length, cell = 40, x0 = 290, y0 = 24;
+    const n = PAIR_NAMES.length, cell = 36, x0 = 290, y0 = 12;
     const g = el('g', {}, chart);
     for (let i = 0; i < n; i++) {
       const rowSum = PCM[i].reduce((a, b) => a + b, 0);
@@ -314,7 +325,7 @@
       txt(x0 - 8, y0 + i * cell + cell / 2 + 4, nm, { class: 'axis-title', 'text-anchor': 'end', fill: dimmed ? 'var(--ink-3)' : 'var(--ink)' }, g);
       txt(x0 + i * cell + cell / 2, y0 + n * cell + 8, nm, { class: 'axis-title', 'text-anchor': 'end', fill: dimmed ? 'var(--ink-3)' : 'var(--ink)', transform: `rotate(-60 ${x0 + i * cell + cell / 2} ${y0 + n * cell + 8})` }, g);
     });
-    txt(x0 - 150, y0 + n * cell / 2, 'true exercise', { class: 'axis-title', 'text-anchor': 'middle', transform: `rotate(-90 ${x0 - 150} ${y0 + n * cell / 2})` }, g);
+    txt(x0 - 215, y0 + n * cell / 2, 'true exercise', { class: 'axis-title', 'text-anchor': 'middle', transform: `rotate(-90 ${x0 - 215} ${y0 + n * cell / 2})` }, g);
     txt(x0 + n * cell / 2, H - 6, 'predicted exercise', { class: 'axis-title', 'text-anchor': 'middle' }, g);
     // per-pair readout on the right
     const rx = x0 + n * cell + 60;

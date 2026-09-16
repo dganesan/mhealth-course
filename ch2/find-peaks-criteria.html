@@ -21,51 +21,60 @@
   .stage { max-width: 1880px; margin: 0 auto; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; height: calc(100vh - 20px); }
   .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 16px 30px 8px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 6px; min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none; }
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
-  .head h1 { margin: 0; font-size: clamp(20px, 2.2vw, 28px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
+  .head h1 { margin: 0; font-size: clamp(24px, 2.4vw, 36px); font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
   .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
-  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
-  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
+  .head p:empty { display: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
   .code .p { color: var(--ma); font-weight: 700; }
   .chart-wrap { position: relative; min-height: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
-  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 15px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 14px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
-  .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
-  .group { display:flex; align-items:center; gap:8px; }
-  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
-  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
-  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  .bar { display:flex; flex-direction:column; gap:12px; padding:12px 24px;
+         border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:19px; color:var(--ink); }
+  .bar .row { display:flex; justify-content:flex-start; align-items:center; gap:16px 32px; flex-wrap:wrap; }
+  .bar .row.dials .group { flex:1 1 0; }
+  .bar .row.dials input[type=range] { flex:1 1 auto; width:auto; }
+  .group { display:flex; align-items:center; gap:10px; }
+  .group label { font-size:18px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; white-space:nowrap; }
+  .val { font-family:var(--mono); font-size:19px; font-weight:700; color:var(--ma); min-width:5ch; white-space:nowrap; }
+  button, select { font:inherit; font-size:18px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:6px; padding:9px 16px; cursor:pointer; }
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
+  input[type=range] { -webkit-appearance:none; appearance:none; accent-color:var(--ma); width:260px; height:36px; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; box-shadow:0 0 0 1.5px var(--ma); margin-top:-9px; }
+  input[type=range]::-moz-range-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-moz-range-thumb { width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
-  .grid line { stroke: var(--grid); stroke-width: 1; }
-  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
-  .ptitle { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ink); }
-  .raw-line { fill: none; stroke: var(--raw); stroke-width: 1.5; }
-  .out-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
-  .thin-line { fill: none; stroke-width: 1.4; stroke-linejoin: round; }
+  .grid line { stroke: var(--grid); stroke-width: 1.3; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1.3; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 22px; fill: var(--ink-2); }
+  .ptitle { font-family: var(--sans); font-size: 20px; font-weight: 700; fill: var(--ink); }
+  .raw-line { fill: none; stroke: var(--raw); stroke-width: 2.0; }
+  .out-line { fill: none; stroke-width: 2.6; stroke-linejoin: round; stroke-linecap: round; }
+  .thin-line { fill: none; stroke-width: 1.8; stroke-linejoin: round; }
   .dash { stroke-dasharray: 5 4; }
   .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
-  .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
+  .dlabel { font-family: var(--sans); font-size: 17px; font-weight: 700; }
   .mono { font-family: var(--mono); }
-  .big { font-family: var(--mono); font-size: 22px; font-weight: 700; }
-  .badge { font-family: var(--mono); font-size: 15px; font-weight: 700; fill: var(--ink); }
-  .kept { fill: none; stroke: var(--ewma); stroke-width: 2.2; }
+  .big { font-family: var(--mono); font-size: 26px; font-weight: 700; }
+  .badge { font-family: var(--mono); font-size: 20px; font-weight: 700; fill: var(--ink); }
+  .kept { fill: none; stroke: var(--ewma); stroke-width: 2.9; }
   .cross { stroke: var(--raw-dot); stroke-width: 1.6; }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
   @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
   .hint { display:none !important; }
-  button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
-  button.primary.tb { min-width:52px; }
+  button.tb { min-width:54px; padding:9px 12px; font-size:22px; line-height:1; }
+  button.primary.tb { min-width:64px; }
 </style>
 
 <div class="stage">
@@ -86,6 +95,7 @@
   </section>
 
   <div class="bar">
+   <div class="row">
     <div class="group">
       <button id="prev" class="tb" title="Previous step (←)">⏮</button>
       <button id="play" class="primary tb" title="Play / pause (space)">▶</button>
@@ -100,6 +110,18 @@
         <option value="artifacts">with artifacts</option>
       </select>
     </div>
+    <div class="group">
+      <label for="speed">Speed</label>
+      <select id="speed">
+        <option value="0.25">very slow</option>
+        <option value="0.5">slow</option>
+        <option value="1" selected>normal</option>
+        <option value="2.5">fast</option>
+        <option value="0">instant</option>
+      </select>
+    </div>
+   </div>
+   <div class="row dials">
     <div class="group">
       <label for="height">height</label>
       <input type="range" id="height" min="-1" max="2" step="0.1" value="1">
@@ -120,18 +142,7 @@
       <input type="range" id="width" min="0.02" max="0.4" step="0.01" value="0.15">
       <span class="val" id="widthVal">0.15 s</span>
     </div>
-
-    <div class="group">
-      <label for="speed">Speed</label>
-      <select id="speed">
-        <option value="0.25">very slow</option>
-        <option value="0.5">slow</option>
-        <option value="1" selected>normal</option>
-        <option value="2.5">fast</option>
-        <option value="0">instant</option>
-      </select>
-    </div>
-    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play &nbsp; <kbd>r</kbd> restart</span>
+   </div>
   </div>
 </div>
 
@@ -264,8 +275,8 @@ function panel(parent, box, xd, yd, o = {}) {
 }
 function pathOf(xs, ys, upto) { let d = ''; const n = upto == null ? xs.length : upto; for (let i = 0; i < n; i++) d += (i ? 'L' : 'M') + xs[i].toFixed(1) + ',' + ys[i].toFixed(1); return d; }
 function legend(parent, x, y, items) {
-  const rowH = 24, padX = 10, padY = 8;
-  const wdt = Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX + 30;
+  const rowH = 30, padX = 10, padY = 8;
+  const wdt = Math.max(...items.map(i => i.n.length)) * 12.5 + 2 * padX + 34;
   x = Math.min(x, W - wdt - 6);
   el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, parent);
   items.forEach((it, j) => {
@@ -280,7 +291,7 @@ function legend(parent, x, y, items) {
   return wdt;
 }
 function cross(parent, x, y, s = 5, attrs = {}) { const g = el('g', Object.assign({ class: 'cross' }, attrs), parent); el('line', { x1: x - s, x2: x + s, y1: y - s, y2: y + s }, g); el('line', { x1: x - s, x2: x + s, y1: y + s, y2: y - s }, g); return g; }
-function badge(parent, x, y, s, color) { const g = el('g', {}, parent); const w = s.length * 11 + 18; el('rect', { x, y: y - 17, width: w, height: 24, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g); txt(g, x + 9, y, s, { class: 'badge', fill: color || 'var(--ink)' }); return g; }
+function badge(parent, x, y, s, color) { const g = el('g', {}, parent); const w = s.length * 12.5 + 20; el('rect', { x, y: y - 17, width: w, height: 24, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g); txt(g, x + 9, y, s, { class: 'badge', fill: color || 'var(--ink)' }); return g; }
 function tipAt(evt, html) {
   tt.innerHTML = html; tt.style.display = 'block';
   const wrap = chart.parentElement.getBoundingClientRect();
@@ -368,7 +379,7 @@ function wire() {
 const SIGNALS = { chapter: Y0, artifacts: artifactSignal() };
 const N = Y0.length, FS = 100, T = Array.from({ length: N }, (_, i) => i / FS);
 const W = 1400, H = 640;
-const BOX = { x: 84, y: 22, w: W - 84 - 36, h: 540 }, YD = [-1.9, 2.7];
+const BOX = { x: 84, y: 22, w: W - 84 - 36, h: 540 }, YD = [-1.9, 2.9];
 let Y, ALL, M;
 function setSignal(k) { if (Y === SIGNALS[k]) return; Y = SIGNALS[k]; ALL = findPeaks(Y).all; M = ALL.length; }   // every local maximum with prominence, bases and width
 defDial('sig', {}); setSignal(dial('sig'));
@@ -390,14 +401,14 @@ const px = a => G.P.sx(T[a.i]), py = a => G.P.sy(a.v);
 const drawCross = (a, faded) => cross(G.P.top, px(a), py(a), 5, faded ? { opacity: .3 } : {});
 const drawKept = a => el('circle', { cx: px(a), cy: py(a), r: 7.5, class: 'kept' }, G.P.top);
 const cursor = i => el('line', { x1: G.P.sx(T[i]), x2: G.P.sx(T[i]), y1: BOX.y, y2: BOX.y + BOX.h, stroke: 'var(--ink-2)', 'stroke-width': 1, 'stroke-dasharray': '3 3' }, G.P.top);
-const countBadge = (s, c) => badge(G.P.top, BOX.x + BOX.w - (s.length * 11 + 18) - 12, BOX.y + 54, s, c);
+const countBadge = (s, c) => badge(G.P.top, BOX.x + BOX.w - (s.length * 12.5 + 20) - 12, BOX.y + 54, s, c);
 const SIG = { c: C.blue, n: 'signal' }, MAXI = { k: 'cross', n: 'all local maxima' }, KEPT = { k: 'circle', n: 'kept by find_peaks' };
 let last = { n: 0 };
 
 const STEPS = [
   {
     title: 'Every local maximum', dur: 8, tag: () => `find_peaks(signal) → ${last.n} local maxima`,
-    subtitle: 'The local maxima find_peaks returns when called with no arguments.',
+    subtitle: 'find_peaks with no arguments returns every local maximum.',
     code: `peaks, _ = find_peaks(signal)`,
     setup() {}, draw(p) {
       base([SIG, MAXI]);
@@ -408,7 +419,7 @@ const STEPS = [
   {
     title: 'height: an absolute amplitude threshold', dur: 8, presets: { height: 1 },
     tag: () => `height = ${fmt(dial('height'), 1)} → ${last.n} kept`,
-    subtitle: 'How the height threshold keeps only maxima above an absolute amplitude.',
+    subtitle: '',
     code: () => `peaks, _ = find_peaks(signal, height=<b class="p">${fmt(dial('height'), 1)}</b>)`,
     setup() {}, draw(p) {
       base([SIG, MAXI, KEPT, { k: 'dash', c: C.ink, n: 'height threshold' }]);
@@ -448,7 +459,7 @@ const STEPS = [
   {
     title: 'prominence: rise above the local baseline', dur: 12, presets: { prom: 1.2 },
     tag: () => `prominence ≥ ${fmt(dial('prom'), 1)} → ${last.n} kept`,
-    subtitle: 'How prominence measures each maximum’s rise above the neighbouring valleys.',
+    subtitle: '',
     code: () => `peaks, _ = find_peaks(signal, prominence=<b class="p">${fmt(dial('prom'), 1)}</b>)`,
     setup() {}, draw(p) {
       base([SIG, MAXI, KEPT, { c: C.ink, n: 'prominence of each maximum' }]);
@@ -466,7 +477,7 @@ const STEPS = [
   {
     title: 'width: extent at half prominence', dur: 12, presets: { width: 0.15 },
     tag: () => `width ≥ ${wSamp()} samples (${fmt(dial('width'), 2)} s) → ${last.n} kept`,
-    subtitle: 'How the width parameter drops narrow spikes and keeps broad bumps.',
+    subtitle: 'Narrow spikes are dropped, broad bumps kept.',
     code: () => `peaks, _ = find_peaks(signal, width=<b class="p">${wSamp()}</b>)`,
     setup() {}, draw(p) {
       base([SIG, MAXI, KEPT, { c: C.ink, n: 'width at half prominence' }]);
@@ -483,7 +494,7 @@ const STEPS = [
   {
     title: 'distance and prominence together', dur: 8, presets: { dist: 0.4, prom: 1.2 },
     tag: () => `distance = ${dSamp()} samples · prominence = ${fmt(dial('prom'), 1)} → ${last.n} kept`,
-    subtitle: 'Combining distance and prominence to count each step exactly once.',
+    subtitle: '',
     code: () => `peaks, _ = find_peaks(signal, distance=<b class="p">${dSamp()}</b>, prominence=<b class="p">${fmt(dial('prom'), 1)}</b>)`,
     setup() { G.kept = new Set(findPeaks(Y, { distance: dSamp(), prominence: dial('prom') }).kept); },
     draw(p) {

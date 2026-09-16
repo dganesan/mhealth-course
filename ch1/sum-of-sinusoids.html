@@ -12,6 +12,7 @@
     --paper: #ffffff; --ink: #222222; --ink-2: #666666; --ink-3: #9a9a9a; --rule: #dcdcdc; --grid: #ececec;
     --raw: #8f8f8f; --ma: #2a78d6; --med: #1baf7a; --wm: #4a3aa7; --ewma: #eb6834;
     --c0: #2a78d6; --c1: #1baf7a; --c2: #eb6834; --c3: #4a3aa7; --c4: #c9a400;
+    --c5: #d6408f; --c6: #0f8b8d; --c7: #8c5a2b; --c8: #6b7280; --c9: #e0322b;
     --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
     --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
   }
@@ -20,38 +21,47 @@
   .stage { max-width: 1880px; margin: 0 auto; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; height: calc(100vh - 20px); }
   .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 16px 30px 8px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 6px; min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none; }
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
-  .head h1 { margin: 0; font-size: clamp(20px, 2.2vw, 28px); font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
-  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
-  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .head h1 { margin: 0; font-size: clamp(24px, 2.4vw, 36px); font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
+  .head p:empty { display: none; }
   .chart-wrap { position: relative; min-height: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
-  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 14px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
-  .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
-  .group { display:flex; align-items:center; gap:8px; }
-  .group label { font-size:13px; font-weight:700; color:var(--ink); }
-  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:3ch; }
-  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  .bar { display:flex; flex-direction:column; gap:12px; padding:12px 24px;
+         border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:19px; color:var(--ink); }
+  .bar .row { display:flex; justify-content:flex-start; align-items:center; gap:16px 32px; flex-wrap:wrap; }
+  .bar .row.dials .group { flex:1 1 0; }
+  .bar .row.dials input[type=range] { flex:1 1 auto; width:auto; }
+  .group { display:flex; align-items:center; gap:10px; }
+  .group label { font-size:18px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; white-space:nowrap; }
+  .val { font-family:var(--mono); font-size:19px; font-weight:700; color:var(--ma); min-width:5ch; white-space:nowrap; }
+  button, select { font:inherit; font-size:18px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:6px; padding:9px 16px; cursor:pointer; }
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
-  button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
-  button.primary.tb { min-width:52px; }
-  .grid line { stroke: var(--grid); stroke-width: 1; }
-  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
-  .lane-lab { font-family: var(--mono); font-size: 15px; font-weight: 700; }
-  .lane-sub { font-family: var(--sans); font-size: 15px; fill: var(--ink-2); }
-  .plus { font-family: var(--sans); font-size: 46px; font-weight: 700; fill: #c8c8c8; }
+  input[type=range] { -webkit-appearance:none; appearance:none; accent-color:var(--ma); width:260px; height:36px; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; box-shadow:0 0 0 1.5px var(--ma); margin-top:-9px; }
+  input[type=range]::-moz-range-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-moz-range-thumb { width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; }
+  button.tb { min-width:54px; padding:9px 12px; font-size:22px; line-height:1; }
+  button.primary.tb { min-width:64px; }
+  .grid line { stroke: var(--grid); stroke-width: 1.3; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1.3; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 22px; fill: var(--ink-2); }
+  .lane-lab { font-family: var(--mono); font-size: 20px; font-weight: 700; }
+  .lane-sub { font-family: var(--sans); font-size: 20px; fill: var(--ink-2); }
+  .plus { font-family: var(--sans); font-weight: 700; fill: #c8c8c8; }
   .plus.on { fill: var(--ink); }
   .lane-hi { fill: #eef4fc; }
-  .trace { fill: none; stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; }
+  .trace { fill: none; stroke-width: 3.1; stroke-linejoin: round; stroke-linecap: round; }
   .faint { fill: none; stroke: var(--raw); stroke-width: 1.4; opacity: .55; }
   .stem { stroke-width: 4; stroke-linecap: round; }
-  .ptitle { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ink); }
-  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .ptitle { font-family: var(--sans); font-size: 20px; font-weight: 700; fill: var(--ink); }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 15px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   @media (prefers-reduced-motion: reduce) { .fade { transition: none !important; } }
 </style>
 
@@ -72,6 +82,7 @@
   </section>
 
   <div class="bar">
+   <div class="row">
     <div class="group">
       <button id="prev" class="tb" title="Previous step (←)">⏮</button>
       <button id="play" class="primary tb" title="Play / pause (space)">▶</button>
@@ -88,11 +99,6 @@
       <button id="shuffle" title="Draw a new random set of sinusoids">New random</button>
     </div>
     <div class="group">
-      <label for="k">Sinusoids</label>
-      <input type="range" id="k" min="2" max="5" step="1" value="4">
-      <span class="val" id="kVal">4</span>
-    </div>
-    <div class="group">
       <label for="speed">Speed</label>
       <select id="speed">
         <option value="0.25">very slow</option>
@@ -102,6 +108,14 @@
         <option value="0">instant</option>
       </select>
     </div>
+   </div>
+   <div class="row dials">
+    <div class="group">
+      <label for="k">Sinusoids</label>
+      <input type="range" id="k" min="2" max="10" step="1" value="4">
+      <span class="val" id="kVal">4</span>
+    </div>
+   </div>
   </div>
 </div>
 
@@ -115,7 +129,7 @@ const txt = (parent, x, y, s, attrs = {}) => { const t = el('text', Object.assig
 const fmt = (v, d = 2) => (Math.round(v * Math.pow(10, d)) / Math.pow(10, d)).toFixed(d);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const chart = $('chart');
-const COL = ['var(--c0)', 'var(--c1)', 'var(--c2)', 'var(--c3)', 'var(--c4)'];
+const COL = Array.from({ length: 10 }, (_, k) => `var(--c${k})`);
 
 // ------------------------------------------------------------ signal
 const FS = 100, DUR = 4, N = FS * DUR, T = Array.from({ length: N }, (_, i) => i / FS);
@@ -123,13 +137,20 @@ let seed = 7;
 function rng() { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }
 function walkComponents(K) {
   // gravity plus a step cadence and its harmonics, like an accelerometer magnitude while walking
-  const base = [{ f: 0, A: 9.8, ph: 0, name: 'gravity (0 Hz)' }, { f: 1.8, A: 2.0, ph: 0.4 }, { f: 3.6, A: 0.9, ph: 1.9 }, { f: 5.4, A: 0.45, ph: 0.8 }, { f: 7.2, A: 0.25, ph: 2.6 }];
+  const amps = [2.0, 0.9, 0.45, 0.25, 0.15, 0.1, 0.07, 0.05, 0.035], phs = [0.4, 1.9, 0.8, 2.6, 1.2, 3.0, 0.3, 2.2, 1.5];
+  const base = [{ f: 0, A: 9.8, ph: 0, name: 'gravity (0 Hz)' }];
+  amps.forEach((A, i) => base.push({ f: Math.round(1.8 * (i + 1) * 10) / 10, A, ph: phs[i] }));
   return base.slice(0, K);
 }
 function randomComponents(K) {
   const out = [];
+  const fHi = Math.max(6, 1.4 * K);                        // wider band when there are many sinusoids
   for (let k = 0; k < K; k++) {
-    const f = Math.round((0.5 + rng() * 5.5) * 10) / 10;
+    let f = 0;
+    for (let tries = 0; tries < 50; tries++) {                // keep the stems apart on the spectrum
+      f = Math.round((0.5 + rng() * (fHi - 0.5)) * 10) / 10;
+      if (out.every(c => Math.abs(c.f - f) >= 0.5)) break;
+    }
     out.push({ f, A: Math.round((0.4 + rng() * 1.4) * 10) / 10, ph: rng() * 2 * Math.PI });
   }
   return out.sort((a, b) => a.f - b.f);
@@ -140,6 +161,10 @@ function build() {
   COMP = dial('example') === 'walk' ? walkComponents(K) : randomComponents(K);
   COMP.forEach(c => { c.y = T.map(t => c.A * Math.cos(2 * Math.PI * c.f * t + c.ph)); });
   SUM = T.map((_, i) => COMP.reduce((s, c) => s + c.y[i], 0));
+  // more lanes need a taller chart and a wider spectrum axis
+  H = K <= 5 ? 600 : 600 + (K - 5) * 40;
+  chart.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  FMAX = Math.max(8, Math.ceil(Math.max(...COMP.map(c => c.f)) / 2) * 2 + 2);
 }
 const partialSum = m => T.map((_, i) => COMP.slice(0, m).reduce((s, c) => s + c.y[i], 0));
 
@@ -159,10 +184,10 @@ defDial('k', { val: 'kVal', parse: parseInt });
 defDial('example', {});
 
 // ------------------------------------------------------------ layout
-const W = 1320, H = 600;
-const LX = 200, LW = 690;                 // stacked lanes (left)
-const SX = 960, SW = 320;                 // spectrum (right)
-const FMAX = 8;
+const W = 1320; let H = 600;
+const LX = 210, LW = 680;                 // stacked lanes (left)
+const SX = 985, SW = 300;                 // spectrum (right)
+let FMAX = 8;
 function laneBoxes(K) {
   const top = 14, gap = 12, sumH = 150, bottom = 30;
   const laneH = (H - top - bottom - sumH - gap * K) / K;
@@ -184,7 +209,7 @@ function drawLane(box, comp, k, upto, opts = {}) {
   el('path', { d: `M${box.x},${box.y}V${box.y + box.h}`, class: 'axis' }, el('g', { class: 'axis' }, g));
   const lab = comp.name || `${fmt(comp.f, 1)} Hz`;
   txt(g, box.x - 12, box.y + box.h / 2 - 4, lab, { class: 'lane-lab', fill: COL[k], 'text-anchor': 'end' });
-  txt(g, box.x - 12, box.y + box.h / 2 + 15, `A = ${fmt(comp.A, 1)}`, { class: 'lane-sub', 'text-anchor': 'end' });
+  txt(g, box.x - 12, box.y + box.h / 2 + 15, `A = ${fmt(comp.A, comp.A < 0.1 ? 2 : 1)}`, { class: 'lane-sub', 'text-anchor': 'end' });
   if (opts.faint) el('path', { d: pathOf(comp.y, sy), class: 'faint' }, g);
   el('path', { d: pathOf(comp.y, sy, upto), class: 'trace', stroke: COL[k], opacity: opts.dim ? .25 : 1, 'stroke-width': opts.hi ? 3.2 : 2.4 }, g);
   return g;
@@ -201,7 +226,11 @@ function drawSum(box, ys, upto, opts = {}) {
   for (let t = 0; t <= DUR; t++) { el('line', { x1: xs(t), x2: xs(t), y1: box.y, y2: box.y + box.h }, gr); txt(ax, xs(t), box.y + box.h + 20, t, { 'text-anchor': 'middle' }); }
   txt(g, box.x + box.w, box.y + box.h + 20, 'time (s)', { class: 'axis-title', 'text-anchor': 'end', dx: -40 });
   txt(g, box.x - 66, box.y + box.h / 2 - 4, opts.label || 'sum', { class: 'lane-lab', fill: 'var(--ink)', 'text-anchor': 'end' });
-  if (opts.sub) txt(g, box.x - 66, box.y + box.h / 2 + 15, opts.sub, { class: 'lane-sub', 'text-anchor': 'end', fill: opts.color || 'var(--ink-2)', 'font-weight': opts.color ? 700 : 400 });
+  if (opts.sub) {
+    const sp = opts.sub.indexOf(' ');
+    const lines = opts.sub.length > 14 && sp > 0 ? [opts.sub.slice(0, sp), opts.sub.slice(sp + 1)] : [opts.sub];
+    lines.forEach((ln, j) => txt(g, box.x - 66, box.y + box.h / 2 + 15 + j * 22, ln, { class: 'lane-sub', 'text-anchor': 'end', fill: opts.color || 'var(--ink-2)', 'font-weight': opts.color ? 700 : 400 }));
+  }
   const cid = 'clip' + Math.random().toString(36).slice(2, 8);
   el('rect', { x: box.x, y: box.y - 2, width: box.w, height: box.h + 4 }, el('clipPath', { id: cid }, g));
   const cg = el('g', { 'clip-path': `url(#${cid})` }, g);
@@ -211,7 +240,7 @@ function drawSum(box, ys, upto, opts = {}) {
 }
 function drawPlus(boxAbove, boxBelow, k, on, sign = '+', color) {
   const y = (boxAbove.y + boxAbove.h + boxBelow.y) / 2 + 16;
-  const t = txt(chart, LX - 64, y, sign, { class: 'plus' + (on ? ' on' : ''), 'text-anchor': 'middle' });
+  const t = txt(chart, COMP.length > 5 ? LX - 150 : LX - 64, y, sign, { class: 'plus' + (on ? ' on' : ''), 'text-anchor': 'middle', 'font-size': Math.min(60, Math.round(boxAbove.h * 0.85)) });
   if (color) t.setAttribute('fill', color);
 }
 function drawSpectrum(m, opts = {}) {
@@ -221,10 +250,10 @@ function drawSpectrum(m, opts = {}) {
   const sy = yScale(box, 0, amax), sx = f => box.x + f / FMAX * box.w;
   const gr = el('g', { class: 'grid' }, g), ax = el('g', { class: 'axis' }, g);
   niceTicks(0, amax, 4).forEach(v => { el('line', { x1: box.x, x2: box.x + box.w, y1: sy(v), y2: sy(v) }, gr); txt(ax, box.x - 10, sy(v) + 5, fmt(v, 1), { 'text-anchor': 'end' }); });
-  for (let f = 0; f <= FMAX; f += 2) { el('line', { x1: sx(f), x2: sx(f), y1: box.y, y2: box.y + box.h }, gr); txt(ax, sx(f), box.y + box.h + 20, f, { 'text-anchor': 'middle' }); }
+  for (let f = 0; f <= FMAX; f += FMAX > 12 ? 4 : 2) { el('line', { x1: sx(f), x2: sx(f), y1: box.y, y2: box.y + box.h }, gr); txt(ax, sx(f), box.y + box.h + 20, f, { 'text-anchor': 'middle' }); }
   el('path', { d: `M${box.x},${box.y}V${box.y + box.h}H${box.x + box.w}` }, ax);
   txt(g, box.x + box.w / 2, box.y + box.h + 44, 'frequency (Hz)', { class: 'axis-title', 'text-anchor': 'middle' });
-  const yt = txt(g, 0, 0, 'amplitude', { class: 'axis-title', 'text-anchor': 'middle' }); yt.setAttribute('transform', `translate(${box.x - 52},${box.y + box.h / 2}) rotate(-90)`);
+  const yt = txt(g, 0, 0, 'amplitude', { class: 'axis-title', 'text-anchor': 'middle' }); yt.setAttribute('transform', `translate(${box.x - 70},${box.y + box.h / 2}) rotate(-90)`);
   txt(g, box.x, box.y - 22, 'spectrum of the sum', { class: 'ptitle' });
   COMP.forEach((c, k) => {
     const on = k < m;
@@ -244,9 +273,9 @@ function niceTicks(lo, hi, n = 5) {
 let G = {};
 const STEPS = [
   {
-    title: 'Pure sinusoids', dur: 6,
-    tag: () => `${COMP.length} sinusoids · ${COMP.map(c => fmt(c.f, 1) + ' Hz').join(' · ')}`,
-    subtitle: 'Each row is one sinusoid with its own frequency, amplitude and phase.',
+    title: 'Pure sinusoids', get dur() { return 1.5 * COMP.length; },
+    tag: () => `${COMP.length} sinusoids · ` + (COMP.length <= 5 ? COMP.map(c => fmt(c.f, 1) + ' Hz').join(' · ') : `${fmt(COMP[0].f, 1)}–${fmt(COMP[COMP.length - 1].f, 1)} Hz`),
+    subtitle: '',
     presets: {},
     setup() {}, draw(p) {
       chart.innerHTML = '';
@@ -260,9 +289,9 @@ const STEPS = [
     }
   },
   {
-    title: 'Adding the sinusoids one at a time', dur: 10,
+    title: 'Adding the sinusoids one at a time', get dur() { return 2.5 * COMP.length; },
     tag: () => `${COMP.length} sinusoids → one signal`,
-    subtitle: 'The sum at the bottom grows as each sinusoid is added to it.',
+    subtitle: '',
     presets: {},
     setup() {}, draw(p) {
       chart.innerHTML = '';
@@ -278,9 +307,9 @@ const STEPS = [
     }
   },
   {
-    title: 'A walking-like signal', dur: 10,
+    title: 'Building a walking-like signal', get dur() { return 2.5 * COMP.length; },
     tag: () => `${COMP.length} sinusoids · cadence ${COMP[1] ? fmt(COMP[1].f, 1) : '–'} Hz`,
-    subtitle: 'Gravity plus a step cadence and its harmonics adds up to a signal like the accelerometer magnitude.',
+    subtitle: 'Gravity plus a step cadence and its harmonics looks like an accelerometer magnitude.',
     presets: { example: 'walk', k: 4 },
     setup() {}, draw(p) { STEPS[1].draw(p); }
   }

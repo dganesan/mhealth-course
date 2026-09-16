@@ -59,10 +59,9 @@
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
   .head h1 {
     margin: 0;
-    font-size: clamp(20px, 2.2vw, 28px);
+    font-size: clamp(24px, 2.4vw, 36px);
     font-weight: 700;
     letter-spacing: -0.01em;
-    text-wrap: balance;
     line-height: 1.15;
   }
   .head h1 .tag {
@@ -78,8 +77,9 @@
     border-radius: 4px;
     white-space: nowrap;
   }
-  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
-  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
+  .head p:empty { display: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
   .code .p { color: var(--ma); font-weight: 700; }
 
@@ -88,43 +88,53 @@
   .tt {
     position: absolute; pointer-events: none; display: none;
     background: #fff; border: 1px solid var(--rule); border-radius: 4px;
-    padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink);
+    padding: 6px 9px; font-family: var(--mono); font-size: 15px; color: var(--ink);
+    box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2;
+  }
     box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2;
   }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
 
-  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 14px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
 
   /* ---------- control bar ---------- */
-  .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
-  .group { display:flex; align-items:center; gap:8px; }
-  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
-  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
-  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  .bar { display:flex; flex-direction:column; gap:12px; padding:12px 24px;
+         border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:19px; color:var(--ink); }
+  .bar .row { display:flex; justify-content:flex-start; align-items:center; gap:16px 32px; flex-wrap:wrap; }
+  .bar .row.dials .group { flex:1 1 0; }
+  .bar .row.dials input[type=range] { flex:1 1 auto; width:auto; }
+  .group { display:flex; align-items:center; gap:10px; }
+  .group label { font-size:18px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; white-space:nowrap; }
+  .val { font-family:var(--mono); font-size:19px; font-weight:700; color:var(--ma); min-width:5ch; white-space:nowrap; }
+  button, select { font:inherit; font-size:18px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:6px; padding:9px 16px; cursor:pointer; }
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
+  input[type=range] { -webkit-appearance:none; appearance:none; accent-color:var(--ma); width:260px; height:36px; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; box-shadow:0 0 0 1.5px var(--ma); margin-top:-9px; }
+  input[type=range]::-moz-range-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-moz-range-thumb { width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
 
   /* ---------- svg parts ---------- */
-  .grid line { stroke: var(--grid); stroke-width: 1; }
-  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
-  .raw-line { fill: none; stroke: var(--raw); stroke-width: 1.5; }
-  .out-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
-  .thin-line { fill: none; stroke-width: 1.3; stroke-linejoin: round; }
+  .grid line { stroke: var(--grid); stroke-width: 1.3; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1.3; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 22px; fill: var(--ink-2); }
+  .raw-line { fill: none; stroke: var(--raw); stroke-width: 2.0; }
+  .out-line { fill: none; stroke-width: 2.6; stroke-linejoin: round; stroke-linecap: round; }
+  .thin-line { fill: none; stroke-width: 1.7; stroke-linejoin: round; }
   .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
-  .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
-  .mono { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
-  .mono-2 { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
-  .note { font-family: var(--sans); font-size: 15px; fill: var(--ink-2); }
+  .dlabel { font-family: var(--sans); font-size: 17px; font-weight: 700; }
+  .mono { font-family: var(--mono); font-size: 20px; fill: var(--ink); }
+  .mono-2 { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
+  .note { font-family: var(--sans); font-size: 20px; fill: var(--ink-2); }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
-  .cursor-line { stroke: var(--ink); stroke-width: 1; stroke-dasharray: 3 3; opacity: .7; }
+  .cursor-line { stroke: var(--ink); stroke-width: 1.3; stroke-dasharray: 3 3; opacity: .7; }
 
   @media (max-width: 720px) {
     .slide { padding: 18px 16px 12px; min-height: 0; }
@@ -132,8 +142,8 @@
   }
 
   .hint { display:none !important; }
-  button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
-  button.primary.tb { min-width:52px; }
+  button.tb { min-width:54px; padding:9px 12px; font-size:22px; line-height:1; }
+  button.primary.tb { min-width:64px; }
 </style>
 
 <div class="stage">
@@ -154,17 +164,13 @@
   </section>
 
   <div class="bar">
+   <div class="row">
     <div class="group">
       <button id="prev" class="tb" title="Previous step (←)">⏮</button>
       <button id="play" class="primary tb" title="Play / pause (space)">▶</button>
       <button id="next" class="tb" title="Next step (→)">⏭</button>
       <button id="restart" class="tb" title="Restart this step (r)">↺</button>
       <button id="reset" title="Reset all dials to the step's presets">Reset dials</button>
-    </div>
-    <div class="group">
-      <label for="start">Segment start</label>
-      <input type="range" id="start" min="0" max="5" step="0.5" value="0">
-      <span class="val" id="startVal">0.0 s</span>
     </div>
     <div class="group">
       <label for="axes">Axes shown</label>
@@ -185,7 +191,14 @@
         <option value="instant">instant</option>
       </select>
     </div>
-    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+   </div>
+   <div class="row dials">
+    <div class="group">
+      <label for="start">Segment start</label>
+      <input type="range" id="start" min="0" max="5" step="0.5" value="0">
+      <span class="val" id="startVal">0.0 s</span>
+    </div>
+   </div>
   </div>
 </div>
 
@@ -229,8 +242,9 @@ const TRACES = {
   }
   // conventional legend on a white 90 % rounded rect
   function drawLegend(parent, x, y, items) {
-    const rowH = 24, padX = 10, padY = 8;
-    const wdt = Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX + 40;
+    const rowH = 30, padX = 10, padY = 8;
+    const wdt = Math.max(...items.map(i => i.n.length)) * 11 + 2 * padX + 40;
+    x = Math.min(x, W - wdt - 6);
     const g = el('g', {}, parent);
     el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
     items.forEach((it, j) => {
@@ -238,6 +252,22 @@ const TRACES = {
       if (it.fill) el('rect', { x: x + padX, y: yy - 6, width: 18, height: 12, fill: it.c, 'fill-opacity': it.op == null ? .35 : it.op, stroke: it.stroke || 'none', 'stroke-dasharray': it.dash ? '3 3' : 'none' }, g);
       else el('line', { x1: x + padX, x2: x + padX + 18, y1: yy, y2: yy, stroke: it.c, 'stroke-width': it.w || 2.5, 'stroke-dasharray': it.dash ? '5 4' : 'none' }, g);
       txt(g, x + padX + 26, yy + 4, it.n, { class: 'axis-title', fill: 'var(--ink)' });
+    });
+    return g;
+  }
+  // single-row legend, right-aligned at xr (used where a stacked box would cover the traces)
+  function drawLegendRow(parent, xr, y, items) {
+    const padX = 10, gap = 18, sw = 18;
+    const ws = items.map(i => sw + 8 + i.n.length * 10);
+    const wdt = ws.reduce((a, b) => a + b, 0) + gap * (items.length - 1) + 2 * padX;
+    const x = xr - wdt;
+    const g = el('g', {}, parent);
+    el('rect', { x, y, width: wdt, height: 32, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
+    let cx = x + padX;
+    items.forEach((it, j) => {
+      el('line', { x1: cx, x2: cx + sw, y1: y + 16, y2: y + 16, stroke: it.c, 'stroke-width': it.w || 2.5 }, g);
+      txt(g, cx + sw + 8, y + 23, it.n, { class: 'axis-title', fill: 'var(--ink)' });
+      cx += ws[j] + gap;
     });
     return g;
   }
@@ -369,8 +399,8 @@ const TRACES = {
     steps: ORDER.map(act => ({
       act, title: () => `Accelerometer traces during ${NAME[act]}`, tag: tagTxt, subtitle: SUB[act], span: () => DUR
     })).concat([{
-      act: null, static: true, title: () => 'The six activities side by side', tag: tagTxt,
-      subtitle: 'Comparing all six activities on identical axes from the same user and phone.', span: () => DUR
+      act: null, static: true, title: () => 'Six activities side by side', tag: tagTxt,
+      subtitle: 'Same user, same phone, identical axes.', span: () => DUR
     }]),
     setup(step) { chart.innerHTML = ''; G = {}; if (step.act) setupSingle(step); else setupGrid(); },
     draw(step, t) { if (step.act) drawSingle(step, t); }
@@ -385,7 +415,7 @@ const TRACES = {
     drawAxes(chart, { x0: S.x0, x1: S.x1, y0: S.y0, y1: S.y1, xs, ys, xTicks: [0, 1, 2, 3, 4, 5], yTicks: [-20, -10, 0, 10, 20], xTitle: 'time (seconds)', yTitle: 'm/s²', xFmt: v => v });
     G.lines = el('g', {}, chart);
     G.cursor = el('g', {}, chart);
-    drawLegend(chart, S.x1 - 170, S.y0 + 8, selAxes().map(a => ({ c: a.c, n: a.n })));
+    drawLegend(chart, S.x1 - 220, S.y0 + 8, selAxes().map(a => ({ c: a.c, n: a.n })));
     G.hover = el('g', {}, chart);
     el('rect', { x: S.x0, y: S.y0, width: S.x1 - S.x0, height: S.y1 - S.y0, fill: 'transparent' }, chart);
   }
@@ -434,7 +464,7 @@ const TRACES = {
       txt(g, px0 + PW / 2, py0 - 8, NAME[act], { class: 'dlabel', 'text-anchor': 'middle', fill: 'var(--ink)' });
       const o = offset();
       selAxes().forEach(a => el('path', { class: 'thin-line', d: path(TRACES[act][a.k], o, NS - 1, pxs, pys), stroke: a.c, 'stroke-width': 1.1 }, g));
-      if (k === 0) drawLegend(g, px1 - 172, py0 + 4, selAxes().map(a => ({ c: a.c, n: a.n })));
+      if (k === 0) drawLegendRow(g, px1 - 4, py1 - 36, selAxes().map(a => ({ c: a.c, n: a.n })));   // bottom strip of the flat sitting panel
     });
   }
 

@@ -25,42 +25,51 @@
   .stage { max-width: 1880px; margin: 0 auto; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; height: calc(100vh - 20px); }
   .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 16px 30px 8px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 6px; min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none; }
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
-  .head h1 { margin: 0; font-size: clamp(20px, 2.2vw, 28px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
-  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
-  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
-  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .head h1 { margin: 0; font-size: clamp(24px, 2.4vw, 36px); font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
+  .head p:empty { display: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
   .code .p { color: var(--ma); font-weight: 700; }
   .chart-wrap { position: relative; min-height: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
-  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 15px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
-  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 14px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
-  .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
-  .group { display:flex; align-items:center; gap:8px; }
-  .group label { font-size:13px; font-weight:700; color:var(--ink); }
-  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
-  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  .bar { display:flex; flex-direction:column; gap:12px; padding:12px 24px;
+         border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:19px; color:var(--ink); }
+  .bar .row { display:flex; justify-content:flex-start; align-items:center; gap:16px 32px; flex-wrap:wrap; }
+  .bar .row.dials .group { flex:1 1 0; }
+  .bar .row.dials input[type=range] { flex:1 1 auto; width:auto; }
+  .group { display:flex; align-items:center; gap:10px; }
+  .group label { font-size:18px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; white-space:nowrap; }
+  .val { font-family:var(--mono); font-size:19px; font-weight:700; color:var(--ma); min-width:5ch; white-space:nowrap; }
+  button, select { font:inherit; font-size:18px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:6px; padding:9px 16px; cursor:pointer; }
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
+  input[type=range] { -webkit-appearance:none; appearance:none; accent-color:var(--ma); width:260px; height:36px; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; box-shadow:0 0 0 1.5px var(--ma); margin-top:-9px; }
+  input[type=range]::-moz-range-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-moz-range-thumb { width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
-  .grid line { stroke: var(--grid); stroke-width: 1; }
-  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
-  .cell-val { font-family: var(--mono); font-size: 14px; text-anchor: middle; pointer-events: none; }
-  .dlabel { font-family: var(--mono); font-size: 13px; font-weight: 700; }
-  .big { font-family: var(--mono); font-size: 17px; font-weight: 700; }
-  .formula { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .grid line { stroke: var(--grid); stroke-width: 1.3; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1.3; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 22px; fill: var(--ink-2); }
+  .cell-val { font-family: var(--mono); font-size: 18px; text-anchor: middle; pointer-events: none; }
+  .dlabel { font-family: var(--mono); font-size: 17px; font-weight: 700; }
+  .big { font-family: var(--mono); font-size: 22px; font-weight: 700; }
+  .formula { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
   .align { stroke: #999; stroke-width: 0.9; }
   @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
   .hint { display:none !important; }
-  button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
-  button.primary.tb { min-width:52px; }
+  button.tb { min-width:54px; padding:9px 12px; font-size:22px; line-height:1; }
+  button.primary.tb { min-width:64px; }
 </style>
 
 <div class="stage">
@@ -81,17 +90,13 @@
   </section>
 
   <div class="bar">
+   <div class="row">
     <div class="group">
       <button id="prev" class="tb" title="Previous step (←)">⏮</button>
       <button id="play" class="primary tb" title="Play / pause (space)">▶</button>
       <button id="next" class="tb" title="Next step (→)">⏭</button>
       <button id="restart" class="tb" title="Restart this step (r)">↺</button>
       <button id="reset" title="Reset all dials to the step presets">Reset dials</button>
-    </div>
-    <div class="group">
-      <label for="plateau">Peak samples in B</label>
-      <input type="range" id="plateau" min="1" max="5" step="1" value="3">
-      <span class="val" id="plateauVal">3</span>
     </div>
     <div class="group">
       <label for="speed">Speed</label>
@@ -103,7 +108,14 @@
         <option value="0">instant</option>
       </select>
     </div>
-    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+   </div>
+   <div class="row dials">
+    <div class="group">
+      <label for="plateau">Peak samples in B</label>
+      <input type="range" id="plateau" min="1" max="5" step="1" value="3">
+      <span class="val" id="plateauVal">3</span>
+    </div>
+   </div>
   </div>
 </div>
 
@@ -151,16 +163,16 @@
   const STEPS = [
     { id: 'local', kind: 'toy', phase: 'C',
       title: 'Local cost of matching one sample to another',
-      subtitle: 'How the local cost of matching each pair of samples fills the cost table.' },
+      subtitle: '' },
     { id: 'accum', kind: 'toy', phase: 'D',
       title: 'Accumulating cost with the recurrence',
-      subtitle: 'How the DTW recurrence accumulates cost from the three neighboring cells.' },
+      subtitle: 'Each cell adds its local cost to the cheapest of its three neighbours.' },
     { id: 'path', kind: 'toy', phase: 'P',
       title: 'Tracing the warping path back from the corner',
-      subtitle: 'Tracing the lowest-cost warping path back from the last cell to the first.' },
+      subtitle: '' },
     { id: 'rowing', kind: 'row', phase: 'DP',
       title: 'DTW on two rowing strokes of different pace',
-      subtitle: 'How DTW aligns a slow rowing stroke signal with a faster one.' },
+      subtitle: '' },
   ];
   const PRESET = { plateau: 3 };
 
@@ -286,7 +298,7 @@
     return from;
   }
   function readout(lines, color) {
-    const x = L.x0 + 10; let y = L.y0 + 18;
+    const x = L.x0 + 10; let y = L.y0 + 24;
     lines.forEach((s, k) => { txt(G.dyn, x, y, s, { class: k === 0 ? 'big' : 'dlabel', fill: color || 'var(--ink)' }); y += 22; });
   }
 
@@ -375,7 +387,8 @@
     const padX = 10, gap = 14, rows = [[]], widths = items.map(it => 26 + it.n.length * 10.5);
     let cur = 2 * padX;
     items.forEach((it, j) => { const add = widths[j] + (rows[rows.length - 1].length ? gap : 0); if (cur + add > maxW && rows[rows.length - 1].length) { rows.push([]); cur = 2 * padX; } cur += add; rows[rows.length - 1].push(j); });
-    rows.forEach((row, k) => legendRow(parent, xr, y - 26 * (rows.length - 1 - k), row.map(j => items[j])));
+    const shift = Math.max(0, 2 - (y - 26 * (rows.length - 1)));   // keep the top row inside the SVG
+    rows.forEach((row, k) => legendRow(parent, xr, y + shift - 26 * (rows.length - 1 - k), row.map(j => items[j])));
   }
   function legendRow(parent, xr, y, items) {
     const padX = 10, gap = 14, h = 24;

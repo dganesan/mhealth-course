@@ -1,0 +1,834 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Denoising a PPG Recording</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff;
+    --ink: #222222;
+    --ink-2: #666666;
+    --ink-3: #9a9a9a;
+    --rule: #dcdcdc;
+    --grid: #ececec;
+    --raw: #8f8f8f;
+    --raw-dot: #8c8c8c;
+    --clean: #444444;
+    --ma: #2a78d6;
+    --notch: #1baf7a;
+    --green: #1baf7a;
+    --noise: #eb6834;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--sans); font-size: 15px; line-height: 1.4;
+    padding-block: 10px 10px; padding-inline: 14px; -webkit-font-smoothing: antialiased;
+  }
+  .stage { max-width: 1880px; margin: 0 auto; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; height: calc(100vh - 20px); }
+  .slide {
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 6px;
+    padding: 16px 30px 8px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 6px;
+    min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none;
+  }
+  .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
+  .head h1 { margin: 0; font-size: clamp(24px, 2.4vw, 36px); font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
+  .head p:empty { display: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .code[hidden] { display: none; }
+  .code .p { color: var(--ma); font-weight: 700; }
+  .code .k { color: var(--ink-2); }
+
+  .chart-wrap { position: relative; min-height: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
+  svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
+  .tt {
+    position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px;
+    padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2;
+  }
+  .tt .row { display: flex; gap: 12px; justify-content: space-between; }
+  .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 14px; color: var(--ink-3); padding: 0; pointer-events: none; }
+  .foot .ctr { font-family: var(--mono); }
+
+  .bar { display:flex; flex-direction:column; gap:12px; padding:12px 24px;
+         border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:19px; color:var(--ink); }
+  .bar .row { display:flex; justify-content:flex-start; align-items:center; gap:16px 32px; flex-wrap:wrap; }
+  .bar .row.dials .group { flex:1 1 0; }
+  .bar .row.dials input[type=range] { flex:1 1 auto; width:auto; }
+  .group { display:flex; align-items:center; gap:10px; }
+  .group label { font-size:18px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; white-space:nowrap; }
+  .val { font-family:var(--mono); font-size:19px; font-weight:700; color:var(--ma); min-width:5ch; white-space:nowrap; }
+  button, select { font:inherit; font-size:18px; color:var(--ink); background:#fff; border:1px solid #9a9a9a;
+                   border-radius:6px; padding:9px 16px; cursor:pointer; }
+  button:hover, select:hover { border-color:var(--ink); }
+  button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
+  input[type=range] { -webkit-appearance:none; appearance:none; accent-color:var(--ma); width:260px; height:36px; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; box-shadow:0 0 0 1.5px var(--ma); margin-top:-9px; }
+  input[type=range]::-moz-range-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-moz-range-thumb { width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; }
+  input[type=range].narrow { width: 260px; }
+  .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
+  .hint kbd { font-family: var(--mono); background: #fff; border: 1px solid var(--rule); border-radius: 3px; padding: 0 5px; font-size: 11px; }
+
+  .grid line { stroke: var(--grid); stroke-width: 1; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
+  .ptitle { font-family: var(--sans); font-size: 21px; fill: var(--ink); font-weight: 700; }
+  .axis-title { font-family: var(--sans); font-size: 22px; fill: var(--ink-2); }
+  .raw-line { fill: none; stroke: var(--raw); stroke-width: 2; }
+  .clean-line { fill: none; stroke: var(--clean); stroke-width: 2; stroke-dasharray: 6 5; opacity: .8; }
+  .out-line { fill: none; stroke-width: 3.4; stroke-linejoin: round; stroke-linecap: round; }
+  .dot { stroke: #fff; stroke-width: 1.4; }
+  .legend rect.bg { fill: #fff; fill-opacity: .9; stroke: var(--rule); }
+  .legend text { font-family: var(--sans); font-size: 24px; fill: var(--ink); }
+  .legend line { stroke-width: 4; }
+  .anno { font-family: var(--mono); font-size: 19px; fill: var(--ink); }
+  .anno.muted { fill: var(--ink-3); }
+  .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
+
+  @media (max-width: 720px) {
+    .slide { padding: 18px 16px 12px; min-height: 0; }
+    .hint { display: none; }
+    input[type=range], input[type=range].narrow { width: 120px; }
+  }
+  .hint { display:none !important; }
+  button.tb { min-width:54px; padding:9px 12px; font-size:22px; line-height:1; }
+  button.primary.tb { min-width:64px; }
+
+  /* page-specific (same sizes as the reference pages) */
+  .lgrow text { font-family: var(--sans); font-size: 21px; fill: var(--ink); }
+  .band { fill: url(#hatch); }
+  .band-edge { stroke: #555; stroke-width: 1; stroke-dasharray: 3 3; }
+  .band-label { font-family: var(--sans); font-size: 20px; font-weight: 700; fill: var(--noise); paint-order: stroke; stroke: #fff; stroke-width: 4px; stroke-linejoin: round; }
+  .sig-label { font-family: var(--sans); font-size: 20px; font-weight: 700; fill: var(--ma); paint-order: stroke; stroke: #fff; stroke-width: 4px; stroke-linejoin: round; }
+  .dlabel { font-family: var(--mono); font-size: 19px; font-weight: 700; fill: var(--ma); paint-order: stroke; stroke: #fff; stroke-width: 4px; stroke-linejoin: round; }
+  .stagelist { font-family: var(--mono); font-size: 20px; font-weight: 700; fill: var(--green); }
+  .readout { font-family: var(--mono); font-size: 21px; font-weight: 700; fill: var(--ma); }
+  .gain text { font-family: var(--mono); font-size: 20px; fill: var(--green); }
+  .gain line { stroke: var(--green); stroke-width: 1; }
+  .gain .axis-title { fill: var(--green); }
+  .cursor { stroke: var(--ink-2); stroke-width: 1; stroke-dasharray: 3 3; }
+  .spec-raw { fill: none; stroke: var(--ma); stroke-width: 2.2; stroke-linejoin: round; }
+  .spec-noise { fill: none; stroke: var(--noise); stroke-width: 2.2; stroke-linejoin: round; }
+  .spec-faint { fill: none; stroke: var(--raw); stroke-width: 1.8; stroke-linejoin: round; opacity: .7; }
+  .resp-line { fill: none; stroke: var(--green); stroke-width: 3; stroke-dasharray: 9 6; stroke-linejoin: round; }
+</style>
+
+<div class="stage">
+  <section class="slide" id="slide" tabindex="0" aria-live="polite">
+    <div class="head">
+      <h1 id="title"></h1>
+      <p id="subtitle"></p>
+      <pre class="code" id="code" hidden></pre>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" id="chart" viewBox="0 0 1400 740" role="img" aria-label="PPG time trace, its spectrum, the band-pass filter response and the filtered trace"></svg>
+      <div class="tt" id="tt"></div>
+    </div>
+    <div class="foot">
+      <span>CS328 &nbsp;·&nbsp; Sensor Data Smoothing and Filtering</span>
+      <span class="ctr" id="counter"></span>
+    </div>
+  </section>
+
+  <div class="bar">
+   <div class="row">
+    <div class="group">
+      <button id="prev" class="tb" title="Previous step (←)">⏮</button>
+      <button id="play" class="primary tb" title="Play / pause (space)">▶</button>
+      <button id="next" class="tb" title="Next step (→)">⏭</button>
+      <button id="restart" class="tb" title="Restart this step (r)">↺</button>
+      <button id="reset" title="Clear your dial changes and use the presets">Reset dials</button>
+    </div>
+    <div class="group">
+      <label for="speed">Speed</label>
+      <select id="speed">
+        <option value="0.25">very slow</option>
+        <option value="0.5">slow</option>
+        <option value="1" selected>normal</option>
+        <option value="2.5">fast</option>
+        <option value="0">instant</option>
+      </select>
+    </div>
+   </div>
+   <div class="row dials">
+    <div class="group">
+      <label for="lo">Low cutoff</label>
+      <input type="range" id="lo" class="narrow" min="0.1" max="1" step="0.05" value="0.5">
+      <span class="val" id="loval">0.50 Hz</span>
+    </div>
+    <div class="group">
+      <label for="hi">High cutoff</label>
+      <input type="range" id="hi" class="narrow" min="2" max="12" step="0.5" value="5">
+      <span class="val" id="hival">5.0 Hz</span>
+    </div>
+   </div>
+  </div>
+</div>
+
+<script>
+// Butterworth IIR design + filtering, mirroring scipy.signal.butter / lfilter / filtfilt.
+// Design path: analog Butterworth prototype (zpk) -> lp2lp / lp2hp / lp2bp / lp2bs -> bilinear -> SOS.
+// Usage:
+//   const sos = butter(4, 100, 1000, 'lowpass');            // cutoff Hz, fs Hz
+//   const sos = butter(4, [58, 62], 1000, 'bandstop');
+//   const y = sosfilt(sos, x);                              // causal (lfilter)
+//   const y = sosfiltfilt(sos, x);                          // zero-phase (filtfilt)
+//   const mag = sosFreqz(sos, fHz, fs);                     // |H| at one frequency
+(function (global) {
+  // ---- minimal complex arithmetic
+  const C = (re, im = 0) => ({ re, im });
+  const cadd = (a, b) => C(a.re + b.re, a.im + b.im);
+  const csub = (a, b) => C(a.re - b.re, a.im - b.im);
+  const cmul = (a, b) => C(a.re * b.re - a.im * b.im, a.re * b.im + a.im * b.re);
+  const cdiv = (a, b) => { const d = b.re * b.re + b.im * b.im; return C((a.re * b.re + a.im * b.im) / d, (a.im * b.re - a.re * b.im) / d); };
+  const csqrt = a => { const r = Math.hypot(a.re, a.im); const re = Math.sqrt(Math.max(0, (r + a.re) / 2)); const im = Math.sign(a.im || 1) * Math.sqrt(Math.max(0, (r - a.re) / 2)); return C(re, im); };
+  const cscale = (a, s) => C(a.re * s, a.im * s);
+
+  function buttap(N) { // analog prototype poles, unit cutoff
+    const p = [];
+    for (let k = 1; k <= N; k++) { const th = Math.PI * (2 * k - 1) / (2 * N); p.push(C(-Math.sin(th), Math.cos(th))); }
+    return { z: [], p, k: 1 };
+  }
+  function lp2lp(zpk, wo) { return { z: zpk.z.map(v => cscale(v, wo)), p: zpk.p.map(v => cscale(v, wo)), k: zpk.k * Math.pow(wo, zpk.p.length - zpk.z.length) }; }
+  function lp2hp(zpk, wo) {
+    const z = zpk.z.map(v => cdiv(C(wo), v)), p = zpk.p.map(v => cdiv(C(wo), v));
+    const deg = zpk.p.length - zpk.z.length;
+    for (let i = 0; i < deg; i++) z.push(C(0));
+    let num = C(1), den = C(1);
+    zpk.z.forEach(v => { num = cmul(num, cscale(v, -1)); });
+    zpk.p.forEach(v => { den = cmul(den, cscale(v, -1)); });
+    const kk = cdiv(num, den);
+    return { z, p, k: zpk.k * kk.re };
+  }
+  function lp2bp(zpk, wo, bw) {
+    const deg = zpk.p.length - zpk.z.length;
+    const tr = v => { const s = cscale(v, bw / 2); const r = csqrt(csub(cmul(s, s), C(wo * wo))); return [cadd(s, r), csub(s, r)]; };
+    const z = [], p = [];
+    zpk.z.forEach(v => z.push(...tr(v)));
+    zpk.p.forEach(v => p.push(...tr(v)));
+    for (let i = 0; i < deg; i++) z.push(C(0));
+    return { z, p, k: zpk.k * Math.pow(bw, deg) };
+  }
+  function lp2bs(zpk, wo, bw) {
+    const deg = zpk.p.length - zpk.z.length;
+    const tr = v => { const s = cdiv(C(bw / 2), v); const r = csqrt(csub(cmul(s, s), C(wo * wo))); return [cadd(s, r), csub(s, r)]; };
+    const z = [], p = [];
+    zpk.z.forEach(v => z.push(...tr(v)));
+    zpk.p.forEach(v => p.push(...tr(v)));
+    for (let i = 0; i < deg; i++) { z.push(C(0, wo)); z.push(C(0, -wo)); }
+    let num = C(1), den = C(1);
+    zpk.z.forEach(v => { num = cmul(num, cscale(v, -1)); });
+    zpk.p.forEach(v => { den = cmul(den, cscale(v, -1)); });
+    const kk = cdiv(num, den);
+    return { z, p, k: zpk.k * kk.re };
+  }
+  function bilinear(zpk, fs) {
+    const fs2 = 2 * fs;
+    const deg = zpk.p.length - zpk.z.length;
+    const tr = v => cdiv(cadd(C(fs2), v), csub(C(fs2), v));
+    const z = zpk.z.map(tr), p = zpk.p.map(tr);
+    for (let i = 0; i < deg; i++) z.push(C(-1));
+    let num = C(1), den = C(1);
+    zpk.z.forEach(v => { num = cmul(num, csub(C(fs2), v)); });
+    zpk.p.forEach(v => { den = cmul(den, csub(C(fs2), v)); });
+    const kk = cdiv(num, den);
+    return { z, p, k: zpk.k * kk.re };
+  }
+  // pair conjugates -> second-order sections [b0,b1,b2,a0,a1,a2]
+  function zpk2sos(zpk) {
+    const pairUp = arr => {
+      const rest = arr.slice(); const pairs = [];
+      while (rest.length) {
+        const a = rest.shift();
+        if (Math.abs(a.im) < 1e-9) { // real: pair with the nearest real
+          let j = rest.findIndex(v => Math.abs(v.im) < 1e-9);
+          if (j >= 0) { pairs.push([a, rest.splice(j, 1)[0]]); } else pairs.push([a]);
+        } else {
+          let j = rest.findIndex(v => Math.abs(v.re - a.re) < 1e-7 && Math.abs(v.im + a.im) < 1e-7);
+          if (j >= 0) { pairs.push([a, rest.splice(j, 1)[0]]); } else pairs.push([a, C(a.re, -a.im)]);
+        }
+      }
+      return pairs;
+    };
+    const poly = pr => { // (x - r1)(x - r2) -> real coefficients [1, c1, c2]
+      if (pr.length === 1) return [1, -pr[0].re, 0];
+      const s = cadd(pr[0], pr[1]), m = cmul(pr[0], pr[1]);
+      return [1, -s.re, m.re];
+    };
+    // sort poles by closeness to the unit circle so each section pairs zeros nearby (stability of cascade)
+    const P = zpk.p.slice().sort((a, b) => Math.hypot(b.re, b.im) - Math.hypot(a.re, a.im));
+    const Z = zpk.z.slice();
+    const pp = pairUp(P);
+    const sos = [];
+    pp.forEach((pair, idx) => {
+      // choose the zero(s) nearest this pole pair
+      const zs = [];
+      for (let n = 0; n < pair.length && Z.length; n++) {
+        let best = 0, bd = Infinity;
+        Z.forEach((v, j) => { const d = Math.hypot(v.re - pair[0].re, Math.abs(v.im) - Math.abs(pair[0].im)); if (d < bd) { bd = d; best = j; } });
+        const zz = Z.splice(best, 1)[0];
+        zs.push(zz);
+        if (Math.abs(zz.im) > 1e-9) { // also remove its conjugate
+          const cj = Z.findIndex(v => Math.abs(v.re - zz.re) < 1e-7 && Math.abs(v.im + zz.im) < 1e-7);
+          if (cj >= 0) { zs.push(Z.splice(cj, 1)[0]); n++; }
+        }
+      }
+      const b = zs.length ? poly(zs) : [1, 0, 0];
+      const a = poly(pair);
+      const g = idx === 0 ? zpk.k : 1;
+      sos.push([b[0] * g, b[1] * g, b[2] * g, a[0], a[1], a[2]]);
+    });
+    return sos;
+  }
+
+  function butter(N, cutoffHz, fs, btype = 'lowpass') {
+    const warp = f => 2 * fs * Math.tan(Math.PI * f / fs);
+    let zpk = buttap(N);
+    if (btype === 'lowpass') zpk = lp2lp(zpk, warp(cutoffHz));
+    else if (btype === 'highpass') zpk = lp2hp(zpk, warp(cutoffHz));
+    else {
+      const w1 = warp(cutoffHz[0]), w2 = warp(cutoffHz[1]);
+      const bw = w2 - w1, wo = Math.sqrt(w1 * w2);
+      zpk = btype === 'bandpass' ? lp2bp(zpk, wo, bw) : lp2bs(zpk, wo, bw);
+    }
+    return zpk2sos(bilinear(zpk, fs));
+  }
+
+  function sosfilt(sos, x, zi) { // direct form II transposed, per section
+    let y = Float64Array.from(x);
+    const st = zi || sos.map(() => [0, 0]);
+    sos.forEach(([b0, b1, b2, a0, a1, a2], s) => {
+      const z = st[s]; const out = new Float64Array(y.length);
+      for (let n = 0; n < y.length; n++) {
+        const xn = y[n];
+        const yn = b0 * xn + z[0];
+        z[0] = b1 * xn - a1 * yn + z[1];
+        z[1] = b2 * xn - a2 * yn;
+        out[n] = yn;
+      }
+      y = out;
+    });
+    return y;
+  }
+  // steady-state initial conditions for a step of amplitude 1 (like scipy sosfilt_zi)
+  function sosfiltZi(sos) {
+    let scale = 1;
+    return sos.map(([b0, b1, b2, a0, a1, a2]) => {
+      // solve for zi such that output is constant for constant input (scale)
+      const g = (b0 + b1 + b2) / (1 + a1 + a2); // dc gain of this section
+      const z0 = scale * ((b1 - a1 * b0) + (b2 - a2 * b0)) / (1 + a1 + a2) * 1; // approx via steady state
+      // exact: z1 = scale*(b2 - a2*b0)... use the standard linear solve
+      // Steady state: y = g*scale; z0 = y - b0*scale; z1 = z0 - (b1*scale - a1*y)
+      const y = g * scale;
+      const zz0 = y - b0 * scale;
+      const zz1 = zz0 - (b1 * scale - a1 * y);
+      scale = y;
+      return [zz0, zz1];
+    });
+  }
+  function sosfiltfilt(sos, x) {
+    const n = x.length;
+    const pad = Math.min(n - 1, 3 * 3 * sos.length); // ~ 3 * (order) samples (scipy: 3*max(len(a),len(b)))
+    // odd extension
+    const ext = new Float64Array(n + 2 * pad);
+    for (let i = 0; i < pad; i++) ext[i] = 2 * x[0] - x[pad - i];
+    for (let i = 0; i < n; i++) ext[pad + i] = x[i];
+    for (let i = 0; i < pad; i++) ext[pad + n + i] = 2 * x[n - 1] - x[n - 2 - i];
+    const zi = sosfiltZi(sos);
+    let y = sosfilt(sos, ext, zi.map(z => [z[0] * ext[0], z[1] * ext[0]]));
+    y.reverse();
+    y = sosfilt(sos, y, zi.map(z => [z[0] * y[0], z[1] * y[0]]));
+    y.reverse();
+    return y.slice(pad, pad + n);
+  }
+  function sosFreqz(sos, fHz, fs) { // magnitude response at a frequency (Hz)
+    const w = 2 * Math.PI * fHz / fs;
+    const e1 = C(Math.cos(-w), Math.sin(-w)), e2 = C(Math.cos(-2 * w), Math.sin(-2 * w));
+    let H = C(1);
+    sos.forEach(([b0, b1, b2, a0, a1, a2]) => {
+      const num = cadd(C(b0), cadd(cscale(e1, b1), cscale(e2, b2)));
+      const den = cadd(C(a0), cadd(cscale(e1, a1), cscale(e2, a2)));
+      H = cmul(H, cdiv(num, den));
+    });
+    return Math.hypot(H.re, H.im);
+  }
+  function sosPhase(sos, fHz, fs) {
+    const w = 2 * Math.PI * fHz / fs;
+    const e1 = C(Math.cos(-w), Math.sin(-w)), e2 = C(Math.cos(-2 * w), Math.sin(-2 * w));
+    let H = C(1);
+    sos.forEach(([b0, b1, b2, a0, a1, a2]) => {
+      const num = cadd(C(b0), cadd(cscale(e1, b1), cscale(e2, b2)));
+      const den = cadd(C(a0), cadd(cscale(e1, a1), cscale(e2, a2)));
+      H = cmul(H, cdiv(num, den));
+    });
+    return Math.atan2(H.im, H.re);
+  }
+
+  // ---- real FFT magnitude (radix-2, zero-padded), returns {f, mag} one-sided, mag scaled 2/N
+  function rfftMag(x, fs) {
+    let N = 1; while (N < x.length) N <<= 1;
+    const re = new Float64Array(N), im = new Float64Array(N);
+    for (let i = 0; i < x.length; i++) re[i] = x[i];
+    for (let i = 1, j = 0; i < N; i++) { // bit reversal
+      let bit = N >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit;
+      if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; }
+    }
+    for (let len = 2; len <= N; len <<= 1) {
+      const ang = -2 * Math.PI / len, wr = Math.cos(ang), wi = Math.sin(ang);
+      for (let i = 0; i < N; i += len) {
+        let cr = 1, ci = 0;
+        for (let j = 0; j < len / 2; j++) {
+          const ur = re[i + j], ui = im[i + j];
+          const vr = re[i + j + len / 2] * cr - im[i + j + len / 2] * ci;
+          const vi = re[i + j + len / 2] * ci + im[i + j + len / 2] * cr;
+          re[i + j] = ur + vr; im[i + j] = ui + vi;
+          re[i + j + len / 2] = ur - vr; im[i + j + len / 2] = ui - vi;
+          const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t;
+        }
+      }
+    }
+    const half = N / 2 + 1, f = new Float64Array(half), mag = new Float64Array(half);
+    for (let k = 0; k < half; k++) { f[k] = k * fs / N; mag[k] = 2 * Math.hypot(re[k], im[k]) / x.length; }
+    return { f, mag };
+  }
+
+  const api = { butter, sosfilt, sosfiltfilt, sosFreqz, sosPhase, rfftMag };
+  if (typeof module !== 'undefined') module.exports = api;
+  global.Butter = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+<script>
+// PPG (pulse) recording, 30 s at 125 Hz, PLETH in arbitrary units.
+// Source: CS328-Notebooks/data/BIDMC-Resp/bidmc_01_Signals.csv, 60-90 s
+window.PPG_FS = 125;
+window.PPG = [0.5601,0.5533,0.5454,0.5357,0.5249,0.5161,0.5083,0.5024,0.4976,0.4936,0.4917,0.4907,0.4907,0.4888,0.4868,0.4849,0.4829,0.48,0.476,0.4731,0.4702,0.4692,0.4663,0.4643,0.4614,0.4585,0.4555,0.4536,0.4506,0.4477,0.4448,0.4418,0.4379,0.434,0.4301,0.4272,0.4252,0.4252,0.4252,0.4252,0.4252,0.4252,0.4252,0.4252,0.4252,0.4242,0.4242,0.4233,0.4233,0.4242,0.4242,0.4252,0.4252,0.4242,0.4233,0.4223,0.4203,0.4203,0.4223,0.4233,0.4252,0.4272,0.433,0.4428,0.4565,0.4731,0.4927,0.5122,0.5318,0.5484,0.5621,0.5748,0.5855,0.5924,0.5953,0.5973,0.5982,0.5982,0.5963,0.5943,0.5914,0.5894,0.5865,0.5826,0.5767,0.5689,0.5611,0.5503,0.5406,0.5298,0.521,0.5142,0.5083,0.5044,0.5024,0.5015,0.5005,0.4976,0.4956,0.4927,0.4917,0.4907,0.4897,0.4878,0.4849,0.4809,0.477,0.4731,0.4702,0.4672,0.4653,0.4643,0.4633,0.4633,0.4614,0.4585,0.4555,0.4506,0.4457,0.4418,0.4379,0.434,0.4301,0.4272,0.4262,0.4252,0.4242,0.4242,0.4242,0.4233,0.4223,0.4233,0.4242,0.4242,0.4233,0.4242,0.4242,0.4233,0.4223,0.4203,0.4203,0.4223,0.4233,0.4242,0.4242,0.4262,0.4311,0.4399,0.4526,0.4682,0.4868,0.5054,0.523,0.5386,0.5523,0.564,0.5738,0.5797,0.5826,0.5865,0.5875,0.5875,0.5855,0.5836,0.5806,0.5758,0.5689,0.5611,0.5523,0.5425,0.5327,0.523,0.5142,0.5073,0.5015,0.4976,0.4946,0.4917,0.4897,0.4888,0.4868,0.4839,0.4829,0.4829,0.4809,0.479,0.476,0.4721,0.4682,0.4643,0.4614,0.4575,0.4555,0.4536,0.4506,0.4467,0.4428,0.4379,0.433,0.4281,0.4252,0.4233,0.4213,0.4203,0.4203,0.4194,0.4203,0.4223,0.4233,0.4233,0.4233,0.4233,0.4223,0.4213,0.4213,0.4213,0.4223,0.4233,0.4233,0.4233,0.4233,0.4223,0.4203,0.4174,0.4154,0.4135,0.4135,0.4154,0.4184,0.4252,0.436,0.4477,0.4604,0.478,0.4966,0.5151,0.5318,0.5464,0.5582,0.5679,0.5748,0.5787,0.5826,0.5846,0.5846,0.5826,0.5806,0.5777,0.5738,0.566,0.5591,0.5513,0.5415,0.5308,0.521,0.5122,0.5054,0.5005,0.4966,0.4936,0.4907,0.4888,0.4888,0.4878,0.4878,0.4858,0.4839,0.4819,0.48,0.478,0.4751,0.4721,0.4682,0.4653,0.4614,0.4575,0.4536,0.4506,0.4457,0.4418,0.4389,0.436,0.434,0.4321,0.4301,0.4281,0.4262,0.4242,0.4233,0.4223,0.4203,0.4203,0.4194,0.4184,0.4174,0.4164,0.4164,0.4154,0.4154,0.4154,0.4145,0.4135,0.4115,0.4096,0.4076,0.4057,0.4047,0.4037,0.4047,0.4057,0.4096,0.4154,0.4223,0.433,0.4448,0.4604,0.479,0.4976,0.5161,0.5327,0.5464,0.5582,0.5679,0.5748,0.5777,0.5777,0.5767,0.5748,0.5728,0.5699,0.566,0.5611,0.5552,0.5474,0.5386,0.5269,0.5151,0.5044,0.4966,0.4888,0.4829,0.478,0.4741,0.4731,0.4721,0.4712,0.4712,0.4702,0.4692,0.4663,0.4643,0.4614,0.4585,0.4565,0.4555,0.4555,0.4546,0.4526,0.4506,0.4467,0.4428,0.4379,0.433,0.4272,0.4233,0.4213,0.4194,0.4184,0.4184,0.4184,0.4194,0.4194,0.4194,0.4194,0.4184,0.4184,0.4184,0.4164,0.4154,0.4145,0.4154,0.4164,0.4184,0.4184,0.4194,0.4194,0.4194,0.4184,0.4184,0.4184,0.4184,0.4194,0.4194,0.4203,0.4242,0.4311,0.4418,0.4565,0.4741,0.4956,0.5161,0.5367,0.5552,0.5699,0.5806,0.5865,0.5894,0.5904,0.5894,0.5894,0.5875,0.5855,0.5836,0.5806,0.5777,0.5728,0.566,0.5591,0.5513,0.5425,0.5337,0.5249,0.5161,0.5083,0.5024,0.4966,0.4936,0.4917,0.4907,0.4907,0.4907,0.4907,0.4907,0.4888,0.4858,0.4819,0.479,0.476,0.4731,0.4692,0.4653,0.4614,0.4575,0.4536,0.4506,0.4477,0.4448,0.4418,0.4389,0.436,0.434,0.4321,0.4301,0.4272,0.4252,0.4223,0.4213,0.4203,0.4194,0.4184,0.4194,0.4194,0.4194,0.4194,0.4194,0.4194,0.4194,0.4184,0.4174,0.4174,0.4164,0.4145,0.4135,0.4135,0.4125,0.4145,0.4164,0.4194,0.4252,0.434,0.4477,0.4624,0.478,0.4956,0.5142,0.5308,0.5464,0.5601,0.5709,0.5787,0.5836,0.5855,0.5875,0.5865,0.5855,0.5836,0.5797,0.5748,0.5679,0.5611,0.5533,0.5454,0.5376,0.5288,0.52,0.5122,0.5063,0.5015,0.4966,0.4927,0.4907,0.4888,0.4868,0.4849,0.4849,0.4839,0.4829,0.48,0.479,0.478,0.4751,0.4712,0.4672,0.4624,0.4585,0.4536,0.4487,0.4457,0.4418,0.4389,0.436,0.433,0.4301,0.4272,0.4252,0.4233,0.4223,0.4213,0.4213,0.4213,0.4203,0.4203,0.4203,0.4213,0.4213,0.4223,0.4223,0.4223,0.4223,0.4213,0.4194,0.4174,0.4154,0.4125,0.4115,0.4125,0.4135,0.4135,0.4145,0.4164,0.4194,0.4242,0.4311,0.4409,0.4546,0.4721,0.4907,0.5093,0.5249,0.5367,0.5494,0.5601,0.5689,0.5748,0.5797,0.5816,0.5816,0.5797,0.5777,0.5758,0.5718,0.567,0.5601,0.5523,0.5415,0.5288,0.5171,0.5073,0.4995,0.4946,0.4917,0.4907,0.4897,0.4897,0.4888,0.4878,0.4849,0.4819,0.479,0.4751,0.4721,0.4682,0.4653,0.4624,0.4594,0.4575,0.4546,0.4536,0.4526,0.4506,0.4487,0.4467,0.4457,0.4438,0.4409,0.437,0.433,0.4291,0.4262,0.4242,0.4233,0.4223,0.4223,0.4223,0.4213,0.4213,0.4213,0.4213,0.4213,0.4213,0.4213,0.4213,0.4203,0.4194,0.4184,0.4164,0.4164,0.4174,0.4194,0.4213,0.4272,0.436,0.4477,0.4604,0.4751,0.4917,0.5093,0.5269,0.5415,0.5552,0.565,0.5718,0.5767,0.5806,0.5836,0.5855,0.5846,0.5826,0.5806,0.5777,0.5728,0.565,0.5543,0.5425,0.5298,0.5181,0.5093,0.5015,0.4956,0.4907,0.4878,0.4858,0.4849,0.4839,0.4839,0.4819,0.48,0.479,0.476,0.4731,0.4692,0.4663,0.4614,0.4565,0.4516,0.4477,0.4438,0.4399,0.436,0.4321,0.4281,0.4252,0.4233,0.4223,0.4213,0.4213,0.4213,0.4213,0.4213,0.4203,0.4203,0.4194,0.4184,0.4174,0.4174,0.4174,0.4174,0.4174,0.4184,0.4184,0.4184,0.4184,0.4184,0.4194,0.4203,0.4203,0.4194,0.4174,0.4154,0.4145,0.4125,0.4115,0.4115,0.4135,0.4164,0.4223,0.4301,0.4428,0.4594,0.478,0.4946,0.5103,0.5269,0.5445,0.5601,0.5728,0.5816,0.5875,0.5904,0.5924,0.5924,0.5904,0.5885,0.5865,0.5836,0.5816,0.5777,0.5709,0.564,0.5562,0.5484,0.5406,0.5308,0.523,0.5151,0.5093,0.5054,0.5024,0.5015,0.5005,0.4985,0.4956,0.4927,0.4897,0.4878,0.4868,0.4858,0.4839,0.4819,0.479,0.4741,0.4682,0.4643,0.4604,0.4565,0.4526,0.4487,0.4448,0.4409,0.436,0.4321,0.4301,0.4272,0.4242,0.4233,0.4223,0.4223,0.4203,0.4184,0.4164,0.4145,0.4115,0.4096,0.4076,0.4067,0.4067,0.4067,0.4067,0.4067,0.4067,0.4067,0.4067,0.4067,0.4057,0.4037,0.4027,0.4037,0.4047,0.4067,0.4096,0.4184,0.4311,0.4487,0.4702,0.4927,0.5151,0.5357,0.5533,0.566,0.5758,0.5846,0.5914,0.5963,0.5992,0.6012,0.6012,0.5992,0.5973,0.5943,0.5894,0.5836,0.5767,0.567,0.5533,0.5396,0.5259,0.5151,0.5063,0.5005,0.4976,0.4966,0.4956,0.4956,0.4946,0.4946,0.4936,0.4897,0.4849,0.48,0.476,0.4721,0.4692,0.4663,0.4643,0.4624,0.4594,0.4565,0.4526,0.4487,0.4428,0.437,0.4321,0.4272,0.4242,0.4213,0.4203,0.4174,0.4154,0.4125,0.4096,0.4076,0.4067,0.4057,0.4047,0.4047,0.4057,0.4057,0.4057,0.4057,0.4057,0.4047,0.4047,0.4027,0.4008,0.3978,0.3949,0.392,0.3891,0.3871,0.3881,0.391,0.3969,0.4047,0.4135,0.4291,0.4497,0.4712,0.4936,0.5142,0.5318,0.5484,0.5621,0.5718,0.5787,0.5836,0.5865,0.5885,0.5885,0.5865,0.5846,0.5816,0.5777,0.5718,0.564,0.5543,0.5415,0.5279,0.5171,0.5093,0.5015,0.4956,0.4907,0.4868,0.4839,0.4809,0.48,0.479,0.476,0.4741,0.4731,0.4702,0.4682,0.4653,0.4624,0.4575,0.4526,0.4467,0.4409,0.436,0.4321,0.4281,0.4252,0.4223,0.4194,0.4164,0.4115,0.4086,0.4047,0.4018,0.3988,0.3969,0.3959,0.3949,0.3949,0.3969,0.3988,0.4018,0.4037,0.4037,0.4047,0.4047,0.4047,0.4057,0.4057,0.4057,0.4057,0.4057,0.4047,0.4047,0.4027,0.4008,0.3978,0.3969,0.3978,0.3998,0.4067,0.4174,0.433,0.4526,0.4741,0.4936,0.5103,0.5269,0.5435,0.5582,0.5699,0.5797,0.5855,0.5904,0.5943,0.5973,0.5973,0.5963,0.5924,0.5855,0.5777,0.5679,0.5562,0.5435,0.5327,0.522,0.5132,0.5054,0.5005,0.4976,0.4966,0.4946,0.4927,0.4888,0.4858,0.4819,0.479,0.477,0.477,0.476,0.4741,0.4721,0.4702,0.4663,0.4614,0.4555,0.4497,0.4438,0.4379,0.433,0.4281,0.4242,0.4203,0.4174,0.4145,0.4135,0.4125,0.4115,0.4115,0.4096,0.4076,0.4076,0.4076,0.4096,0.4106,0.4106,0.4115,0.4125,0.4125,0.4115,0.4096,0.4076,0.4047,0.4018,0.3978,0.3949,0.393,0.392,0.3939,0.3959,0.3988,0.4037,0.4106,0.4194,0.4321,0.4477,0.4682,0.4907,0.5112,0.5288,0.5464,0.5611,0.5718,0.5787,0.5836,0.5865,0.5885,0.5894,0.5885,0.5875,0.5846,0.5806,0.5748,0.566,0.5552,0.5435,0.5308,0.5191,0.5083,0.5005,0.4927,0.4878,0.4849,0.4839,0.4829,0.4829,0.4819,0.4819,0.4809,0.477,0.4741,0.4721,0.4692,0.4663,0.4643,0.4624,0.4585,0.4555,0.4516,0.4477,0.4438,0.4409,0.4379,0.434,0.4291,0.4242,0.4203,0.4154,0.4125,0.4115,0.4115,0.4115,0.4115,0.4115,0.4125,0.4125,0.4125,0.4125,0.4125,0.4125,0.4125,0.4125,0.4125,0.4125,0.4125,0.4125,0.4125,0.4115,0.4106,0.4096,0.4086,0.4096,0.4115,0.4154,0.4213,0.4311,0.4438,0.4575,0.4731,0.4927,0.5132,0.5347,0.5552,0.5738,0.5894,0.6031,0.6119,0.6188,0.6217,0.6227,0.6227,0.6207,0.6168,0.6119,0.608,0.6041,0.5982,0.5904,0.5816,0.5718,0.5601,0.5494,0.5396,0.5308,0.522,0.5161,0.5103,0.5054,0.5034,0.5005,0.4976,0.4966,0.4936,0.4917,0.4897,0.4888,0.4849,0.4809,0.477,0.4721,0.4682,0.4653,0.4643,0.4633,0.4614,0.4585,0.4546,0.4497,0.4457,0.4399,0.434,0.4291,0.4242,0.4203,0.4174,0.4145,0.4125,0.4115,0.4125,0.4125,0.4125,0.4125,0.4125,0.4125,0.4125,0.4115,0.4106,0.4106,0.4086,0.4067,0.4037,0.4008,0.3998,0.3988,0.3988,0.3998,0.4027,0.4057,0.4125,0.4233,0.4389,0.4575,0.478,0.5005,0.5191,0.5347,0.5503,0.565,0.5767,0.5875,0.5963,0.6021,0.6051,0.607,0.607,0.6061,0.6031,0.5982,0.5914,0.5836,0.5738,0.5621,0.5484,0.5347,0.524,0.5142,0.5063,0.4995,0.4956,0.4936,0.4927,0.4927,0.4917,0.4917,0.4917,0.4907,0.4888,0.4858,0.4829,0.48,0.4741,0.4692,0.4633,0.4585,0.4536,0.4487,0.4438,0.4389,0.435,0.4311,0.4272,0.4223,0.4194,0.4154,0.4135,0.4125,0.4115,0.4115,0.4115,0.4106,0.4096,0.4106,0.4106,0.4106,0.4096,0.4096,0.4096,0.4106,0.4096,0.4086,0.4076,0.4067,0.4057,0.4047,0.4047,0.4037,0.4037,0.4057,0.4076,0.4096,0.4106,0.4145,0.4223,0.434,0.4497,0.4692,0.4897,0.5083,0.5259,0.5415,0.5562,0.567,0.5758,0.5826,0.5875,0.5904,0.5904,0.5885,0.5865,0.5826,0.5787,0.5718,0.565,0.5562,0.5484,0.5396,0.5288,0.5191,0.5093,0.5015,0.4946,0.4888,0.4858,0.4839,0.4829,0.4819,0.4819,0.4819,0.4809,0.479,0.4741,0.4692,0.4643,0.4604,0.4575,0.4546,0.4526,0.4506,0.4477,0.4448,0.4409,0.436,0.4321,0.4281,0.4242,0.4213,0.4194,0.4164,0.4135,0.4125,0.4115,0.4115,0.4106,0.4096,0.4096,0.4096,0.4106,0.4106,0.4106,0.4106,0.4106,0.4106,0.4096,0.4076,0.4067,0.4047,0.4027,0.4008,0.3978,0.3949,0.393,0.392,0.3949,0.4008,0.4096,0.4223,0.436,0.4516,0.4712,0.4917,0.5132,0.5327,0.5503,0.564,0.5748,0.5826,0.5875,0.5914,0.5924,0.5914,0.5894,0.5865,0.5836,0.5777,0.5709,0.5621,0.5523,0.5396,0.5269,0.5132,0.5015,0.4927,0.4858,0.4809,0.478,0.476,0.4731,0.4702,0.4663,0.4633,0.4594,0.4555,0.4526,0.4497,0.4477,0.4457,0.4428,0.4399,0.437,0.434,0.4311,0.4272,0.4252,0.4223,0.4194,0.4164,0.4135,0.4115,0.4106,0.4106,0.4096,0.4106,0.4106,0.4106,0.4106,0.4106,0.4106,0.4096,0.4106,0.4106,0.4106,0.4106,0.4106,0.4096,0.4106,0.4096,0.4096,0.4096,0.4086,0.4076,0.4067,0.4067,0.4076,0.4096,0.4106,0.4154,0.4252,0.4389,0.4585,0.48,0.5034,0.5259,0.5464,0.565,0.5787,0.5885,0.5953,0.6012,0.6041,0.6051,0.6061,0.6061,0.6041,0.6012,0.5973,0.5924,0.5855,0.5787,0.5709,0.5621,0.5513,0.5415,0.5318,0.522,0.5142,0.5063,0.5005,0.4936,0.4897,0.4868,0.4858,0.4858,0.4849,0.4849,0.4839,0.4809,0.479,0.4751,0.4721,0.4682,0.4643,0.4604,0.4575,0.4536,0.4487,0.4428,0.4379,0.433,0.4291,0.4272,0.4242,0.4223,0.4194,0.4164,0.4145,0.4135,0.4125,0.4115,0.4115,0.4115,0.4115,0.4115,0.4106,0.4106,0.4106,0.4106,0.4115,0.4115,0.4115,0.4106,0.4086,0.4067,0.4037,0.4008,0.3988,0.3998,0.4037,0.4096,0.4164,0.4262,0.4399,0.4585,0.479,0.4995,0.52,0.5386,0.5552,0.5689,0.5806,0.5894,0.5953,0.5963,0.5973,0.5963,0.5943,0.5924,0.5885,0.5826,0.5758,0.5679,0.5591,0.5503,0.5415,0.5327,0.524,0.5142,0.5063,0.4995,0.4936,0.4897,0.4878,0.4868,0.4849,0.4819,0.479,0.476,0.4741,0.4721,0.4702,0.4682,0.4653,0.4614,0.4575,0.4526,0.4467,0.4409,0.435,0.4301,0.4252,0.4213,0.4174,0.4145,0.4115,0.4106,0.4115,0.4115,0.4115,0.4115,0.4115,0.4115,0.4106,0.4096,0.4086,0.4057,0.4047,0.4037,0.4037,0.4057,0.4076,0.4086,0.4096,0.4096,0.4086,0.4086,0.4076,0.4057,0.4037,0.4018,0.4008,0.4037,0.4096,0.4184,0.4291,0.4448,0.4643,0.4849,0.5024,0.5181,0.5347,0.5484,0.5601,0.5699,0.5767,0.5816,0.5855,0.5894,0.5904,0.5904,0.5885,0.5855,0.5797,0.5728,0.5631,0.5513,0.5376,0.524,0.5122,0.5034,0.4966,0.4897,0.4839,0.4809,0.479,0.478,0.478,0.477,0.477,0.477,0.476,0.4731,0.4692,0.4663,0.4633,0.4585,0.4555,0.4516,0.4467,0.4428,0.4389,0.435,0.4321,0.4291,0.4252,0.4223,0.4184,0.4135,0.4115,0.4106,0.4106,0.4106,0.4115,0.4115,0.4115,0.4115,0.4115,0.4115,0.4106,0.4106,0.4106,0.4106,0.4115,0.4115,0.4115,0.4106,0.4086,0.4067,0.4037,0.4018,0.4008,0.4027,0.4057,0.4096,0.4135,0.4223,0.435,0.4506,0.4702,0.4907,0.5122,0.5308,0.5474,0.5611,0.5718,0.5787,0.5826,0.5855,0.5855,0.5846,0.5826,0.5806,0.5777,0.5728,0.566,0.5582,0.5464,0.5347,0.524,0.5151,0.5063,0.4995,0.4927,0.4868,0.48,0.4751,0.4702,0.4663,0.4633,0.4604,0.4585,0.4555,0.4526,0.4487,0.4448,0.4409,0.437,0.4321,0.4272,0.4223,0.4174,0.4135,0.4115,0.4106,0.4086,0.4067,0.4037,0.4008,0.3978,0.3949,0.393,0.3939,0.3959,0.3988,0.4008,0.4037,0.4047,0.4057,0.4067,0.4076,0.4086,0.4096,0.4106,0.4106,0.4096,0.4096,0.4086,0.4086,0.4076,0.4067,0.4067,0.4057,0.4047,0.4067,0.4096,0.4174,0.4291,0.4457,0.4682,0.4936,0.5161,0.5357,0.5562,0.5758,0.5943,0.608,0.6168,0.6227,0.6256,0.6266,0.6276,0.6276,0.6266,0.6227,0.6168,0.6109,0.6031,0.5934,0.5816,0.5689,0.5562,0.5445,0.5337,0.524,0.5151,0.5093,0.5063,0.5044,0.5034,0.5034,0.5034,0.5024,0.5005,0.4966,0.4917,0.4868,0.4829,0.48,0.476,0.4721,0.4682,0.4643,0.4604,0.4546,0.4506,0.4467,0.4438,0.4409,0.4379,0.436,0.434,0.4321,0.4281,0.4242,0.4203,0.4174,0.4154,0.4145,0.4135,0.4125,0.4125,0.4125,0.4125,0.4125,0.4115,0.4115,0.4115,0.4115,0.4096,0.4067,0.4037,0.4008,0.3988,0.3988,0.3998,0.4018,0.4057,0.4115,0.4223,0.437,0.4555,0.477,0.4985,0.52,0.5415,0.5621,0.5806,0.5934,0.6012,0.608,0.6139,0.6158,0.6168,0.6168,0.6149,0.6109,0.608,0.6031,0.5963,0.5875,0.5797,0.5699,0.5572,0.5435,0.5298,0.5191,0.5093,0.5024,0.4976,0.4956,0.4946,0.4936,0.4936,0.4927,0.4907,0.4878,0.4849,0.4819,0.479,0.477,0.476,0.4731,0.4702,0.4663,0.4614,0.4565,0.4516,0.4457,0.4399,0.434,0.4272,0.4213,0.4164,0.4135,0.4125,0.4125,0.4115,0.4115,0.4115,0.4115,0.4125,0.4115,0.4096,0.4067,0.4037,0.4027,0.4037,0.4037,0.4047,0.4057,0.4086,0.4096,0.4086,0.4067,0.4037,0.4008,0.3998,0.4008,0.4027,0.4057,0.4125,0.4233,0.436,0.4506,0.4702,0.4927,0.5161,0.5386,0.5591,0.5758,0.5894,0.5982,0.6021,0.6041,0.6051,0.6051,0.6051,0.6031,0.6002,0.5973,0.5914,0.5836,0.5758,0.565,0.5523,0.5376,0.524,0.5142,0.5063,0.4985,0.4907,0.4849,0.4819,0.48,0.479,0.478,0.478,0.476,0.4731,0.4702,0.4663,0.4604,0.4555,0.4516,0.4477,0.4428,0.4389,0.435,0.4311,0.4272,0.4242,0.4213,0.4184,0.4164,0.4145,0.4125,0.4096,0.4076,0.4067,0.4057,0.4047,0.4047,0.4037,0.4037,0.4027,0.4027,0.4037,0.4057,0.4086,0.4106,0.4115,0.4115,0.4115,0.4096,0.4067,0.4047,0.4027,0.4008,0.3988,0.3998,0.4018,0.4047,0.4076,0.4135,0.4242,0.4399,0.4594,0.4809,0.5024,0.521,0.5367,0.5503,0.5631,0.5718,0.5777,0.5826,0.5855,0.5865,0.5865,0.5855,0.5826,0.5777,0.5709,0.5631,0.5533,0.5406,0.5269,0.5132,0.5015,0.4917,0.4839,0.478,0.4741,0.4712,0.4682,0.4663,0.4643,0.4624,0.4585,0.4546,0.4506,0.4467,0.4418,0.437,0.433,0.4301,0.4272,0.4242,0.4213,0.4174,0.4125,0.4086,0.4047,0.4008,0.3978,0.3949,0.393,0.392,0.392,0.393,0.3939,0.3949,0.3949,0.393,0.391,0.3891,0.3871,0.3861,0.3861,0.3871,0.3881,0.3891,0.39,0.391,0.39,0.3881,0.3861,0.3832,0.3812,0.3802,0.3802,0.3812,0.3851,0.392,0.3998,0.4096,0.4252,0.4448,0.4663,0.4888,0.5112,0.5318,0.5503,0.566,0.5767,0.5855,0.5914,0.5934,0.5943,0.5943,0.5924,0.5894,0.5865,0.5826,0.5758,0.5679,0.5591,0.5474,0.5347,0.522,0.5122,0.5024,0.4956,0.4897,0.4878,0.4858,0.4858,0.4849,0.4849,0.4839,0.4819,0.477,0.4731,0.4702,0.4682,0.4653,0.4633,0.4624,0.4614,0.4585,0.4555,0.4516,0.4487,0.4448,0.4409,0.4379,0.434,0.4301,0.4252,0.4213,0.4164,0.4135,0.4096,0.4076,0.4067,0.4057,0.4057,0.4057,0.4047,0.4037,0.4047,0.4037,0.4037,0.4037,0.4037,0.4047,0.4047,0.4047,0.4047,0.4037,0.4027,0.4027,0.4027,0.4037,0.4057,0.4106,0.4194,0.4321,0.4497,0.4702,0.4927,0.5142,0.5327,0.5494,0.566,0.5797,0.5904,0.5973,0.6021,0.6041,0.6051,0.6041,0.6012,0.5963,0.5914,0.5875,0.5826,0.5758,0.5679,0.5562,0.5435,0.5308,0.5181,0.5073,0.4995,0.4917,0.4868,0.4849,0.4829,0.4829,0.4819,0.4819,0.4819,0.4809,0.479,0.476,0.4721,0.4672,0.4633,0.4604,0.4585,0.4555,0.4526,0.4487,0.4448,0.4399,0.435,0.4301,0.4262,0.4223,0.4194,0.4184,0.4164,0.4135,0.4115,0.4096,0.4076,0.4067,0.4057,0.4057,0.4057,0.4057,0.4057,0.4057,0.4057,0.4047,0.4037,0.4018,0.3998,0.3978,0.3959,0.3939,0.392,0.391,0.392,0.393,0.3959,0.3988,0.4047,0.4125,0.4262,0.4438,0.4643,0.4868,0.5103,0.5308,0.5474,0.5601,0.5709,0.5797,0.5855,0.5885,0.5904,0.5914,0.5914,0.5914,0.5894,0.5865,0.5816,0.5748,0.566,0.5552,0.5445,0.5318,0.5191,0.5093,0.5005,0.4936,0.4878,0.4829,0.4809,0.479,0.479,0.478,0.476,0.4731,0.4682,0.4633,0.4585,0.4555,0.4506,0.4477,0.4457,0.4448,0.4418,0.4389,0.435,0.4311,0.4262,0.4213,0.4184,0.4164,0.4145,0.4145,0.4125,0.4115,0.4106,0.4106,0.4106,0.4115,0.4125,0.4135,0.4145,0.4145,0.4135,0.4135,0.4135,0.4135,0.4135,0.4145,0.4154,0.4154,0.4154,0.4135,0.4115,0.4086,0.4057,0.4037,0.4037,0.4047,0.4086,0.4145,0.4252,0.4399,0.4546,0.4712,0.4897,0.5083,0.5279,0.5454,0.5591,0.5709,0.5797,0.5865,0.5894,0.5904,0.5904,0.5894,0.5875,0.5846,0.5806,0.5738,0.566,0.5552,0.5435,0.5298,0.5171,0.5063,0.4976,0.4917,0.4868,0.4839,0.4829,0.4819,0.4819,0.4809,0.4809,0.48,0.477,0.4731,0.4692,0.4663,0.4633,0.4604,0.4575,0.4546,0.4526,0.4487,0.4438,0.4379,0.433,0.4272,0.4233,0.4203,0.4184,0.4174,0.4164,0.4154,0.4145,0.4135,0.4115,0.4106,0.4115,0.4125,0.4145,0.4154,0.4154,0.4154,0.4154,0.4154,0.4135,0.4115,0.4106,0.4086,0.4057,0.4027,0.4008,0.3998,0.3978,0.3969,0.3969,0.3988,0.4027,0.4096,0.4194,0.4321,0.4477,0.4672,0.4878,0.5083,0.5269,0.5406,0.5513,0.5611,0.5689,0.5738,0.5777,0.5806,0.5826,0.5836,0.5826,0.5806,0.5777,0.5718,0.566,0.5572,0.5454,0.5318,0.5181,0.5054,0.4936,0.4849,0.477,0.4721,0.4692,0.4682,0.4672,0.4643,0.4633,0.4624,0.4604,0.4575,0.4555,0.4526,0.4506,0.4477,0.4457,0.4448,0.4438,0.4409,0.437,0.4321,0.4272,0.4223,0.4184,0.4154,0.4145,0.4135,0.4145,0.4154,0.4145,0.4145,0.4154,0.4145,0.4145,0.4145,0.4145,0.4154,0.4154,0.4154,0.4154,0.4154,0.4154,0.4154,0.4154,0.4154,0.4154,0.4154,0.4154,0.4145,0.4135,0.4145,0.4154,0.4154,0.4174,0.4242,0.434,0.4457,0.4653,0.4878,0.5122,0.5367,0.5582,0.5767,0.5904,0.5992,0.6051,0.608,0.609,0.609,0.607,0.607,0.607,0.6061,0.6031,0.5982,0.5914,0.5826,0.5718,0.5601,0.5464,0.5347,0.5249,0.5161,0.5083,0.5044,0.5024,0.5005,0.5005,0.4985,0.4966,0.4946,0.4917,0.4897,0.4858,0.4809,0.477,0.4721,0.4672,0.4624,0.4575,0.4536,0.4487,0.4457,0.4428,0.4399,0.4379,0.436,0.4321,0.4281,0.4242,0.4184,0.4145,0.4125,0.4106,0.4096,0.4106,0.4096,0.4096,0.4096,0.4106,0.4106,0.4106,0.4106,0.4106,0.4106,0.4096,0.4076,0.4067,0.4057,0.4047,0.4037,0.4047,0.4047,0.4057,0.4076,0.4106,0.4145,0.4213,0.4321,0.4467,0.4643,0.4839,0.5024,0.5191,0.5376,0.5552,0.5699,0.5806,0.5875,0.5914,0.5934,0.5943,0.5943,0.5934,0.5904,0.5875,0.5836,0.5787,0.5718,0.5621,0.5503,0.5376,0.524,0.5132,0.5054,0.4985,0.4917,0.4868,0.4829,0.4809,0.48,0.48,0.48,0.478,0.4751,0.4712,0.4672,0.4614,0.4565,0.4506,0.4457,0.4418,0.4379,0.434,0.4301,0.4272,0.4233,0.4184,0.4154,0.4125,0.4106,0.4106,0.4106,0.4106,0.4106,0.4096,0.4086,0.4086,0.4076,0.4067,0.4047,0.4037,0.4018,0.4008,0.4027,0.4047,0.4057,0.4067,0.4076,0.4067,0.4057,0.4027,0.3998,0.3978,0.3949,0.393,0.392,0.3939,0.3959,0.3988,0.4027,0.4096,0.4203,0.435,0.4526,0.4721,0.4927,0.5122,0.5298,0.5435,0.5543,0.5631,0.5709,0.5767,0.5806,0.5836,0.5846,0.5826,0.5806,0.5777,0.5728,0.566,0.5582,0.5484,0.5367,0.523,0.5103,0.5005,0.4927,0.4858,0.4809,0.476,0.4721,0.4702,0.4692,0.4672,0.4643,0.4624,0.4585,0.4555,0.4516,0.4477,0.4438,0.4418,0.4399,0.437,0.435,0.434,0.4311,0.4281,0.4233,0.4184,0.4145,0.4125,0.4115,0.4115,0.4106,0.4106,0.4106,0.4106,0.4106,0.4106,0.4106,0.4106,0.4096,0.4086,0.4057,0.4037,0.4037,0.4037,0.4037,0.4047,0.4047,0.4037,0.4027,0.3998,0.3978,0.3959,0.3959,0.3949,0.3969,0.3998,0.4057,0.4135,0.4233,0.434,0.4497,0.4692,0.4897,0.5083,0.5249,0.5406,0.5543,0.567,0.5758,0.5816,0.5855,0.5865,0.5855,0.5836,0.5806,0.5758,0.5689,0.5611,0.5513,0.5406,0.5269,0.5161,0.5063,0.4985,0.4927,0.4868,0.4809,0.476,0.4712,0.4682,0.4643,0.4604,0.4555,0.4506,0.4457,0.4409,0.437,0.433,0.4301,0.4262,0.4223,0.4184,0.4164,0.4145,0.4135,0.4125,0.4115,0.4115,0.4106,0.4106,0.4106,0.4106,0.4106,0.4106,0.4106,0.4106,0.4106,0.4096,0.4076,0.4057,0.4037,0.4027,0.4037,0.4047,0.4047,0.4057,0.4076,0.4096,0.4096,0.4096,0.4086,0.4076,0.4067,0.4057,0.4057,0.4057,0.4086,0.4135,0.4213,0.434,0.4516,0.4731,0.4966,0.52,0.5415,0.5621,0.5758,0.5865,0.5963,0.6041,0.6109,0.6158,0.6188,0.6198,0.6198,0.6178,0.6129,0.608,0.6012,0.5943,0.5855,0.5748,0.5621,0.5484,0.5357,0.5249,0.5151,0.5083,0.5044,0.5024,0.4995,0.4976,0.4956,0.4936,0.4917,0.4907,0.4888,0.4868,0.4858,0.4839,0.4809,0.476,0.4721,0.4682,0.4643,0.4604,0.4565,0.4536,0.4497,0.4457,0.4409,0.436,0.4311,0.4272,0.4223,0.4184,0.4164,0.4145,0.4145,0.4135,0.4135,0.4135,0.4135,0.4125,0.4115,0.4096,0.4086,0.4067,0.4067,0.4067,0.4067,0.4076,0.4076,0.4076,0.4057,0.4047,0.4057,0.4076,0.4096,0.4115,0.4154,0.4223,0.434,0.4497,0.4682,0.4878,0.5083,0.5279,0.5464,0.5621,0.5758,0.5846,0.5924,0.5973,0.5992,0.5992,0.5963,0.5934,0.5904,0.5865,0.5806,0.5738,0.566,0.5562,0.5445,0.5318,0.52,0.5093,0.5005,0.4936,0.4868,0.4829,0.48,0.479,0.478,0.478,0.478,0.478,0.477,0.4751,0.4731,0.4692,0.4653,0.4614,0.4565,0.4516,0.4457,0.4399,0.434,0.4291,0.4252,0.4213,0.4184,0.4154,0.4125,0.4115,0.4106,0.4096,0.4096,0.4096,0.4096,0.4096,0.4096,0.4096,0.4106,0.4096,0.4096,0.4106,0.4106,0.4106,0.4106,0.4096,0.4086,0.4057,0.4037,0.4018,0.4008,0.3988,0.3969,0.3959,0.3969,0.3988,0.4018,0.4067,0.4125,0.4223,0.436,0.4526,0.4692,0.4858,0.5044,0.523,0.5406,0.5552,0.566,0.5738,0.5787,0.5826,0.5836,0.5826,0.5806,0.5777,0.5758,0.5709,0.565,0.5562,0.5454,0.5347,0.523,0.5122,0.5034,0.4966,0.4897,0.4849,0.479,0.4741,0.4712,0.4702,0.4692,0.4692,0.4672,0.4643,0.4614,0.4565,0.4516,0.4467,0.4418,0.437,0.4321,0.4291,0.4252,0.4203,0.4174,0.4145,0.4125,0.4106,0.4086,0.4076,0.4067,0.4057,0.4057,0.4047,0.4037,0.4037,0.4047,0.4057,0.4067,0.4067,0.4067,0.4067,0.4057,0.4037,0.4018,0.3998,0.3969,0.3949,0.3939,0.392,0.391,0.3891,0.3881,0.3861,0.3851,0.3861,0.3871,0.391,0.3978,0.4076,0.4194,0.436,0.4555,0.4751,0.4936,0.5103,0.524,0.5347,0.5435,0.5513,0.5572,0.5611,0.5631,0.5631,0.5611,0.5582,0.5533,0.5474,0.5396,0.5318,0.524,0.5151,0.5054,0.4956,0.4858,0.479,0.4721,0.4663,0.4614,0.4585,0.4546,0.4536,0.4526,0.4526,0.4516,0.4516,0.4506,0.4487,0.4467,0.4448,0.4409,0.4379,0.435,0.4311,0.4281,0.4242,0.4203,0.4154,0.4115,0.4096,0.4086,0.4076,0.4076,0.4076,0.4067,0.4057,0.4047,0.4047,0.4047,0.4047,0.4047,0.4047,0.4047,0.4047,0.4057,0.4067,0.4067,0.4067,0.4067,0.4067,0.4067,0.4047,0.4027,0.4027,0.4027,0.4037,0.4057,0.4076,0.4174,0.4291,0.4399,0.4555,0.4721,0.4878,0.5054,0.524,0.5435,0.5621,0.5767,0.5885,0.5973,0.6031,0.6061,0.607,0.6061,0.6041,0.6012,0.5963,0.5914,0.5865,0.5816,0.5748,0.567,0.5572,0.5464,0.5367,0.5269,0.5191,0.5112,0.5044,0.4985,0.4946,0.4927,0.4917,0.4917,0.4917,0.4907,0.4888,0.4858,0.4819,0.478,0.4741,0.4702,0.4663,0.4633,0.4594,0.4555,0.4506,0.4457,0.4409,0.436,0.4321,0.4301,0.4281,0.4262,0.4242,0.4223,0.4194,0.4164,0.4135,0.4106,0.4086,0.4076,0.4076,0.4076,0.4067,0.4047,0.4037,0.4027,0.4018,0.4027,0.4037,0.4047,0.4037,0.4027,0.4027,0.4018,0.4018,0.4027,0.4047,0.4096,0.4213,0.4311,0.4409,0.4614,0.4868,0.5093,0.5288,0.5435,0.5552,0.566,0.5748,0.5816,0.5855,0.5875,0.5885,0.5885,0.5875,0.5836,0.5797,0.5738,0.5679,0.5601,0.5503,0.5386,0.5249,0.5122,0.5015,0.4946,0.4897,0.4878,0.4868,0.4858,0.4849,0.4829,0.48,0.476,0.4721,0.4682,0.4643,0.4614,0.4585,0.4575,0.4555,0.4516,0.4487,0.4448,0.4409,0.436,0.4311,0.4252,0.4203,0.4154,0.4125,0.4115,0.4106,0.4096,0.4086,0.4086,0.4086,0.4067,0.4057,0.4047,0.4047,0.4047,0.4047,0.4067,0.4076,0.4086,0.4086,0.4076,0.4076,0.4067,0.4057,0.4037,0.4018,0.4008,0.3988,0.3978,0.3969,0.3969,0.3988,0.4037,0.4096,0.4164,0.4291,0.4448,0.4643,0.4839,0.5024,0.52,0.5347,0.5464,0.5562,0.565,0.5709,0.5738,0.5777,0.5797,0.5797,0.5787,0.5767,0.5728,0.567,0.5591,0.5494,0.5386,0.5269,0.5171,0.5093,0.5015,0.4956,0.4897,0.4858,0.4829,0.48,0.478,0.4751,0.4721,0.4692,0.4672,0.4653,0.4614,0.4585,0.4546,0.4516,0.4477,0.4438,0.4409,0.437,0.433,0.4301,0.4272,0.4252,0.4223,0.4194,0.4164,0.4135,0.4106,0.4086,0.4057,0.4037,0.4027,0.4037,0.4037,0.4047,0.4067,0.4076,0.4067,0.4067,0.4067,0.4057,0.4067,0.4076,0.4076,0.4076,0.4067,0.4047,0.4027,0.4018,0.3998,0.3969,0.3959,0.3969,0.4018,0.4086,0.4203,0.434,0.4516,0.4712,0.4878,0.5015,0.5161,0.5298,0.5415,0.5503,0.5552,0.5601,0.5631,0.566,0.566,0.565,0.5631,0.5601,0.5552,0.5484,0.5396,0.5298,0.52,0.5093,0.5015,0.4936,0.4868,0.4809,0.476,0.4731,0.4712,0.4702,0.4692,0.4672,0.4653,0.4633,0.4614,0.4594,0.4575,0.4546,0.4516,0.4487,0.4457,0.4428,0.4399,0.437,0.433,0.4281,0.4252,0.4213,0.4174,0.4145,0.4135,0.4125,0.4115,0.4115,0.4125,0.4125,0.4125,0.4125,0.4115,0.4115,0.4115,0.4115,0.4125,0.4125,0.4125,0.4125,0.4115,0.4115,0.4106,0.4106,0.4096,0.4076,0.4067,0.4057,0.4067,0.4086,0.4125,0.4174,0.4262,0.4399,0.4575,0.479,0.5015,0.523,0.5435,0.5611,0.5758,0.5865,0.5953,0.6012,0.6051,0.6061,0.6061,0.6061,0.6061,0.6051,0.6012,0.5973,0.5914,0.5846,0.5767,0.5679,0.5582,0.5494,0.5406,0.5318,0.523,0.5151,0.5073,0.5024,0.4995,0.4985,0.4976,0.4966,0.4946,0.4927,0.4907,0.4868,0.4829,0.48,0.476,0.4731,0.4702,0.4672,0.4643,0.4604,0.4575,0.4546,0.4516,0.4477,0.4428,0.4399,0.437,0.434,0.4321,0.4301,0.4272,0.4242,0.4223,0.4203,0.4174,0.4154,0.4135,0.4135,0.4125,0.4106,0.4106,0.4096,0.4086,0.4096,0.4096,0.4086,0.4086,0.4086,0.4076,0.4076,0.4076,0.4096,0.4125,0.4184,0.4281,0.4418,0.4604,0.4809,0.4995,0.5161,0.5347,0.5533,0.5699,0.5826,0.5914,0.5963,0.5982,0.5992,0.5982,0.5973,0.5943,0.5924,0.5885,0.5846,0.5806,0.5767,0.5699,0.5631,0.5552,0.5464,0.5386,0.5298,0.522,0.5142,0.5083,0.5044,0.5005,0.4976,0.4966,0.4966,0.4956,0.4956,0.4956,0.4956,0.4956,0.4946,0.4936,0.4936,0.4936,0.4927,0.4927,0.4927,0.4917,0.4897,0.4888,0.4878,0.4878,0.4878,0.4878,0.4878,0.4878,0.4878,0.4878,0.4878,0.4878,0.4878,0.4878,0.4878,0.4858,0.4839,0.4829,0.4819,0.4819,0.4819,0.4819,0.4819,0.4819,0.4819,0.4809,0.479,0.477,0.4741,0.4721,0.4712,0.4721,0.4751,0.4809,0.4907,0.5015,0.5151,0.5308,0.5484,0.565,0.5787,0.5914,0.6012,0.608,0.6119,0.6149,0.6158,0.6168,0.6168,0.6168,0.6139,0.61,0.6061,0.5992,0.5914,0.5836,0.5748,0.564,0.5523,0.5425,0.5337,0.5259,0.521,0.5171,0.5151,0.5132,0.5103,0.5073,0.5054,0.5024,0.4995,0.4976,0.4956,0.4927,0.4897,0.4868,0.4849,0.4819,0.48,0.48,0.479,0.479,0.479,0.478,0.477,0.4721,0.4692,0.4653,0.4565,0.4526,0.4497,0.4467,0.4448,0.4428,0.4409];
+</script>
+<script>
+(() => {
+  const B = window.Butter;
+  const FS = window.PPG_FS;
+  const raw = Float64Array.from(window.PPG);
+  const N = raw.length, DUR = N / FS;                 // 3750 samples, 30 s
+  const mean = a => { let s = 0; for (let i = 0; i < a.length; i++) s += a[i]; return s / a.length; };
+  const RAW_MEAN = mean(raw);
+  const minmax = a => { let lo = Infinity, hi = -Infinity; for (let i = 0; i < a.length; i++) { lo = Math.min(lo, a[i]); hi = Math.max(hi, a[i]); } return [lo, hi]; };
+
+  // ------------------------------------------------------------ spectrum: Hann window, mean removed, |X(f)| scaled so a unit sine reads 1
+  function spectrum(x) {
+    const m = mean(x), w = new Float64Array(N);
+    for (let i = 0; i < N; i++) w[i] = (x[i] - m) * (0.5 - 0.5 * Math.cos(2 * Math.PI * i / (N - 1)));
+    const { f, mag } = B.rfftMag(w, FS);
+    return { f, mag: Float64Array.from(mag, v => 2 * v), binHz: f[1] };
+  }
+  const SPEC_RAW = spectrum(raw);
+  const FMAX = 10;
+  const KMAX = Math.floor(FMAX / SPEC_RAW.binHz);      // last bin drawn
+  // noise features read off the spectrum (fixed: they belong to the recording, not to the dials)
+  const BANDS = [
+    { lo: 0, hi: 0.5, label: 'breathing drift, below 0.5 Hz', where: 'left' },
+    { lo: 5, hi: FMAX, label: 'small high-frequency floor, above 5 Hz', where: 'right' },
+  ];
+  // pulse fundamental and harmonics (peaks of the raw spectrum)
+  const PEAKS = (() => {
+    let k0 = 0; for (let k = 0; k <= KMAX; k++) if (SPEC_RAW.f[k] >= 0.5 && SPEC_RAW.f[k] <= 5 && SPEC_RAW.mag[k] > SPEC_RAW.mag[k0]) k0 = k;
+    const out = [{ k: k0, f: SPEC_RAW.f[k0], name: 'pulse' }];
+    [2, 3].forEach(mlt => { let kb = 0; for (let k = 0; k <= KMAX; k++) if (Math.abs(SPEC_RAW.f[k] - mlt * SPEC_RAW.f[k0]) < 0.3 && SPEC_RAW.mag[k] > SPEC_RAW.mag[kb]) kb = k; out.push({ k: kb, f: SPEC_RAW.f[kb], name: `harmonic ×${mlt}` }); });
+    return out;
+  })();
+  const SPEC_MAX = Math.ceil(Math.max(...Array.from(SPEC_RAW.mag.slice(0, KMAX + 1))) * 1.2 / 0.05) * 0.05;
+
+  // ------------------------------------------------------------ pipeline: one band-pass, order 4, zero-phase (filtfilt)
+  const PRESET = { lo: 0.5, hi: 5 };
+  let fLo = PRESET.lo, fHi = PRESET.hi;
+  const dirty = { lo: false, hi: false };
+  let sos, filt, specF, peaks, bpm;
+  // like scipy.signal.find_peaks(x, distance, prominence)
+  function findPeaks(x, dist, prom) {
+    const n = x.length, cand = [];
+    for (let i = 1; i < n - 1; i++) if (x[i] > x[i - 1] && x[i] >= x[i + 1]) cand.push(i);
+    const withProm = cand.map(i => {
+      let l = x[i], r = x[i];
+      for (let j = i - 1; j >= 0 && x[j] <= x[i]; j--) l = Math.min(l, x[j]);
+      for (let j = i + 1; j < n && x[j] <= x[i]; j++) r = Math.min(r, x[j]);
+      return { i, p: x[i] - Math.max(l, r) };
+    }).filter(o => o.p >= prom).sort((a, b) => x[b.i] - x[a.i]);
+    const keep = [];
+    withProm.forEach(o => { if (keep.every(j => Math.abs(j - o.i) >= dist)) keep.push(o.i); });
+    return keep.sort((a, b) => a - b);
+  }
+  function recompute() {
+    sos = B.butter(4, [fLo, fHi], FS, 'bandpass');
+    filt = B.sosfiltfilt(sos, raw);
+    specF = spectrum(filt);
+    const [lo, hi] = minmax(filt);
+    peaks = findPeaks(filt, Math.round(0.4 * FS), 0.3 * (hi - lo));
+    bpm = Math.round(peaks.length * 60 / DUR);
+  }
+  const num = v => String(Math.round(v * 100) / 100);
+  const fmtLo = () => fLo.toFixed(2) + ' Hz', fmtHi = () => fHi.toFixed(1) + ' Hz';
+  const bandText = () => `${num(fLo)}–${num(fHi)} Hz`;
+
+  // ------------------------------------------------------------ steps
+  const P = v => `<b class="p">${v}</b>`;
+  const butterCall = () => `b, a = butter(4, [${P(num(fLo))}, ${P(num(fHi))}], btype='bandpass', fs=${FS})`;
+  const STEPS = [
+    { id: 'raw', base: 6, title: 'PPG recording', tag: () => `PPG · 30 s · fs = ${FS} Hz`,
+      subtitle: 'Thirty seconds of a real pulse recording from a patient monitor, sampled at 125 Hz.' },
+    { id: 'spec', base: 4, title: 'Spectrum of the PPG recording', tag: () => `PPG · 30 s · fs = ${FS} Hz`,
+      subtitle: 'Breathing drift below 0.5 Hz, the pulse near 1.5 Hz with harmonics, and a faint floor above 5 Hz.' },
+    { id: 'design', base: 3, title: 'Designing a band-pass filter from the spectrum', tag: () => `band-pass ${bandText()} · order 4 · fs = ${FS} Hz`,
+      subtitle: 'One band-pass keeps the pulse band and removes both the drift and the high-frequency floor.',
+      code: butterCall },
+    { id: 'result', base: 6, title: 'Filtered PPG recording', tag: () => `band-pass ${bandText()} · order 4 · fs = ${FS} Hz`,
+      subtitle: '',
+      code: () => butterCall() + ';  y = filtfilt(b, a, x)' },
+  ];
+  const txt = v => typeof v === 'function' ? v() : v;
+
+  // ------------------------------------------------------------ layout
+  const W = 1400, H = 740;
+  const TL = 100, TR = 1320, TT = 50, TB = 296;        // time panel
+  const SL = 100, SR = 1320, ST = 396, SB = 688;        // spectrum panel
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+  let yLo, yHi;
+  { const [lo, hi] = minmax(raw); yLo = Math.floor((lo - 0.02) * 20) / 20; yHi = Math.ceil((hi + 0.02) * 20) / 20; }
+  const tx = i => TL + (i / (N - 1)) * (TR - TL);
+  const ty = v => TB - ((v - yLo) / (yHi - yLo)) * (TB - TT);
+  const fx = f => SL + (f / FMAX) * (SR - SL);
+  const fy = m => SB - (Math.min(m, SPEC_MAX) / SPEC_MAX) * (SB - ST);
+  const gy = g => SB - g * (SB - ST);                  // gain 0..1 on the right axis
+
+  const $ = id => document.getElementById(id);
+  const chart = $('chart');
+  let G = {};
+
+  function drawFrame(showSpec, showGain) {
+    chart.innerHTML = '';
+    const defs = el('defs', {}, chart);
+    const pat = el('pattern', { id: 'hatch', width: 8, height: 8, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, defs);
+    el('rect', { width: 8, height: 8, fill: 'rgba(235,104,52,0.10)' }, pat);
+    el('line', { x1: 0, y1: 0, x2: 0, y2: 8, stroke: 'rgba(235,104,52,0.45)', 'stroke-width': 1.2 }, pat);
+    const grid = el('g', { class: 'grid' }, chart), axis = el('g', { class: 'axis' }, chart);
+    // time panel
+    el('text', { x: TL, y: TT - 14, class: 'ptitle' }, chart).textContent = 'time domain';
+    for (let v = Math.ceil(yLo * 10) / 10; v <= yHi + 1e-9; v += 0.1) {
+      el('line', { x1: TL, x2: TR, y1: ty(v), y2: ty(v) }, grid);
+      el('text', { x: TL - 8, y: ty(v) + 4, 'text-anchor': 'end' }, axis).textContent = v.toFixed(1);
+    }
+    for (let s = 0; s <= DUR; s += 5) {
+      const x = tx(s * FS);
+      el('line', { x1: x, x2: x, y1: TT, y2: TB }, grid);
+      el('text', { x, y: TB + 18, 'text-anchor': 'middle' }, axis).textContent = s;
+    }
+    el('path', { d: `M${TL},${TT}V${TB}H${TR}` }, axis);
+    el('text', { x: TR, y: TB + 40, class: 'axis-title', 'text-anchor': 'end' }, chart).textContent = 'time (s)';
+    el('text', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${TL - 68}, ${(TT + TB) / 2}) rotate(-90)` }, chart).textContent = 'amplitude (a.u.)';
+    G.band = el('g', {}, chart);
+    if (showSpec) {
+      el('text', { x: SL, y: ST - 14, class: 'ptitle' }, chart).textContent = 'frequency domain (FFT, mean removed)';
+      const nY = 2;
+      for (let j = 0; j <= nY; j++) {
+        const v = SPEC_MAX * j / nY;
+        el('line', { x1: SL, x2: SR, y1: fy(v), y2: fy(v) }, grid);
+        el('text', { x: SL - 8, y: fy(v) + 4, 'text-anchor': 'end' }, axis).textContent = (Math.round(v * 1000) / 1000).toString();
+      }
+      for (let f = 0; f <= FMAX; f += 1) {
+        el('line', { x1: fx(f), x2: fx(f), y1: ST, y2: SB }, grid);
+        el('text', { x: fx(f), y: SB + 18, 'text-anchor': 'middle' }, axis).textContent = f;
+      }
+      el('path', { d: `M${SL},${ST}V${SB}H${SR}` }, axis);
+      el('text', { x: SR, y: SB + 40, class: 'axis-title', 'text-anchor': 'end' }, chart).textContent = 'frequency (Hz)';
+      el('text', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${SL - 76}, ${(ST + SB) / 2}) rotate(-90)` }, chart).textContent = '|X(f)|';
+      if (showGain) {
+        const ga = el('g', { class: 'gain' }, chart);
+        [0, 0.5, 1].forEach(g => {
+          el('line', { x1: SR, x2: SR + 6, y1: gy(g), y2: gy(g) }, ga);
+          el('text', { x: SR + 10, y: gy(g) + 4 }, ga).textContent = g;
+        });
+        el('text', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${SR + 66}, ${(ST + SB) / 2}) rotate(90)` }, ga).textContent = 'gain |H(f)|';
+      }
+    }
+    G.specLines = el('g', {}, chart);
+    G.timeLines = el('g', {}, chart);
+    G.labels = el('g', {}, chart);
+    G.legTime = el('g', { class: 'lgrow' }, chart);
+    G.legSpec = el('g', { class: 'legend' }, chart);
+    G.stage = el('g', {}, chart);
+    G.readout = el('g', {}, chart);
+    G.hover = el('g', {}, chart);
+    el('rect', { x: TL, y: TT, width: TR - TL, height: TB - TT, fill: 'transparent', 'data-panel': 'time' }, chart);
+    if (showSpec) el('rect', { x: SL, y: ST, width: SR - SL, height: SB - ST, fill: 'transparent', 'data-panel': 'spec' }, chart);
+  }
+
+  // conventional legends: box at the top right of the spectrum panel; one row on the time panel's title row (the trace spans the full width)
+  function legendBox(g, items) {
+    g.innerHTML = '';
+    const rowH = 34, wBox = Math.max(...items.map(i => i.name.length)) * 11.8 + 68, hBox = 14 + items.length * rowH;
+    const x = SR - wBox - 12, y = ST + 10;
+    el('rect', { class: 'bg', x, y, width: wBox, height: hBox, rx: 4 }, g);
+    items.forEach((it, i) => {
+      const cy = y + 21 + i * rowH;
+      if (it.box) el('rect', { x: x + 10, y: cy - 8, width: 16, height: 14, fill: 'url(#hatch)', stroke: 'var(--noise)', 'stroke-width': .6 }, g);
+      else {
+        const ln = el('line', { x1: x + 10, x2: x + 26, y1: cy - 1, y2: cy - 1, stroke: it.color }, g);
+        if (it.dashed) ln.setAttribute('stroke-dasharray', '5 3');
+        if (it.opacity) ln.setAttribute('opacity', it.opacity);
+      }
+      el('text', { x: x + 38, y: cy + 8 }, g).textContent = it.name;
+    });
+    return hBox;
+  }
+  function legendRow(g, items) {
+    g.innerHTML = '';
+    const inner = el('g', {}, g);
+    const sw = 22, gap = 26, y = TT - 20;
+    let x = 0;
+    items.forEach(it => {
+      if (it.dot) el('circle', { cx: x + sw / 2, cy: y, r: 5, fill: it.color, stroke: '#fff', 'stroke-width': 1.4 }, inner);
+      else el('line', { x1: x, x2: x + sw, y1: y, y2: y, stroke: it.color, 'stroke-width': 4, opacity: it.opacity || 1 }, inner);
+      const t = el('text', { x: x + sw + 8, y: y + 7 }, inner); t.textContent = it.name;
+      let tw = it.name.length * 10.8; try { tw = t.getComputedTextLength() || tw; } catch (_) {}
+      x += sw + 8 + tw + gap;
+    });
+    const total = x - gap;
+    inner.setAttribute('transform', `translate(${TR - total}, 0)`);
+  }
+  function refreshLegends() {
+    const d = STEPS[step];
+    const rawItem = d.id === 'result' ? { name: 'raw PPG', color: 'var(--raw)' } : { name: 'raw PPG', color: 'var(--clean)' };
+    const timeItems = [rawItem];
+    if (d.id === 'result') timeItems.push({ name: `filtered (band-pass ${bandText()})`, color: 'var(--ma)' }, { name: 'pulses found', color: 'var(--ma)', dot: true });
+    legendRow(G.legTime, timeItems);
+    if (d.id === 'raw') { G.legSpec.innerHTML = ''; G.legSpecH = 0; return; }
+    const specItems = [];
+    if (d.id === 'result') specItems.push({ name: 'spectrum after filtering', color: 'var(--ma)' }, { name: 'raw spectrum', color: 'var(--raw)', opacity: .7 });
+    else specItems.push({ name: 'spectrum of the raw PPG', color: 'var(--ma)' });
+    specItems.push({ name: 'noise bands (shaded)', box: true });
+    if (d.id !== 'spec') specItems.push({ name: `|H(f)| band-pass ${bandText()}`, color: 'var(--green)', dashed: true });
+    G.legSpecH = legendBox(G.legSpec, specItems);
+  }
+
+  // ------------------------------------------------------------ drawing helpers
+  function timePath(arr, upto, offset = 0) {
+    let d = '';
+    for (let i = 0; i < upto; i++) d += (i ? 'L' : 'M') + tx(i).toFixed(1) + ',' + ty(arr[i] + offset).toFixed(1);
+    return d;
+  }
+  function specPath(sp, kFrom, kTo) {
+    let d = '';
+    for (let k = kFrom; k <= kTo; k++) d += (k === kFrom ? 'M' : 'L') + fx(sp.f[k]).toFixed(1) + ',' + fy(sp.mag[k]).toFixed(1);
+    return d;
+  }
+  // spectrum up to bin kTo: blue, with the noise-band spans repainted orange-red
+  function drawSpectrum(sp, kTo, cls = 'spec-raw') {
+    if (kTo < 1) return;
+    el('path', { d: specPath(sp, 0, kTo), class: cls }, G.specLines);
+    if (cls !== 'spec-raw') return;
+    BANDS.forEach(b => {
+      const kA = Math.ceil(b.lo / sp.binHz), kB = Math.min(kTo, Math.floor(b.hi / sp.binHz));
+      if (kB > kA) el('path', { d: specPath(sp, kA, kB), class: 'spec-noise' }, G.specLines);
+    });
+  }
+  function respPath(kTo) {
+    const cols = Math.round(SR - SL), lim = Math.floor(cols * (kTo / KMAX));
+    let d = '';
+    for (let c = 0; c <= lim; c += 2) {
+      const f = Math.max(0.005, (c / cols) * FMAX);
+      d += (d ? 'L' : 'M') + (SL + c).toFixed(1) + ',' + gy(B.sosFreqz(sos, f, FS)).toFixed(1);
+    }
+    return d;
+  }
+  function drawBands() {
+    G.band.innerHTML = '';
+    BANDS.forEach(b => {
+      el('rect', { class: 'band', x: fx(b.lo), y: ST, width: fx(b.hi) - fx(b.lo), height: SB - ST }, G.band);
+      if (b.lo > 0) el('line', { class: 'band-edge', x1: fx(b.lo), x2: fx(b.lo), y1: ST, y2: SB }, G.band);
+      if (b.hi < FMAX) el('line', { class: 'band-edge', x1: fx(b.hi), x2: fx(b.hi), y1: ST, y2: SB }, G.band);
+      if (b.where === 'left') el('text', { class: 'band-label', x: fx(b.hi) + 8, y: ST + 26 }, G.band).textContent = b.label;
+      else el('text', { class: 'band-label', x: SR - 10, y: ST + 10 + (G.legSpecH || 0) + 30, 'text-anchor': 'end' }, G.band).textContent = b.label;
+    });
+  }
+  // peak labels on the spectrum (once the sweep has passed them)
+  function drawPeakLabels(sp, kTo, withBand) {
+    G.labels.innerHTML = '';
+    if (withBand) el('text', { class: 'sig-label', x: fx(2.4), y: fy(SPEC_MAX * 0.5) + 7, 'text-anchor': 'middle' }, G.labels).textContent = 'pulse band, 0.5–5 Hz';
+    PEAKS.forEach((pk, j) => {
+      if (pk.k > kTo) return;
+      const yA = fy(sp.mag[pk.k]);
+      if (j === 0) el('text', { class: 'dlabel', x: fx(pk.f) + 12, y: yA + 7 }, G.labels).textContent = `pulse, ${pk.f.toFixed(2)} Hz`;
+      else el('text', { class: 'dlabel', x: fx(pk.f), y: yA - 12, 'text-anchor': 'middle' }, G.labels).textContent = `${pk.f.toFixed(2)} Hz`;
+    });
+  }
+  function stageList(show) {
+    G.stage.innerHTML = '';
+    if (!show) return;
+    el('text', { class: 'stagelist', x: SR, y: ST - 14, 'text-anchor': 'end' }, G.stage).textContent = `stage 1: band-pass ${bandText()}, order 4`;
+  }
+  const cursorLine = i => el('line', { class: 'cursor', x1: tx(i), x2: tx(i), y1: TT, y2: TB }, G.timeLines);
+
+  // ------------------------------------------------------------ render at progress p (0..1) from the live dial values
+  let step = 0, p = 0, playing = false, raf = 0, lastT = 0, speedMult = 1;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let hoverSpec = SPEC_RAW, hoverFilt = false, hoverResp = false;
+
+  function render() {
+    const d = STEPS[step];
+    G.specLines.innerHTML = ''; G.timeLines.innerHTML = ''; G.readout.innerHTML = '';
+    hoverSpec = SPEC_RAW; hoverFilt = false; hoverResp = false;
+    if (d.id === 'raw') {
+      const c = Math.max(2, Math.round(p * N));
+      el('path', { d: timePath(raw, c), fill: 'none', stroke: 'var(--clean)', 'stroke-width': 1.7 }, G.timeLines);
+      if (p < 1) cursorLine(c - 1);
+    } else if (d.id === 'spec') {
+      el('path', { d: timePath(raw, N), fill: 'none', stroke: 'var(--clean)', 'stroke-width': 1.7 }, G.timeLines);
+      drawBands();
+      const kTo = Math.floor(p * KMAX);
+      drawSpectrum(SPEC_RAW, kTo);
+      drawPeakLabels(SPEC_RAW, kTo, p >= 1);
+    } else if (d.id === 'design') {
+      el('path', { d: timePath(raw, N), fill: 'none', stroke: 'var(--clean)', 'stroke-width': 1.7 }, G.timeLines);
+      drawBands();
+      drawSpectrum(SPEC_RAW, KMAX);
+      drawPeakLabels(SPEC_RAW, KMAX, true);
+      const kTo = Math.floor(p * KMAX);
+      if (kTo > 0) el('path', { d: respPath(kTo), class: 'resp-line' }, G.specLines);
+      stageList(true);
+      hoverResp = true;
+    } else {
+      // result: raw faint, filtered (drawn about the raw mean) sweeping in, pulses marked and counted
+      el('path', { d: timePath(raw, N), fill: 'none', stroke: 'var(--raw)', 'stroke-width': 1.5, opacity: .75 }, G.timeLines);
+      const c = Math.max(2, Math.round(p * N));
+      el('path', { d: timePath(filt, c, RAW_MEAN), fill: 'none', stroke: 'var(--ma)', 'stroke-width': 2.6, 'stroke-linejoin': 'round' }, G.timeLines);
+      let n = 0;
+      peaks.forEach(i => { if (i < c) { n++; el('circle', { class: 'dot', cx: tx(i), cy: ty(filt[i] + RAW_MEAN), r: 5.5, fill: 'var(--ma)' }, G.timeLines); } });
+      if (p < 1) cursorLine(c - 1);
+      el('text', { class: 'readout', x: TL + 150, y: TT - 14 }, G.readout).textContent = `pulses found: ${n}` + (p >= 1 ? ` · about ${bpm} bpm` : '');
+      drawBands();
+      el('path', { d: specPath(SPEC_RAW, 0, KMAX), class: 'spec-faint' }, G.specLines);
+      el('path', { d: respPath(KMAX), class: 'resp-line' }, G.specLines);
+      const kTo = Math.floor(p * KMAX);
+      drawSpectrum(specF, kTo, 'spec-raw');
+      G.labels.innerHTML = '';
+      stageList(true);
+      hoverSpec = specF; hoverFilt = true; hoverResp = true;
+    }
+    $('title').innerHTML = txt(d.title) + `<span class="tag">${txt(d.tag)}</span>`;
+    $('subtitle').textContent = txt(d.subtitle);
+    const code = txt(d.code);
+    $('code').hidden = !code; $('code').innerHTML = code || '';
+  }
+
+  // ------------------------------------------------------------ dials (persist once touched; presets re-applied only if untouched)
+  function setDials() {
+    $('lo').value = fLo; $('loval').textContent = fmtLo();
+    $('hi').value = fHi; $('hival').textContent = fmtHi();
+  }
+  function applyPresets() {
+    if (!dirty.lo) fLo = PRESET.lo;
+    if (!dirty.hi) fHi = PRESET.hi;
+    setDials(); recompute();
+  }
+
+  // ------------------------------------------------------------ step control
+  function enterStep(k, completed = false) {
+    step = Math.max(0, Math.min(STEPS.length - 1, k));
+    const d = STEPS[step];
+    stopPlay();
+    applyPresets();
+    drawFrame(d.id !== 'raw', d.id === 'design' || d.id === 'result');
+    refreshLegends();
+    $('counter').textContent = `${step + 1} / ${STEPS.length}`;
+    try { history.replaceState(null, '', '#' + (step + 1)); } catch (_) {}
+    p = 0;
+    if (completed || speedMult === 0 || reduceMotion) finish(); else { render(); startPlay(); }
+  }
+  const done = () => p >= 1;
+  function finish() { stopPlay(); p = 1; render(); }
+  function tick(now) {
+    if (!playing) return;
+    const dt = Math.max(0, Math.min(0.1, (now - lastT) / 1000)); lastT = now;
+    p = Math.min(1, p + dt * speedMult / STEPS[step].base);
+    render();
+    if (done()) { finish(); return; }
+    raf = requestAnimationFrame(tick);
+  }
+  function startPlay() { if (done()) return; playing = true; lastT = performance.now(); $('play').textContent = '⏸'; raf = requestAnimationFrame(tick); }
+  function stopPlay() { playing = false; cancelAnimationFrame(raf); $('play').textContent = '▶'; }
+  function next() { if (!done()) { finish(); return; } if (step < STEPS.length - 1) enterStep(step + 1); }
+  function prev() { if (step > 0) enterStep(step - 1, true); }
+  function restart() { enterStep(step); }
+  // a dial moved: recompute the filter and redraw at the current progress (no replay)
+  function dialChanged() { recompute(); refreshLegends(); render(); }
+
+  // ------------------------------------------------------------ hover
+  const tt = $('tt');
+  const fmt = v => (Math.round(v * 1000) / 1000).toFixed(3);
+  function svgPoint(evt) { const pt = chart.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY; return pt.matrixTransform(chart.getScreenCTM().inverse()); }
+  function hover(evt) {
+    const panel = evt.target.getAttribute && evt.target.getAttribute('data-panel');
+    if (!panel) { unhover(); return; }
+    const q = svgPoint(evt); G.hover.innerHTML = '';
+    let html = '';
+    if (panel === 'time') {
+      const i = Math.max(0, Math.min(N - 1, Math.round((q.x - TL) / (TR - TL) * (N - 1))));
+      el('line', { class: 'crosshair', x1: tx(i), x2: tx(i), y1: TT, y2: TB }, G.hover);
+      html = `<div class="row"><span>t</span><b>${(i / FS).toFixed(2)} s</b></div>` +
+        `<div class="row"><span><i class="sw" style="background:#8f8f8f"></i>raw</span><span>${fmt(raw[i])}</span></div>`;
+      if (hoverFilt) html += `<div class="row"><span><i class="sw" style="background:#2a78d6"></i>filtered</span><span>${fmt(filt[i])}</span></div>`;
+    } else {
+      const f = Math.max(0, Math.min(FMAX, (q.x - SL) / (SR - SL) * FMAX)), k = Math.round(f / hoverSpec.binHz);
+      el('line', { class: 'crosshair', x1: fx(f), x2: fx(f), y1: ST, y2: SB }, G.hover);
+      html = `<div class="row"><span>f</span><b>${f.toFixed(2)} Hz</b></div>` +
+        `<div class="row"><span><i class="sw" style="background:#2a78d6"></i>|X(f)|</span><span>${fmt(hoverSpec.mag[k])}</span></div>`;
+      if (hoverResp) html += `<div class="row"><span><i class="sw" style="background:#1baf7a"></i>|H(f)|</span><span>${fmt(B.sosFreqz(sos, Math.max(0.005, f), FS))}</span></div>`;
+    }
+    tt.innerHTML = html; tt.style.display = 'block';
+    const wrap = chart.parentElement.getBoundingClientRect();
+    const cx = evt.clientX - wrap.left, cy = evt.clientY - wrap.top;
+    tt.style.left = (cx + 16 + tt.offsetWidth > wrap.width ? cx - tt.offsetWidth - 12 : cx + 16) + 'px';
+    tt.style.top = Math.max(0, cy - 10) + 'px';
+  }
+  function unhover() { tt.style.display = 'none'; if (G.hover) G.hover.innerHTML = ''; }
+
+  // ------------------------------------------------------------ wiring
+  $('next').addEventListener('click', e => { e.stopPropagation(); next(); });
+  $('prev').addEventListener('click', e => { e.stopPropagation(); prev(); });
+  $('restart').addEventListener('click', e => { e.stopPropagation(); restart(); });
+  $('reset').addEventListener('click', e => { e.stopPropagation(); dirty.lo = dirty.hi = false; enterStep(step); });
+  $('play').addEventListener('click', e => { e.stopPropagation(); if (playing) stopPlay(); else if (done()) restart(); else startPlay(); });
+  $('slide').addEventListener('click', () => next());
+  document.addEventListener('keydown', e => {
+    if (['SELECT', 'INPUT'].includes(e.target.tagName)) return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
+    else if (e.key === 'r' || e.key === 'R') restart();
+  });
+  $('lo').addEventListener('input', e => { dirty.lo = true; fLo = parseFloat(e.target.value); setDials(); dialChanged(); });
+  $('hi').addEventListener('input', e => { dirty.hi = true; fHi = parseFloat(e.target.value); setDials(); dialChanged(); });
+  $('speed').addEventListener('change', e => { speedMult = parseFloat(e.target.value); if (speedMult === 0) finish(); });
+  chart.addEventListener('mousemove', hover);
+  chart.addEventListener('mouseleave', unhover);
+
+  // ------------------------------------------------------------ boot
+  speedMult = parseFloat($('speed').value);
+  const h = parseInt((location.hash || '').replace('#', ''), 10);
+  enterStep(h >= 1 && h <= STEPS.length ? h - 1 : 0);
+})();
+</script>
+
+</body>
+</html>

@@ -22,40 +22,49 @@
   .stage { max-width: 1880px; margin: 0 auto; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; height: calc(100vh - 20px); }
   .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 16px 30px 8px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 6px; min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none; }
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
-  .head h1 { margin: 0; font-size: clamp(20px, 2.2vw, 28px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
-  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
-  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .head h1 { margin: 0; font-size: clamp(24px, 2.4vw, 36px); font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
+  .head p:empty { display: none; }
   .chart-wrap { position: relative; min-height: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
-  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 15px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 14px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
-  .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
-  .group { display:flex; align-items:center; gap:8px; }
-  .group label { font-size:13px; font-weight:700; color:var(--ink); }
-  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
-  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  .bar { display:flex; flex-direction:column; gap:12px; padding:12px 24px;
+         border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:19px; color:var(--ink); }
+  .bar .row { display:flex; justify-content:flex-start; align-items:center; gap:16px 32px; flex-wrap:wrap; }
+  .bar .row.dials .group { flex:1 1 0; }
+  .bar .row.dials input[type=range] { flex:1 1 auto; width:auto; }
+  .group { display:flex; align-items:center; gap:10px; }
+  .group label { font-size:18px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; white-space:nowrap; }
+  .val { font-family:var(--mono); font-size:19px; font-weight:700; color:var(--ma); min-width:5ch; white-space:nowrap; }
+  button, select { font:inherit; font-size:18px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:6px; padding:9px 16px; cursor:pointer; }
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
+  input[type=range] { -webkit-appearance:none; appearance:none; accent-color:var(--ma); width:260px; height:36px; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; box-shadow:0 0 0 1.5px var(--ma); margin-top:-9px; }
+  input[type=range]::-moz-range-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-moz-range-thumb { width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
-  .grid line { stroke: var(--grid); stroke-width: 1; }
-  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
+  .grid line { stroke: var(--grid); stroke-width: 1.3; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1.3; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 22px; fill: var(--ink-2); }
   .mono { font-family: var(--mono); }
-  .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
-  .ann { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
+  .dlabel { font-family: var(--sans); font-size: 17px; font-weight: 700; }
+  .ann { font-family: var(--mono); font-size: 20px; fill: var(--ink); }
   .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
   @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
   .hint { display:none !important; }
-  button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
-  button.primary.tb { min-width:52px; }
+  button.tb { min-width:54px; padding:9px 12px; font-size:22px; line-height:1; }
+  button.primary.tb { min-width:64px; }
 </style>
 <div class="stage">
   <section class="slide" id="slide" tabindex="0" aria-live="polite">
@@ -73,6 +82,7 @@
     </div>
   </section>
   <div class="bar">
+   <div class="row">
     <div class="group">
       <button id="prev" class="tb" title="Previous step (←)">⏮</button>
       <button id="play" class="primary tb" title="Play / pause (space)">▶</button>
@@ -101,7 +111,7 @@
         <option value="0">instant</option>
       </select>
     </div>
-    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+   </div>
   </div>
 </div>
 
@@ -116,8 +126,8 @@
   const code2stage = v => v === 0 ? 'W' : (v === 1 || v === 2) ? 'L' : v === 3 ? 'D' : v === 5 ? 'R' : null;
   // legend: items [{c, n, dash?, box?}] drawn on a white rounded rect at (x, y)
   function legend(parent, x, y, items) {
-    const rowH = 24, padX = 10, padY = 8;
-    const wdt = 12 + Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX + 22;
+    const rowH = 30, padX = 10, padY = 8;
+    const wdt = 12 + Math.max(...items.map(i => i.n.length)) * 11 + 2 * padX + 22;
     x = Math.min(x, W - wdt - 6);
     el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, parent);
     items.forEach((it, j) => {
@@ -189,12 +199,12 @@
 
   function steps() {
     return [
-      { title: 'A night as a sequence of 30-second epochs', tag: `epoch = 30 s · N = ${N}`, frames: N,
-        subtitle: 'The hypnogram, drawn from the PSG stage label of each epoch.' },
+      { title: 'Night as a sequence of 30-second epochs', tag: `epoch = 30 s · N = ${N}`, frames: N,
+        subtitle: 'The hypnogram: the PSG stage label of each epoch.' },
       { title: 'Timing metrics computed by counting epochs', tag: `epoch = 30 s · N = ${N}`, frames: N,
-        subtitle: 'How the sleep timing metrics are computed by counting the epoch labels.' },
-      { title: 'Collapsing the stages to wake versus sleep', tag: 'sleep = N1 + N2 + N3 + REM', frames: N,
-        subtitle: 'How the sleep stages collapse into a two-level wake versus sleep label.' },
+        subtitle: '' },
+      { title: 'Collapsing the stages to wake vs sleep', tag: 'sleep = N1 + N2 + N3 + REM', frames: N,
+        subtitle: '' },
     ];
   }
 
@@ -300,15 +310,15 @@
     });
     let ly = y0 + barH + 22;
     ['W', 'L', 'D', 'R'].forEach((k, j) => {
-      const lx = barX + j * 140;
+      const lx = barX + j * 175;
       el('rect', { x: lx, y: ly - 10, width: 12, height: 12, fill: STAGE[k].c, rx: 2 }, G.lower);
-      txt(G.lower, lx + 18, ly, `${STAGE[k].n.split(' ')[0]} ${(c[k] * EPOCH_MIN).toFixed(1)} min`, { class: 'ann', 'font-size': 15 });
+      txt(G.lower, lx + 18, ly, `${STAGE[k].n.split(' ')[0]} ${(c[k] * EPOCH_MIN).toFixed(1)} min`, { class: 'ann', style: 'font-size:17px' });
     });
     ly += 34;
     const F = ['TST = (light + deep + REM epochs) × 0.5 min', 'efficiency = TST / time in bed', 'onset latency = epochs before the first sleep epoch × 0.5 min', 'WASO = wake epochs after sleep onset × 0.5 min'];
-    F.forEach((f, j) => txt(G.lower, barX, ly + j * 20, f, { class: 'ann', 'font-size': 15, fill: 'var(--ink-2)' }));
+    F.forEach((f, j) => txt(G.lower, barX, ly + j * 24, f, { class: 'ann', style: 'font-size:17px', fill: 'var(--ink-2)' }));
     // readouts on the right
-    const rx = PL + barW + 80, rows = [
+    const rx = W - PR - 440, rows = [
       ['time in bed', `${tib.toFixed(1)} min`, 'var(--ink)'],
       ['total sleep time (TST)', `${tst.toFixed(1)} min`, 'var(--sleep)'],
       ['sleep efficiency', tib > 0 ? `${(100 * tst / tib).toFixed(1)} %` : '–', 'var(--sleep)'],

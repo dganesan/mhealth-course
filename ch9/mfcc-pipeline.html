@@ -20,41 +20,50 @@
   .stage { max-width: 1880px; margin: 0 auto; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; height: calc(100vh - 20px); }
   .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 16px 30px 8px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 6px; min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none; }
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
-  .head h1 { margin: 0; font-size: clamp(20px, 2.2vw, 28px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
-  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
-  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .head h1 { margin: 0; font-size: clamp(24px, 2.4vw, 36px); font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
+  .head p:empty { display: none; }
   .chart-wrap { position: relative; min-height: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
-  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 15px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
-  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 14px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
-  .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
-  .group { display:flex; align-items:center; gap:8px; }
-  .group label { font-size:13px; font-weight:700; color:var(--ink); }
-  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
-  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  .bar { display:flex; flex-direction:column; gap:12px; padding:12px 24px;
+         border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:19px; color:var(--ink); }
+  .bar .row { display:flex; justify-content:flex-start; align-items:center; gap:16px 32px; flex-wrap:wrap; }
+  .bar .row.dials .group { flex:1 1 0; }
+  .bar .row.dials input[type=range] { flex:1 1 auto; width:auto; }
+  .group { display:flex; align-items:center; gap:10px; }
+  .group label { font-size:18px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; white-space:nowrap; }
+  .val { font-family:var(--mono); font-size:19px; font-weight:700; color:var(--ma); min-width:5ch; white-space:nowrap; }
+  button, select { font:inherit; font-size:18px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:6px; padding:9px 16px; cursor:pointer; }
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
+  input[type=range] { -webkit-appearance:none; appearance:none; accent-color:var(--ma); width:260px; height:36px; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; box-shadow:0 0 0 1.5px var(--ma); margin-top:-9px; }
+  input[type=range]::-moz-range-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-moz-range-thumb { width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
-  .grid line { stroke: var(--grid); stroke-width: 1; }
-  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
-  .ptitle { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ink); }
+  .grid line { stroke: var(--grid); stroke-width: 1.3; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1.3; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 22px; fill: var(--ink-2); }
+  .ptitle { font-family: var(--sans); font-size: 20px; font-weight: 700; fill: var(--ink); }
   .wave { fill: none; stroke: #333; stroke-width: 1; }
-  .spec-line { fill: none; stroke: var(--ma); stroke-width: 1.4; stroke-linejoin: round; }
-  .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
-  .mono { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
+  .spec-line { fill: none; stroke: var(--ma); stroke-width: 1.8; stroke-linejoin: round; }
+  .dlabel { font-family: var(--sans); font-size: 17px; font-weight: 700; }
+  .mono { font-family: var(--mono); font-size: 20px; fill: var(--ink); }
   .win-rect { fill: rgba(42,120,214,.15); stroke: var(--ma); stroke-width: 1.5; }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
   @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
   .hint { display:none !important; }
-  button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
-  button.primary.tb { min-width:52px; }
+  button.tb { min-width:54px; padding:9px 12px; font-size:22px; line-height:1; }
+  button.primary.tb { min-width:64px; }
 </style>
 
 <div class="stage">
@@ -74,22 +83,13 @@
   </section>
 
   <div class="bar">
+   <div class="row">
     <div class="group">
       <button id="prev" class="tb" title="Previous step (←)">⏮</button>
       <button id="play" class="primary tb" title="Play / pause (space)">▶</button>
       <button id="next" class="tb" title="Next step (→)">⏭</button>
       <button id="restart" class="tb" title="Restart this step (r)">↺</button>
       <button id="reset" title="Reset all dials to defaults">Reset dials</button>
-    </div>
-    <div class="group">
-      <label for="nmel">Mel filters</label>
-      <input type="range" id="nmel" min="10" max="40" step="1" value="26">
-      <span class="val" id="nmelVal">26</span>
-    </div>
-    <div class="group">
-      <label for="nkeep">Coefficients kept</label>
-      <input type="range" id="nkeep" min="4" max="26" step="1" value="13">
-      <span class="val" id="nkeepVal">13</span>
     </div>
     <div class="group">
       <label for="speed">Speed</label>
@@ -101,7 +101,19 @@
         <option value="0">instant</option>
       </select>
     </div>
-    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+   </div>
+   <div class="row dials">
+    <div class="group">
+      <label for="nmel">Mel filters</label>
+      <input type="range" id="nmel" min="10" max="40" step="1" value="26">
+      <span class="val" id="nmelVal">26</span>
+    </div>
+    <div class="group">
+      <label for="nkeep">Coefficients kept</label>
+      <input type="range" id="nkeep" min="4" max="26" step="1" value="13">
+      <span class="val" id="nkeepVal">13</span>
+    </div>
+   </div>
   </div>
 </div>
 
@@ -168,19 +180,19 @@
     const nk = Math.min(nKeep, nMels);
     return [
       { id: 'win', n: NW, secs: 6, title: 'Step 1: a 30-ms window of audio', tag: `${NW} samples · 44.1 kHz · from 1.903 s of happy_DC_h01.wav`,
-        subtitle: 'The raw audio samples inside one short window of speech.' },
+        subtitle: '' },
       { id: 'spec', n: KMAX, secs: 6, title: 'Step 2: the power spectrum of the window', tag: `FFT of ${NFFT} points · |FFT|² · 0–8 kHz`,
-        subtitle: 'The power spectrum of the window, plotted on a log scale.' },
-      { id: 'mel', n: 79, secs: 8, title: 'The Mel scale: equal steps in Hz are not equal steps in pitch', tag: 'mel = 2595 · log10(1 + f / 700)',
-        subtitle: 'How equal steps in Hz map to unequal steps on the Mel scale.' },
+        subtitle: '' },
+      { id: 'mel', n: 79, secs: 8, title: 'Mel scale: equal steps in Hz are not equal steps in pitch', tag: 'mel = 2595 · log10(1 + f / 700)',
+        subtitle: '' },
       { id: 'fbank', n: nMels, secs: 8, title: `Step 3: the Mel filterbank (${nMels} triangular filters)`, tag: `${nMels} filters, centres equally spaced in Mel · E_j = Σ_k H_j[k] · P[k]`,
-        subtitle: 'How each triangular filter sums the power in its band into one energy value.' },
+        subtitle: 'Each triangular filter sums the power in its band into one energy value.' },
       { id: 'log', n: nMels, secs: 6, title: 'Step 4: the logarithm of each band energy', tag: `${nMels} values · log(E_j)`,
-        subtitle: 'How taking the log compresses the range of the filterbank energies.' },
+        subtitle: '' },
       { id: 'dct', n: nMels, secs: 10, title: `Step 5: the DCT, keeping the first ${nk} coefficients`, tag: `c_n = s_n · Σ_j log E_j · cos(π n (j + ½) / ${nMels}) · keep n < ${nk}`,
-        subtitle: 'How the DCT of the log-Mel energies gives the MFCC coefficients.' },
+        subtitle: '' },
       { id: 'clip', n: TSEQ, secs: 12, title: 'From per-window vectors to a per-clip feature vector', tag: `${TSEQ} windows · 10-ms hop · 26 filters · ${nk} means + ${nk} stds = ${2 * nk} features`,
-        subtitle: 'How the MFCC vectors of all windows combine into one feature vector for the clip.' },
+        subtitle: '' },
     ];
   }
 
@@ -195,9 +207,10 @@
   const dirty = {};
   let hoverFn = null;
 
-  function legend(g, xL, yT, items) {
-    const rowH = 24, padX = 10, padY = 8;
-    const wdt = Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX + 34;
+  function legend(g, xL, yT, items, xR) {
+    const rowH = 30, padX = 10, padY = 8;
+    const wdt = Math.max(...items.map(i => i.n.length)) * 11.5 + 2 * padX + 34;
+    if (xR != null) xL = xR - wdt;
     xL = Math.min(xL, W - wdt - 6);
     el('rect', { x: xL, y: yT, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
     items.forEach((it, j) => {
@@ -272,7 +285,7 @@
       const v = vals[j]; const on = j === opts.active;
       const faded = opts.fadeFrom != null && j >= opts.fadeFrom;
       el('rect', { x: x0 + j * bw + gap / 2, y: Math.min(yy(v), yy(0)), width: bw - gap, height: Math.abs(yy(v) - yy(0)), fill: faded ? '#c8c8c8' : (opts.color || 'var(--ma)'), opacity: on ? 1 : .85, stroke: on ? '#222' : 'none', 'stroke-width': on ? 1.5 : 0 }, g);
-      if (opts.labels && !faded) el('text', { x: x0 + (j + 0.5) * bw, y: v >= 0 ? yy(v) - 5 : Math.min(yy(v) + 13, y1 - 5), class: 'axis-title', 'text-anchor': 'middle', fill: 'var(--ink)' }, g).textContent = fmt(v, opts.labels);
+      if (opts.labels && !faded) el('text', { x: x0 + (j + 0.5) * bw, y: v >= 0 ? Math.max(yy(v) - 5, y0 + 18) : Math.min(yy(v) + 13, y1 - 5), class: 'axis-title', 'text-anchor': 'middle', fill: 'var(--ink)' }, g).textContent = fmt(v, opts.labels);
     }
     return { yy, bw };
   }
@@ -294,8 +307,8 @@
     el('line', { x1: xx(f0), x2: xx(f1), y1: y1 - 6, y2: y1 - 6, stroke: c, 'stroke-width': 3 }, g);
     el('line', { x1: x0 + 6, x2: x0 + 6, y1: yy(m0), y2: yy(m1), stroke: c, 'stroke-width': 3 }, g);
     const lx = f0 < 5500 ? xx(f1) + 12 : xx(f0) - 12, anch = f0 < 5500 ? 'start' : 'end';
-    el('text', { x: lx, y: yy((m0 + m1) / 2) + 5, class: 'dlabel', fill: c, 'text-anchor': anch }, g).textContent = `${f0} → ${f1} Hz  =  Δ ${(m1 - m0).toFixed(0)} mel`;
-    legend(g, x1 - 250, y1 - 62, [{ c: 'var(--ma)', n: 'mel(f) = 2595·log10(1 + f/700)' }, { c: c, n: 'a 100-Hz step', box: true, o: .5 }]);
+    el('text', { x: lx, y: yy((m0 + m1) / 2) + (f0 >= 7500 ? -9 : 5), class: 'dlabel', fill: c, 'text-anchor': anch }, g).textContent = `${f0} → ${f1} Hz  =  Δ ${(m1 - m0).toFixed(0)} mel`;
+    legend(g, x0 + 14, y0 + 8, [{ c: 'var(--ma)', n: 'mel(f) = 2595·log10(1 + f/700)' }, { c: c, n: 'a 100-Hz step', box: true, o: .5 }]);
     hoverFn = null;
   }
   function dctBasisPanel(g, x0, y0, x1, y1, n) {
@@ -305,7 +318,7 @@
     let d = ''; for (let j = 0; j <= 200; j++) { const t = j / 200 * M; d += (j ? 'L' : 'M') + (x0 + t / M * (x1 - x0)).toFixed(1) + ',' + (mid - amp * Math.cos(Math.PI * n * (t) / M)).toFixed(1); }
     el('path', { d, fill: 'none', stroke: 'var(--wm)', 'stroke-width': 2.2 }, g);
     for (let j = 0; j < M; j++) el('circle', { cx: x0 + (j + 0.5) * r.bw, cy: mid - amp * Math.cos(Math.PI * n * (j + 0.5) / M), r: 3.5, fill: 'var(--wm)', stroke: '#fff', 'stroke-width': 1 }, g);
-    legend(g, x1 - 235, y0 + 8, [{ c: 'var(--ma)', n: 'log E_j (from step 4)', box: true }, { c: 'var(--wm)', n: `cos(π·n·(j+½)/${M}), n = ${n}` }]);
+    legend(g, x0 + 8, y1 - 78, [{ c: 'var(--ma)', n: 'log E_j (from step 4)', box: true }, { c: 'var(--wm)', n: `cos(π·n·(j+½)/${M}), n = ${n}` }]);
   }
   function clipPanels(g, upto) {
     const nk = Math.min(nKeep, 13);
@@ -341,13 +354,13 @@
     frame(g, x0, hy0, x1, hy1, 'MFCC matrix: one column per window', 'time (s)', 'coefficient');
     el('rect', { x: x0, y: hy0, width: x1 - x0, height: hy1 - hy0, fill: 'none', stroke: 'var(--rule)' }, g);
     el('line', { x1: xx(t * HOP_S + WIN_S / 2), x2: xx(t * HOP_S + WIN_S / 2), y1: hy0, y2: hy1, stroke: 'var(--ma)', 'stroke-width': 1.5 }, g);
-    el('text', { x: x0, y: hy1 + 50, class: 'mono' }, g).textContent = `mean_i = (1/T) Σ_t c_i[t]      std_i = sqrt( (1/T) Σ_t (c_i[t] − mean_i)² )      T = ${t + 1}`;
-    legend(g, x1 - 330, hy0 - 52, [{ c: 'rgb(42,120,214)', n: 'low', box: true }, { c: 'rgb(235,104,52)', n: 'high (coefficient 0 on its own scale)', box: true }]);
+    el('text', { x: x0, y: hy1 + 58, class: 'mono' }, g).textContent = `mean_i = (1/T) Σ_t c_i[t]      std_i = sqrt( (1/T) Σ_t (c_i[t] − mean_i)² )      T = ${t + 1}`;
+    legend(g, x0, hy1 + 70, [{ c: 'rgb(42,120,214)', n: 'low', box: true }, { c: 'rgb(235,104,52)', n: 'high (coefficient 0 on its own scale)', box: true }]);
     // right: running mean and std bars for the first nk coefficients
     const T = t + 1; const mean = new Array(13).fill(0), sd = new Array(13).fill(0);
     for (let i = 0; i < 13; i++) { let s = 0; for (let c = 0; c < T; c++) s += MFCC_SEQ[c][i]; mean[i] = s / T; let q = 0; for (let c = 0; c < T; c++) q += (MFCC_SEQ[c][i] - mean[i]) ** 2; sd[i] = Math.sqrt(q / T); }
     const bx0 = x1 + 90, bx1 = W - 40;
-    barPanel(g, bx0, 40, bx1, 240, mean.slice(0, nk), nk, { title: `mean of each coefficient (${nk})`, xlab: 'MFCC index', ylab: 'mean', lo: -30, hi: 20, color: 'var(--ewma)', labels: 0 });
+    barPanel(g, bx0, 40, bx1, 230, mean.slice(0, nk), nk, { title: `mean of each coefficient (${nk})`, xlab: 'MFCC index', ylab: 'mean', lo: -30, hi: 20, color: 'var(--ewma)', labels: 0 });
     barPanel(g, bx0, 300, bx1, 500, sd.slice(0, nk), nk, { title: `standard deviation of each (${nk})`, xlab: 'MFCC index', ylab: 'std', lo: 0, hi: 12, color: 'var(--ewma)', labels: 0 });
     el('text', { x: bx0, y: 560, class: 'mono' }, g).textContent = `clip vector: ${nk} + ${nk} = ${2 * nk} numbers`;
     el('text', { x: bx0, y: 582, class: 'mono', fill: 'var(--ink-2)' }, g).textContent = `(+ Δ and ΔΔ statistics → ${6 * nk})`;
@@ -371,7 +384,7 @@
     } else if (d.id === 'fbank') {
       const active = c < d.n ? c : -1;
       spectrumPanel(chart, PL, 40, PL + PW, 310, NB, { filters: true, active, upto: c, fmax: FS / 2, title: `power spectrum (0–22.05 kHz) with the ${nMels} Mel filters, heights not to scale` });
-      legend(chart, PL + PW - 260, 48, [{ c: 'var(--ma)', n: 'power spectrum P[k]', w: 1.5 }, { c: '#fff', s: '#9a9a9a', n: 'Mel filter H_j (triangle)', box: true }, { c: 'var(--ma)', o: .35, s: 'var(--ma)', n: 'current filter', box: true }]);
+      legend(chart, 0, 48, [{ c: 'var(--ma)', n: 'power spectrum P[k]', w: 1.5 }, { c: '#fff', s: '#9a9a9a', n: 'Mel filter H_j (triangle)', box: true }, { c: 'var(--ma)', o: .35, s: 'var(--ma)', n: 'current filter', box: true }], PL + PW - 6);
       barPanel(chart, PL, 400, PL + PW, 610, MELE, c, { title: 'energy collected by each filter', xlab: 'filter index j', ylab: 'energy  E_j', lo: 0, active, fmt: v => v });
     } else if (d.id === 'log') {
       barPanel(chart, PL, 40, PL + PW, 280, MELE, nMels, { title: 'filter energies (step 3)', xlab: 'filter index j', ylab: 'energy', lo: 0, active: c < d.n ? c : -1, fmt: v => v });
@@ -381,7 +394,7 @@
       const n = c < d.n ? c : -1;
       dctBasisPanel(chart, PL, 40, PL + PW, 280, Math.max(0, n));
       barPanel(chart, PL, 380, PL + PW, 610, Array.from(MFCC), c, { title: `MFCC coefficients: the first ${nk} are kept, the rest discarded`, xlab: 'coefficient index n', ylab: 'c_n', active: n, color: 'var(--ewma)', fadeFrom: nk, labels: 1 });
-      legend(chart, PL + PW - 190, 388, [{ c: 'var(--ewma)', n: `kept (n < ${nk})`, box: true }, { c: '#c8c8c8', n: 'discarded', box: true }]);
+      legend(chart, 0, 532, [{ c: 'var(--ewma)', n: `kept (n < ${nk})`, box: true }, { c: '#c8c8c8', n: 'discarded', box: true }], PL + PW - 6);
       if (n >= 0) el('text', { x: PL + PW - 8, y: 322, class: 'mono', 'text-anchor': 'end' }, chart).textContent = `c_${n} = ${MFCC[n].toFixed(2)}`;
     } else if (d.id === 'clip') {
       clipPanels(chart, c);

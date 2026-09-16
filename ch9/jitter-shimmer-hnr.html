@@ -20,40 +20,49 @@
   .stage { max-width: 1880px; margin: 0 auto; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; height: calc(100vh - 20px); }
   .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 16px 30px 8px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 6px; min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none; }
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
-  .head h1 { margin: 0; font-size: clamp(20px, 2.2vw, 28px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
-  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
-  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .head h1 { margin: 0; font-size: clamp(24px, 2.4vw, 36px); font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
+  .head p:empty { display: none; }
   .chart-wrap { position: relative; min-height: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
-  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 15px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
-  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 14px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
-  .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
-  .group { display:flex; align-items:center; gap:8px; }
-  .group label { font-size:13px; font-weight:700; color:var(--ink); }
-  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
-  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  .bar { display:flex; flex-direction:column; gap:12px; padding:12px 24px;
+         border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:19px; color:var(--ink); }
+  .bar .row { display:flex; justify-content:flex-start; align-items:center; gap:16px 32px; flex-wrap:wrap; }
+  .bar .row.dials .group { flex:1 1 0; }
+  .bar .row.dials input[type=range] { flex:1 1 auto; width:auto; }
+  .group { display:flex; align-items:center; gap:10px; }
+  .group label { font-size:18px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; white-space:nowrap; }
+  .val { font-family:var(--mono); font-size:19px; font-weight:700; color:var(--ma); min-width:5ch; white-space:nowrap; }
+  button, select { font:inherit; font-size:18px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:6px; padding:9px 16px; cursor:pointer; }
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
+  input[type=range] { -webkit-appearance:none; appearance:none; accent-color:var(--ma); width:260px; height:36px; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; box-shadow:0 0 0 1.5px var(--ma); margin-top:-9px; }
+  input[type=range]::-moz-range-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-moz-range-thumb { width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
-  .grid line { stroke: var(--grid); stroke-width: 1; }
-  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
-  .ptitle { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ink); }
+  .grid line { stroke: var(--grid); stroke-width: 1.3; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1.3; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 22px; fill: var(--ink-2); }
+  .ptitle { font-family: var(--sans); font-size: 20px; font-weight: 700; fill: var(--ink); }
   .wave { fill: none; stroke: #333; stroke-width: 1.2; }
-  .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
-  .mono { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
-  .big { font-family: var(--mono); font-size: 20px; font-weight: 700; }
+  .dlabel { font-family: var(--sans); font-size: 17px; font-weight: 700; }
+  .mono { font-family: var(--mono); font-size: 20px; fill: var(--ink); }
+  .big { font-family: var(--mono); font-size: 24px; font-weight: 700; }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
   @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
   .hint { display:none !important; }
-  button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
-  button.primary.tb { min-width:52px; }
+  button.tb { min-width:54px; padding:9px 12px; font-size:22px; line-height:1; }
+  button.primary.tb { min-width:64px; }
 </style>
 
 <div class="stage">
@@ -73,6 +82,7 @@
   </section>
 
   <div class="bar">
+   <div class="row">
     <div class="group">
       <button id="prev" class="tb" title="Previous step (←)">⏮</button>
       <button id="play" class="primary tb" title="Play / pause (space)">▶</button>
@@ -80,6 +90,18 @@
       <button id="restart" class="tb" title="Restart this step (r)">↺</button>
       <button id="reset" title="Reset all dials to defaults">Reset dials</button>
     </div>
+    <div class="group">
+      <label for="speed">Speed</label>
+      <select id="speed">
+        <option value="0.25">very slow</option>
+        <option value="0.5">slow</option>
+        <option value="1" selected>normal</option>
+        <option value="2.5">fast</option>
+        <option value="0">instant</option>
+      </select>
+    </div>
+   </div>
+   <div class="row dials">
     <div class="group">
       <label for="jit">Period variation</label>
       <input type="range" id="jit" min="0" max="3" step="0.1" value="0.5">
@@ -95,17 +117,7 @@
       <input type="range" id="noise" min="0" max="30" step="1" value="1">
       <span class="val" id="noiseVal">1 %</span>
     </div>
-    <div class="group">
-      <label for="speed">Speed</label>
-      <select id="speed">
-        <option value="0.25">very slow</option>
-        <option value="0.5">slow</option>
-        <option value="1" selected>normal</option>
-        <option value="2.5">fast</option>
-        <option value="0">instant</option>
-      </select>
-    </div>
-    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+   </div>
   </div>
 </div>
 
@@ -176,16 +188,16 @@
   function stepDefs() {
     const nc = V.T.length;
     return [
-      { id: 'cycles', n: nc + 1, secs: 9, title: 'A sustained vowel: one cycle per vocal-fold vibration', tag: `synthetic /a/ · F₀ = ${F0} Hz · T₀ = ${(1000 / F0).toFixed(2)} ms · ${FS / 1000} kHz`,
-        subtitle: 'The waveform of a sustained vowel, with a dot marking the peak of each cycle.' },
+      { id: 'cycles', n: nc + 1, secs: 9, title: 'Sustained vowel: one cycle per vocal-fold vibration', tag: `synthetic /a/ · F₀ = ${F0} Hz · T₀ = ${(1000 / F0).toFixed(2)} ms · ${FS / 1000} kHz`,
+        subtitle: '' },
       { id: 'jitter', n: nc, secs: 9, title: 'Jitter: cycle-to-cycle variation in the pitch period', tag: `jitter = ${V.jitter.toFixed(2)} %`,
-        subtitle: 'How jitter measures the change in period from one cycle to the next.' },
+        subtitle: '' },
       { id: 'shimmer', n: nc, secs: 9, title: 'Shimmer: cycle-to-cycle variation in the amplitude', tag: `shimmer = ${V.shimmer.toFixed(2)} %`,
-        subtitle: 'How shimmer measures the change in amplitude from one cycle to the next.' },
-      { id: 'hnr', n: nc, secs: 9, title: 'Harmonic-to-noise ratio: periodic energy versus the rest', tag: `HNR = ${V.hnr.toFixed(1)} dB`,
-        subtitle: 'How HNR compares the energy of the periodic part of the waveform to the noise.' },
-      { id: 'uci', n: NSUBJ + 1, secs: 10, title: 'Jitter versus HNR on the UCI Parkinson’s voice dataset', tag: `195 recordings · 31 subjects · this vowel: jitter ${V.jitter.toFixed(2)} %, HNR ${V.hnr.toFixed(1)} dB`,
-        subtitle: 'The jitter and HNR of every recording in the UCI Parkinson’s voice dataset.' },
+        subtitle: '' },
+      { id: 'hnr', n: nc, secs: 9, title: 'Harmonic-to-noise ratio: periodic energy vs the rest', tag: `HNR = ${V.hnr.toFixed(1)} dB`,
+        subtitle: '' },
+      { id: 'uci', n: NSUBJ + 1, secs: 10, title: 'Jitter vs HNR on the UCI Parkinson’s voice dataset', tag: `195 recordings · 31 subjects · vowel: jitter ${V.jitter.toFixed(2)} %, HNR ${V.hnr.toFixed(1)} dB`,
+        subtitle: '' },
     ];
   }
 
@@ -202,9 +214,10 @@
   const dirty = {};
   let hoverFn = null;
 
-  function legend(g, xL, yT, items) {
-    const rowH = 24, padX = 10, padY = 8;
-    const wdt = Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX + 34;
+  function legend(g, xL, yT, items, xR) {
+    const rowH = 30, padX = 10, padY = 8;
+    const wdt = Math.max(...items.map(i => i.n.length)) * 11.5 + 2 * padX + 34;
+    if (xR != null) xL = xR - wdt;
     xL = Math.min(xL, W - wdt - 6);
     el('rect', { x: xL, y: yT, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
     items.forEach((it, j) => {
@@ -216,6 +229,18 @@
       else if (it.txt) el('text', { x: xL + padX + 9, y: y + 4, class: 'axis-title', 'text-anchor': 'middle', fill: it.c, 'font-weight': 700 }, g).textContent = it.txt;
       else el('line', { x1: xL + padX, x2: xL + padX + 18, y1: y, y2: y, stroke: it.c, 'stroke-width': it.w || 2.5, 'stroke-dasharray': it.dash ? '5 4' : 'none' }, g);
       el('text', { x: xL + padX + 26, y: y + 4, class: 'axis-title', fill: 'var(--ink)' }, g).textContent = it.n;
+    });
+  }
+  // one-row legend for a panel-title line: items drawn left to right
+  function legendRow(g, xL, y, items) {
+    let x = xL;
+    items.forEach(it => {
+      let sw = 26;
+      if (it.dot) el('circle', { cx: x + 9, cy: y - 5, r: 4.5, fill: it.c }, g);
+      else if (it.txt) { el('text', { x: x, y: y, class: 'axis-title', fill: it.c, 'font-weight': 700 }, g).textContent = it.txt; sw = it.txt.length * 13 + 8; }
+      else el('line', { x1: x, x2: x + 18, y1: y - 5, y2: y - 5, stroke: it.c, 'stroke-width': it.w || 2.5, 'stroke-dasharray': it.dash ? '5 4' : 'none' }, g);
+      el('text', { x: x + sw, y: y, class: 'axis-title', fill: 'var(--ink)' }, g).textContent = it.n;
+      x += sw + it.n.length * 11.5 + 28;
     });
   }
   function star(cx, cy, R) { let d = ''; for (let i = 0; i < 10; i++) { const r = i % 2 ? R * 0.45 : R, a = -Math.PI / 2 + i * Math.PI / 5; d += (i ? 'L' : 'M') + (cx + r * Math.cos(a)).toFixed(1) + ',' + (cy + r * Math.sin(a)).toFixed(1); } return d + 'Z'; }
@@ -261,7 +286,7 @@
     // running value of the feature
     const k = Math.min(n, upto);
     if (k >= 2) { let s = 0; for (let i = 0; i < k - 1; i++) s += Math.abs(vals[i] - vals[i + 1]); const val = 100 * (s / (k - 1)) / mean; el('text', { x: PL + PW - 6, y: y0 + 24, class: 'big', 'text-anchor': 'end', fill: opts.color }, g).textContent = `${opts.name} = ${val.toFixed(2)} %  (${k} cycles)`; }
-    legend(g, PL + 8, y0 + 8, [{ c: opts.color, n: `${opts.sym}ᵢ per cycle`, dot: true }, { c: '#444', n: 'mean', dash: true, w: 1.5 }, { c: 'var(--ewma)', n: `|${opts.sym}ᵢ − ${opts.sym}ᵢ₊₁| between neighbours`, txt: '0.12' }]);
+    legendRow(g, PL + 250, y0 - 8, [{ c: opts.color, n: `${opts.sym}ᵢ per cycle`, dot: true }, { c: '#444', n: 'mean', dash: true, w: 1.5 }, { c: 'var(--ewma)', n: `|${opts.sym}ᵢ − ${opts.sym}ᵢ₊₁| between neighbours`, txt: '0.12' }]);
   }
   function niceStep(span, n) { const raw = span / n, p = 10 ** Math.floor(Math.log10(raw)); return [1, 2, 2.5, 5, 10].map(m => m * p).find(m => span / m <= n) || 10 * p; }
 
@@ -273,7 +298,7 @@
       let d = ''; for (let j = 0; j < V.L; j++) d += (j ? 'L' : 'M') + s.xx(a + j / V.L * (b - a)).toFixed(1) + ',' + s.yy(V.template[j]).toFixed(1);
       el('path', { d, fill: 'none', stroke: 'var(--med)', 'stroke-width': 2, opacity: c === nc - 1 && upto < V.cycles.length ? 1 : .8 }, g);
     }
-    legend(g, PL + PW - 250, 46, [{ c: '#999', n: 'cycle of the waveform', w: 1.5 }, { c: 'var(--med)', n: 'average cycle (harmonic part)' }]);
+    legend(g, 0, 222, [{ c: '#999', n: 'cycle of the waveform', w: 1.5 }, { c: 'var(--med)', n: 'average cycle (harmonic part)' }], PL + PW - 6);
     // residual panel
     const y0 = 380, y1 = 600;
     const grid = el('g', { class: 'grid' }, g), axis = el('g', { class: 'axis' }, g);
@@ -317,7 +342,7 @@
       el('path', { d: star(cx, cy, 13), fill: 'var(--wm)', stroke: '#fff', 'stroke-width': 1.5 }, g);
       el('text', { x: cx + 16, y: cy + 5, class: 'dlabel', fill: 'var(--wm)' }, g).textContent = `synthetic vowel: ${V.jitter.toFixed(2)} %, ${V.hnr.toFixed(1)} dB`;
     }
-    legend(g, x1 - 300, y0 + 8, [{ c: 'var(--ma)', n: `healthy (n = 48)`, dot: true }, { c: 'var(--ewma)', n: `Parkinson’s (n = 147)`, tri: true }, { c: 'var(--wm)', n: 'synthetic vowel from the previous steps', star: true }]);
+    legend(g, 0, y0 + 8, [{ c: 'var(--ma)', n: `healthy (n = 48)`, dot: true }, { c: 'var(--ewma)', n: `Parkinson’s (n = 147)`, tri: true }, { c: 'var(--wm)', n: 'synthetic vowel from the previous steps', star: true }], x1 - 8);
     if (ns < NSUBJ) el('text', { x: x0 + 8, y: y1 - 12, class: 'dlabel', fill: 'var(--ink-2)' }, g).textContent = `subjects 1–${ns}: ${nh} healthy + ${np} Parkinson’s recordings shown`;
     hoverFn = (px, py) => { if (px < x0 || px > x1 || py < y0 || py > y1) return null; let best = null, bd = 1e9; UCI.forEach(r => { if (r[0] > ns) return; const d = Math.hypot(xx(r[2] * 100) - px, yy(r[4]) - py); if (d < bd) { bd = d; best = r; } }); if (!best || bd > 14) return null; return `<div class="row"><span>subject</span><b>S${String(best[0]).padStart(2, '0')}</b></div><div class="row"><span>status</span><span>${best[1] ? 'Parkinson’s' : 'healthy'}</span></div><div class="row"><span>jitter</span><span>${(best[2] * 100).toFixed(3)} %</span></div><div class="row"><span>shimmer</span><span>${(best[3] * 100).toFixed(2)} %</span></div><div class="row"><span>HNR</span><span>${best[4].toFixed(2)} dB</span></div>`; };
   }
@@ -331,7 +356,7 @@
       const s = wavePanel(chart, 60, 560, upto, { title: `synthetic sustained /a/: ${V.peaks.length} cycles` });
       peakDots(chart, s, c >= d.n ? V.peaks.length : c, 'var(--ma)');
       if (c > 0 && c < V.peaks.length) el('text', { x: s.xx(V.peaks[c - 1]) + 8, y: s.yy(V.x[V.peaks[c - 1]]) - 12, class: 'dlabel', fill: 'var(--ma)' }, chart).textContent = `cycle ${c}`;
-      legend(chart, PL + 8, 66, [{ c: '#333', n: 'waveform', w: 1.5 }, { c: 'var(--ma)', n: 'peak of each cycle', dot: true }]);
+      legend(chart, 0, 482, [{ c: '#333', n: 'waveform', w: 1.5 }, { c: 'var(--ma)', n: 'peak of each cycle', dot: true }], PL + PW - 6);
       hoverFn = mkWaveHover(60, 560, s);
     } else if (d.id === 'jitter' || d.id === 'shimmer') {
       const isJ = d.id === 'jitter';
@@ -353,7 +378,7 @@
           if (i === k - 1) el('text', { x: xm + 8, y: (s.yy(hi) + s.yy(lo)) / 2 + 4, class: 'dlabel', fill: 'var(--med)' }, chart).textContent = `A${i + 1} = ${V.A[i].toFixed(3)}`;
         }
       }
-      legend(chart, PL + PW - 250, 46, isJ ? [{ c: 'var(--ma)', n: 'peak of each cycle', dot: true }, { c: 'var(--ma)', n: 'period Tᵢ (peak to peak)', w: 2 }] : [{ c: '#bbb', n: 'peak of each cycle', dot: true }, { c: 'var(--med)', n: 'amplitude Aᵢ (peak to peak)', w: 2 }]);
+      legend(chart, 0, 192, isJ ? [{ c: 'var(--ma)', n: 'peak of each cycle', dot: true }, { c: 'var(--ma)', n: 'period Tᵢ (peak to peak)', w: 2 }] : [{ c: '#bbb', n: 'peak of each cycle', dot: true }, { c: 'var(--med)', n: 'amplitude Aᵢ (peak to peak)', w: 2 }], PL + PW - 6);
       stemPanel(chart, 360, 600, isJ ? V.T : V.A, k, isJ ? { title: 'period per cycle', ylab: 'Tᵢ (ms)', color: 'var(--ma)', dec: 2, minSpread: 0.15, name: 'jitter', sym: 'T' } : { title: 'amplitude per cycle', ylab: 'Aᵢ', color: 'var(--med)', dec: 3, minSpread: 0.03, name: 'shimmer', sym: 'A' });
       el('text', { x: PL + PW - 6, y: 660, class: 'mono', 'text-anchor': 'end' }, chart).textContent = isJ ? 'jitter = mean|Tᵢ − Tᵢ₊₁| / mean(T) × 100 %' : 'shimmer = mean|Aᵢ − Aᵢ₊₁| / mean(A) × 100 %';
       hoverFn = mkWaveHover(40, 270, s);

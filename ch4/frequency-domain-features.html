@@ -28,42 +28,51 @@
   .stage { max-width: 1880px; margin: 0 auto; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; height: calc(100vh - 20px); }
   .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 16px 30px 8px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 6px; min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none; }
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
-  .head h1 { margin: 0; font-size: clamp(20px, 2.2vw, 28px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
-  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
-  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .head h1 { margin: 0; font-size: clamp(24px, 2.4vw, 36px); font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
+  .head p:empty { display: none; }
   .chart-wrap { position: relative; min-height: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
-  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 15px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
-  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 14px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
-  .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
-  .group { display:flex; align-items:center; gap:8px; }
-  .group label { font-size:13px; font-weight:700; color:var(--ink); }
-  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
-  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  .bar { display:flex; flex-direction:column; gap:12px; padding:12px 24px;
+         border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:19px; color:var(--ink); }
+  .bar .row { display:flex; justify-content:flex-start; align-items:center; gap:16px 32px; flex-wrap:wrap; }
+  .bar .row.dials .group { flex:1 1 0; }
+  .bar .row.dials input[type=range] { flex:1 1 auto; width:auto; }
+  .group { display:flex; align-items:center; gap:10px; }
+  .group label { font-size:18px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; white-space:nowrap; }
+  .val { font-family:var(--mono); font-size:19px; font-weight:700; color:var(--ma); min-width:5ch; white-space:nowrap; }
+  button, select { font:inherit; font-size:18px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:6px; padding:9px 16px; cursor:pointer; }
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
+  input[type=range] { -webkit-appearance:none; appearance:none; accent-color:var(--ma); width:260px; height:36px; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; box-shadow:0 0 0 1.5px var(--ma); margin-top:-9px; }
+  input[type=range]::-moz-range-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-moz-range-thumb { width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
-  .grid line { stroke: var(--grid); stroke-width: 1; }
-  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
-  .sig-line { fill: none; stroke: var(--clean); stroke-width: 1.1; stroke-linejoin: round; }
-  .spec-line { fill: none; stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
+  .grid line { stroke: var(--grid); stroke-width: 1.3; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1.3; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 22px; fill: var(--ink-2); }
+  .sig-line { fill: none; stroke: var(--clean); stroke-width: 1.4; stroke-linejoin: round; }
+  .spec-line { fill: none; stroke-width: 2.9; stroke-linejoin: round; stroke-linecap: round; }
   .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
-  .dlabel { font-family: var(--mono); font-size: 13px; font-weight: 700; }
-  .big { font-family: var(--mono); font-size: 16px; font-weight: 700; }
-  .plabel { font-family: var(--sans); font-size: 15px; fill: var(--ink-2); }
-  .formula { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
+  .dlabel { font-family: var(--mono); font-size: 17px; font-weight: 700; }
+  .big { font-family: var(--mono); font-size: 21px; font-weight: 700; }
+  .plabel { font-family: var(--sans); font-size: 20px; fill: var(--ink-2); }
+  .formula { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
   @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
   .hint { display:none !important; }
-  button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
-  button.primary.tb { min-width:52px; }
+  button.tb { min-width:54px; padding:9px 12px; font-size:22px; line-height:1; }
+  button.primary.tb { min-width:64px; }
 </style>
 
 <div class="stage">
@@ -83,22 +92,13 @@
   </section>
 
   <div class="bar">
+   <div class="row">
     <div class="group">
       <button id="prev" class="tb" title="Previous step (←)">⏮</button>
       <button id="play" class="primary tb" title="Play / pause (space)">▶</button>
       <button id="next" class="tb" title="Next step (→)">⏭</button>
       <button id="restart" class="tb" title="Restart this step (r)">↺</button>
       <button id="reset" title="Reset all dials to the step presets">Reset dials</button>
-    </div>
-    <div class="group">
-      <label for="win">Window length</label>
-      <input type="range" id="win" min="1" max="5" step="1" value="5">
-      <span class="val" id="winVal">5 s</span>
-    </div>
-    <div class="group">
-      <label for="start">Window start</label>
-      <input type="range" id="start" min="0" max="19" step="0.5" value="8">
-      <span class="val" id="startVal">8.0 s</span>
     </div>
     <div class="group">
       <label for="speed">Speed</label>
@@ -110,7 +110,19 @@
         <option value="0">instant</option>
       </select>
     </div>
-    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+   </div>
+   <div class="row dials">
+    <div class="group">
+      <label for="win">Window length</label>
+      <input type="range" id="win" min="1" max="5" step="1" value="5">
+      <span class="val" id="winVal">5 s</span>
+    </div>
+    <div class="group">
+      <label for="start">Window start</label>
+      <input type="range" id="start" min="0" max="19" step="0.5" value="8">
+      <span class="val" id="startVal">8.0 s</span>
+    </div>
+   </div>
   </div>
 </div>
 
@@ -131,16 +143,16 @@
   const STEPS = [
     { id: 'walk', mode: 'one', preset: { win: 5, start: 8 },
       title: 'Spectrum of a 5-second walking window',
-      subtitle: 'The FFT spectrum of a walking window and its dominant frequency.' },
+      subtitle: '' },
     { id: 'run', mode: 'one', preset: { win: 5, start: 16 },
       title: 'Spectrum of a 5-second running window',
-      subtitle: 'How the dominant frequency moves higher for a running window.' },
+      subtitle: '' },
     { id: 'sit', mode: 'one', preset: { win: 5, start: 0 },
       title: 'Spectrum of a 5-second sitting window',
-      subtitle: 'The spectrum of a sitting window with no dominant frequency.' },
+      subtitle: '' },
     { id: 'track', mode: 'track', preset: { win: 2, start: 0 },
       title: 'Dominant frequency from a sliding window',
-      subtitle: 'How a sliding window produces a dominant frequency reading for each activity.' },
+      subtitle: '' },
   ];
 
   // ------------------------------------------------------------ layout
@@ -237,20 +249,20 @@
     txt(g, 0, 0, '|X(f)| of the window', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${PL - 60}, ${(ST + SB) / 2}) rotate(-90)` });
     txt(g, W - PR, SB + 32, 'frequency (Hz)', { class: 'axis-title', 'text-anchor': 'end' });
     el('line', { x1: PL, x2: W - PR, y1: yS(PEAK_MIN), y2: yS(PEAK_MIN), stroke: 'var(--ink-3)', 'stroke-dasharray': '4 3' }, g);
-    txt(g, xF(F_MAX) - 6, yS(PEAK_MIN) - 5, `peak threshold ${PEAK_MIN}`, { class: 'formula', 'text-anchor': 'end' });
-    txt(g, xF(E_LO) + 6, ST + 36, `energy band ${E_LO}–${E_HI} Hz`, { class: 'formula' });
+    txt(g, xF(F_MAX) - 6, yS(PEAK_MIN) - 5, `peak threshold ${PEAK_MIN}`, { class: 'formula', 'text-anchor': 'end', 'paint-order': 'stroke', stroke: '#fff', 'stroke-width': 5, 'stroke-linejoin': 'round' });
+    txt(g, xF(E_LO) + 6, ST + 44, `energy band ${E_LO}–${E_HI} Hz`, { class: 'formula' });
     txt(g, PL + 10, ST + 18, `dominant f = argmax |X(f)| over ${F_LO}–${F_HI} Hz (DC excluded)   ·   energy = Σ |X(f)|² over ${E_LO}–${E_HI} Hz   ·   Δf = 1/w = ${fmt(1 / wl, 2)} Hz`, { class: 'formula' });
   }
   function segAt(t) { return SEGS[Math.min(2, Math.floor(t / SEG_S))]; }
   function drawLegend() {
     G.legend.innerHTML = '';
-    legendRow(G.legend, W - PR, TT - 26, [{ c: 'var(--clean)', n: '‖a‖ (50 Hz)', line: true }, { c: 'var(--ink)', n: 'window', dash: true }]);
-    legendRow(G.legend, W - PR, DT - 26, [{ c: 'var(--ma)', n: 'dominant frequency per window', dot: true }]);
-    legendRow(G.legend, W - PR, ST - 26, [{ c: 'var(--ink)', n: '|X(f)| at each bin', line: true }, { c: 'var(--ink)', n: 'dominant peak', ring: true }, { c: '#2a78d6', n: 'energy band', band: true }]);
+    legendRow(G.legend, W - PR, TT - 30, [{ c: 'var(--clean)', n: '‖a‖ (50 Hz)', line: true }, { c: 'var(--ink)', n: 'window', dash: true }]);
+    legendRow(G.legend, W - PR, DT - 30, [{ c: 'var(--ma)', n: 'dominant frequency per window', dot: true }]);
+    legendRow(G.legend, W - PR, ST - 30, [{ c: 'var(--ink)', n: '|X(f)| at each bin', line: true }, { c: 'var(--ink)', n: 'dominant peak', ring: true }, { c: '#2a78d6', n: 'energy band', band: true }]);
   }
   function legendRow(parent, xr, y, items) {
-    const padX = 10, gap = 16, h = 24;
-    const widths = items.map(it => 26 + it.n.length * 10.5);
+    const padX = 10, gap = 16, h = 28;
+    const widths = items.map(it => 26 + it.n.length * 12);
     const wdt = widths.reduce((a, b) => a + b, 0) + gap * (items.length - 1) + 2 * padX;
     const x = xr - wdt;
     el('rect', { x, y, width: wdt, height: h, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, parent);

@@ -20,41 +20,50 @@
   .stage { max-width: 1880px; margin: 0 auto; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; height: calc(100vh - 20px); }
   .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 16px 30px 8px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 6px; min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none; }
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
-  .head h1 { margin: 0; font-size: clamp(20px, 2.2vw, 28px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
-  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
-  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .head h1 { margin: 0; font-size: clamp(24px, 2.4vw, 36px); font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
+  .head p:empty { display: none; }
   .chart-wrap { position: relative; min-height: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
-  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 15px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 14px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
-  .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
-  .group { display:flex; align-items:center; gap:8px; }
-  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
-  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
-  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  .bar { display:flex; flex-direction:column; gap:12px; padding:12px 24px;
+         border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:19px; color:var(--ink); }
+  .bar .row { display:flex; justify-content:flex-start; align-items:center; gap:16px 32px; flex-wrap:wrap; }
+  .bar .row.dials .group { flex:1 1 0; }
+  .bar .row.dials input[type=range] { flex:1 1 auto; width:auto; }
+  .group { display:flex; align-items:center; gap:10px; }
+  .group label { font-size:18px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; white-space:nowrap; }
+  .val { font-family:var(--mono); font-size:19px; font-weight:700; color:var(--ma); min-width:5ch; white-space:nowrap; }
+  button, select { font:inherit; font-size:18px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:6px; padding:9px 16px; cursor:pointer; }
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
+  input[type=range] { -webkit-appearance:none; appearance:none; accent-color:var(--ma); width:260px; height:36px; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; box-shadow:0 0 0 1.5px var(--ma); margin-top:-9px; }
+  input[type=range]::-moz-range-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-moz-range-thumb { width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
-  .grid line { stroke: var(--grid); stroke-width: 1; }
-  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
-  .ptitle { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ink); }
-  .mono { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
-  .big { font-family: var(--mono); font-size: 22px; font-weight: 700; }
-  .trace { fill: none; stroke-width: 1.6; stroke-linejoin: round; }
-  .legend text { font-family: var(--sans); font-size: 15px; fill: var(--ink); }
+  .grid line { stroke: var(--grid); stroke-width: 1.3; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1.3; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 22px; fill: var(--ink-2); }
+  .ptitle { font-family: var(--sans); font-size: 20px; font-weight: 700; fill: var(--ink); }
+  .mono { font-family: var(--mono); font-size: 20px; fill: var(--ink); }
+  .big { font-family: var(--mono); font-size: 26px; font-weight: 700; }
+  .trace { fill: none; stroke-width: 2.1; stroke-linejoin: round; }
+  .legend text { font-family: var(--sans); font-size: 20px; fill: var(--ink); }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
   @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
   .hint { display:none !important; }
-  button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
-  button.primary.tb { min-width:52px; }
+  button.tb { min-width:54px; padding:9px 12px; font-size:22px; line-height:1; }
+  button.primary.tb { min-width:64px; }
 </style>
 
 <div class="stage">
@@ -74,6 +83,7 @@
   </section>
 
   <div class="bar">
+   <div class="row">
     <div class="group">
       <button id="prev" class="tb" title="Previous step (←)">⏮</button>
       <button id="play" class="primary tb" title="Play / pause (space)">▶</button>
@@ -108,7 +118,7 @@
         <option value="0">instant</option>
       </select>
     </div>
-    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+   </div>
   </div>
 </div>
 
@@ -157,7 +167,7 @@
 
   function legend(items, x, y, parent) {
     const g = el('g', { class: 'legend' }, parent);
-    const rowH = 24, padX = 10, padY = 8;
+    const rowH = 30, padX = 10, padY = 8;
     const wdt = Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX + 34;
     x = Math.min(x, W - wdt - 6);
     el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
@@ -214,21 +224,21 @@
 
   const STEPS = [
     { id: 'pace', dur: 12,
-      title: () => 'The same exercise performed at two paces', tag: () => `lateral raise · ${PACE.slow.spr} s/rep vs ${PACE.fast.spr} s/rep`,
-      subtitle: () => 'Comparing the gyroscope traces of the same exercise performed at two paces.',
+      title: () => 'Same exercise performed at two paces', tag: () => `lateral raise · ${PACE.slow.spr} s/rep vs ${PACE.fast.spr} s/rep`,
+      subtitle: '',
       presets: {} },
     { id: 'T', dur: 10, presets: { space: 'T' },
       title: () => 'Time-domain features: mean and std of |ω|', tag: () => '93 sequences · 35 / 25 / 33',
-      subtitle: () => 'The sequences plotted by the mean and standard deviation of their gyroscope magnitude.' },
+      subtitle: '' },
     { id: 'F', dur: 8, presets: { space: 'F' },
       title: () => 'Frequency-domain features: dominant frequency, band energy', tag: () => '93 sequences · 0.2–3 Hz band',
-      subtitle: () => 'The same sequences plotted by dominant frequency and band energy.' },
+      subtitle: '' },
     { id: 'D', dur: 8, presets: { space: 'D' },
       title: () => 'DTW similarity: 2-D MDS of the pairwise distances', tag: () => '93 × 93 DTW distances',
-      subtitle: () => 'The same sequences placed so that distance on the map matches DTW distance.' },
+      subtitle: 'Sequences placed so that distance on the map matches DTW distance.' },
     { id: 'cm', dur: 12, presets: {},
       title: () => 'Confusion matrices under each feature family', tag: () => 'leave-one-subject-out · random forest',
-      subtitle: () => 'Filling the confusion matrix for each feature family in turn.' },
+      subtitle: '' },
   ];
 
   function applyPresets(k) { const p = STEPS[k].presets; if (p.space !== undefined && !dirty.space) { space = p.space; $('space').value = space; } }
@@ -288,7 +298,7 @@
       const m = marker(s.cls, x, y, 6.5, { opacity: dim ? 0.15 : 0.9 }, pts);
       G.pts.push({ x, y, i });
     });
-    legend(CLASSES.map(c => ({ cls: c, n: `${CL[c].name} (${CL[c].n} sequences)` })), toKey === 'F' ? PL + 14 : W - PR - 224, PT + 10, chart);
+    legend(CLASSES.map(c => ({ cls: c, n: `${CL[c].name} (${CL[c].n} sequences)` })), toKey === 'T' ? PL + 14 : W - PR - 224, PT + 10, chart);
     G.hit = el('rect', { x: PL, y: PT, width: plotW, height: plotH, fill: 'transparent' }, chart);
   }
 
@@ -321,14 +331,14 @@
       }
       el('rect', { x: gx, y: y0, width: 3 * cell, height: 3 * cell, fill: 'none', stroke: 'var(--ink-3)' }, g);
       names.forEach((n, i) => {
-        txt(gx + i * cell + cell / 2, y0 + 3 * cell + 18, n, { class: 'axis-title', 'text-anchor': 'middle' }, g);
+        txt(gx + i * cell + cell / 2, y0 + 3 * cell + 18 + (i === 1 ? 24 : 0), n, { class: 'axis-title', 'text-anchor': 'middle' }, g);
         if (k === 0) txt(gx - 8, y0 + i * cell + cell / 2 + 4, n, { class: 'axis-title', 'text-anchor': 'end' }, g);
       });
-      txt(gx + 1.5 * cell, y0 + 3 * cell + 38, 'predicted', { class: 'axis-title', 'text-anchor': 'middle' }, g);
-      if (k === 0) txt(gx - 112, y0 + 1.5 * cell, 'true exercise', { class: 'axis-title', 'text-anchor': 'middle', transform: `rotate(-90 ${gx - 112} ${y0 + 1.5 * cell})` }, g);
+      txt(gx + 1.5 * cell, y0 + 3 * cell + 66, 'predicted', { class: 'axis-title', 'text-anchor': 'middle' }, g);
+      if (k === 0) txt(gx - 150, y0 + 1.5 * cell, 'true exercise', { class: 'axis-title', 'text-anchor': 'middle', transform: `rotate(-90 ${gx - 150} ${y0 + 1.5 * cell})` }, g);
     });
     // colour key
-    const kx = x0, ky = y0 + 3 * cell + 70;
+    const kx = x0, ky = y0 + 3 * cell + 96;
     for (let i = 0; i < 40; i++) el('rect', { x: kx + i * 4, y: ky, width: 4, height: 12, fill: blues(i / 39) }, chart);
     txt(kx, ky + 28, '0', { class: 'axis', 'font-family': 'var(--mono)', 'font-size': 15, fill: 'var(--ink-2)' }, chart);
     txt(kx + 160, ky + 28, '1', { 'font-family': 'var(--mono)', 'font-size': 15, fill: 'var(--ink-2)', 'text-anchor': 'end' }, chart);

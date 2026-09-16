@@ -56,10 +56,9 @@
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
   .head h1 {
     margin: 0;
-    font-size: clamp(20px, 2.2vw, 28px);
+    font-size: clamp(24px, 2.4vw, 36px);
     font-weight: 700;
     letter-spacing: -0.01em;
-    text-wrap: balance;
     line-height: 1.15;
   }
   .head h1 .tag {
@@ -73,71 +72,81 @@
     background: #f4f4f4;
     padding: 2px 8px;
     border-radius: 4px;
+    white-space: nowrap;
   }
-  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
-  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
+  .head p:empty { display: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
   .code .p { color: var(--blue); font-weight: 700; }
   .code .k { color: var(--ink-2); }
   .legend-box { fill: #fff; fill-opacity: .9; stroke: var(--rule); }
-  .legend-text { font-family: var(--sans); font-size: 15px; fill: var(--ink); }
+  .legend-text { font-family: var(--sans); font-size: 20px; fill: var(--ink); }
 
   .chart-wrap { position: relative; min-height: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
   .tt {
     position: absolute; pointer-events: none; display: none;
     background: #fff; border: 1px solid var(--rule); border-radius: 4px;
-    padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink);
+    padding: 6px 9px; font-family: var(--mono); font-size: 15px; color: var(--ink);
+    box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2;
+  }
     box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2;
   }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
 
 
-  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 14px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
 
-  .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px;
-         border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
-  .group { display:flex; align-items:center; gap:8px; }
-  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
-  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--blue); min-width:5ch; }
-  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a;
-                   border-radius:5px; padding:7px 13px; cursor:pointer; }
+  .bar { display:flex; flex-direction:column; gap:12px; padding:12px 24px;
+         border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:19px; color:var(--ink); }
+  .bar .row { display:flex; justify-content:flex-start; align-items:center; gap:16px 32px; flex-wrap:wrap; }
+  .bar .row.dials .group { flex:1 1 0; }
+  .bar .row.dials input[type=range] { flex:1 1 auto; width:auto; }
+  .group { display:flex; align-items:center; gap:10px; }
+  .group label { font-size:18px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; white-space:nowrap; }
+  .val { font-family:var(--mono); font-size:19px; font-weight:700; color:var(--ma); min-width:5ch; white-space:nowrap; }
+  button, select { font:inherit; font-size:18px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:6px; padding:9px 16px; cursor:pointer; }
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--blue); color:#fff; border-color:var(--blue); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
-  input[type=range] { accent-color:var(--blue); width:150px; height:30px; cursor:pointer; }
+  input[type=range] { -webkit-appearance:none; appearance:none; accent-color:var(--ma); width:260px; height:36px; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; box-shadow:0 0 0 1.5px var(--ma); margin-top:-9px; }
+  input[type=range]::-moz-range-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-moz-range-thumb { width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; }
   input[type=checkbox] { accent-color:var(--blue); width:18px; height:18px; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family: var(--mono); background: #fff; border: 1px solid var(--rule); border-radius: 3px; padding: 0 5px; font-size: 11px; }
 
-  .grid line { stroke: var(--grid); stroke-width: 1; }
-  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
-  .panel-title { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ink); }
-  .raw-line { fill: none; stroke: var(--raw); stroke-width: 1.2; }
-  .clean-line { fill: none; stroke: var(--clean); stroke-width: 1.2; stroke-dasharray: 5 4; opacity: .55; }
-  .out-line { fill: none; stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
-  .peak-line { stroke: var(--ink-2); stroke-width: 1; stroke-dasharray: 3 3; }
-  .cursor-line { stroke-width: 1.2; }
-  .out-dot { stroke: #fff; stroke-width: 2; }
-  .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
-  .mlabel { font-family: var(--mono); font-size: 12px; font-weight: 700; }
-  .wlabel { font-family: var(--sans); font-size: 15px; fill: var(--ink-3); }
+  .grid line { stroke: var(--grid); stroke-width: 1.3; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1.3; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 22px; fill: var(--ink-2); }
+  .panel-title { font-family: var(--sans); font-size: 20px; font-weight: 700; fill: var(--ink); }
+  .raw-line { fill: none; stroke: var(--raw); stroke-width: 1.6; }
+  .clean-line { fill: none; stroke: var(--clean); stroke-width: 1.6; stroke-dasharray: 5 4; opacity: .55; }
+  .out-line { fill: none; stroke-width: 2.9; stroke-linejoin: round; stroke-linecap: round; }
+  .peak-line { stroke: var(--ink-2); stroke-width: 1.3; stroke-dasharray: 3 3; }
+  .cursor-line { stroke-width: 1.6; }
+  .out-dot { stroke: #fff; stroke-width: 2.6; }
+  .dlabel { font-family: var(--sans); font-size: 17px; font-weight: 700; }
+  .mlabel { font-family: var(--mono); font-size: 16px; font-weight: 700; }
+  .wlabel { font-family: var(--sans); font-size: 20px; fill: var(--ink-3); }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
   .future-rect { fill: var(--future); }
   .mini-frame { fill: none; stroke: var(--rule); }
-  .resp-line { fill: none; stroke-width: 2; stroke-linejoin: round; }
+  .resp-line { fill: none; stroke-width: 2.6; stroke-linejoin: round; }
 
   @media (max-width: 720px) {
     .slide { padding: 18px 16px 12px; min-height: 0; }
     .hint { display: none; }
   }
   .hint { display:none !important; }
-  button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
-  button.primary.tb { min-width:52px; }
+  button.tb { min-width:54px; padding:9px 12px; font-size:22px; line-height:1; }
+  button.primary.tb { min-width:64px; }
 </style>
 
 <div class="stage">
@@ -158,17 +167,13 @@
   </section>
 
   <div class="bar">
+   <div class="row">
     <div class="group">
       <button id="prev" class="tb" title="Previous step (←)">⏮</button>
       <button id="play" class="primary tb" title="Play / pause (space)">▶</button>
       <button id="next" class="tb" title="Next step (→)">⏭</button>
       <button id="restart" class="tb" title="Restart this step (r)">↺</button>
       <button id="resetDials" title="Return the dials to their defaults">Reset dials</button>
-    </div>
-    <div class="group">
-      <label for="cutoff">Cutoff</label>
-      <input type="range" id="cutoff" min="10" max="60" step="1" value="15">
-      <span class="val" id="cutoffOut">15 Hz</span>
     </div>
     <div class="group">
       <label for="order">Order</label>
@@ -188,7 +193,14 @@
         <option value="0">instant</option>
       </select>
     </div>
-    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+   </div>
+   <div class="row dials">
+    <div class="group">
+      <label for="cutoff">Cutoff</label>
+      <input type="range" id="cutoff" min="10" max="60" step="1" value="15">
+      <span class="val" id="cutoffOut">15 Hz</span>
+    </div>
+   </div>
   </div>
 </div>
 
@@ -494,30 +506,30 @@ window.ECG_SLICE = [-0.0763,-0.0806,-0.0784,-0.0719,-0.0675,-0.0588,-0.0501,-0.0
       {
         id: 'input', anim: 'draw',
         title: 'Input signal and true R-peak times', tag: `real ECG · ${(N / FS).toFixed(1)} s at 1 kHz`,
-        subtitle: 'The noisy ECG input with the true R-peak times marked.'
+        subtitle: ''
       },
       {
         id: 'causal', anim: 'forward',
         title: 'One forward pass: lfilter', tag: `order ${order} · ${cutoff} Hz low-pass · R-peak delay ${fmtMs(dc)}`,
-        subtitle: 'How lfilter delays the peaks relative to the true R-peak times.',
+        subtitle: 'lfilter delays the peaks.',
         code: `b, a = butter(${P(order)}, ${P(cutoff)}, btype='lowpass', fs=${FS});  y = lfilter(b, a, x)`
       },
       {
         id: 'backward', anim: 'backward',
         title: 'Backward pass over the lfilter output', tag: `order ${order} · ${cutoff} Hz low-pass · second pass`,
-        subtitle: 'How a backward pass over the lfilter output shifts the peaks back.',
+        subtitle: 'The backward pass shifts the peaks back.',
         code: `y = filtfilt(b, a, x)  <span class="k"># forward + backward, gives zero phase delay</span>`
       },
       {
         id: 'compare', anim: 'none',
         title: 'filtfilt output: peak timing preserved', tag: `order ${order} · ${cutoff} Hz low-pass · lfilter ${fmtMs(dc)} · filtfilt ${fmtMs(dz)}`,
-        subtitle: 'Comparing peak timing in the lfilter and filtfilt outputs.',
+        subtitle: '',
         code: `y_causal = lfilter(b, a, x);  y_zero = filtfilt(b, a, x)`
       },
       {
         id: 'stream', anim: 'stream',
         title: 'filtfilt needs the whole record', tag: `order ${order} · ${cutoff} Hz low-pass · streaming`,
-        subtitle: 'How the filtfilt output keeps changing as new samples arrive.',
+        subtitle: 'The filtfilt output keeps changing as new samples arrive.',
         code: `y = filtfilt(b, a, x)  <span class="k"># needs the entire signal in advance</span>`
       }
     ];
@@ -560,7 +572,8 @@ window.ECG_SLICE = [-0.0763,-0.0806,-0.0784,-0.0719,-0.0675,-0.0588,-0.0501,-0.0
     el('text', { x: PL, y: 12, class: 'panel-title' }, chart).textContent = 'ECG, normalized amplitude';
 
     // strip header
-    el('text', { x: PL, y: SY - 12, class: 'panel-title' }, chart).textContent = 'R-peak timing, zoomed to ±150 ms around each true peak';
+    G.stripTitle = el('text', { x: PL, y: SY - 12, class: 'panel-title' }, chart);
+    G.stripTitle.textContent = 'R-peak timing, zoomed to ±150 ms around each true peak';
 
     G.future = el('g', {}, chart);
     G.static = el('g', {}, chart);
@@ -602,12 +615,12 @@ window.ECG_SLICE = [-0.0763,-0.0806,-0.0784,-0.0719,-0.0675,-0.0588,-0.0501,-0.0
       let row = 0;
       if (showCausal && seg(yc, availC, 'var(--causal)')) {
         el('circle', { class: 'out-dot', cx: mx(d.ci), cy: my(yc[d.ci]), r: 4.5, fill: 'var(--causal)' }, G.strip);
-        el('text', { x: x1 - 6, y: SY + 16 + row * 16, class: 'mlabel', fill: 'var(--causal)', 'text-anchor': 'end' }, G.strip).textContent = `lfilter ${fmtMs(d.c)}`;
+        el('text', { x: x1 - 6, y: SY + 18 + row * 20, class: 'mlabel', fill: 'var(--causal)', 'text-anchor': 'end' }, G.strip).textContent = `lfilter ${fmtMs(d.c)}`;
         row++;
       }
       if (showZero && seg(yff, availZ, 'var(--zero)')) {
         el('circle', { class: 'out-dot', cx: mx(d.zi), cy: my(yff[d.zi]), r: 4.5, fill: 'var(--zero)' }, G.strip);
-        el('text', { x: x1 - 6, y: SY + 16 + row * 16, class: 'mlabel', fill: 'var(--zero)', 'text-anchor': 'end' }, G.strip).textContent = `filtfilt ${fmtMs(d.z)}`;
+        el('text', { x: x1 - 6, y: SY + 18 + row * 20, class: 'mlabel', fill: 'var(--zero)', 'text-anchor': 'end' }, G.strip).textContent = `filtfilt ${fmtMs(d.z)}`;
       }
     });
   }
@@ -627,23 +640,38 @@ window.ECG_SLICE = [-0.0763,-0.0806,-0.0784,-0.0719,-0.0675,-0.0588,-0.0501,-0.0
   function drawLegend(id) {
     G.legend.innerHTML = '';
     const keys = id === 'input' ? ['input', 'clean', 'peak'] : id === 'causal' ? ['input', 'clean', 'peak', 'lf'] : ['input', 'clean', 'peak', 'lf', 'ff'];
-    const x0 = PL + 10, y0 = PT + 8, rowH = 24, w = 150;
+    const x0 = PL + 10, y0 = PT + 8, rowH = 26;
+    const w = 40 + Math.max(...keys.map(k => SERIES[k].name.length)) * 11;
     el('rect', { class: 'legend-box', x: x0, y: y0, width: w, height: keys.length * rowH + 8, rx: 4 }, G.legend);
     keys.forEach((k, i) => {
-      const sdef = SERIES[k], yy = y0 + 12 + i * rowH;
+      const sdef = SERIES[k], yy = y0 + 14 + i * rowH;
       el('line', { x1: x0 + 8, x2: x0 + 24, y1: yy, y2: yy, stroke: sdef.color, 'stroke-width': 3, 'stroke-dasharray': sdef.dash || 'none', opacity: sdef.opacity || 1 }, G.legend);
       el('text', { x: x0 + 30, y: yy + 4, class: 'legend-text' }, G.legend).textContent = sdef.name;
     });
     // one shared legend for the four timing panels, on the strip header line
     const skeys = keys.filter(k => k !== 'clean');
-    let sx = MR;
-    skeys.slice().reverse().forEach(k => {
-      const sdef = SERIES[k];
-      const t = el('text', { x: sx, y: SY - 12, class: 'legend-text', 'text-anchor': 'end' }, G.legend);
-      t.textContent = sdef.name;
-      const tw = sdef.name.length * 10.5;
-      el('line', { x1: sx - tw - 22, x2: sx - tw - 6, y1: SY - 16, y2: SY - 16, stroke: sdef.color, 'stroke-width': 3, 'stroke-dasharray': sdef.dash || 'none', opacity: sdef.opacity || 1 }, G.legend);
-      sx -= tw + 40;
+    const SWL = 16, SGAP = 6, EGAP = 26;
+    const titleRight = PL + (G.stripTitle && G.stripTitle.getComputedTextLength ? G.stripTitle.getComputedTextLength() : 560);
+    const measure = fs => {
+      const g = el('g', {}, G.legend);
+      const items = skeys.map(k => {
+        const sdef = SERIES[k];
+        const t = el('text', { x: 0, y: SY - 12, class: 'legend-text' }, g);
+        if (fs) t.setAttribute('font-size', fs);
+        t.textContent = sdef.name;
+        const w = (t.getComputedTextLength && t.getComputedTextLength()) || sdef.name.length * 10;
+        return { sdef, t, w };
+      });
+      const total = items.reduce((a, o) => a + SWL + SGAP + o.w, 0) + EGAP * (items.length - 1);
+      return { g, items, total };
+    };
+    let r = measure();
+    if (MR - r.total < titleRight + 20) { r.g.remove(); r = measure(18); }
+    let sx = MR - r.total;
+    r.items.forEach(o => {
+      el('line', { x1: sx, x2: sx + SWL, y1: SY - 18, y2: SY - 18, stroke: o.sdef.color, 'stroke-width': 3, 'stroke-dasharray': o.sdef.dash || 'none', opacity: o.sdef.opacity || 1 }, r.g);
+      o.t.setAttribute('x', sx + SWL + SGAP);
+      sx += SWL + SGAP + o.w + EGAP;
     });
   }
 
@@ -713,8 +741,8 @@ window.ECG_SLICE = [-0.0763,-0.0806,-0.0784,-0.0719,-0.0675,-0.0588,-0.0501,-0.0
           el('rect', { class: 'future-rect', x: xs(upto), y: PT, width: MR - xs(upto), height: MB - PT }, G.future);
           el('text', { x: xs(upto) + 8, y: MB - 26, class: 'wlabel' }, G.labels).textContent = upto < N * 0.8 ? 'future: not yet recorded' : '';
           if (upto > prov + 10) {
-            el('text', { x: xs(settleEnd), y: PT + 112, class: 'mlabel', fill: 'var(--zero)', 'text-anchor': 'end' }, G.labels).textContent = 'settled ◂ ';
-            el('text', { x: xs(settleEnd), y: PT + 112, class: 'mlabel', fill: 'var(--zero)' }, G.labels).textContent = ' ▸ provisional';
+            el('text', { x: xs(settleEnd), y: PT + 178, class: 'mlabel', fill: 'var(--zero)', 'text-anchor': 'end' }, G.labels).textContent = 'settled ◂ ';
+            el('text', { x: xs(settleEnd), y: PT + 178, class: 'mlabel', fill: 'var(--zero)' }, G.labels).textContent = ' ▸ provisional';
           }
         }
         drawStrip(true, true, [0, upto], [0, settleEnd]);

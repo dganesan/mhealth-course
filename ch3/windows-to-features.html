@@ -59,10 +59,9 @@
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
   .head h1 {
     margin: 0;
-    font-size: clamp(20px, 2.2vw, 28px);
+    font-size: clamp(24px, 2.4vw, 36px);
     font-weight: 700;
     letter-spacing: -0.01em;
-    text-wrap: balance;
     line-height: 1.15;
   }
   .head h1 .tag {
@@ -78,8 +77,9 @@
     border-radius: 4px;
     white-space: nowrap;
   }
-  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
-  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
+  .head p:empty { display: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
   .code .p { color: var(--ma); font-weight: 700; }
 
@@ -88,54 +88,64 @@
   .tt {
     position: absolute; pointer-events: none; display: none;
     background: #fff; border: 1px solid var(--rule); border-radius: 4px;
-    padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink);
+    padding: 6px 9px; font-family: var(--mono); font-size: 15px; color: var(--ink);
+    box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2;
+  }
     box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2;
   }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
 
-  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 14px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
 
   /* ---------- control bar ---------- */
-  .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
-  .group { display:flex; align-items:center; gap:8px; }
-  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
-  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
-  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  .bar { display:flex; flex-direction:column; gap:12px; padding:12px 24px;
+         border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:19px; color:var(--ink); }
+  .bar .row { display:flex; justify-content:flex-start; align-items:center; gap:16px 32px; flex-wrap:wrap; }
+  .bar .row.dials .group { flex:1 1 0; }
+  .bar .row.dials input[type=range] { flex:1 1 auto; width:auto; }
+  .group { display:flex; align-items:center; gap:10px; }
+  .group label { font-size:18px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; white-space:nowrap; }
+  .val { font-family:var(--mono); font-size:19px; font-weight:700; color:var(--ma); min-width:5ch; white-space:nowrap; }
+  button, select { font:inherit; font-size:18px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:6px; padding:9px 16px; cursor:pointer; }
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
+  input[type=range] { -webkit-appearance:none; appearance:none; accent-color:var(--ma); width:260px; height:36px; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; box-shadow:0 0 0 1.5px var(--ma); margin-top:-9px; }
+  input[type=range]::-moz-range-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-moz-range-thumb { width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
 
   /* ---------- svg parts ---------- */
-  .grid line { stroke: var(--grid); stroke-width: 1; }
-  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
-  .raw-line { fill: none; stroke: var(--raw); stroke-width: 1.5; }
-  .out-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
-  .thin-line { fill: none; stroke-width: 1.3; stroke-linejoin: round; }
+  .grid line { stroke: var(--grid); stroke-width: 1.3; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1.3; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 22px; fill: var(--ink-2); }
+  .raw-line { fill: none; stroke: var(--raw); stroke-width: 2.0; }
+  .out-line { fill: none; stroke-width: 2.6; stroke-linejoin: round; stroke-linecap: round; }
+  .thin-line { fill: none; stroke-width: 1.7; stroke-linejoin: round; }
   .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
-  .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
-  .mono { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
-  .mono-2 { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
-  .note { font-family: var(--sans); font-size: 15px; fill: var(--ink-2); }
+  .dlabel { font-family: var(--sans); font-size: 17px; font-weight: 700; }
+  .mono { font-family: var(--mono); font-size: 20px; fill: var(--ink); }
+  .mono-2 { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
+  .note { font-family: var(--sans); font-size: 20px; fill: var(--ink-2); }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
-  .cursor-line { stroke: var(--ink); stroke-width: 1; stroke-dasharray: 3 3; opacity: .7; }
+  .cursor-line { stroke: var(--ink); stroke-width: 1.3; stroke-dasharray: 3 3; opacity: .7; }
 
   @media (max-width: 720px) {
     .slide { padding: 18px 16px 12px; min-height: 0; }
     .hint { display: none; }
   }
 
-  .cell { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
-  .th { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ink); }
+  .cell { font-family: var(--mono); font-size: 20px; fill: var(--ink); }
+  .th { font-family: var(--sans); font-size: 20px; font-weight: 700; fill: var(--ink); }
   .hint { display:none !important; }
-  button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
-  button.primary.tb { min-width:52px; }
+  button.tb { min-width:54px; padding:9px 12px; font-size:22px; line-height:1; }
+  button.primary.tb { min-width:64px; }
 </style>
 
 <div class="stage">
@@ -156,17 +166,13 @@
   </section>
 
   <div class="bar">
+   <div class="row">
     <div class="group">
       <button id="prev" class="tb" title="Previous step (←)">⏮</button>
       <button id="play" class="primary tb" title="Play / pause (space)">▶</button>
       <button id="next" class="tb" title="Next step (→)">⏭</button>
       <button id="restart" class="tb" title="Restart this step (r)">↺</button>
       <button id="reset" title="Reset all dials to the step's presets">Reset dials</button>
-    </div>
-    <div class="group">
-      <label for="win">Window length</label>
-      <input type="range" id="win" min="0" max="3" step="1" value="1">
-      <span class="val" id="winVal">2 s</span>
     </div>
     <div class="group">
       <label for="speed">Speed</label>
@@ -178,7 +184,14 @@
         <option value="instant">instant</option>
       </select>
     </div>
-    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+   </div>
+   <div class="row dials">
+    <div class="group">
+      <label for="win">Window length</label>
+      <input type="range" id="win" min="0" max="3" step="1" value="1">
+      <span class="val" id="winVal">2 s</span>
+    </div>
+   </div>
   </div>
 </div>
 
@@ -217,9 +230,10 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
     if (o.yTitle) { const t = txt(parent, 0, 0, o.yTitle, { class: 'axis-title', 'text-anchor': 'middle' }); t.setAttribute('transform', `translate(${o.x0 - (o.yTx || 62)},${(o.y0 + o.y1) / 2}) rotate(-90)`); }
   }
   // conventional legend on a white 90 % rounded rect
-  function drawLegend(parent, x, y, items) {
-    const rowH = 24, padX = 10, padY = 8;
-    const wdt = Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX + 40;
+  function drawLegend(parent, x, y, items, right) {
+    const rowH = 30, padX = 10, padY = 8;
+    const wdt = Math.max(...items.map(i => i.n.length)) * 11 + 2 * padX + 40;
+    if (right) x = x - wdt;   // x is the right edge
     const g = el('g', {}, parent);
     el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g);
     items.forEach((it, j) => {
@@ -363,12 +377,12 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
     defaults: { win: 2 },
     durNormal: 6,
     steps: [
-      { id: 'cut', title: () => `The stream cut into ${w()}-second windows`, tag: tagTxt, span: () => DUR,
-        subtitle: 'The acceleration magnitude cut into windows, each labeled by its activity.' },
+      { id: 'cut', title: () => `Stream cut into ${w()}-second windows`, tag: tagTxt, span: () => DUR,
+        subtitle: '' },
       { id: 'rows', title: () => 'One row of features per window', tag: () => `${WS.length} rows × 3 features + label`, span: () => DUR,
-        subtitle: 'How each completed window becomes one row of mean, variance and dominant frequency.' },
-      { id: 'table', static: true, title: () => 'The feature table is the input to the classifier', tag: () => `${WS.length} rows × 3 features + label`, span: () => DUR,
-        subtitle: 'The feature table of three features and one activity label per window.' }
+        subtitle: 'Each window becomes one row of mean, variance and dominant frequency.' },
+      { id: 'table', static: true, title: () => 'Feature table is the input to the classifier', tag: () => `${WS.length} rows × 3 features + label`, span: () => DUR,
+        subtitle: '' }
     ],
     setup(step) {
       WS = windows();
@@ -380,7 +394,7 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
       G.arrow = el('g', {}, chart);
       G.rows = el('g', {}, chart);
       G.brk = el('g', {}, chart);
-      drawLegend(chart, P.x0 + 8, P.y1 - 98, [{ c: COL.ink2, n: 'acceleration magnitude |a|', w: 1.5 }, { c: ACT_COL.Walking, n: 'label: Walking', fill: true }, { c: ACT_COL.Sitting, n: 'label: Sitting', fill: true }, { c: '#8c8c8c', n: 'window', fill: true, op: .18, stroke: 'var(--ink-2)', dash: true }]);
+      drawLegend(chart, P.x1 - 6, P.y1 - (4 * 30 + 12) - 6, [{ c: COL.ink2, n: 'acceleration magnitude |a|', w: 1.5 }, { c: ACT_COL.Walking, n: 'label: Walking', fill: true }, { c: ACT_COL.Sitting, n: 'label: Sitting', fill: true }, { c: '#8c8c8c', n: 'window', fill: true, op: .18, stroke: 'var(--ink-2)', dash: true }], true);   // bottom-right: the sitting half stays near 10 m/s², so the 0–5 band there is empty
       drawTableHead();
       G.hover = el('g', {}, chart);
       el('rect', { x: P.x0, y: P.y0, width: P.x1 - P.x0, height: P.y1 - P.y0, fill: 'transparent' }, chart);
@@ -398,8 +412,8 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
         el('line', { x1: xa, x2: xa, y1: P.y0, y2: P.y1, stroke: 'var(--ink-2)', 'stroke-width': .8, 'stroke-dasharray': '4 3' }, G.wins);
         if (doneW) el('line', { x1: xe, x2: xe, y1: P.y0, y2: P.y1, stroke: 'var(--ink-2)', 'stroke-width': .8, 'stroke-dasharray': '4 3' }, G.wins);
         if (doneW) {
-          txt(G.wins, (xa + xe) / 2, P.y0 + 74, `window ${win.k}`, { class: 'dlabel', 'text-anchor': 'middle', fill: 'var(--ink)' });
-          txt(G.wins, (xa + xe) / 2, P.y0 + 89, win.label, { class: 'mono', 'text-anchor': 'middle', fill: ACT_COL[win.label] });
+          txt(G.wins, (xa + xe) / 2, P.y0 + 70, `window ${win.k}`, { class: 'dlabel', 'text-anchor': 'middle', fill: 'var(--ink)' });
+          txt(G.wins, (xa + xe) / 2, P.y0 + 94, win.label, { class: 'mono', 'text-anchor': 'middle', fill: ACT_COL[win.label] });
           if (step.id !== 'cut') { drawRow(win, j, rh, t); if (win.b > t - w() * 0.6 && step.id === 'rows') active = j; }
         }
       });

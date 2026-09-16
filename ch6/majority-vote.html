@@ -20,40 +20,49 @@
   .stage { max-width: 1880px; margin: 0 auto; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; height: calc(100vh - 20px); }
   .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 16px 30px 8px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 6px; min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none; }
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
-  .head h1 { margin: 0; font-size: clamp(20px, 2.2vw, 28px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
-  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
-  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
+  .head h1 { margin: 0; font-size: clamp(24px, 2.4vw, 36px); font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
+  .head p:empty { display: none; }
   .chart-wrap { position: relative; min-height: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
-  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 15px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 14px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
-  .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
-  .group { display:flex; align-items:center; gap:8px; }
-  .group label { font-size:13px; font-weight:700; color:var(--ink); }
-  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
-  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  .bar { display:flex; flex-direction:column; gap:12px; padding:12px 24px;
+         border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:19px; color:var(--ink); }
+  .bar .row { display:flex; justify-content:flex-start; align-items:center; gap:16px 32px; flex-wrap:wrap; }
+  .bar .row.dials .group { flex:1 1 0; }
+  .bar .row.dials input[type=range] { flex:1 1 auto; width:auto; }
+  .group { display:flex; align-items:center; gap:10px; }
+  .group label { font-size:18px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; white-space:nowrap; }
+  .val { font-family:var(--mono); font-size:19px; font-weight:700; color:var(--ma); min-width:5ch; white-space:nowrap; }
+  button, select { font:inherit; font-size:18px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:6px; padding:9px 16px; cursor:pointer; }
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
+  input[type=range] { -webkit-appearance:none; appearance:none; accent-color:var(--ma); width:260px; height:36px; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; box-shadow:0 0 0 1.5px var(--ma); margin-top:-9px; }
+  input[type=range]::-moz-range-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-moz-range-thumb { width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
-  .grid line { stroke: var(--grid); stroke-width: 1; }
-  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
-  .mono { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
-  .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
+  .grid line { stroke: var(--grid); stroke-width: 1.3; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1.3; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 22px; fill: var(--ink-2); }
+  .mono { font-family: var(--mono); font-size: 20px; fill: var(--ink); }
+  .dlabel { font-family: var(--sans); font-size: 17px; font-weight: 700; }
   .box { fill: #fff; stroke: var(--ink-2); stroke-width: 1.2; }
-  .box-title { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ink); }
+  .box-title { font-family: var(--sans); font-size: 20px; font-weight: 700; fill: var(--ink); }
   .arrow { stroke: var(--ink-2); stroke-width: 1.4; fill: none; }
   @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
   .hint { display:none !important; }
-  button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
-  button.primary.tb { min-width:52px; }
+  button.tb { min-width:54px; padding:9px 12px; font-size:22px; line-height:1; }
+  button.primary.tb { min-width:64px; }
 </style>
 
 <div class="stage">
@@ -73,6 +82,7 @@
   </section>
 
   <div class="bar">
+   <div class="row">
     <div class="group">
       <button id="prev" class="tb" title="Previous step (←)">⏮</button>
       <button id="play" class="primary tb" title="Play / pause (space)">▶</button>
@@ -80,6 +90,18 @@
       <button id="restart" class="tb" title="Restart this step (r)">↺</button>
       <button id="reset" title="Reset all dials to the step presets">Reset dials</button>
     </div>
+    <div class="group">
+      <label for="speed">Speed</label>
+      <select id="speed">
+        <option value="3">very slow</option>
+        <option value="6">slow</option>
+        <option value="14" selected>normal</option>
+        <option value="30">fast</option>
+        <option value="0">instant</option>
+      </select>
+    </div>
+   </div>
+   <div class="row dials">
     <div class="group">
       <label for="M">Models M</label>
       <input type="range" id="M" min="1" max="25" step="2" value="5">
@@ -100,17 +122,7 @@
       <input type="range" id="seed" min="1" max="20" step="1" value="1">
       <span class="val" id="seedVal">1</span>
     </div>
-    <div class="group">
-      <label for="speed">Speed</label>
-      <select id="speed">
-        <option value="3">very slow</option>
-        <option value="6">slow</option>
-        <option value="14" selected>normal</option>
-        <option value="30">fast</option>
-        <option value="0">instant</option>
-      </select>
-    </div>
-    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play</span>
+   </div>
   </div>
 </div>
 
@@ -162,16 +174,16 @@
   // ------------------------------------------------------------ steps
   const steps = [
     { id: 'one', title: 'Three classifiers vote on one input', presets: { M: 3 },
-      subtitle: 'How three classifiers each cast a vote and the majority decides the output.',
+      subtitle: '',
       frames: () => 5, rate: 0.25 },
-    { id: 'indep', title: 'Many inputs: mistakes that are not shared wash out', presets: { M: 5, rho: 0 },
-      subtitle: 'How the majority vote is wrong less often when the models make independent mistakes.',
+    { id: 'indep', title: 'Independent mistakes wash out', presets: { M: 5, rho: 0 },
+      subtitle: '',
       frames: () => N, rate: 1 },
-    { id: 'corr', title: 'Perfectly correlated mistakes: the vote cannot help', presets: { M: 5, rho: 1 },
-      subtitle: 'How the majority vote gains nothing when every model makes the same mistakes.',
+    { id: 'corr', title: 'Correlated mistakes: the vote cannot help', presets: { M: 5, rho: 1 },
+      subtitle: '',
       frames: () => N, rate: 1 },
     { id: 'more', title: 'More voters, still independent', presets: { M: 15, rho: 0 },
-      subtitle: 'How the majority vote improves further as more independent models are added.',
+      subtitle: '',
       frames: () => N, rate: 1 },
   ];
   const tagFor = () => `M = ${sim.M} · p = ${sim.p.toFixed(2)} · ρ = ${sim.rho.toFixed(1)}`;
@@ -189,15 +201,15 @@
     const e = sim.ex[j];
     const cy = 330, rowGap = Math.min(110, 380 / Math.max(1, M));
     const y0 = cy - (M - 1) * rowGap / 2;
-    const inX = 150, mX = Math.round(W * 0.38), vX = Math.round(W * 0.68), oX = W - 140;
+    const inX = 180, mX = Math.round(W * 0.38), vX = Math.round(W * 0.68), oX = W - 140;
     // input
     const g = el('g', {}, chart);
-    el('rect', { class: 'box', x: inX - 100, y: cy - 34, width: 200, height: 68, rx: 8 }, g);
+    el('rect', { class: 'box', x: inX - 160, y: cy - 34, width: 320, height: 68, rx: 8 }, g);
     text(inX, cy - 6, 'New input', { class: 'box-title', 'text-anchor': 'middle' }, g);
     text(inX, cy + 16, `example ${j + 1} · truly ${CLS[e.truth].name}`, { class: 'axis-title', 'text-anchor': 'middle' }, g);
     for (let m = 0; m < M; m++) {
       const y = y0 + m * rowGap;
-      el('path', { class: 'arrow', d: `M${inX + 102},${cy}L${mX - 82},${y}`, opacity: frame >= 0 ? 1 : 0 }, g);
+      el('path', { class: 'arrow', d: `M${inX + 162},${cy}L${mX - 82},${y}`, opacity: frame >= 0 ? 1 : 0 }, g);
       el('rect', { class: 'box', x: mX - 80, y: y - 26, width: 160, height: 52, rx: 8 }, g);
       text(mX, y + 5, `Model ${m + 1}`, { class: 'box-title', 'text-anchor': 'middle' }, g);
       if (frame >= m + 1) {
@@ -206,16 +218,16 @@
       }
     }
     // vote box
-    el('rect', { class: 'box', x: vX - 70, y: cy - 34, width: 140, height: 68, rx: 8, fill: '#f4f4f4' }, g);
+    el('rect', { class: 'box', x: vX - 80, y: cy - 34, width: 160, height: 68, rx: 8, fill: '#f4f4f4' }, g);
     text(vX, cy + 5, 'Majority vote', { class: 'box-title', 'text-anchor': 'middle' }, g);
     if (frame >= M + 1) {
-      for (let m = 0; m < M; m++) el('path', { class: 'arrow', d: `M${mX + 82 + 120},${y0 + m * rowGap}L${vX - 72},${cy}` }, g);
-      el('path', { class: 'arrow', d: `M${vX + 72},${cy}L${oX - 72},${cy}` }, g);
+      for (let m = 0; m < M; m++) el('path', { class: 'arrow', d: `M${mX + 82 + 120},${y0 + m * rowGap}L${vX - 82},${cy}` }, g);
+      el('path', { class: 'arrow', d: `M${vX + 82},${cy}L${oX - 72},${cy}` }, g);
       el('rect', { class: 'box', x: oX - 70, y: cy - 34, width: 140, height: 68, rx: 8, stroke: CLS[e.maj].color }, g);
       text(oX, cy + 6, CLS[e.maj].name, { class: 'box-title', 'text-anchor': 'middle', fill: CLS[e.maj].color, 'font-size': 18 }, g);
       text(vX, cy + 62, `${CLS[0].name} × ${e.counts[0]}   ${CLS[1].name} × ${e.counts[1]}`, { class: 'mono', 'text-anchor': 'middle', fill: 'var(--ink-2)' }, g);
     } else {
-      for (let m = 0; m < M; m++) el('path', { class: 'arrow', d: `M${mX + 82 + 120},${y0 + m * rowGap}L${vX - 72},${cy}`, opacity: 0.25 }, g);
+      for (let m = 0; m < M; m++) el('path', { class: 'arrow', d: `M${mX + 82 + 120},${y0 + m * rowGap}L${vX - 82},${cy}`, opacity: 0.25 }, g);
     }
     drawLegend([{ c: CLS[0].color, n: 'vote: Walking' }, { c: CLS[1].color, n: 'vote: Running' }, { c: '#eb6834', n: '✗ wrong vote', txt: true }], 40, 30);
   }
@@ -251,7 +263,7 @@
     // current-input marker
     if (upto > 0 && upto < N) el('rect', { x: PL + (upto - 1) * cw, y: ys.truth - 4, width: cw, height: bottom - ys.truth + 8, fill: 'none', stroke: '#222', 'stroke-width': 1, 'stroke-dasharray': '3 3' }, g);
     // running error bars on the right
-    const bx = W - PR + 70, bw = 240;
+    const bx = W - PR + 100, bw = 240;
     const bar = (y, err, color, label, bold) => {
       el('rect', { x: bx, y: y + 3, width: bw, height: rowH - 6, fill: '#f4f4f4' }, g);
       el('rect', { x: bx, y: y + 3, width: bw * Math.min(1, err / 0.6), height: rowH - 6, fill: color, opacity: bold ? 1 : 0.6 }, g);
@@ -272,7 +284,7 @@
 
   const G = {};
   function drawLegend(items, x, y, horizontal = false) {
-    const rowH = 24, padX = 10, padY = 8;
+    const rowH = 30, padX = 10, padY = 8;
     const g = el('g', {}, chart);
     if (horizontal) {
       const wdt = items.reduce((s, it) => s + it.n.length * 10.5 + 40, 0) + 2 * padX;

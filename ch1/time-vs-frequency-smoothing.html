@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Moving Average versus Notch Filter</title>
+<title>Time vs Frequency Domain Smoothing</title>
 </head>
 <body>
 <style>
@@ -36,10 +36,11 @@
     min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none;
   }
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
-  .head h1 { margin: 0; font-size: clamp(20px, 2.2vw, 28px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
-  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; }
-  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
-  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .head h1 { margin: 0; font-size: clamp(24px, 2.4vw, 36px); font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+  .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
+  .head p:empty { display: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
   .code .p { color: var(--ma); font-weight: 700; }
   .code .k { color: var(--ink-2); }
@@ -53,37 +54,44 @@
   .tt .row { display: flex; gap: 12px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
 
-  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 14px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
 
-  .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px;
-         border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
-  .group { display:flex; align-items:center; gap:8px; }
-  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
-  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
-  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a;
-                   border-radius:5px; padding:7px 13px; cursor:pointer; }
+  .bar { display:flex; flex-direction:column; gap:12px; padding:12px 24px;
+         border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:19px; color:var(--ink); }
+  .bar .row { display:flex; justify-content:flex-start; align-items:center; gap:16px 32px; flex-wrap:wrap; }
+  .bar .row.dials .group { flex:1 1 0; }
+  .bar .row.dials input[type=range] { flex:1 1 auto; width:auto; }
+  .group { display:flex; align-items:center; gap:10px; }
+  .group label { font-size:18px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; white-space:nowrap; }
+  .val { font-family:var(--mono); font-size:19px; font-weight:700; color:var(--ma); min-width:5ch; white-space:nowrap; }
+  button, select { font:inherit; font-size:18px; color:var(--ink); background:#fff; border:1px solid #9a9a9a;
+                   border-radius:6px; padding:9px 16px; cursor:pointer; }
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
-  input[type=range].narrow { width: 150px; }
+  input[type=range] { -webkit-appearance:none; appearance:none; accent-color:var(--ma); width:260px; height:36px; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; box-shadow:0 0 0 1.5px var(--ma); margin-top:-9px; }
+  input[type=range]::-moz-range-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-moz-range-thumb { width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; }
+  input[type=range].narrow { width: 260px; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family: var(--mono); background: #fff; border: 1px solid var(--rule); border-radius: 3px; padding: 0 5px; font-size: 11px; }
 
   .grid line { stroke: var(--grid); stroke-width: 1; }
   .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
-  .ptitle { font-family: var(--sans); font-size: 15px; fill: var(--ink); font-weight: 700; }
-  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
-  .raw-line { fill: none; stroke: var(--raw); stroke-width: 1.5; }
-  .clean-line { fill: none; stroke: var(--clean); stroke-width: 1.4; stroke-dasharray: 5 4; opacity: .75; }
-  .out-line { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+  .axis text { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
+  .ptitle { font-family: var(--sans); font-size: 21px; fill: var(--ink); font-weight: 700; }
+  .axis-title { font-family: var(--sans); font-size: 22px; fill: var(--ink-2); }
+  .raw-line { fill: none; stroke: var(--raw); stroke-width: 2; }
+  .clean-line { fill: none; stroke: var(--clean); stroke-width: 2; stroke-dasharray: 6 5; opacity: .8; }
+  .out-line { fill: none; stroke-width: 3.4; stroke-linejoin: round; stroke-linecap: round; }
   .dot { stroke: #fff; stroke-width: 1.4; }
   .legend rect.bg { fill: #fff; fill-opacity: .9; stroke: var(--rule); }
-  .legend text { font-family: var(--sans); font-size: 15px; fill: var(--ink); }
-  .legend line { stroke-width: 3; }
-  .anno { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
+  .legend text { font-family: var(--sans); font-size: 24px; fill: var(--ink); }
+  .legend line { stroke-width: 4; }
+  .anno { font-family: var(--mono); font-size: 19px; fill: var(--ink); }
   .anno.muted { fill: var(--ink-3); }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
 
@@ -93,8 +101,10 @@
     input[type=range], input[type=range].narrow { width: 120px; }
   }
   .hint { display:none !important; }
-  button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
-  button.primary.tb { min-width:52px; }
+  .group[hidden] { display:none; }
+  .code { white-space: pre-wrap; }
+  button.tb { min-width:54px; padding:9px 12px; font-size:22px; line-height:1; }
+  button.primary.tb { min-width:64px; }
 </style>
 
 <div class="stage">
@@ -105,7 +115,7 @@
       <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1584 720" role="img" aria-label="Moving average and notch filter outputs on a signal with 60 Hz powerline noise"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1584 640" role="img" aria-label="Moving average and notch filter outputs on one plot of a signal with 60 Hz powerline noise"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -115,6 +125,7 @@
   </section>
 
   <div class="bar">
+   <div class="row">
     <div class="group">
       <button id="prev" class="tb" title="Previous step (←)">⏮</button>
       <button id="play" class="primary tb" title="Play / pause (space)">▶</button>
@@ -123,26 +134,20 @@
       <button id="reset" title="Clear your dial changes and use the presets">Reset dials</button>
     </div>
     <div class="group">
-      <label for="sig">Signal</label>
-      <select id="sig">
-        <option value="tones" selected>two tones + 60 Hz (chapter figure)</option>
-        <option value="ecg">ECG + 60 Hz</option>
+      <label for="filter">Filter</label>
+      <select id="filter">
+        <option value="none" selected>none (input only)</option>
+        <option value="ma">time domain: moving average</option>
+        <option value="bs">frequency domain: notch</option>
+        <option value="both">both</option>
       </select>
     </div>
     <div class="group">
-      <label for="win">Window w</label>
-      <input type="range" id="win" class="narrow" min="3" max="41" step="2" value="9">
-      <span class="val" id="winval">9</span>
-    </div>
-    <div class="group">
-      <label for="centre">Notch centre</label>
-      <input type="range" id="centre" class="narrow" min="30" max="200" step="1" value="60">
-      <span class="val" id="centreval">60 Hz</span>
-    </div>
-    <div class="group">
-      <label for="width">Notch width</label>
-      <input type="range" id="width" class="narrow" min="2" max="40" step="1" value="10">
-      <span class="val" id="widthval">10 Hz</span>
+      <label for="sig">Signal</label>
+      <select id="sig">
+        <option value="tones" selected>two tones + 60 Hz</option>
+        <option value="ecg">ECG + 60 Hz</option>
+      </select>
     </div>
     <div class="group">
       <label for="speed">Speed</label>
@@ -154,7 +159,24 @@
         <option value="0">instant</option>
       </select>
     </div>
-    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play &nbsp; <kbd>r</kbd> restart</span>
+   </div>
+   <div class="row dials">
+    <div class="group" id="g-win">
+      <label for="win">Window w</label>
+      <input type="range" id="win" class="narrow" min="3" max="41" step="2" value="9">
+      <span class="val" id="winval">9</span>
+    </div>
+    <div class="group" id="g-centre">
+      <label for="centre">Notch centre</label>
+      <input type="range" id="centre" class="narrow" min="30" max="200" step="1" value="60">
+      <span class="val" id="centreval">60 Hz</span>
+    </div>
+    <div class="group" id="g-width">
+      <label for="width">Notch width</label>
+      <input type="range" id="width" class="narrow" min="2" max="40" step="1" value="10">
+      <span class="val" id="widthval">10 Hz</span>
+    </div>
+   </div>
   </div>
 </div>
 
@@ -399,20 +421,14 @@
   const ECG = [-0.014,-0.015,-0.016,-0.015,-0.014,-0.011,-0.009,-0.006,-0.003,-0.001,0.001,0.002,0.002,0.002,0.0,-0.002,-0.005,-0.008,-0.011,-0.013,-0.015,-0.016,-0.016,-0.015,-0.013,-0.01,-0.007,-0.003,0.0,0.003,0.005,0.007,0.007,0.006,0.005,0.003,0.0,-0.003,-0.005,-0.008,-0.01,-0.011,-0.011,-0.01,-0.008,-0.006,-0.003,-0.0,0.003,0.005,0.006,0.007,0.007,0.006,0.004,0.001,-0.001,-0.004,-0.007,-0.01,-0.011,-0.012,-0.011,-0.01,-0.008,-0.005,-0.002,0.002,0.005,0.008,0.01,0.011,0.011,0.01,0.008,0.005,0.002,-0.002,-0.006,-0.009,-0.012,-0.013,-0.014,-0.014,-0.012,-0.01,-0.007,-0.004,-0.001,0.002,0.004,0.005,0.006,0.006,0.004,0.003,0.0,-0.002,-0.005,-0.007,-0.008,-0.009,-0.009,-0.008,-0.006,-0.004,-0.001,0.002,0.005,0.007,0.009,0.01,0.01,0.009,0.007,0.005,0.002,-0.0,-0.003,-0.005,-0.006,-0.007,-0.007,-0.005,-0.003,-0.001,0.002,0.006,0.008,0.011,0.012,0.012,0.012,0.01,0.007,0.004,-0.0,-0.004,-0.008,-0.012,-0.014,-0.016,-0.017,-0.016,-0.015,-0.013,-0.01,-0.007,-0.004,-0.001,0.001,0.003,0.003,0.002,0.001,-0.001,-0.003,-0.006,-0.008,-0.009,-0.01,-0.01,-0.008,-0.006,-0.002,0.002,0.007,0.012,0.017,0.021,0.025,0.027,0.029,0.029,0.028,0.027,0.024,0.022,0.019,0.017,0.016,0.015,0.015,0.016,0.018,0.02,0.023,0.026,0.028,0.03,0.032,0.032,0.032,0.03,0.028,0.025,0.021,0.017,0.014,0.011,0.008,0.006,0.006,0.006,0.007,0.008,0.01,0.012,0.013,0.015,0.015,0.014,0.013,0.01,0.007,0.003,-0.001,-0.005,-0.009,-0.012,-0.014,-0.015,-0.015,-0.014,-0.011,-0.008,-0.005,-0.001,0.003,0.006,0.009,0.01,0.01,0.01,0.008,0.005,0.002,-0.001,-0.005,-0.008,-0.01,-0.012,-0.012,-0.011,-0.01,-0.007,-0.004,-0.001,0.002,0.005,0.007,0.009,0.01,0.009,0.008,0.006,0.003,0.001,-0.002,-0.004,-0.006,-0.007,-0.007,-0.006,-0.004,-0.002,0.001,0.004,0.006,0.009,0.01,0.011,0.011,0.01,0.008,0.005,0.002,-0.001,-0.004,-0.007,-0.009,-0.01,-0.01,-0.009,-0.007,-0.004,-0.001,0.002,0.005,0.008,0.01,0.011,0.011,0.011,0.009,0.007,0.004,0.001,-0.003,-0.006,-0.009,-0.012,-0.014,-0.016,-0.019,-0.021,-0.024,-0.027,-0.031,-0.037,-0.043,-0.051,-0.06,-0.07,-0.081,-0.092,-0.102,-0.112,-0.119,-0.125,-0.128,-0.127,-0.122,-0.113,-0.099,-0.079,-0.055,-0.025,0.01,0.05,0.093,0.14,0.191,0.244,0.299,0.355,0.412,0.47,0.528,0.585,0.642,0.697,0.751,0.802,0.85,0.893,0.931,0.962,0.984,0.997,1.0,0.991,0.971,0.939,0.896,0.842,0.779,0.709,0.634,0.556,0.478,0.401,0.328,0.26,0.199,0.146,0.101,0.063,0.034,0.011,-0.005,-0.017,-0.025,-0.031,-0.034,-0.037,-0.039,-0.042,-0.044,-0.047,-0.05,-0.054,-0.057,-0.06,-0.064,-0.067,-0.069,-0.072,-0.075,-0.078,-0.081,-0.084,-0.088,-0.092,-0.097,-0.102,-0.107,-0.111,-0.115,-0.119,-0.121,-0.123,-0.123,-0.123,-0.121,-0.119,-0.116,-0.113,-0.11,-0.108,-0.106,-0.105,-0.105,-0.106,-0.107,-0.109,-0.112,-0.114,-0.116,-0.118,-0.119,-0.119,-0.118,-0.117,-0.114,-0.111,-0.107,-0.104,-0.1,-0.098,-0.096,-0.094,-0.094,-0.095,-0.096,-0.098,-0.101,-0.103,-0.105,-0.106,-0.107,-0.107,-0.105,-0.103,-0.099,-0.095,-0.091,-0.086,-0.082,-0.078,-0.075,-0.073,-0.072,-0.072,-0.072,-0.074,-0.076,-0.078,-0.08,-0.081,-0.082,-0.082,-0.081,-0.079,-0.076,-0.072,-0.068,-0.064,-0.06,-0.057,-0.055,-0.053,-0.053,-0.053,-0.055,-0.057,-0.06,-0.062,-0.065,-0.067,-0.068,-0.068,-0.067,-0.065,-0.062,-0.059,-0.055,-0.051,-0.047,-0.043,-0.04,-0.038,-0.037,-0.037,-0.038,-0.039,-0.041,-0.043,-0.045,-0.046,-0.046,-0.046,-0.044,-0.041,-0.038,-0.034,-0.029,-0.025,-0.02,-0.016,-0.013,-0.011,-0.01,-0.01,-0.011,-0.012,-0.014,-0.016,-0.018,-0.02,-0.021,-0.021,-0.02,-0.018,-0.015,-0.011,-0.007,-0.002,0.002,0.006,0.009,0.011,0.012,0.012,0.012,0.011,0.009,0.008,0.006,0.005,0.005,0.006,0.008,0.01,0.014,0.018,0.022,0.027,0.031,0.035,0.039,0.041,0.043,0.043,0.043,0.042,0.041,0.039,0.038,0.038,0.038,0.039,0.041,0.044,0.048,0.052,0.057,0.061,0.066,0.07,0.073,0.076,0.077,0.078,0.077,0.076,0.075,0.074,0.073,0.072,0.073,0.074,0.075,0.078,0.082,0.086,0.09,0.095,0.099,0.102,0.104,0.106,0.107,0.106,0.105,0.103,0.1,0.098,0.095,0.093,0.092,0.091,0.091,0.092,0.094,0.096,0.099,0.101,0.103,0.105,0.105,0.104,0.103,0.1,0.096,0.091,0.086,0.08,0.075,0.07,0.065,0.062,0.059,0.057,0.056,0.055,0.055,0.055,0.054,0.053,0.051,0.048,0.043,0.038,0.032,0.025,0.018,0.01,0.003,-0.003,-0.009,-0.014,-0.018,-0.021,-0.023,-0.024,-0.025,-0.025,-0.026,-0.027,-0.028,-0.031,-0.034,-0.039,-0.044,-0.049,-0.055,-0.061,-0.067,-0.072,-0.076,-0.079,-0.082,-0.083,-0.083,-0.082,-0.081,-0.08,-0.079,-0.078,-0.078,-0.079,-0.08,-0.083,-0.086,-0.09,-0.094,-0.098,-0.102,-0.105,-0.107,-0.109,-0.109,-0.109,-0.107,-0.105,-0.102,-0.099,-0.097,-0.094,-0.093,-0.092,-0.091,-0.092,-0.094,-0.096,-0.098,-0.1,-0.103,-0.104,-0.105,-0.106,-0.105,-0.103,-0.101,-0.098,-0.095,-0.092,-0.089,-0.087,-0.085,-0.084,-0.084,-0.086,-0.087,-0.09,-0.092,-0.095,-0.098,-0.1,-0.101,-0.101,-0.1,-0.099,-0.096,-0.093,-0.09,-0.086,-0.083,-0.08,-0.078,-0.077,-0.077,-0.077,-0.079,-0.081,-0.083,-0.086,-0.088,-0.089,-0.09,-0.09,-0.09,-0.088,-0.085,-0.082,-0.078,-0.075,-0.071,-0.068,-0.066,-0.064,-0.064,-0.064,-0.066,-0.067,-0.07,-0.072,-0.074,-0.076,-0.077,-0.077,-0.077,-0.075,-0.073,-0.07,-0.067,-0.063,-0.06,-0.058,-0.056,-0.055,-0.055,-0.056,-0.057,-0.06,-0.062,-0.065,-0.067,-0.069,-0.07,-0.07,-0.07,-0.068,-0.065,-0.062,-0.059,-0.055,-0.052,-0.049,-0.046,-0.045,-0.044,-0.045,-0.046,-0.048,-0.051,-0.053,-0.055,-0.057,-0.059,-0.059,-0.059,-0.058,-0.056,-0.053,-0.05,-0.047,-0.044,-0.042,-0.04,-0.039,-0.039,-0.039,-0.041,-0.043,-0.046,-0.049,-0.051,-0.054,-0.055,-0.056,-0.055,-0.054,-0.052,-0.049,-0.046,-0.043,-0.04,-0.038,-0.036,-0.034,-0.034,-0.035,-0.036,-0.038,-0.04,-0.043,-0.045,-0.047,-0.048,-0.048,-0.047,-0.046,-0.044,-0.041,-0.038,-0.035,-0.032,-0.029,-0.027,-0.026,-0.026,-0.026,-0.028,-0.03,-0.032,-0.035,-0.037,-0.039,-0.041,-0.041,-0.041,-0.039,-0.037,-0.034,-0.031,-0.028,-0.025,-0.022,-0.02,-0.019,-0.019,-0.02,-0.022,-0.024,-0.027,-0.03,-0.033,-0.035,-0.037,-0.037,-0.037,-0.036,-0.035,-0.032,-0.029,-0.026,-0.023,-0.02,-0.019,-0.018,-0.017,-0.018,-0.02,-0.022,-0.025,-0.028,-0.031,-0.033,-0.035,-0.036,-0.036,-0.036,-0.034,-0.032,-0.03,-0.027,-0.025,-0.023,-0.021,-0.021,-0.021,-0.022,-0.023,-0.026,-0.028,-0.031,-0.033,-0.035,-0.036,-0.036,-0.035,-0.033,-0.031,-0.028,-0.024,-0.021,-0.017,-0.014,-0.012,-0.011,-0.011,-0.011,-0.012,-0.014,-0.017,-0.019,-0.021,-0.023,-0.025,-0.025,-0.025,-0.024,-0.022,-0.019,-0.017,-0.014,-0.011,-0.009,-0.008,-0.007,-0.007,-0.008,-0.01,-0.012,-0.015,-0.017,-0.02,-0.022,-0.023,-0.024,-0.023,-0.022,-0.02,-0.017,-0.014,-0.011,-0.007,-0.005,-0.003,-0.002,-0.001,-0.002,-0.003,-0.006,-0.008,-0.011,-0.014,-0.016,-0.018,-0.019,-0.019,-0.018,-0.017,-0.014,-0.012,-0.009,-0.006,-0.004,-0.002,-0.001,-0.001,-0.002,-0.003,-0.005,-0.008,-0.01,-0.013,-0.015,-0.016,-0.016,-0.016,-0.015,-0.013,-0.01,-0.007,-0.004,-0.001,0.002,0.003,0.005,0.005,0.004,0.002,-0.0,-0.003,-0.007,-0.01,-0.012,-0.015,-0.016,-0.017,-0.017,-0.016,-0.014,-0.012,-0.01,-0.008,-0.006,-0.004,-0.003,-0.003,-0.003,-0.005,-0.006,-0.009,-0.011,-0.013,-0.015,-0.016,-0.017,-0.017,-0.016,-0.014,-0.012,-0.009,-0.007,-0.004,-0.002,-0.001,-0.0,-0.0,-0.002,-0.004,-0.006,-0.01,-0.013,-0.016,-0.019,-0.021,-0.022,-0.023,-0.022,-0.02,-0.018,-0.015,-0.012,-0.009,-0.007,-0.005,-0.003,-0.003,-0.003,-0.005,-0.007,-0.009,-0.012,-0.014,-0.017,-0.018,-0.019,-0.019,-0.018,-0.016,-0.014,-0.01,-0.007,-0.004,-0.001,0.002,0.004,0.005,0.005,0.004,0.002,-0.0,-0.003,-0.005,-0.008,-0.009,-0.01,-0.011,-0.01,-0.009,-0.007,-0.004,-0.002,0.001,0.003,0.005,0.006,0.006,0.006,0.004,0.002,-0.0,-0.003,-0.006,-0.008,-0.01,-0.011,-0.011,-0.01,-0.009,-0.006,-0.004,-0.001,0.002,0.004,0.006,0.007,0.008,0.007,0.006,0.004,0.001,-0.002,-0.005,-0.007,-0.009,-0.01,-0.011,-0.01,-0.008,-0.006,-0.003,-0.0,0.003,0.005,0.008,0.009,0.01,0.01,0.009,0.007,0.005,0.002,-0.001,-0.004,-0.006,-0.008,-0.008,-0.009,-0.008,-0.007,-0.005,-0.003,-0.002,0.0,0.001,0.002,0.002,0.001,-0.0,-0.002,-0.004,-0.007,-0.009,-0.01,-0.011,-0.012,-0.011,-0.009,-0.006,-0.003,0.001,0.006,0.01,0.014,0.017,0.019,0.021,0.022,0.021,0.02,0.019,0.017,0.015,0.013,0.012,0.012,0.012,0.013,0.015,0.017,0.02,0.023,0.026,0.028,0.03,0.031,0.031,0.03,0.028,0.026,0.022,0.019,0.015,0.011,0.008,0.005,0.003,0.003,0.002,0.003,0.004,0.006,0.008,0.009,0.01,0.011,0.011,0.01,0.009,0.007,0.005,0.002,-0.001,-0.003,-0.005,-0.006,-0.006,-0.006,-0.004,-0.003,-0.0,0.002,0.005,0.007,0.009,0.01,0.011,0.01,0.009,0.007,0.005,0.003,0.0,-0.002,-0.004,-0.004,-0.005,-0.004,-0.003,-0.001,0.002,0.005,0.007,0.01,0.012,0.013,0.014,0.013,0.012,0.01,0.008,0.005,0.003,0.0,-0.002,-0.003,-0.004,-0.004,-0.003,-0.002,0.0,0.003,0.005,0.007,0.009,0.011,0.011,0.011,0.01,0.009,0.007,0.004,0.002,0.0,-0.001,-0.002,-0.002,-0.002,-0.001,0.001,0.004,0.006,0.009,0.012,0.014,0.015,0.016,0.016,0.016,0.014,0.012,0.01,0.008,0.006,0.004,0.002,0.001,0.0,-0.001,-0.001,-0.002,-0.003,-0.005,-0.008,-0.012,-0.016,-0.022,-0.029,-0.037,-0.046,-0.055,-0.064,-0.072,-0.08,-0.087,-0.092,-0.095,-0.095,-0.094,-0.09,-0.082,-0.072,-0.058,-0.04,-0.019,0.007,0.037,0.072,0.111,0.155,0.203,0.255,0.311,0.369,0.43,0.492,0.555,0.617,0.677,0.734,0.788,0.836,0.878,0.912,0.938,0.955,0.961,0.957,0.943,0.917,0.882,0.837,0.784,0.724,0.659,0.59,0.52,0.45,0.382,0.317,0.257,0.203,0.156,0.115,0.08,0.052,0.03,0.013,-0.0,-0.01,-0.017,-0.021,-0.024,-0.027,-0.028,-0.029,-0.031,-0.032,-0.033,-0.034,-0.035,-0.037,-0.039,-0.041,-0.044,-0.047,-0.051,-0.056,-0.06,-0.065,-0.07,-0.075,-0.08,-0.084,-0.087,-0.089,-0.091,-0.091,-0.091,-0.09,-0.088,-0.085,-0.083,-0.081,-0.079,-0.077,-0.076,-0.076,-0.077,-0.079,-0.081,-0.083,-0.085,-0.087,-0.089,-0.091,-0.091,-0.091,-0.09,-0.088,-0.085,-0.083,-0.08,-0.077,-0.074,-0.072,-0.071,-0.07,-0.071,-0.071,-0.072,-0.074,-0.076,-0.077,-0.078,-0.078,-0.078,-0.077,-0.075,-0.073,-0.07,-0.067,-0.064,-0.061,-0.058,-0.056,-0.055,-0.055,-0.055,-0.056,-0.058,-0.06,-0.061,-0.063,-0.064,-0.064,-0.064,-0.063,-0.061,-0.058,-0.055,-0.051,-0.048,-0.044,-0.041,-0.039,-0.038,-0.037,-0.037,-0.038,-0.039,-0.041,-0.043,-0.044];
   const hum = (i, a) => a * Math.sin(2 * Math.PI * 60 * i / FS);
   const T1 = Array.from({ length: 1000 }, (_, i) => i / FS);
-  const TONES = T1.map(t => Math.sin(2 * Math.PI * 50 * t) + Math.sin(2 * Math.PI * 120 * t));
+  const TONES = T1.map(t => Math.sin(2 * Math.PI * 35 * t) + Math.sin(2 * Math.PI * 125 * t));
   const SIGNALS = {
     tones: { clean: TONES, x: TONES.map((c, i) => c + hum(i, 1)), win: [100, 200], yr: 3.4, yticks: [-3, -2, -1, 0, 1, 2, 3], xtick: 20, rate: 25,
-      inputName: 'input (noisy, with 60 Hz powerline noise)', cleanName: 'clean signal (50 + 120 Hz)',
-      inputTitle: 'The input: powerline noise between two signal tones',
-      inputSub: 'The noisy input with 60 Hz powerline noise and the clean signal it should match.',
-      maSub: 'How the moving average output compares with the clean signal.',
-      bsSub: 'How the notch (band-stop) filter output compares with the moving average.' },
+      inputName: 'input (noisy, with 60 Hz powerline noise)', cleanName: 'clean signal (35 + 125 Hz)',
+      inputTitle: 'Input: 60 Hz noise between two tones', },
     ecg: { clean: ECG, x: ECG.map((c, i) => c + hum(i, 0.3)), win: [0, 1500], yr: 1.35, yticks: [-1, -0.5, 0, 0.5, 1], xtick: 250, rate: 300,
       inputName: 'input (ECG with 60 Hz powerline noise)', cleanName: 'clean ECG',
-      inputTitle: 'The input: powerline noise on an ECG',
-      inputSub: 'An ECG with 60 Hz powerline noise and the clean ECG it should match.',
-      maSub: 'A short window leaves the hum on the beat, a longer one rounds off the sharp R peak.',
-      bsSub: 'The notch removes the hum and leaves the sharp R peak untouched.' },
+      inputTitle: 'Input: 60 Hz noise on an ECG', },
   };
   let SIG = SIGNALS.tones, CLEAN = SIG.clean, X = SIG.x, WIN = SIG.win, YR = SIG.yr;
 
@@ -435,14 +451,13 @@
     return Math.sqrt(s / (WIN[1] - WIN[0]));
   }
 
-  // ------------------------------------------------------------ layout
-  const W = 1584, H = 720;
-  const TOP = { x0: 84, x1: W - 80, y0: 36, y1: 328 };
-  const BOT = { x0: 84, x1: W - 80, y0: 404, y1: 696 };
+  // ------------------------------------------------------------ layout (one panel)
+  const W = 1584, H = 640;
+  const PN = { x0: 84, x1: W - 80, y0: 40, y1: 596 };
   const svgNS = 'http://www.w3.org/2000/svg';
   const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
-  const px = (P, i) => P.x0 + ((i - WIN[0]) / (WIN[1] - 1 - WIN[0])) * (P.x1 - P.x0);
-  const py = (P, v) => { const mid = (P.y0 + P.y1) / 2; return mid - (v / YR) * (P.y1 - P.y0) / 2; };
+  const px = i => PN.x0 + ((i - WIN[0]) / (WIN[1] - 1 - WIN[0])) * (PN.x1 - PN.x0);
+  const py = v => { const mid = (PN.y0 + PN.y1) / 2; return mid - (v / YR) * (PN.y1 - PN.y0) / 2; };
   const path = pts => pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join('');
   const fmt3 = v => v.toFixed(3);
 
@@ -458,111 +473,102 @@
   let SPAN = WIN[1] - WIN[0];       // samples drawn per animated step
   function setSignal(k) { SIG = SIGNALS[k]; CLEAN = SIG.clean; X = SIG.x; WIN = SIG.win; YR = SIG.yr; SPAN = WIN[1] - WIN[0]; recomputeMA(); recomputeBS(); }
 
+  // which filters are on: one step per Filter-menu option, so the menu and the steps are the same thing
+  const FILTERS = ['none', 'ma', 'bs', 'both'];
+  const filt = () => FILTERS[step];
+  const showMA = () => filt() === 'ma' || filt() === 'both';
+  const showBS = () => filt() === 'bs' || filt() === 'both';
+
   const bandText = () => `${Math.max(1, centre - width / 2)}–${Math.min(FS / 2 - 1, centre + width / 2)} Hz`;
   const P = v => `<b class="p">${v}</b>`;
+  const maCode = () => `ma = data.rolling(window=${P(w)}, center=${P('True')}).mean()`;
+  const bsCode = () => { const lo = Math.max(1, centre - width / 2), hi = Math.min(FS / 2 - 1, centre + width / 2); return `b, a = butter(4, [${P(lo)}, ${P(hi)}], btype='bandstop', fs=${FS});  y = filtfilt(b, a, x)`; };
   const STEPS = [
-    {
-      id: 'input', title: () => SIG.inputTitle, tag: () => 'fs = 1000 Hz',
-      subtitle: () => SIG.inputSub,
-    },
-    {
-      id: 'ma', title: 'Moving average output', tag: () => `w = ${w}`,
-      subtitle: () => SIG.maSub,
-      code: () => `ma = data.rolling(window=${P(w)}, center=${P('True')}).mean()`,
-    },
-    {
-      id: 'bs', title: 'Notch filter output', tag: () => `notch ${bandText()} · order 4`,
-      subtitle: () => SIG.bsSub,
-      code: () => { const lo = Math.max(1, centre - width / 2), hi = Math.min(FS / 2 - 1, centre + width / 2); return `b, a = butter(4, [${P(lo)}, ${P(hi)}], btype='bandstop', fs=${FS});  y = filtfilt(b, a, x)`; },
-    },
+    { id: 'input', title: () => SIG.inputTitle, tag: () => 'fs = 1000 Hz' },
+    { id: 'ma', title: 'Time domain: moving average', tag: () => `w = ${w}`, code: maCode },
+    { id: 'bs', title: 'Frequency domain: notch (band-stop) filter', tag: () => `notch ${bandText()} · order 4`, code: bsCode },
+    { id: 'both', title: 'Moving average vs notch', tag: () => `w = ${w} · notch ${bandText()}`, code: () => maCode() + '\n' + bsCode() },
   ];
 
   // ------------------------------------------------------------ drawing
   let G = {};
   function drawFrame() {
     chart.innerHTML = '';
-    [[TOP, 'moving average'], [BOT, 'notch (band-stop) filter']].forEach(([P, title]) => {
-      const grid = el('g', { class: 'grid' }, chart), axis = el('g', { class: 'axis' }, chart);
-      el('text', { x: P.x0, y: P.y0 - 12, class: 'ptitle' }, chart).textContent = title;
-      SIG.yticks.forEach(v => {
-        el('line', { x1: P.x0, x2: P.x1, y1: py(P, v), y2: py(P, v) }, grid);
-        el('text', { x: P.x0 - 8, y: py(P, v) + 4, 'text-anchor': 'end' }, axis).textContent = v;
-      });
-      for (let i = WIN[0]; i <= WIN[1] - 1; i += SIG.xtick) {
-        el('line', { x1: px(P, i), x2: px(P, i), y1: P.y0, y2: P.y1 }, grid);
-        el('text', { x: px(P, i), y: P.y1 + 16, 'text-anchor': 'middle' }, axis).textContent = (i / FS).toFixed(2);
-      }
-      el('path', { d: `M${P.x0},${P.y0}V${P.y1}H${P.x1}` }, axis);
-      el('text', { x: P.x1 + 8, y: P.y1 + 16, class: 'axis-title' }, chart).textContent = 'time (s)';
-      el('text', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${P.x0 - 58}, ${(P.y0 + P.y1) / 2}) rotate(-90)` }, chart).textContent = 'amplitude';
+    const grid = el('g', { class: 'grid' }, chart), axis = el('g', { class: 'axis' }, chart);
+    SIG.yticks.forEach(v => {
+      el('line', { x1: PN.x0, x2: PN.x1, y1: py(v), y2: py(v) }, grid);
+      el('text', { x: PN.x0 - 8, y: py(v) + 4, 'text-anchor': 'end' }, axis).textContent = v;
     });
-    G.top = el('g', {}, chart); G.bot = el('g', {}, chart);
-    G.legTop = el('g', { class: 'legend' }, chart); G.legBot = el('g', { class: 'legend' }, chart);
-    G.annoTop = el('g', {}, chart); G.annoBot = el('g', {}, chart);
+    for (let i = WIN[0]; i <= WIN[1] - 1; i += SIG.xtick) {
+      el('line', { x1: px(i), x2: px(i), y1: PN.y0, y2: PN.y1 }, grid);
+      el('text', { x: px(i), y: PN.y1 + 16, 'text-anchor': 'middle' }, axis).textContent = (i / FS).toFixed(2);
+    }
+    el('path', { d: `M${PN.x0},${PN.y0}V${PN.y1}H${PN.x1}` }, axis);
+    el('text', { x: PN.x1 + 8, y: PN.y1 + 16, class: 'axis-title' }, chart).textContent = 'time (s)';
+    el('text', { class: 'axis-title', 'text-anchor': 'middle', transform: `translate(${PN.x0 - 58}, ${(PN.y0 + PN.y1) / 2}) rotate(-90)` }, chart).textContent = 'amplitude';
+    G.traces = el('g', {}, chart);
+    G.leg = el('g', { class: 'legend' }, chart);
+    G.anno = el('g', {}, chart);
     G.hover = el('g', {}, chart);
     el('rect', { x: 0, y: 0, width: W, height: H, fill: 'transparent' }, chart);
   }
 
-  // conventional legend, drawn at step entry, static for the step
-  function drawLegend(g, P, items) {
-    g.innerHTML = '';
-    const x = P.x0 + 12, y = P.y0 + 10, rowH = 24, wBox = 230, hBox = 10 + items.length * rowH;
+  // conventional legend at the top right, drawn at step entry
+  function drawLegend(items) {
+    const g = G.leg; g.innerHTML = '';
+    const rowH = 34, wBox = Math.max(...items.map(i => i.name.length)) * 11.8 + 68, hBox = 14 + items.length * rowH;
+    const x = PN.x1 - wBox - 12, y = PN.y0 + 10;
     el('rect', { class: 'bg', x, y, width: wBox, height: hBox, rx: 4 }, g);
     items.forEach((it, i) => {
-      const cy = y + 14 + i * rowH;
+      const cy = y + 21 + i * rowH;
       const ln = el('line', { x1: x + 10, x2: x + 26, y1: cy - 1, y2: cy - 1, stroke: it.color }, g);
       if (it.dashed) { ln.setAttribute('stroke-dasharray', '4 3'); ln.setAttribute('stroke-width', '2'); }
-      el('text', { x: x + 34, y: cy + 3 }, g).textContent = it.name;
+      el('text', { x: x + 38, y: cy + 8 }, g).textContent = it.name;
     });
   }
-  function legendItems(panel) {
-    const items = [{ name: SIG.inputName, color: 'var(--raw)' }, { name: SIG.cleanName, color: 'var(--clean)', dashed: true }];
-    if (panel === 'top' && step >= 1) items.push({ name: `moving average w=${w}`, color: 'var(--ma)' });
-    if (panel === 'bot' && step >= 2) items.push({ name: `notch ${bandText()}`, color: 'var(--notch)' });
-    return items;
-  }
   function refreshLegends() {
-    drawLegend(G.legTop, TOP, legendItems('top'));
-    drawLegend(G.legBot, BOT, legendItems('bot'));
+    const items = [{ name: SIG.inputName, color: 'var(--raw)' }, { name: SIG.cleanName, color: 'var(--clean)', dashed: true }];
+    if (showMA()) items.push({ name: `moving average w=${w}`, color: 'var(--ma)' });
+    if (showBS()) items.push({ name: `notch ${bandText()}`, color: 'var(--notch)' });
+    drawLegend(items);
   }
 
-  function series(P, arr, upto) {
-    const pts = []; for (let i = WIN[0]; i < Math.min(WIN[1], WIN[0] + upto); i++) pts.push([px(P, i), py(P, arr[i])]);
+  function series(arr, upto) {
+    const pts = []; for (let i = WIN[0]; i < Math.min(WIN[1], WIN[0] + upto); i++) pts.push([px(i), py(arr[i])]);
     return pts;
   }
-  // one panel: input + target drawn up to `base` samples, output up to `outUpto` samples
-  function drawPanel(g, P, base, out, outUpto, color) {
-    g.innerHTML = '';
-    if (base > 1) {
-      el('path', { class: 'clean-line', d: path(series(P, CLEAN, base)) }, g);
-      el('path', { class: 'raw-line', d: path(series(P, X, base)) }, g);
-      if (base < SPAN) el('circle', { class: 'dot', cx: px(P, WIN[0] + base - 1), cy: py(P, X[WIN[0] + base - 1]), r: 4.5, fill: 'var(--raw-dot)' }, g);
-    }
-    if (out && outUpto > 1) {
-      el('path', { class: 'out-line', d: path(series(P, out, outUpto)), stroke: color }, g);
-      if (outUpto < SPAN) el('circle', { class: 'dot', cx: px(P, WIN[0] + outUpto - 1), cy: py(P, out[WIN[0] + outUpto - 1]), r: 5, fill: color }, g);
-    }
+  function drawOut(out, upto, color) {
+    if (upto <= 1) return;
+    el('path', { class: 'out-line', d: path(series(out, upto)), stroke: color }, G.traces);
+    if (upto < SPAN) el('circle', { class: 'dot', cx: px(WIN[0] + upto - 1), cy: py(out[WIN[0] + upto - 1]), r: 5, fill: color }, G.traces);
   }
-  function annotateRms(g, P, out, label, color, show) {
-    g.innerHTML = '';
-    if (!show) return;
-    // on the panel-title row, right-aligned, so it never sits on top of a trace
-    const t = el('text', { x: P.x1, y: P.y0 - 12, class: 'anno', 'text-anchor': 'end', fill: color, 'font-weight': '700' }, g);
-    t.textContent = `${label}: rms error vs clean signal = ${fmt3(rmsErr(out))}`;
+  // rms error readouts on the panel-title row, right-aligned, one per filter shown
+  function annotateRms(done) {
+    G.anno.innerHTML = '';
+    if (!done) return;
+    const parts = [];
+    if (showMA()) parts.push([`moving average w=${w}: rms error = ${fmt3(rmsErr(ma))}`, 'var(--ma)']);
+    if (showBS()) parts.push([`notch ${bandText()}: rms error = ${fmt3(rmsErr(bs))}`, 'var(--notch)']);
+    if (!parts.length) return;
+    const t = el('text', { x: PN.x1, y: PN.y0 - 12, class: 'anno', 'text-anchor': 'end', 'font-weight': '700' }, G.anno);
+    parts.forEach(([txt, color], i) => { const ts = el('tspan', { fill: color }, t); ts.textContent = (i ? '     ' : '') + txt; });
   }
 
   function render() {
     const d = STEPS[step];
     const p = Math.min(progress, SPAN);
-    const baseTop = step === 0 ? p : SPAN, baseBot = baseTop;
-    const maUpto = step === 1 ? p : step > 1 ? SPAN : 0;
-    const bsUpto = step === 2 ? p : 0;
-    drawPanel(G.top, TOP, baseTop, step >= 1 ? ma : null, maUpto, 'var(--ma)');
-    drawPanel(G.bot, BOT, baseBot, step >= 2 ? bs : null, bsUpto, 'var(--notch)');
-    annotateRms(G.annoTop, TOP, ma, `moving average w=${w}`, 'var(--ma)', step >= 1 && maUpto >= SPAN);
-    annotateRms(G.annoBot, BOT, bs, `notch ${bandText()}`, 'var(--notch)', step >= 2 && bsUpto >= SPAN);
+    const base = step === 0 ? p : SPAN;
+    G.traces.innerHTML = '';
+    if (base > 1) {
+      el('path', { class: 'clean-line', d: path(series(CLEAN, base)) }, G.traces);
+      el('path', { class: 'raw-line', d: path(series(X, base)) }, G.traces);
+      if (base < SPAN) el('circle', { class: 'dot', cx: px(WIN[0] + base - 1), cy: py(X[WIN[0] + base - 1]), r: 4.5, fill: 'var(--raw-dot)' }, G.traces);
+    }
+    if (showMA()) drawOut(ma, p, 'var(--ma)');
+    if (showBS()) drawOut(bs, p, 'var(--notch)');
+    annotateRms(step > 0 && p >= SPAN);
     $('title').innerHTML = (typeof d.title === 'function' ? d.title() : d.title) + `<span class="tag">${d.tag()}</span>`;
-    $('subtitle').textContent = d.subtitle();
+    $('subtitle').textContent = '';
     const code = typeof d.code === 'function' ? d.code() : d.code;
     $('code').hidden = !code; $('code').innerHTML = code || '';
   }
@@ -572,6 +578,9 @@
     $('win').value = w; $('winval').textContent = w;
     $('centre').value = centre; $('centreval').textContent = `${centre} Hz`;
     $('width').value = width; $('widthval').textContent = `${width} Hz`;
+    $('filter').value = filt();
+    $('g-win').hidden = !showMA();
+    $('g-centre').hidden = !showBS(); $('g-width').hidden = !showBS();
   }
   function recomputeMA() { ma = movavg(X, w); }
   function recomputeBS() { bs = bandstop(X, centre, width); }
@@ -615,15 +624,14 @@
     const pt = chart.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
     const p = pt.matrixTransform(chart.getScreenCTM().inverse());
     G.hover.innerHTML = '';
-    const P = p.y >= TOP.y0 && p.y <= TOP.y1 ? TOP : p.y >= BOT.y0 && p.y <= BOT.y1 ? BOT : null;
-    if (!P || p.x < P.x0 || p.x > P.x1) { tt.style.display = 'none'; return; }
-    const i = Math.max(WIN[0], Math.min(WIN[1] - 1, Math.round(WIN[0] + (p.x - P.x0) / (P.x1 - P.x0) * (SPAN - 1))));
-    [TOP, BOT].forEach(Q => el('line', { class: 'crosshair', x1: px(Q, i), x2: px(Q, i), y1: Q.y0, y2: Q.y1 }, G.hover));
+    if (p.y < PN.y0 || p.y > PN.y1 || p.x < PN.x0 || p.x > PN.x1) { tt.style.display = 'none'; return; }
+    const i = Math.max(WIN[0], Math.min(WIN[1] - 1, Math.round(WIN[0] + (p.x - PN.x0) / (PN.x1 - PN.x0) * (SPAN - 1))));
+    el('line', { class: 'crosshair', x1: px(i), x2: px(i), y1: PN.y0, y2: PN.y1 }, G.hover);
     let html = `<div class="row"><span>t</span><b>${(i / FS).toFixed(3)} s</b></div>` +
       `<div class="row"><span><i class="sw" style="background:var(--raw)"></i>input</span><span>${fmt3(X[i])}</span></div>` +
       `<div class="row"><span><i class="sw" style="background:var(--clean)"></i>clean signal</span><span>${fmt3(CLEAN[i])}</span></div>`;
-    if (step >= 1) html += `<div class="row"><span><i class="sw" style="background:var(--ma)"></i>moving average</span><span>${fmt3(ma[i])}</span></div>`;
-    if (step >= 2) html += `<div class="row"><span><i class="sw" style="background:var(--notch)"></i>notch</span><span>${fmt3(bs[i])}</span></div>`;
+    if (showMA()) html += `<div class="row"><span><i class="sw" style="background:var(--ma)"></i>moving average</span><span>${fmt3(ma[i])}</span></div>`;
+    if (showBS()) html += `<div class="row"><span><i class="sw" style="background:var(--notch)"></i>notch</span><span>${fmt3(bs[i])}</span></div>`;
     tt.innerHTML = html; tt.style.display = 'block';
     const wrap = chart.parentElement.getBoundingClientRect();
     const cx = evt.clientX - wrap.left, cy = evt.clientY - wrap.top;
@@ -646,13 +654,15 @@
     else if (e.key === ' ') { e.preventDefault(); $('play').click(); }
     else if (e.key === 'r' || e.key === 'R') restart();
   });
-  // sliders: recompute their panel and redraw at the current progress; no replay
+  // sliders: recompute their filter and redraw at the current progress; no replay
   $('win').addEventListener('input', e => { dirty.win = true; w = parseInt(e.target.value, 10) | 1; setDials(); recomputeMA(); refreshLegends(); render(); });
   $('centre').addEventListener('input', e => { dirty.centre = true; centre = parseInt(e.target.value, 10); setDials(); recomputeBS(); refreshLegends(); render(); });
   $('width').addEventListener('input', e => { dirty.width = true; width = parseInt(e.target.value, 10); setDials(); recomputeBS(); refreshLegends(); render(); });
   $('speed').addEventListener('change', e => { speedMult = parseFloat(e.target.value); });
   $('sig').addEventListener('change', e => { e.stopPropagation(); enterStep(step); });
-  $('sig').addEventListener('click', e => e.stopPropagation());
+  // the Filter menu is direct navigation: each option is one step
+  $('filter').addEventListener('change', e => { e.stopPropagation(); enterStep(FILTERS.indexOf(e.target.value)); });
+  ['sig', 'filter'].forEach(id => $(id).addEventListener('click', e => e.stopPropagation()));
   chart.addEventListener('mousemove', hover);
   chart.addEventListener('mouseleave', unhover);
 

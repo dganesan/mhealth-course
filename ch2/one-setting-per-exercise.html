@@ -21,51 +21,60 @@
   .stage { max-width: 1880px; margin: 0 auto; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; height: calc(100vh - 20px); }
   .slide { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 16px 30px 8px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 6px; min-height: 0; position: relative; outline: none; cursor: pointer; user-select: none; }
   .slide:focus-visible { box-shadow: 0 0 0 3px rgba(42,120,214,.35); }
-  .head h1 { margin: 0; font-size: clamp(20px, 2.2vw, 28px); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; line-height: 1.15; }
+  .head h1 { margin: 0; font-size: clamp(24px, 2.4vw, 36px); font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
   .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
-  .head p { margin: 6px 0 0; color: #444; font-size: clamp(15px, 1.6vw, 18px); max-width: none; }
-  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(13px, 1.35vw, 16px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
+  .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
+  .head p:empty { display: none; }
+  .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
   .code .p { color: var(--ma); font-weight: 700; }
   .chart-wrap { position: relative; min-height: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
-  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 12px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
+  .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 15px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
   .tt .row { display: flex; gap: 10px; justify-content: space-between; }
   .tt .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 12px; color: var(--ink-3); padding: 0; pointer-events: none; }
+  .foot { position: absolute; top: 9px; right: 16px; display: flex; gap: 14px; align-items: baseline; font-size: 14px; color: var(--ink-3); padding: 0; pointer-events: none; }
   .foot .ctr { font-family: var(--mono); }
-  .bar { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:9px 14px; border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:14px; color:var(--ink); }
-  .group { display:flex; align-items:center; gap:8px; }
-  .group label { font-size:13px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; }
-  .val { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--ma); min-width:5ch; }
-  button, select { font:inherit; font-size:14px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:5px; padding:7px 13px; cursor:pointer; }
+  .bar { display:flex; flex-direction:column; gap:12px; padding:12px 24px;
+         border:1px solid var(--rule); border-radius:6px; background:#f6f7f9; font-size:19px; color:var(--ink); }
+  .bar .row { display:flex; justify-content:flex-start; align-items:center; gap:16px 32px; flex-wrap:wrap; }
+  .bar .row.dials .group { flex:1 1 0; }
+  .bar .row.dials input[type=range] { flex:1 1 auto; width:auto; }
+  .group { display:flex; align-items:center; gap:10px; }
+  .group label { font-size:18px; font-weight:700; color:var(--ink); letter-spacing:0; text-transform:none; white-space:nowrap; }
+  .val { font-family:var(--mono); font-size:19px; font-weight:700; color:var(--ma); min-width:5ch; white-space:nowrap; }
+  button, select { font:inherit; font-size:18px; color:var(--ink); background:#fff; border:1px solid #9a9a9a; border-radius:6px; padding:9px 16px; cursor:pointer; }
   button:hover, select:hover { border-color:var(--ink); }
   button.primary { background:var(--ma); color:#fff; border-color:var(--ma); min-width:88px; font-weight:700; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--ma); outline-offset:2px; }
-  input[type=range] { accent-color:var(--ma); width:150px; height:30px; cursor:pointer; }
+  input[type=range] { -webkit-appearance:none; appearance:none; accent-color:var(--ma); width:260px; height:36px; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; box-shadow:0 0 0 1.5px var(--ma); margin-top:-9px; }
+  input[type=range]::-moz-range-track { height:8px; border-radius:4px; background:#c9d1dc; }
+  input[type=range]::-moz-range-thumb { width:26px; height:26px; border-radius:50%; background:var(--ma); border:3px solid #fff; }
   .hint { margin-left:auto; color:var(--ink-2); font-size:12px; }
   .hint kbd { font-family:var(--mono); background:#fff; border:1px solid var(--rule); border-radius:3px; padding:0 5px; font-size:11px; }
-  .grid line { stroke: var(--grid); stroke-width: 1; }
-  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1; fill: none; }
-  .axis text { font-family: var(--mono); font-size: 15px; fill: var(--ink-2); }
-  .axis-title { font-family: var(--sans); font-size: 18px; fill: var(--ink-2); }
-  .ptitle { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ink); }
-  .raw-line { fill: none; stroke: var(--raw); stroke-width: 1.5; }
-  .out-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
-  .thin-line { fill: none; stroke-width: 1.4; stroke-linejoin: round; }
+  .grid line { stroke: var(--grid); stroke-width: 1.3; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1.3; fill: none; }
+  .axis text { font-family: var(--mono); font-size: 20px; fill: var(--ink-2); }
+  .axis-title { font-family: var(--sans); font-size: 22px; fill: var(--ink-2); }
+  .ptitle { font-family: var(--sans); font-size: 20px; font-weight: 700; fill: var(--ink); }
+  .raw-line { fill: none; stroke: var(--raw); stroke-width: 2.0; }
+  .out-line { fill: none; stroke-width: 2.6; stroke-linejoin: round; stroke-linecap: round; }
+  .thin-line { fill: none; stroke-width: 1.8; stroke-linejoin: round; }
   .dash { stroke-dasharray: 5 4; }
   .win-rect { fill: var(--window); stroke: var(--window-edge); stroke-width: 1; stroke-dasharray: 3 3; }
-  .dlabel { font-family: var(--sans); font-size: 13px; font-weight: 700; }
+  .dlabel { font-family: var(--sans); font-size: 17px; font-weight: 700; }
   .mono { font-family: var(--mono); }
-  .big { font-family: var(--mono); font-size: 22px; font-weight: 700; }
-  .badge { font-family: var(--mono); font-size: 15px; font-weight: 700; fill: var(--ink); }
-  .kept { fill: none; stroke: var(--ewma); stroke-width: 2.2; }
+  .big { font-family: var(--mono); font-size: 26px; font-weight: 700; }
+  .badge { font-family: var(--mono); font-size: 20px; font-weight: 700; fill: var(--ink); }
+  .kept { fill: none; stroke: var(--ewma); stroke-width: 2.9; }
   .cross { stroke: var(--raw-dot); stroke-width: 1.6; }
   .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 2; }
   @media (max-width: 720px) { .slide { padding: 18px 16px 12px; min-height: 0; } .hint { display: none; } }
   .hint { display:none !important; }
-  button.tb { min-width:44px; padding:6px 10px; font-size:17px; line-height:1; }
-  button.primary.tb { min-width:52px; }
+  button.tb { min-width:54px; padding:9px 12px; font-size:22px; line-height:1; }
+  button.primary.tb { min-width:64px; }
 </style>
 
 <div class="stage">
@@ -86,6 +95,7 @@
   </section>
 
   <div class="bar">
+   <div class="row">
     <div class="group">
       <button id="prev" class="tb" title="Previous step (←)">⏮</button>
       <button id="play" class="primary tb" title="Play / pause (space)">▶</button>
@@ -93,17 +103,6 @@
       <button id="restart" class="tb" title="Restart this step (r)">↺</button>
       <button id="reset" title="Reset dials to this step's presets">Reset dials</button>
     </div>
-    <div class="group">
-      <label for="dist">distance</label>
-      <input type="range" id="dist" min="0.2" max="1.5" step="0.05" value="0.7">
-      <span class="val" id="distVal">0.70 s</span>
-    </div>
-    <div class="group">
-      <label for="prom">prominence</label>
-      <input type="range" id="prom" min="0.05" max="0.9" step="0.01" value="0.12">
-      <span class="val" id="promVal">0.12</span>
-    </div>
-
     <div class="group">
       <label for="speed">Speed</label>
       <select id="speed">
@@ -114,7 +113,19 @@
         <option value="0">instant</option>
       </select>
     </div>
-    <span class="hint"><kbd>→</kbd> finish / next &nbsp; <kbd>←</kbd> back &nbsp; <kbd>space</kbd> play &nbsp; <kbd>r</kbd> restart</span>
+   </div>
+   <div class="row dials">
+    <div class="group">
+      <label for="dist">distance</label>
+      <input type="range" id="dist" min="0.2" max="1.5" step="0.05" value="0.7">
+      <span class="val" id="distVal">0.70 s</span>
+    </div>
+    <div class="group">
+      <label for="prom">prominence</label>
+      <input type="range" id="prom" min="0.05" max="0.9" step="0.01" value="0.12">
+      <span class="val" id="promVal">0.12</span>
+    </div>
+   </div>
   </div>
 </div>
 
@@ -223,8 +234,8 @@ function panel(parent, box, xd, yd, o = {}) {
 }
 function pathOf(xs, ys, upto) { let d = ''; const n = upto == null ? xs.length : upto; for (let i = 0; i < n; i++) d += (i ? 'L' : 'M') + xs[i].toFixed(1) + ',' + ys[i].toFixed(1); return d; }
 function legend(parent, x, y, items) {
-  const rowH = 24, padX = 10, padY = 8;
-  const wdt = Math.max(...items.map(i => i.n.length)) * 10.5 + 2 * padX + 30;
+  const rowH = 30, padX = 10, padY = 8;
+  const wdt = Math.max(...items.map(i => i.n.length)) * 12.5 + 2 * padX + 34;
   x = Math.min(x, W - wdt - 6);
   el('rect', { x, y, width: wdt, height: items.length * rowH + 2 * padY - 4, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, parent);
   items.forEach((it, j) => {
@@ -238,8 +249,24 @@ function legend(parent, x, y, items) {
   });
   return wdt;
 }
+function legendInline(parent, x, y, items) {
+  const padX = 10, h = 36, spans = items.map(it => 26 + it.n.length * 11 + 16);
+  const wdt = 2 * padX + spans.reduce((a, b) => a + b, 0) - 16;
+  x = Math.min(x, W - wdt - 6);
+  el('rect', { x, y, width: wdt, height: h, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, parent);
+  const cy = y + h / 2; let px = x + padX;
+  items.forEach((it, j) => {
+    const cx = px + 9;
+    if (it.k === 'circle') el('circle', { cx, cy, r: 5.5, class: 'kept', stroke: it.c || C.red }, parent);
+    else el('line', { x1: px, x2: px + 18, y1: cy, y2: cy, stroke: it.c, 'stroke-width': 2.5 }, parent);
+    txt(parent, px + 26, cy + 7, it.n, { class: 'axis-title', fill: 'var(--ink)' });
+    px += spans[j];
+  });
+  return wdt;
+}
 function cross(parent, x, y, s = 5, attrs = {}) { const g = el('g', Object.assign({ class: 'cross' }, attrs), parent); el('line', { x1: x - s, x2: x + s, y1: y - s, y2: y + s }, g); el('line', { x1: x - s, x2: x + s, y1: y + s, y2: y - s }, g); return g; }
-function badge(parent, x, y, s, color) { const g = el('g', {}, parent); const w = s.length * 11 + 18; el('rect', { x, y: y - 17, width: w, height: 24, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g); txt(g, x + 9, y, s, { class: 'badge', fill: color || 'var(--ink)' }); return g; }
+const badgeW = s => s.length * 12.4 + 20;
+function badge(parent, x, y, s, color) { const g = el('g', {}, parent); const w = badgeW(s); el('rect', { x, y: y - 20, width: w, height: 28, rx: 4, fill: '#fff', 'fill-opacity': .9, stroke: 'var(--rule)' }, g); txt(g, x + 9, y, s, { class: 'badge', fill: color || 'var(--ink)' }); return g; }
 function tipAt(evt, html) {
   tt.innerHTML = html; tt.style.display = 'block';
   const wrap = chart.parentElement.getBoundingClientRect();
@@ -342,7 +369,7 @@ RF.lat.name = 'Lateral raise'; RF.jj.name = 'Jumping jacks';
 
 let G = {}, live = { d: 0.7, a: 0, b: 0 };
 const cursorLine = (P, t) => el('line', { x1: P.sx(t), x2: P.sx(t), y1: P.box.y, y2: P.box.y + P.box.h, stroke: 'var(--ink-2)', 'stroke-width': 1, 'stroke-dasharray': '3 3' }, P.top);
-const rbadge = (P, s, c, dy = 26) => badge(P.top, P.box.x + P.box.w - (s.length * 11 + 18) - 12, P.box.y + dy, s, c);
+const rbadge = (P, s, c, dy = 26) => badge(P.top, P.box.x + P.box.w - badgeW(s) - 12, P.box.y + dy, s, c);
 function setPanel(box, set, p, dSec, prom, o = {}) {
   const n = set.g.length, T = Array.from({ length: n }, (_, i) => i / FS), i = Math.round(p * (n - 1));
   const P = panel(chart, box, [0, n / FS], [0, Math.max(...set.g) * 1.32], { xlabel: 'time (seconds)', ylabel: o.ylabel === undefined ? 'angular velocity |ω| (rad/s)' : o.ylabel, ylx: 62, ny: 4, nx: o.nx || 8, yf: v => fmt(v, 0), title: o.title });
@@ -350,7 +377,7 @@ function setPanel(box, set, p, dSec, prom, o = {}) {
   const ks = detect(set, dSec, prom).filter(k => k <= i);
   ks.forEach(k => el('circle', { cx: P.sx(T[k]), cy: P.sy(set.g[k]), r: 6.5, class: 'kept' }, P.top));
   cursorLine(P, T[i]);
-  if (!o.noLegend) legend(P.top, box.x + 10, box.y + 8, [{ c: C.violet, n: 'gyroscope magnitude' }, { k: 'circle', n: 'detected repetitions' }]);
+  if (!o.noLegend) (o.legendCol ? legend : legendInline)(P.top, box.x + 10, box.y + 8, [{ c: C.violet, n: 'gyroscope magnitude' }, { k: 'circle', n: 'detected repetitions' }]);
   rbadge(P, `true ${set.reps} · found ${ks.length}`, C.red, o.badgeY || 26);
   P.T = T; P.set = set; P.n = ks.length; return P;
 }
@@ -359,21 +386,21 @@ const STEPS = [
   {
     title: 'Lateral raise at a spacing of 0.7 s', dur: 10, presets: { dist: 0.7, prom: 0.12 },
     tag: () => `distance = ${fmt(dial('dist'), 2)} s · prominence = ${fmt(dial('prom'), 2)} → found ${live.a} · true 9`,
-    subtitle: 'How a spacing tuned for a fast exercise double-counts a slow lateral raise.',
+    subtitle: 'A spacing tuned for a fast exercise double-counts a slow lateral raise.',
     code: () => `peaks, _ = find_peaks(normalized, distance=int(<b class="p">${fmt(dial('dist'), 2)}</b> * 50), prominence=<b class="p">${fmt(dial('prom'), 2)}</b>)`,
     setup() {}, draw(p) { chart.innerHTML = ''; G.cols = null; G.P = setPanel(SINGLE, RF.lat, p, dial('dist'), dial('prom')); live.a = G.P.n; G.Q = null; }
   },
   {
     title: 'Jumping jacks at a spacing of 0.7 s', dur: 10, presets: { dist: 0.7, prom: 0.12 },
     tag: () => `distance = ${fmt(dial('dist'), 2)} s · prominence = ${fmt(dial('prom'), 2)} → found ${live.a} · true 25`,
-    subtitle: 'The same detector counting every jumping jack exactly once.',
+    subtitle: 'The same detector counts every jumping jack exactly once.',
     code: () => `peaks, _ = find_peaks(normalized, distance=int(<b class="p">${fmt(dial('dist'), 2)}</b> * 50), prominence=<b class="p">${fmt(dial('prom'), 2)}</b>)`,
     setup() {}, draw(p) { chart.innerHTML = ''; G.cols = null; G.P = setPanel(SINGLE, RF.jj, p, dial('dist'), dial('prom')); live.a = G.P.n; G.Q = null; }
   },
   {
     title: 'Sweeping the minimum spacing', dur: 16, presets: { dist: 1.3, prom: 0.12 },
     tag: () => `spacing = ${fmt(live.d, 2)} s · lateral raise ${live.a} / 9 · jumping jacks ${live.b} / 25`,
-    subtitle: 'How the counts for both exercises change as the minimum spacing grows.',
+    subtitle: '',
     code: () => `peaks, _ = find_peaks(normalized, distance=int(<b class="p">${fmt(live.d, 2)}</b> * 50), prominence=<b class="p">${fmt(dial('prom'), 2)}</b>)`,
     setup() {}, draw(p) {
       chart.innerHTML = ''; G.cols = null;
@@ -385,14 +412,14 @@ const STEPS = [
     }
   },
   {
-    title: 'The same detector on three participants', dur: 14, presets: { dist: 0.2, prom: 0.71 },
+    title: 'Same detector on three participants', dur: 14, presets: { dist: 0.2, prom: 0.71 },
     tag: () => `lateral raise · 3 participants`,
-    subtitle: 'Comparing the same lateral-raise detector across three participants.',
+    subtitle: '',
     code: () => `peaks, _ = find_peaks(normalized, distance=int(<b class="p">${fmt(dial('dist'), 2)}</b> * 50), prominence=<b class="p">${fmt(dial('prom'), 2)}</b>)`,
     setup() {}, draw(p) {
       chart.innerHTML = '';
       const longest = Math.max(...RF.ind.map(s => s.g.length));
-      G.cols = RF.ind.map((s, k) => setPanel(COLS[k], s, Math.min(1, p * longest / s.g.length), dial('dist'), dial('prom'), { title: s.name, ylabel: k === 0 ? undefined : null, nx: 5, noLegend: k > 0, badgeY: k === 0 ? 62 : 26 }));
+      G.cols = RF.ind.map((s, k) => setPanel(COLS[k], s, Math.min(1, p * longest / s.g.length), dial('dist'), dial('prom'), { title: s.name, ylabel: k === 0 ? undefined : null, nx: 5, noLegend: k > 0, legendCol: true, badgeY: k === 0 ? 100 : 26 }));
       G.P = G.cols[0]; G.Q = null;
     }
   }
