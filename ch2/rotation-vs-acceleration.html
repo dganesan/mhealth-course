@@ -478,44 +478,109 @@ function travelArrow(x, y0, y1, colr, op, fs = 22) {
 const cycle = (p, n) => (1 - Math.cos(2 * Math.PI * Math.min(1, p) * n)) / 2;   // n repetitions across the step
 const ramp = (p, a, b) => Math.max(0, Math.min(1, (p - a) / (b - a)));
 
-// ------------------------------------------------------------ one sensor at a time
+// ------------------------------------------------------------ one sensor at a time: three small diagrams
+function deviceBox(g, cx, cy, s, colr) {
+  el('rect', { x: cx - s, y: cy - s * 0.74, width: 2 * s, height: 1.48 * s, rx: 5, fill: '#fff', stroke: colr, 'stroke-width': 2.4 }, g);
+  el('circle', { cx, cy, r: 3, fill: colr }, g);
+}
+function arrowTo(g, x1, y1, x2, y2, colr, w = 3) {
+  const a = Math.atan2(y2 - y1, x2 - x1);
+  el('line', { x1, y1, x2: x2 - 7 * Math.cos(a), y2: y2 - 7 * Math.sin(a), stroke: colr, 'stroke-width': w }, g);
+  el('path', { d: `M${x2},${y2}l${-12 * Math.cos(a - 0.42)},${-12 * Math.sin(a - 0.42)}L${x2 - 12 * Math.cos(a + 0.42)},${y2 - 12 * Math.sin(a + 0.42)}z`, fill: colr }, g);
+}
+// an open ellipse drawn around an axis pointing at `ang`, to say "turning about this axis"
+function spinArc(g, cx, cy, ang, colr, rx = 21, ry = 9) {
+  const pt = t => { const x = rx * Math.cos(t), y = ry * Math.sin(t); return [cx + x * Math.cos(ang) - y * Math.sin(ang), cy + x * Math.sin(ang) + y * Math.cos(ang)]; };
+  let d = '';
+  for (let t = 0.55; t <= 5.7; t += 0.12) { const [x, y] = pt(t); d += (d ? 'L' : 'M') + x.toFixed(1) + ',' + y.toFixed(1); }
+  el('path', { d, fill: 'none', stroke: colr, 'stroke-width': 2.6 }, g);
+  const [xe, ye] = pt(5.7), [xp, yp] = pt(5.5), a = Math.atan2(ye - yp, xe - xp);
+  el('path', { d: `M${xe},${ye}l${-11 * Math.cos(a - 0.45)},${-11 * Math.sin(a - 0.45)}L${xe - 11 * Math.cos(a + 0.45)},${ye - 11 * Math.sin(a + 0.45)}z`, fill: colr }, g);
+}
+const AXES3 = [{ a: 0, n: 'x' }, { a: -Math.PI / 2, n: 'y' }, { a: Math.PI * 0.78, n: 'z' }];
+function triad(g, cx, cy, colr, spin) {
+  AXES3.forEach(({ a, n }) => {
+    const ex = cx + 58 * Math.cos(a), ey = cy + 58 * Math.sin(a);
+    if (spin) {   // a plain axis, with a loop turning about it
+      el('line', { x1: cx, y1: cy, x2: ex, y2: ey, stroke: 'var(--ink-3)', 'stroke-width': 1.6, 'stroke-dasharray': '4 3' }, g);
+      spinArc(g, cx + 40 * Math.cos(a), cy + 40 * Math.sin(a), a + Math.PI / 2, colr, 22, 9);
+    } else arrowTo(g, cx + 22 * Math.cos(a), cy + 22 * Math.sin(a), ex, ey, colr, 2.6);
+    txt(g, ex + 16 * Math.cos(a), ey + 16 * Math.sin(a) + 5, n, { class: 'stage-sub', fill: C.ink2, 'font-size': 18, 'text-anchor': 'middle' });
+  });
+  deviceBox(g, cx, cy, spin ? 14 : 17, colr);
+}
+// an arc swept about a pivot, with an arrowhead at the far end
+function sweepArrow(g, px, py, r, a0, a1, colr) {
+  const pt = a => [px + r * Math.cos(a), py - r * Math.sin(a)];
+  let d = ''; const st = a0 < a1 ? 0.06 : -0.06;
+  for (let a = a0; st > 0 ? a <= a1 : a >= a1; a += st) { const [x, y] = pt(a); d += (d ? 'L' : 'M') + x.toFixed(1) + ',' + y.toFixed(1); }
+  el('path', { d, fill: 'none', stroke: colr, 'stroke-width': 3 }, g);
+  const [xe, ye] = pt(a1), [xp, yp] = pt(a1 - st * 2), a = Math.atan2(ye - yp, xe - xp);
+  el('path', { d: `M${xe},${ye}l${-12 * Math.cos(a - 0.42)},${-12 * Math.sin(a - 0.42)}L${xe - 12 * Math.cos(a + 0.42)},${ye - 12 * Math.sin(a + 0.42)}z`, fill: colr }, g);
+}
+function readout(g, cx, y, s, colr) { txt(g, cx, y, s, { class: 'stage-name', fill: colr, 'font-size': 21, 'text-anchor': 'middle' }); }
+function card(x, y, w, h, head, body, cap) {
+  const g = el('g', {}, chart);
+  el('rect', { x, y, width: w, height: h, rx: 8, fill: '#fcfdfe', stroke: 'var(--rule)' }, g);
+  txt(g, x + w / 2, y + 32, head, { class: 'stage-name', fill: C.ink, 'font-size': 21, 'text-anchor': 'middle' });
+  body(g, x + w / 2, y + h / 2 + 6);
+  txt(g, x + w / 2, y + h - 20, cap, { class: 'stage-sub', fill: C.ink2, 'font-size': 18, 'text-anchor': 'middle' });
+}
+const CARDS = {
+  acc: [
+    { head: 'Three axes', cap: 'in g, along each axis', body: (g, cx, cy) => triad(g, cx, cy - 6, C.blue, false) },
+    { head: 'At rest', cap: 'gravity on its own', body: (g, cx, cy) => {
+        deviceBox(g, cx, cy - 34, 19, C.blue);
+        arrowTo(g, cx, cy - 8, cx, cy + 34, C.blue, 3);
+        txt(g, cx + 14, cy + 16, 'g', { class: 'stage-name', fill: C.blue, 'font-size': 20 });
+        readout(g, cx, cy + 62, '|a| = 1.0 g', C.blue);
+      } },
+    { head: 'Moving', cap: 'speeding up or slowing down', body: (g, cx, cy) => {
+        deviceBox(g, cx, cy - 8, 19, C.blue);
+        arrowTo(g, cx - 46, cy - 8, cx - 46, cy - 52, C.blue, 3);
+        arrowTo(g, cx + 46, cy - 8, cx + 46, cy + 36, C.blue, 3);
+        readout(g, cx, cy + 62, '|a| leaves 1.0 g', C.blue);
+      } },
+  ],
+  gyr: [
+    { head: 'Three axes', cap: 'in rad/s, about each axis', body: (g, cx, cy) => triad(g, cx, cy - 6, C.violet, true) },
+    { head: 'Carried straight', cap: 'travel on its own', body: (g, cx, cy) => {
+        deviceBox(g, cx - 42, cy - 16, 19, C.violet);
+        arrowTo(g, cx - 14, cy - 16, cx + 58, cy - 16, C.violet, 3);
+        readout(g, cx, cy + 54, '|ω| = 0', C.violet);
+      } },
+    { head: 'Turning', cap: 'rotation about a joint', body: (g, cx, cy) => {
+        const px = cx - 30, py = cy + 30, r = 50, A = 52 * Math.PI / 180;
+        const ex = px + r * Math.cos(A), ey = py - r * Math.sin(A);
+        el('line', { x1: px, y1: py, x2: ex, y2: ey, stroke: C.ink3, 'stroke-width': 6, 'stroke-linecap': 'round' }, g);
+        el('circle', { cx: px, cy: py, r: 5, fill: C.ink3 }, g);
+        deviceBox(g, ex, ey, 15, C.violet);
+        sweepArrow(g, px, py, r + 26, 10 * Math.PI / 180, 72 * Math.PI / 180, C.violet);
+        readout(g, cx, cy + 62, '|ω| = the turn rate', C.violet);
+      } },
+  ],
+};
 const SENSOR = {
-  acc: {
-    colr: C.blue, data: EX.squat, key: 'am', dec: 1,
-    ylabel: 'acceleration |a| (g)', trace: 'accelerometer magnitude |a|', panelTitle: 'squat, arms held in front',
-    lines: [['The accelerometer reports linear acceleration', 'along three axes, including gravity.'],
-            ['It responds when the sensor speeds up, slows', 'down, or changes direction.'],
-            ['A squat lifts and lowers the whole arm, so |a|', 'swings above and below the 1 g resting value.']],
-  },
-  gyr: {
-    colr: C.violet, data: EX.curl, key: 'gm', dec: 0,
-    ylabel: 'angular velocity |ω| (rad/s)', trace: 'gyroscope magnitude |ω|', panelTitle: 'bicep curl',
-    lines: [['The gyroscope reports angular velocity', 'about three axes, in radians per second.'],
-            ['It responds to turning only. A sensor carried', 'straight across the room reads zero.'],
-            ['A bicep curl turns the forearm about the elbow,', 'so |ω| rises on the way up and again on the way down.']],
-  },
+  acc: { colr: C.blue, data: EX.squat, key: 'am', dec: 1, ylabel: 'acceleration |a| (g)', trace: 'accelerometer magnitude |a|', panelTitle: 'squat, arms held in front' },
+  gyr: { colr: C.violet, data: EX.curl, key: 'gm', dec: 0, ylabel: 'angular velocity |ω| (rad/s)', trace: 'gyroscope magnitude |ω|', panelTitle: 'bicep curl' },
 };
 function drawSensor(which, p) {
   chart.innerHTML = '';
   const S = SENSOR[which], colr = S.colr, c = cycle(p, 3), op = 0.25 + 0.75 * ramp(p, 0, 0.08);
   if (which === 'gyr') {
-    const gx = PL + 190, cy = 96, s = 250, A0 = -62 * Math.PI / 180, A1 = 58 * Math.PI / 180;
+    const gx = PL + 170, cy = 110, s = 230, A0 = -62 * Math.PI / 180, A1 = 58 * Math.PI / 180;
     drawArm(curlPose(gx, cy, s, A0), 0.22, colr);
     drawArm(curlPose(gx, cy, s, A0 + (A1 - A0) * c), 1, colr);
     arcArrow(curlPose(gx, cy, s, A0).el, 0.42 * s * 1.18, A0, A1, colr, op);
   } else {
-    const gx = PL + 150, baseY = 368, s2 = 205;
+    const gx = PL + 140, baseY = 368, s2 = 195;
     const up = squatPose(gx, baseY, s2, 0), down = squatPose(gx, baseY, s2, 1);
     drawBody(down, 0.22, colr, s2);
     drawBody(squatPose(gx, baseY, s2, c), 1, colr, s2);
-    travelArrow(up.wr[0] + 48, up.wr[1] + 6, down.wr[1] - 6, colr, op);
+    travelArrow(up.wr[0] + 46, up.wr[1] + 6, down.wr[1] - 6, colr, op);
   }
-  const tx = PL + 0.47 * PW;
-  S.lines.forEach((ln, i) => {
-    const y = 92 + i * 110;
-    el('circle', { cx: tx + 7, cy: y - 8, r: 6, fill: colr }, chart);
-    ln.forEach((t, j) => txt(chart, tx + 28, y + j * 34, t, { class: 'stage-sub', fill: C.ink2, 'font-size': 22 }));
-  });
+  const cw = 250, gap = 20, x0 = PL + 480;
+  CARDS[which].forEach((cd, k) => card(x0 + k * (cw + gap), 52, cw, 250, cd.head, cd.body, cd.cap));
   const box = { x: PL, y: 418, w: PW, h: 146 };
   const n = Math.min(S.data[S.key].length, 12 * FS), arr = S.data[S.key].slice(0, n);
   const P = series(box, arr, Math.max(2, Math.round(Math.min(1, p / 0.95) * n)), { color: colr, ylabel: S.ylabel, tmax: n / FS, dec: S.dec, title: S.panelTitle });
