@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Counting Pipeline</title>
+<title>Rotation-Dominant vs Acceleration-Dominant Exercises</title>
 </head>
 <body>
 <style>
@@ -117,7 +117,7 @@
       </select>
     </div>
    </div>
-   <div class="row dials">
+   <div class="row dials" style="display:none">
     <div class="group">
       <label for="dist">distance</label>
       <input type="range" id="dist" min="0.1" max="1.5" step="0.05" value="1.3">
@@ -512,38 +512,10 @@ function drawIntro(p) {
 
 const STEPS = [
   {
-    title: 'Three gyroscope axes during lateral raises', dur: 8, tag: () => `forearm IMU · 50 Hz · 9 repetitions`,
-    subtitle: 'Forearm sensor, nine repetitions.',
-    setup() {}, draw(p) { chart.innerHTML = ''; drawPipeline(['imu']); const i = Math.max(1, Math.round(p * (NL - 1))); G.P = axesPanel(SINGLE_S, i + 1, NL / FS); cursorLine(G.P, TL[i]); }
-  },
-  {
-    title: 'Magnitude of the angular velocity', dur: 10, tag: () => `|ω| = √(x² + y² + z²)`,
-    subtitle: '',
-    code: `magnitude = np.sqrt(x**2 + y**2 + z**2)`,
-    setup() {}, draw(p) {
-      chart.innerHTML = ''; drawPipeline(['mag']); const i = Math.max(1, Math.round(p * (NL - 1)));
-      G.P = axesPanel(TOP_S, NL, NL / FS);
-      G.Q = series(BOT_S, L.gm, i + 1, { color: C.violet, ylabel: 'angular velocity |ω| (rad/s)', tmax: NL / FS, dec: 0 });
-      legendInline(G.Q.top, BOT_S.x + 10, BOT_S.y + 8, [{ c: C.violet, n: 'magnitude |ω|' }]);
-      cursorLine(G.P, TL[i]); cursorLine(G.Q, TL[i]);
-      AX.forEach(a => el('circle', { cx: G.P.sx(TL[i]), cy: G.P.sy(L[a.k][i]), r: 4.5, fill: a.c, stroke: '#fff', 'stroke-width': 1.5 }, G.P.top));
-      el('circle', { cx: G.Q.sx(TL[i]), cy: G.Q.sy(L.gm[i]), r: 5.5, fill: C.violet, stroke: '#fff', 'stroke-width': 2 }, G.Q.top);
-      txt(G.Q.top, BOT_S.x + BOT_S.w - 12, BOT_S.y + 24, `√(${fmt(L.gx[i], 2)}² + ${fmt(L.gy[i], 2)}² + ${fmt(L.gz[i], 2)}²) = ${fmt(L.gm[i], 2)} rad/s`, { class: 'big', fill: C.violet, 'text-anchor': 'end', 'font-size': 18 });
-    }
-  },
-  {
-    title: 'Peak detection with distance and prominence', dur: 12, presets: { dist: 1.3, prom: 0.12 },
-    tag: () => `${fmt(dial('dist'), 2)} s · ${fmt(dial('prom') * P95, 2)} rad/s → found ${live.n} · true 9`,
-    subtitle: '',
-    code: () => `peaks, _ = find_peaks(normalized, <span class="hl">distance=int(<b class="p">${fmt(dial('dist'), 2)}</b> * 50)</span>, <span class="hl">prominence=<b class="p">${fmt(dial('prom'), 2)}</b></span>)`,
-    setup() {}, draw(p) {
-      chart.innerHTML = ''; drawPipeline(['norm', 'peak', 'count']); const i = Math.round(p * (NL - 1));
-      G.P = series(SINGLE_S, L.gm, NL, { color: C.violet, ylabel: 'angular velocity |ω| (rad/s)', tmax: NL / FS, dec: 0 });
-      legendInline(G.P.top, SINGLE_S.x + 10, SINGLE_S.y + 8, [{ c: C.violet, n: 'magnitude |ω|' }, { k: 'circle', n: 'detected repetitions' }]);
-      const ks = detect(L.gm).filter(k => k <= i); ks.forEach(k => el('circle', { cx: G.P.sx(TL[k]), cy: G.P.sy(L.gm[k]), r: 7, class: 'kept' }, G.P.top));
-      cursorLine(G.P, TL[i]); live.n = ks.length; rbadge(G.P, `found ${ks.length} · true 9`, C.red);
-      G.Q = null;
-    }
+    title: 'Rotation-dominant vs acceleration-dominant exercises', dur: 12,
+    tag: () => 'RecoFit forearm IMU · 50 Hz',
+    subtitle: 'The accelerometer measures linear acceleration; the gyroscope measures angular velocity.',
+    setup() {}, draw(p) { drawIntro(p); },
   },
 ];
 chart.addEventListener('mousemove', evt => {
