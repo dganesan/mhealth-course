@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Step Count and the distance Parameter</title>
+<title>Trying It on Real Data</title>
 </head>
 <body>
 <style>
@@ -28,6 +28,7 @@
   .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
   .code .p { color: var(--ma); font-weight: 700; }
+  .code .hl { background: #fff3bf; box-shadow: 0 0 0 2px #f0d478; border-radius: 4px; padding: 1px 2px; }
   .chart-wrap { position: relative; min-height: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 15px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
@@ -376,7 +377,7 @@ let live = { n: 0, d: 0.3 };
 
 const STEPS = [
   {
-    title: 'Filtered walking trace with 45 known steps', dur: 10, tag: () => `left hoodie pocket · 3 sets · 45 steps`,
+    title: 'Trying it on real data: 45 known steps', dur: 10, tag: () => `left hoodie pocket · 3 sets · 45 steps`,
     subtitle: '',
     setup() {}, draw(p) {
       chart.innerHTML = ''; const i = Math.max(1, Math.round(p * (N - 1)));
@@ -387,7 +388,7 @@ const STEPS = [
     title: 'Detecting steps with distance and prominence', dur: 14, presets: { dist: 0.3, promf: 0.4 },
     tag: () => `found ${live.n} · true ${TRUE}`,
     subtitle: '',
-    code: () => `peaks, _ = find_peaks(filtered, distance=int(<b class="p">${fmt(dial('dist'), 2)}</b> * 100), prominence=<b class="p">${fmt(dial('promf'), 2)}</b> * filtered.std())`,
+    code: () => `peaks, _ = find_peaks(filtered, <span class="hl">distance=int(<b class="p">${fmt(dial('dist'), 2)}</b> * 100)</span>, <span class="hl">prominence=<b class="p">${fmt(dial('promf'), 2)}</b> * filtered.std()</span>)`,
     setup() {}, draw(p) {
       chart.innerHTML = ''; const i = Math.round(p * (N - 1));
       G.P = tracePanel(SINGLE, N); legendInline(G.P.top, SINGLE.x + SINGLE.w - 12, SINGLE.y + SINGLE.h - 44, [{ c: C.blue, n: 'filtered magnitude (0.5–5 Hz)' }, { k: 'circle', n: 'detected steps' }], true);
@@ -399,7 +400,7 @@ const STEPS = [
     title: 'Sweeping the distance parameter', dur: 16, presets: { dist: 0.3, promf: 0.4 },
     tag: () => `distance = ${fmt(live.d, 2)} s → found ${live.n} · true ${TRUE}`,
     subtitle: '',
-    code: () => `peaks, _ = find_peaks(filtered, distance=int(<b class="p">${fmt(live.d, 2)}</b> * 100), prominence=<b class="p">${fmt(dial('promf'), 2)}</b> * filtered.std())`,
+    code: () => `peaks, _ = find_peaks(filtered, <span class="hl">distance=int(<b class="p">${fmt(live.d, 2)}</b> * 100)</span>, prominence=<b class="p">${fmt(dial('promf'), 2)}</b> * filtered.std())`,
     setup() {},
     draw(p) {
       chart.innerHTML = '';

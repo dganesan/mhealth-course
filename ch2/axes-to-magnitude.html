@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>From Three Axes to a Filtered Magnitude</title>
+<title>Collapsing Three Axes into One</title>
 </head>
 <body>
 <style>
@@ -28,6 +28,7 @@
   .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
   .code .p { color: var(--ma); font-weight: 700; }
+  .code .hl { background: #fff3bf; box-shadow: 0 0 0 2px #f0d478; border-radius: 4px; padding: 1px 2px; }
   .chart-wrap { position: relative; min-height: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 15px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
@@ -705,7 +706,7 @@ const STEPS = [
     setup() { chart.innerHTML = ''; }, draw(p) { chart.innerHTML = ''; G.top = drawAxesPanel(SINGLE_L, rotDial(), Math.max(2, Math.round(p * N))); drawPhone(chart, PHONE, rotDial()); }
   },
   {
-    title: 'Effect of rotating the phone', dur: 8, presets: { rx: 90, ry: 0, rz: 0 },
+    title: 'Why the orientation of the phone matters', dur: 8, presets: { rx: 90, ry: 0, rz: 0 },
     tag: () => `rotation ${rotText(rotDial(progress))}`,
     dials: ['rx', 'ry', 'rz'],
     subtitle: 'Turning the phone moves the signal between the axes, but the magnitude stays the same.',
@@ -719,7 +720,7 @@ const STEPS = [
     }
   },
   {
-    title: 'Collapsing the three axes into one magnitude', dur: 12, presets: { rx: 0, ry: 0, rz: 0 },
+    title: 'Collapsing three axes into one', dur: 12, presets: { rx: 0, ry: 0, rz: 0 },
     code: `magnitude = np.sqrt(x**2 + y**2 + z**2)`,
     tag: () => `|a| = √(x² + y² + z²)`,
     dials: ['rx', 'ry', 'rz'],
@@ -740,8 +741,8 @@ const STEPS = [
     }
   },
   {
-    title: 'Band-pass filtering the magnitude', dur: 12, presets: { rx: 0, ry: 0, rz: 0, lo: 0.5, hi: 4 },
-    code: () => `b, a = butter(3, [<b class="p">${fmt(dial('lo'), 1)}</b>, <b class="p">${fmt(dial('hi'), 1)}</b>], btype='bandpass', fs=50); filtered = filtfilt(b, a, magnitude)`,
+    title: 'Filtering out the noise', dur: 12, presets: { rx: 0, ry: 0, rz: 0, lo: 0.5, hi: 4 },
+    code: () => `b, a = butter(3, <span class="hl">[<b class="p">${fmt(dial('lo'), 1)}</b>, <b class="p">${fmt(dial('hi'), 1)}</b>]</span>, btype='bandpass', fs=50); filtered = filtfilt(b, a, magnitude)`,
     tag: () => `butter(3, [${fmt(dial('lo'), 1)}, ${fmt(dial('hi'), 1)}] Hz) · filtfilt`,
     dials: ['lo', 'hi'],
     subtitle: '',
@@ -758,7 +759,7 @@ const STEPS = [
     }
   },
   {
-    title: 'Finding the peaks after filtering', dur: 10, presets: { rx: 0, ry: 0, rz: 0, lo: 0.5, hi: 4 },
+    title: 'Finding peaks in the filtered magnitude', dur: 10, presets: { rx: 0, ry: 0, rz: 0, lo: 0.5, hi: 4 },
     code: `peaks, _ = find_peaks(filtered)`,
     tag: () => `find_peaks(filtered) → ${filtMax.filter(k => k <= progress * (N - 1)).length} peaks`,
     dials: ['lo', 'hi'],

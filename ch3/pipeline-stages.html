@@ -143,8 +143,8 @@
 
   .cell { font-family: var(--mono); font-size: 20px; fill: var(--ink); }
   .th { font-family: var(--sans); font-size: 20px; font-weight: 700; fill: var(--ink); }
-  .stage-name { font-family: var(--sans); font-size: 15px; font-weight: 700; }
-  .stage-sub { font-family: var(--sans); font-size: 11px; }
+  .stage-name { font-family: var(--sans); font-size: 21px; font-weight: 700; }
+  .stage-sub { font-family: var(--sans); font-size: 18px; }
   .hint { display:none !important; }
   button.tb { min-width:54px; padding:9px 12px; font-size:22px; line-height:1; }
   button.primary.tb { min-width:64px; }
@@ -379,7 +379,7 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
 
   const STAGES = [
     { n: 'Collect', s: 'labeled sensor data' }, { n: 'Pre-process', s: 'denoise, band-pass' }, { n: 'Window', s: '2–5 s segments' },
-    { n: 'Features', s: 'mean, FFT, DTW, …' }, { n: 'Classify', s: 'tree, RF, …' }];
+    { n: 'Features', s: 'mean, FFT, DTW, …' }, { n: 'Classify', s: 'tree, random forest, …' }];
 
   const PAGE = {
     defaults: { win: 2 },
@@ -439,19 +439,21 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
 
   // ---- the five stage boxes across the top, as in the chapter's pipeline figure
   function drawStages(active) {
-    const bw = 210, bh = 66, gap = 40, y = 14, x0 = 24;
+    const x0 = 24, right = XR - 150, gap = 44, bh = 84, y = 8;
+    const bw = (right - x0 - gap * (STAGES.length - 1)) / STAGES.length;
     STAGES.forEach((s, i) => {
-      const x = x0 + i * (bw + gap), isA = i === active, isDone = i < active;
-      const stroke = isA || isDone ? COL.blue : '#c8c8c8', ink = isA || isDone ? 'var(--ink)' : 'var(--ink-3)';
-      el('rect', { x, y, width: bw, height: bh, rx: 6, fill: isA ? COL.blue : '#fff', 'fill-opacity': isA ? .12 : 1, stroke, 'stroke-width': isA ? 2 : 1.2 }, chart);
-      txt(chart, x + bw / 2, y + 28, `${i + 1}. ${s.n}`, { class: 'stage-name', 'text-anchor': 'middle', fill: ink });
-      txt(chart, x + bw / 2, y + 48, s.s, { class: 'stage-sub', 'text-anchor': 'middle', fill: isA || isDone ? 'var(--ink-2)' : 'var(--ink-3)' });
-      el('path', { d: `M${x + bw + 4},${y + bh / 2}H${x + bw + gap - 8}`, stroke: i < active ? COL.blue : '#c8c8c8', 'stroke-width': 1.5, fill: 'none' }, chart);
-      el('path', { d: `M${x + bw + gap - 12},${y + bh / 2 - 5}L${x + bw + gap - 5},${y + bh / 2}L${x + bw + gap - 12},${y + bh / 2 + 5}`, stroke: i < active ? COL.blue : '#c8c8c8', 'stroke-width': 1.5, fill: 'none' }, chart);
+      const x = x0 + i * (bw + gap), on = i === active, done = i < active;
+      el('rect', { x, y, width: bw, height: bh, rx: 6, fill: on ? '#e8f1fd' : '#fafafa', stroke: on ? COL.blue : done ? '#bcd3ef' : 'var(--rule)', 'stroke-width': on ? 2.6 : 1.2 }, chart);
+      txt(chart, x + bw / 2, y + 34, s.n, { class: 'stage-name', 'text-anchor': 'middle', fill: on ? 'var(--ink)' : done ? 'var(--ink-2)' : 'var(--ink-3)' });
+      txt(chart, x + bw / 2, y + 62, s.s, { class: 'stage-sub', 'text-anchor': 'middle', fill: on ? 'var(--ink-2)' : 'var(--ink-3)' });
+      const ax = x + bw, ay = y + bh / 2, c = done ? COL.blue : 'var(--ink-3)';
+      el('line', { x1: ax + 8, x2: ax + gap - 14, y1: ay, y2: ay, stroke: c, 'stroke-width': 2 }, chart);
+      el('path', { d: `M${ax + gap - 8},${ay}l-9,-5v10z`, fill: c }, chart);
     });
-    const xo = x0 + 5 * (bw + gap);
-    txt(chart, xo + 4, y + 33, 'activity', { class: 'stage-name', 'text-anchor': 'start', fill: active === 4 ? 'var(--ink)' : 'var(--ink-3)' });
-    txt(chart, xo + 4, y + 50, 'label', { class: 'stage-name', 'text-anchor': 'start', fill: active === 4 ? 'var(--ink)' : 'var(--ink-3)' });
+    // the pipeline's output: one activity label
+    const xo = x0 + STAGES.length * (bw + gap), on = active === STAGES.length - 1;
+    txt(chart, xo, y + 36, 'activity', { class: 'stage-name', 'text-anchor': 'start', fill: on ? 'var(--ink)' : 'var(--ink-3)' });
+    txt(chart, xo, y + 62, 'label', { class: 'stage-name', 'text-anchor': 'start', fill: on ? 'var(--ink)' : 'var(--ink-3)' });
   }
 
   // ---- stages 3 and 4: windows, then rows

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>From Walking to the Accelerometer Signal</title>
+<title>What an Accelerometer Sees During Walking</title>
 </head>
 <body>
 <style>
@@ -750,11 +750,11 @@ function drawMag(parent, box, tcur) {
 // ------------------------------------------------------------ steps
 let PANELS = [];
 const STEPS = [
-  { title: 'Step signal by accelerometer position', dur: 8, presets: { view: 'axes' },
+  { title: 'What an accelerometer sees during walking', dur: 8, presets: { view: 'axes' },
     tag: () => `${CADENCE} steps/min · ${FS} Hz`,
     subtitle: '',
     setup() {}, draw(p) { drawSensor(p); } },
-  { title: 'Step signal magnitude by accelerometer position', dur: 8, presets: { view: 'mag' },
+  { title: 'Different placements look different', dur: 8, presets: { view: 'mag' },
     tag: () => `${CADENCE} steps/min · ${FS} Hz`,
     subtitle: '',
     setup() {}, draw(p) { drawSensor(p); } },

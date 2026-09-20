@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Repetition-Counting Pipeline</title>
+<title>The Counting Pipeline</title>
 </head>
 <body>
 <style>
@@ -28,6 +28,7 @@
   .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
   .code .p { color: var(--ma); font-weight: 700; }
+  .code .hl { background: #fff3bf; box-shadow: 0 0 0 2px #f0d478; border-radius: 4px; padding: 1px 2px; }
   .chart-wrap { position: relative; min-height: 0; height: 100%; display: flex; justify-content: center; align-items: center; }
   svg.chart { display: block; height: 100%; width: auto; max-width: 100%; max-height: 100%; overflow: visible; }
   .tt { position: absolute; pointer-events: none; display: none; background: #fff; border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px; font-family: var(--mono); font-size: 15px; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); white-space: nowrap; z-index: 2; }
@@ -511,7 +512,7 @@ function drawIntro(p) {
 
 const STEPS = [
   {
-    title: 'Accelerometer and gyroscope on the forearm', dur: 12,
+    title: 'What a wrist sensor sees during exercise', dur: 12,
     tag: () => 'RecoFit forearm IMU · 50 Hz',
     subtitle: 'The accelerometer measures linear acceleration; the gyroscope measures angular velocity.',
     setup() {}, draw(p) { drawIntro(p); },
@@ -540,7 +541,7 @@ const STEPS = [
     title: 'Peak detection with distance and prominence', dur: 12, presets: { dist: 1.3, prom: 0.12 },
     tag: () => `${fmt(dial('dist'), 2)} s · ${fmt(dial('prom') * P95, 2)} rad/s → found ${live.n} · true 9`,
     subtitle: '',
-    code: () => `peaks, _ = find_peaks(normalized, distance=int(<b class="p">${fmt(dial('dist'), 2)}</b> * 50), prominence=<b class="p">${fmt(dial('prom'), 2)}</b>)`,
+    code: () => `peaks, _ = find_peaks(normalized, <span class="hl">distance=int(<b class="p">${fmt(dial('dist'), 2)}</b> * 50)</span>, <span class="hl">prominence=<b class="p">${fmt(dial('prom'), 2)}</b></span>)`,
     setup() {}, draw(p) {
       chart.innerHTML = ''; drawPipeline(['norm', 'peak', 'count']); const i = Math.round(p * (NL - 1));
       G.P = series(SINGLE_S, L.gm, NL, { color: C.violet, ylabel: 'angular velocity |ω| (rad/s)', tmax: NL / FS, dec: 0 });
@@ -551,17 +552,17 @@ const STEPS = [
     }
   },
   {
-    title: 'Gyroscope vs accelerometer: bicep curl', dur: 12, presets: { dist: 0.5, prom: 0.3 },
+    title: 'No single sensor fits every exercise: bicep curl', dur: 12, presets: { dist: 0.5, prom: 0.3 },
     tag: () => `distance = ${fmt(dial('dist'), 2)} s · prominence = ${fmt(dial('prom'), 2)}`,
     subtitle: '',
-    code: () => `peaks, _ = find_peaks(normalized, distance=int(<b class="p">${fmt(dial('dist'), 2)}</b> * 50), prominence=<b class="p">${fmt(dial('prom'), 2)}</b>)`,
+    code: () => `peaks, _ = find_peaks(normalized, <span class="hl">distance=int(<b class="p">${fmt(dial('dist'), 2)}</b> * 50)</span>, <span class="hl">prominence=<b class="p">${fmt(dial('prom'), 2)}</b></span>)`,
     setup() {}, draw(p) { chart.innerHTML = ''; drawPipeline(['imu', 'count']); sensorPair(EX.curl, p); }
   },
   {
-    title: 'Gyroscope vs accelerometer: squat', dur: 12, presets: { dist: 0.5, prom: 0.3 },
+    title: 'No single sensor fits every exercise: squat', dur: 12, presets: { dist: 0.5, prom: 0.3 },
     tag: () => `distance = ${fmt(dial('dist'), 2)} s · prominence = ${fmt(dial('prom'), 2)}`,
     subtitle: '',
-    code: () => `peaks, _ = find_peaks(normalized, distance=int(<b class="p">${fmt(dial('dist'), 2)}</b> * 50), prominence=<b class="p">${fmt(dial('prom'), 2)}</b>)`,
+    code: () => `peaks, _ = find_peaks(normalized, <span class="hl">distance=int(<b class="p">${fmt(dial('dist'), 2)}</b> * 50)</span>, <span class="hl">prominence=<b class="p">${fmt(dial('prom'), 2)}</b></span>)`,
     setup() {}, draw(p) { chart.innerHTML = ''; drawPipeline(['imu', 'count']); sensorPair(EX.squat, p); }
   }
 ];

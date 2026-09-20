@@ -50,6 +50,7 @@
   .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
   .code .p { color: var(--ma); font-weight: 700; }
+  .code .hl { background: #fff3bf; box-shadow: 0 0 0 2px #f0d478; border-radius: 4px; padding: 1px 2px; }
   .code .k { color: var(--ink-2); }
   .counter { flex: 0 0 auto; text-align: right; font-family: var(--mono); line-height: 1.1; min-width: 200px; padding-top: 18px; }
   .counter .lbl { font-family: var(--sans); font-size: 14px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
@@ -484,7 +485,7 @@
   // ------------------------------------------------------------ steps
   const fmt1 = v => (Math.round(v * 10) / 10).toFixed(1);
   const P = v => `<b class="p">${v}</b>`;
-  const rollingLine = w => `ma = data.rolling(window=${P(w)}, center=${P('True')}).mean()`;
+  const rollingLine = w => `ma = data.rolling(<span class="hl">window=${P(w)}</span>, center=${P('True')}).mean()`;
   const steps = [
     {
       id: 'raw', title: 'Peaks on the noisy magnitude',
@@ -524,7 +525,7 @@
       id: 'lp', title: 'Butterworth low-pass vs moving average', preset: { cut: 3, win: wBest },
       tag: () => `order 4 · zero-phase · w = ${W_LIVE()}`,
       subtitle: '',
-      code: () => `b, a = butter(4, ${P(CUT_LIVE())}, btype='lowpass', fs=${FS});  y = filtfilt(b, a, x)`,
+      code: () => `b, a = butter(4, <span class="hl">${P(CUT_LIVE())}</span>, btype='lowpass', fs=${FS});  y = filtfilt(b, a, x)`,
       formula: () => ''
     }
   ];
