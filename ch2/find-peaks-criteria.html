@@ -450,10 +450,10 @@ function drawOverview(p) {
   OVP.forEach((o, k) => {
     const B = OVBOX[k], q = Math.max(0, Math.min(1, p * OVP.length - k));
     const sx = u => B.x + u * B.w, sy = v => B.y + B.h - (v + 0.45) / 2.65 * B.h;
-    txt(chart, B.x, B.y - 52, o.name, { class: 'ov-name' });
-    txt(chart, B.x + o.name.length * 17 + 14, B.y - 52, o.does, { class: 'ov-does' });
-    el('rect', { x: B.x, y: B.y - 40, width: o.code.length * 11.6 + 16, height: 28, rx: 4, fill: '#f4f6f9', stroke: 'var(--rule)' }, chart);
-    txt(chart, B.x + 8, B.y - 20, o.code, { class: 'ov-code' });
+    txt(chart, B.x, B.y - 80, o.name, { class: 'ov-name' });
+    txt(chart, B.x + o.name.length * 17 + 14, B.y - 80, o.does, { class: 'ov-does' });
+    el('rect', { x: B.x, y: B.y - 66, width: o.code.length * 11.6 + 16, height: 28, rx: 4, fill: '#f4f6f9', stroke: 'var(--rule)' }, chart);
+    txt(chart, B.x + 8, B.y - 46, o.code, { class: 'ov-code' });
     el('path', { d: `M${B.x},${B.y + B.h}H${B.x + B.w}`, stroke: 'var(--ink-3)', fill: 'none' }, chart);
     el('path', { d: pathOf(SCH.x.map(sx), SCH.y.map(sy)), fill: 'none', stroke: C.blue, 'stroke-width': 2.4 }, chart);
     SCH.pk.forEach(i => el('circle', { cx: sx(SCH.x[i]), cy: sy(SCH.y[i]), r: 5, fill: C.red }, chart));
