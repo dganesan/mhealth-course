@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Rotation-Dominant vs Acceleration-Dominant Exercises</title>
+<title>Acceleration vs Rotation-Dominant Exercises</title>
 </head>
 <body>
 <style>
@@ -92,7 +92,7 @@
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
-      <span>CS328 &nbsp;·&nbsp; Counting: Steps and Repetitions</span>
+      <span>CS328 &nbsp;·&nbsp; Counting Steps and Reps</span>
       <span class="ctr" id="counter"></span>
     </div>
   </section>
@@ -445,81 +445,144 @@ function squatPose(cx, baseY, s, bend) {
   const elb = [sh[0] + 0.20 * s, sh[1] + 0.06 * s], wr = [elb[0] + 0.26 * s, elb[1] - 0.02 * s];
   return { ankle, knee, hip, sh, head, elb, wr };
 }
-function drawIntro(p) {
+// ------------------------------------------------------------ figures: one arm, one body, drawn at any point of a repetition
+function drawArm(P, op, colr) {
+  limb(chart, P.sh, P.el, C.ink3, { op }); limb(chart, P.el, P.wr, colr, { op });
+  el('circle', { cx: P.el[0], cy: P.el[1], r: 5, fill: C.ink3, opacity: op }, chart);
+  imuTag(chart, P.el, P.wr, colr, op);
+}
+function drawBody(P, op, colr, s2) {
+  limb(chart, P.ankle, P.knee, C.ink3, { op }); limb(chart, P.knee, P.hip, C.ink3, { op });
+  limb(chart, P.hip, P.sh, C.ink3, { op }); limb(chart, P.sh, P.elb, C.ink3, { op, w: 6 });
+  limb(chart, P.elb, P.wr, colr, { op, w: 6 });
+  el('circle', { cx: P.head[0], cy: P.head[1], r: 0.11 * s2, fill: '#fff', stroke: C.ink3, 'stroke-width': 5, opacity: op }, chart);
+  imuTag(chart, P.elb, P.wr, colr, op);
+}
+// the curved arrow: the wrist travels along an arc about the elbow
+function arcArrow(e, r, A0, A1, colr, op, fs = 22) {
+  const a0 = A0 + 0.18, a1 = A1 - 0.18;
+  const pt = a => [e[0] + r * Math.cos(a), e[1] - r * Math.sin(a)];
+  const [x0, y0] = pt(a0), [x1, y1] = pt(a1);
+  el('path', { d: `M${x0},${y0}A${r},${r} 0 0 0 ${x1},${y1}`, fill: 'none', stroke: colr, 'stroke-width': 4, opacity: op }, chart);
+  const tang = a1 + Math.PI / 2;
+  el('path', { d: `M${x1},${y1}l${11 * Math.cos(tang + 2.6)},${-11 * Math.sin(tang + 2.6)}L${x1 + 13 * Math.cos(tang - 2.6)},${y1 - 13 * Math.sin(tang - 2.6)}z`, fill: colr, opacity: op }, chart);
+  txt(chart, x1 + 26, y1 + 6, 'rotation', { class: 'stage-name', fill: colr, 'font-size': fs, opacity: op });
+}
+// the straight arrow: the whole arm translates
+function travelArrow(x, y0, y1, colr, op, fs = 22) {
+  el('line', { x1: x, x2: x, y1: y0, y2: y1, stroke: colr, 'stroke-width': 4, opacity: op }, chart);
+  el('path', { d: `M${x},${y1}l-6,11h12z`, fill: colr, opacity: op }, chart);
+  el('path', { d: `M${x},${y0}l-6,-11h12z`, fill: colr, opacity: op }, chart);
+  txt(chart, x + 16, (y0 + y1) / 2, 'translation', { class: 'stage-name', fill: colr, 'font-size': fs, opacity: op });
+}
+const cycle = (p, n) => (1 - Math.cos(2 * Math.PI * Math.min(1, p) * n)) / 2;   // n repetitions across the step
+const ramp = (p, a, b) => Math.max(0, Math.min(1, (p - a) / (b - a)));
+
+// ------------------------------------------------------------ one sensor at a time
+const SENSOR = {
+  acc: {
+    colr: C.blue, data: EX.squat, key: 'am', dec: 1,
+    ylabel: 'acceleration |a| (g)', trace: 'accelerometer magnitude |a|', panelTitle: 'squat, arms held in front',
+    lines: [['The accelerometer reports linear acceleration', 'along three axes, including gravity.'],
+            ['It responds when the sensor speeds up, slows', 'down, or changes direction.'],
+            ['A squat lifts and lowers the whole arm, so |a|', 'swings above and below the 1 g resting value.']],
+  },
+  gyr: {
+    colr: C.violet, data: EX.curl, key: 'gm', dec: 0,
+    ylabel: 'angular velocity |ω| (rad/s)', trace: 'gyroscope magnitude |ω|', panelTitle: 'bicep curl',
+    lines: [['The gyroscope reports angular velocity', 'about three axes, in radians per second.'],
+            ['It responds to turning only. A sensor carried', 'straight across the room reads zero.'],
+            ['A bicep curl turns the forearm about the elbow,', 'so |ω| rises on the way up and again on the way down.']],
+  },
+};
+function drawSensor(which, p) {
   chart.innerHTML = '';
-  const colW = (PW - 70) / 2;
+  const S = SENSOR[which], colr = S.colr, c = cycle(p, 3), op = 0.25 + 0.75 * ramp(p, 0, 0.08);
+  if (which === 'gyr') {
+    const gx = PL + 190, cy = 96, s = 250, A0 = -62 * Math.PI / 180, A1 = 58 * Math.PI / 180;
+    drawArm(curlPose(gx, cy, s, A0), 0.22, colr);
+    drawArm(curlPose(gx, cy, s, A0 + (A1 - A0) * c), 1, colr);
+    arcArrow(curlPose(gx, cy, s, A0).el, 0.42 * s * 1.18, A0, A1, colr, op);
+  } else {
+    const gx = PL + 150, baseY = 368, s2 = 205;
+    const up = squatPose(gx, baseY, s2, 0), down = squatPose(gx, baseY, s2, 1);
+    drawBody(down, 0.22, colr, s2);
+    drawBody(squatPose(gx, baseY, s2, c), 1, colr, s2);
+    travelArrow(up.wr[0] + 48, up.wr[1] + 6, down.wr[1] - 6, colr, op);
+  }
+  const tx = PL + 0.47 * PW;
+  S.lines.forEach((ln, i) => {
+    const y = 92 + i * 110;
+    el('circle', { cx: tx + 7, cy: y - 8, r: 6, fill: colr }, chart);
+    ln.forEach((t, j) => txt(chart, tx + 28, y + j * 34, t, { class: 'stage-sub', fill: C.ink2, 'font-size': 22 }));
+  });
+  const box = { x: PL, y: 418, w: PW, h: 146 };
+  const n = Math.min(S.data[S.key].length, 12 * FS), arr = S.data[S.key].slice(0, n);
+  const P = series(box, arr, Math.max(2, Math.round(Math.min(1, p / 0.95) * n)), { color: colr, ylabel: S.ylabel, tmax: n / FS, dec: S.dec, title: S.panelTitle });
+  legendInline(P.top, box.x + 10, box.y + 6, [{ c: colr, n: S.trace }]);
+  G.P = P; G.Q = null;
+}
+
+// ------------------------------------------------------------ the two families of exercise, side by side
+function drawCompare(p) {
+  chart.innerHTML = '';
+  const colW = (PW - 70) / 2, c = cycle(p, 3), op = 0.25 + 0.75 * ramp(p, 0, 0.08), wo = ramp(p, 0.75, 0.95);
   const COL = [
-    { x: PL, kind: 'rot', head: 'Rotation-dominant', ex: 'bicep curl', line: 'the forearm turns about the elbow', win: 'gyroscope', data: EX.curl },
-    { x: PL + colW + 70, kind: 'acc', head: 'Acceleration-dominant', ex: 'squat', line: 'the arm keeps its angle and travels', win: 'accelerometer', data: EX.squat },
+    { x: PL, kind: 'acc', head: 'Acceleration-dominant', ex: 'squat', line: 'the arm keeps its angle and travels', win: 'accelerometer', data: EX.squat },
+    { x: PL + colW + 70, kind: 'rot', head: 'Rotation-dominant', ex: 'bicep curl', line: 'the forearm turns about the elbow', win: 'gyroscope', data: EX.curl },
   ];
-  COL.forEach((c, k) => {
-    const cw = colW, q = Math.max(0, Math.min(1, p * 2 - k * 0.35));
-    txt(chart, c.x, 40, c.head, { class: 'stage-name', fill: C.ink, 'font-size': 27 });
-    txt(chart, c.x, 70, `${c.ex}: ${c.line}`, { class: 'stage-sub', fill: C.ink2, 'font-size': 21 });
-    if (q >= 1) txt(chart, c.x + cw, 42, `count with the ${c.win}`, { class: 'stage-name', fill: c.kind === 'rot' ? C.violet : C.blue, 'font-size': 23, 'text-anchor': 'end' });
-    const gx = c.x + cw / 2, s = 235, colr = c.kind === 'rot' ? C.violet : C.blue;
-    if (c.kind === 'rot') {
-      const cy = 122, A0 = -62 * Math.PI / 180, A1 = 58 * Math.PI / 180;
-      const start = curlPose(gx - 120, cy, s, A0), end = curlPose(gx - 120, cy, s, A1);
-      [[start, .28], [end, 1]].forEach(([P, op], j) => {
-        if (j === 1 && q < 0.45) return;
-        limb(chart, P.sh, P.el, C.ink3, { op }); limb(chart, P.el, P.wr, colr, { op });
-        armDot(chart, P.el[0], P.el[1], C.ink3); imuTag(chart, P.el, P.wr, colr, op);
-      });
-      if (q > 0.45) {   // the curved arrow: the wrist travels along an arc about the elbow
-        const r = 0.42 * s * 1.18, e = start.el;
-        const a0 = A0 + 0.18, a1 = A1 - 0.18;
-        const pt = a => [e[0] + r * Math.cos(a), e[1] - r * Math.sin(a)];
-        const [x0, y0] = pt(a0), [x1, y1] = pt(a1);
-        el('path', { d: `M${x0},${y0}A${r},${r} 0 0 0 ${x1},${y1}`, fill: 'none', stroke: colr, 'stroke-width': 4 }, chart);
-        const tang = a1 + Math.PI / 2, hx = x1, hy = y1;
-        el('path', { d: `M${hx},${hy}l${11 * Math.cos(tang + 2.6)},${-11 * Math.sin(tang + 2.6)}L${hx + 13 * Math.cos(tang - 2.6)},${hy - 13 * Math.sin(tang - 2.6)}z`, fill: colr }, chart);
-        txt(chart, x1 + 26, y1 + 6, 'rotation', { class: 'stage-name', fill: colr, 'font-size': 22 });
-      }
+  COL.forEach(col => {
+    const cw = colW, colr = col.kind === 'rot' ? C.violet : C.blue, gx = col.x + cw / 2;
+    txt(chart, col.x, 40, col.head, { class: 'stage-name', fill: C.ink, 'font-size': 27 });
+    txt(chart, col.x, 70, `${col.ex}: ${col.line}`, { class: 'stage-sub', fill: C.ink2, 'font-size': 21 });
+    if (wo > 0) txt(chart, col.x + cw, 42, `count with the ${col.win}`, { class: 'stage-name', fill: colr, 'font-size': 23, 'text-anchor': 'end', opacity: wo });
+    if (col.kind === 'rot') {
+      const cy = 122, s = 235, A0 = -62 * Math.PI / 180, A1 = 58 * Math.PI / 180, bx = gx - 120;
+      drawArm(curlPose(bx, cy, s, A0), 0.22, colr);
+      drawArm(curlPose(bx, cy, s, A0 + (A1 - A0) * c), 1, colr);
+      arcArrow(curlPose(bx, cy, s, A0).el, 0.42 * s * 1.18, A0, A1, colr, op);
     } else {
-      const baseY = 392, s2 = 185;
-      const up = squatPose(gx - 150, baseY, s2, 0), down = squatPose(gx - 150, baseY, s2, 1);
-      [[up, .28], [down, 1]].forEach(([P, op], j) => {
-        if (j === 1 && q < 0.45) return;
-        limb(chart, P.ankle, P.knee, C.ink3, { op }); limb(chart, P.knee, P.hip, C.ink3, { op });
-        limb(chart, P.hip, P.sh, C.ink3, { op }); limb(chart, P.sh, P.elb, C.ink3, { op, w: 6 });
-        limb(chart, P.elb, P.wr, colr, { op, w: 6 });
-        el('circle', { cx: P.head[0], cy: P.head[1], r: 0.11 * s2, fill: '#fff', stroke: C.ink3, 'stroke-width': 5, opacity: op }, chart);
-        imuTag(chart, P.elb, P.wr, colr, op);
-      });
-      if (q > 0.45) {   // the straight arrow: the whole arm translates
-        const x = up.wr[0] + 44, y0 = up.wr[1] + 6, y1 = down.wr[1] - 6;
-        el('line', { x1: x, x2: x, y1: y0, y2: y1, stroke: colr, 'stroke-width': 4 }, chart);
-        el('path', { d: `M${x},${y1}l-6,11h12z`, fill: colr }, chart);
-        el('path', { d: `M${x},${y0}l-6,-11h12z`, fill: colr }, chart);
-        txt(chart, x + 16, (y0 + y1) / 2, 'translation', { class: 'stage-name', fill: colr, 'font-size': 22 });
-      }
+      const baseY = 400, s2 = 168, bx = gx - 150;
+      const up = squatPose(bx, baseY, s2, 0), down = squatPose(bx, baseY, s2, 1);
+      drawBody(down, 0.22, colr, s2);
+      drawBody(squatPose(bx, baseY, s2, c), 1, colr, s2);
+      travelArrow(up.wr[0] + 44, up.wr[1] + 6, down.wr[1] - 6, colr, op);
     }
     // the two streams for this exercise, each divided by its own 95th percentile so they share one axis
-    const box = { x: c.x, y: 430, w: cw, h: 132 };
-    const d = c.data, n = Math.min(d.gm.length, 12 * FS), T = Array.from({ length: n }, (_, i) => i / FS);
+    const box = { x: col.x, y: 430, w: cw, h: 132 };
+    const d = col.data, n = Math.min(d.gm.length, 12 * FS), T = Array.from({ length: n }, (_, i) => i / FS);
     const gN = d.gm.slice(0, n).map(v => v / pct95(d.gm)), aN = d.am.slice(0, n).map(v => v / pct95(d.am));
     const P = panel(chart, box, [0, n / FS], [0, 1.45], { xlabel: 'time (seconds)', ylabel: '÷ 95th pct', ylx: 52, ny: 3, nx: 6, yf: v => fmt(v, 1) });
-    const upto = q < 0.55 ? 0 : Math.round(Math.min(1, (q - 0.55) / 0.45) * n);
+    const upto = Math.round(Math.min(1, p / 0.9) * n);
     if (upto > 1) {
-      el('path', { class: 'out-line', d: pathOf(T.map(P.sx), gN.map(P.sy), upto), stroke: C.violet, 'stroke-width': c.kind === 'rot' ? 2.6 : 1.5, opacity: c.kind === 'rot' ? 1 : .5 }, P.g);
-      el('path', { class: 'out-line', d: pathOf(T.map(P.sx), aN.map(P.sy), upto), stroke: C.blue, 'stroke-width': c.kind === 'acc' ? 2.6 : 1.5, opacity: c.kind === 'acc' ? 1 : .5 }, P.g);
+      el('path', { class: 'out-line', d: pathOf(T.map(P.sx), gN.map(P.sy), upto), stroke: C.violet, 'stroke-width': col.kind === 'rot' ? 2.6 : 1.5, opacity: col.kind === 'rot' ? 1 : .5 }, P.g);
+      el('path', { class: 'out-line', d: pathOf(T.map(P.sx), aN.map(P.sy), upto), stroke: C.blue, 'stroke-width': col.kind === 'acc' ? 2.6 : 1.5, opacity: col.kind === 'acc' ? 1 : .5 }, P.g);
     }
     legendInline(P.top, box.x + 10, box.y + 6, [{ c: C.violet, n: 'gyroscope |ω|' }, { c: C.blue, n: 'accelerometer |a|' }]);
-    G.P = P; G.Q = null;
+    P.T = T; G.P = P; G.Q = null;
   });
 }
 
+const IMU = () => 'RecoFit forearm IMU · 50 Hz';
 const STEPS = [
   {
-    title: 'Rotation-dominant vs acceleration-dominant exercises', dur: 12,
-    tag: () => 'RecoFit forearm IMU · 50 Hz',
-    subtitle: 'The accelerometer measures linear acceleration; the gyroscope measures angular velocity.',
-    setup() {}, draw(p) { drawIntro(p); },
+    title: 'What the accelerometer measures', dur: 10, tag: IMU,
+    subtitle: '',
+    setup() {}, draw(p) { drawSensor('acc', p); },
+  },
+  {
+    title: 'What the gyroscope measures', dur: 10, tag: IMU,
+    subtitle: '',
+    setup() {}, draw(p) { drawSensor('gyr', p); },
+  },
+  {
+    title: 'Acceleration- vs rotation-dominant exercises', dur: 12, tag: IMU,
+    subtitle: 'Each exercise is easier to count on the sensor that sees its dominant motion.',
+    setup() {}, draw(p) { drawCompare(p); },
   },
 ];
 chart.addEventListener('mousemove', evt => {
-  const pt = svgPoint(evt); const P = (G.Q && pt.y >= BOT_S.y - 4) ? G.Q : G.P; if (!P) return;
+  const pt = svgPoint(evt); const P = (G.Q && pt.y >= BOT_S.y - 4) ? G.Q : G.P; if (!P || !P.T) return;
   const i = clamp(Math.round((pt.x - P.box.x) / P.box.w * (P.xd[1] * FS)), 0, P.T.length - 1);
   let html = `<div class="row"><span>t</span><b>${fmt(P.T[i], 2)} s</b></div>`;
   if (P.arr) html += `<div class="row"><span>value</span><span>${fmt(P.arr[i], 3)}</span></div>`;

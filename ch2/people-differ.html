@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Why One Setting Cannot Count Every Exercise</title>
+<title>The Same Exercise Looks Different Across People</title>
 </head>
 <body>
 <style>
@@ -385,31 +385,15 @@ function setPanel(box, set, p, dSec, prom, o = {}) {
 
 const STEPS = [
   {
-    title: 'Lateral raise at a spacing of 0.7 s', dur: 10, presets: { dist: 0.7, prom: 0.12 },
-    tag: () => `distance = ${fmt(dial('dist'), 2)} s · prominence = ${fmt(dial('prom'), 2)} → found ${live.a} · true 9`,
-    subtitle: 'A spacing tuned for a fast exercise double-counts a slow lateral raise.',
+    title: 'Same detector on three participants', dur: 14, presets: { dist: 0.2, prom: 0.71 },
+    tag: () => `lateral raise · 3 participants`,
+    subtitle: 'The second participant runs over, and the third snaps the arm down so hard that every repetition registers twice.',
     code: () => `peaks, _ = find_peaks(normalized, <span class="hl">distance=int(<b class="p">${fmt(dial('dist'), 2)}</b> * 50)</span>, <span class="hl">prominence=<b class="p">${fmt(dial('prom'), 2)}</b></span>)`,
-    setup() {}, draw(p) { chart.innerHTML = ''; G.cols = null; G.P = setPanel(SINGLE, RF.lat, p, dial('dist'), dial('prom')); live.a = G.P.n; G.Q = null; }
-  },
-  {
-    title: 'Jumping jacks at a spacing of 0.7 s', dur: 10, presets: { dist: 0.7, prom: 0.12 },
-    tag: () => `distance = ${fmt(dial('dist'), 2)} s · prominence = ${fmt(dial('prom'), 2)} → found ${live.a} · true 25`,
-    subtitle: 'The same detector counts every jumping jack exactly once.',
-    code: () => `peaks, _ = find_peaks(normalized, <span class="hl">distance=int(<b class="p">${fmt(dial('dist'), 2)}</b> * 50)</span>, <span class="hl">prominence=<b class="p">${fmt(dial('prom'), 2)}</b></span>)`,
-    setup() {}, draw(p) { chart.innerHTML = ''; G.cols = null; G.P = setPanel(SINGLE, RF.jj, p, dial('dist'), dial('prom')); live.a = G.P.n; G.Q = null; }
-  },
-  {
-    title: 'Sweeping the minimum spacing', dur: 16, presets: { dist: 1.3, prom: 0.12 },
-    tag: () => `spacing = ${fmt(live.d, 2)} s · lateral raise ${live.a} / 9 · jumping jacks ${live.b} / 25`,
-    subtitle: '',
-    code: () => `peaks, _ = find_peaks(normalized, <span class="hl">distance=int(<b class="p">${fmt(live.d, 2)}</b> * 50)</span>, prominence=<b class="p">${fmt(dial('prom'), 2)}</b>)`,
     setup() {}, draw(p) {
-      chart.innerHTML = ''; G.cols = null;
-      const d = p >= 1 ? dial('dist') : +(0.2 + p * 1.3).toFixed(2);
-      G.P = setPanel(TOP, RF.lat, 1, d, dial('prom'), { title: 'Lateral raise' });
-      G.Q = setPanel(BOT, RF.jj, 1, d, dial('prom'), { title: 'Jumping jacks' });
-      live.d = d; live.a = G.P.n; live.b = G.Q.n;
-      [G.P, G.Q].forEach(P => { const w = d * FS / (P.set.g.length) * P.box.w, x1 = P.box.x + P.box.w - 12; el('rect', { class: 'win-rect', x: x1 - w, y: P.box.y + 44, width: w, height: 12 }, P.top); txt(P.top, x1 - w - 8, P.box.y + 54, `minimum spacing ${fmt(d, 2)} s`, { class: 'dlabel', fill: C.ink, 'text-anchor': 'end' }); });
+      chart.innerHTML = '';
+      const longest = Math.max(...RF.ind.map(s => s.g.length));
+      G.cols = RF.ind.map((s, k) => setPanel(COLS[k], s, Math.min(1, p * longest / s.g.length), dial('dist'), dial('prom'), { title: s.name, ylabel: k === 0 ? undefined : null, nx: 5, noLegend: k > 0, legendCol: true, badgeY: k === 0 ? 100 : 26 }));
+      G.P = G.cols[0]; G.Q = null;
     }
   },
 ];

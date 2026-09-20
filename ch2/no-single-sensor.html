@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>No Single Sensor Fits Every Exercise</title>
+<title>Which Sensor Counts Best Depends on the Exercise</title>
 </head>
 <body>
 <style>
@@ -92,7 +92,7 @@
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
-      <span>CS328 &nbsp;·&nbsp; Counting: Steps and Repetitions</span>
+      <span>CS328 &nbsp;·&nbsp; Counting Steps and Reps</span>
       <span class="ctr" id="counter"></span>
     </div>
   </section>
@@ -406,7 +406,7 @@ const STAGES = [
 ];
 const STRIP = { x: PL, y: 10, w: PW, h: 84 };
 const SINGLE_S = { x: PL, y: 136, w: PW, h: 426 };
-const TOP_S = { x: PL, y: 136, w: PW, h: 186 }, BOT_S = { x: PL, y: 376, w: PW, h: 186 };
+const TOP_S = { x: PL, y: 34, w: PW, h: 200 }, BOT_S = { x: PL, y: 300, w: PW, h: 200 };
 function drawPipeline(active) {
   const gap = 46, bw = (STRIP.w - gap * (STAGES.length - 1)) / STAGES.length;
   STAGES.forEach((st, k) => {
@@ -510,20 +510,95 @@ function drawIntro(p) {
   });
 }
 
+// ------------------------------------------------------------ the conclusion drawn under the panels
+const ramp = (v, a, b) => Math.max(0, Math.min(1, (v - a) / (b - a)));
+const VERDICT = { x: PL, y: 552, w: PW, h: 66 };
+function verdictBox(head, sub, colr, op) {
+  if (op <= 0) return;
+  const g = el('g', { opacity: op }, chart);
+  el('rect', { x: VERDICT.x, y: VERDICT.y, width: VERDICT.w, height: VERDICT.h, rx: 6, fill: '#f6f8fb', stroke: 'var(--rule)' }, g);
+  el('rect', { x: VERDICT.x, y: VERDICT.y, width: 6, height: VERDICT.h, rx: 3, fill: colr }, g);
+  txt(g, VERDICT.x + 22, VERDICT.y + 28, head, { class: 'stage-name', fill: C.ink, 'font-size': 23 });
+  txt(g, VERDICT.x + 22, VERDICT.y + 54, sub, { class: 'stage-sub', fill: C.ink2, 'font-size': 20 });
+}
+
+// ------------------------------------------------------------ held-out counting error for every exercise, both sensors
+// gyro %, accel %; from the RecoFit evaluation in the notes
+const SENS = [
+  ['Russian twist', 5, 24], ['Triceps kickback', 7, 28], ['Sit-ups', 7, 17], ['Medicine ball slam', 12, 23],
+  ['Crunch', 13, 26], ['Sit-up (hands at head)', 15, 27], ['Dumbbell row', 15, 20], ['Lying triceps extension', 15, 38],
+  ['Lawnmower (L)', 17, 60], ['Butterfly sit-up', 17, 23], ['V-up', 18, 29], ['Overhead triceps extension', 21, 35],
+  ['Bicep curl', 27, 43], ['Pushup (knee/foot)', 32, 45], ['Dip', 38, 49], ['Dumbbell row (L)', 38, 67],
+  ['Triceps kickback (L)', 47, 47], ['Jumping jacks', 8, 3], ['Dumbbell row (R)', 13, 3], ['Lawnmower (R)', 20, 6],
+  ['Walking lunge', 40, 7], ['Squat', 16, 7], ['Shoulder press (dumbbell)', 20, 7], ['Lateral raise', 13, 7],
+  ['Seated back fly', 17, 7], ['Goblet squat', 10, 7], ['Squat (arms in front)', 30, 7], ['Kettlebell swing', 45, 8],
+  ['Triceps kickback (R)', 33, 10], ['Squat (hands behind head)', 25, 11], ['Squat jump', 38, 13],
+  ['Dumbbell deadlift row', 43, 13], ['Band pull-down row', 30, 13], ['Two-arm dumbbell curl', 30, 15],
+  ['Alternating lunge', 40, 20], ['Biceps curl (band)', 27, 21], ['Fast alternating punches', 39, 22],
+  ['Dumbbell squat', 72, 26], ['Pushups', 39, 27], ['Squat rack shoulder press', 62, 40], ['Wall ball', 76, 45],
+  ['Chest press (rack)', 45, 45], ['Burpee', 118, 110],
+];
+const MARKED = [{ name: 'Bicep curl', n: '1' }, { name: 'Squat (arms in front)', n: '2' }];
+function drawScatter(p) {
+  chart.innerHTML = '';
+  const side = 468, box = { x: PL + (PW - side) / 2, y: 30, w: side, h: side };
+  const P = panel(chart, box, [0, 125], [0, 125], { xlabel: 'gyroscope error (%)', ylabel: 'accelerometer error (%)', ylx: 54, nx: 5, ny: 5 });
+  el('line', { x1: P.sx(0), y1: P.sy(0), x2: P.sx(125), y2: P.sy(125), stroke: 'var(--ink-3)', 'stroke-width': 1.4, 'stroke-dasharray': '6 5' }, P.g);
+  txt(P.top, P.sx(124), P.sy(104), 'equal error', { class: 'stage-sub', fill: C.ink3, 'font-size': 17, 'text-anchor': 'end' });
+  const mark = (x, y, accelWins, tie, r = 6) => {
+    const colr = tie ? C.grey : accelWins ? C.blue : C.red;
+    if (accelWins || tie) el('circle', { cx: x, cy: y, r, fill: colr, 'fill-opacity': .75, stroke: '#fff', 'stroke-width': 1.4 }, P.top);
+    else el('path', { d: `M${x},${y - r - 1}l${r + 1.5},${r * 1.7}h${-2 * r - 3}z`, fill: colr, 'fill-opacity': .8, stroke: '#fff', 'stroke-width': 1.2 }, P.top);
+    return colr;
+  };
+  const upto = Math.round(Math.min(1, p / 0.85) * SENS.length);
+  SENS.slice(0, upto).forEach(([, gy, ac]) => mark(P.sx(gy), P.sy(ac), ac < gy, ac === gy));
+  if (p > 0.85) MARKED.forEach(m => {
+    const row = SENS.find(r => r[0] === m.name), x = P.sx(row[1]), y = P.sy(row[2]);
+    const colr = row[2] < row[1] ? C.blue : C.red;
+    el('circle', { cx: x, cy: y, r: 13, fill: 'none', stroke: colr, 'stroke-width': 2.4 }, P.top);
+    txt(P.top, x + 17, y + 6, m.n, { class: 'stage-name', fill: colr, 'font-size': 20 });
+  });
+  // the key, in the empty upper-left corner of the plot
+  const kx = box.x + 18, ky = box.y + 16, rows = [
+    { tri: true, c: C.red, t: 'gyroscope counts better · 16 exercises' },
+    { tri: false, c: C.blue, t: 'accelerometer counts better · 25' },
+    { num: '1', c: C.red, t: 'bicep curl (step 1)' },
+    { num: '2', c: C.blue, t: 'squat, arms in front (step 2)' },
+  ];
+  el('rect', { x: kx, y: ky, width: 336, height: 26 + rows.length * 30, rx: 5, fill: '#fff', 'fill-opacity': .92, stroke: 'var(--rule)' }, P.top);
+  rows.forEach((r, k) => {
+    const cy = ky + 30 + k * 30, cx = kx + 20;
+    if (r.num) { el('circle', { cx, cy: cy - 5, r: 9, fill: 'none', stroke: r.c, 'stroke-width': 2 }, P.top); txt(P.top, cx, cy, r.num, { class: 'stage-sub', fill: r.c, 'font-size': 15, 'text-anchor': 'middle' }); }
+    else mark(cx, cy - 5, !r.tri, false, 6);
+    txt(P.top, cx + 20, cy, r.t, { class: 'stage-sub', fill: C.ink2, 'font-size': 19 });
+  });
+  G.P = null; G.Q = null;
+  verdictBox('Neither sensor wins everywhere.', 'Forearm rotations go to the gyroscope and whole-body moves to the accelerometer: 16 exercises against 25, with 2 ties.', C.ink3, ramp(p, 0.9, 1));
+}
+
 const STEPS = [
   {
-    title: 'No single sensor fits every exercise: bicep curl', dur: 12, presets: { dist: 0.5, prom: 0.3 },
+    title: 'Bicep curl: the gyroscope counts closer', dur: 12, presets: { dist: 0.5, prom: 0.3 },
     tag: () => `distance = ${fmt(dial('dist'), 2)} s · prominence = ${fmt(dial('prom'), 2)}`,
-    subtitle: '',
+    subtitle: 'The forearm turns through every curl, so the gyroscope peaks are regular while the accelerometer stays noisy.',
     code: () => `peaks, _ = find_peaks(normalized, <span class="hl">distance=int(<b class="p">${fmt(dial('dist'), 2)}</b> * 50)</span>, <span class="hl">prominence=<b class="p">${fmt(dial('prom'), 2)}</b></span>)`,
-    setup() {}, draw(p) { chart.innerHTML = ''; drawPipeline(['imu', 'count']); sensorPair(EX.curl, p); }
+    setup() {}, draw(p) { chart.innerHTML = ''; sensorPair(EX.curl, p);
+      verdictBox('Count the bicep curl with the gyroscope.', 'Raise the prominence past 0.5 and the accelerometer peaks vanish, while the gyroscope keeps counting.', C.violet, ramp(p, 0.8, 0.97)); }
   },
   {
-    title: 'No single sensor fits every exercise: squat', dur: 12, presets: { dist: 0.5, prom: 0.3 },
+    title: 'Squat: the accelerometer counts closer', dur: 12, presets: { dist: 0.5, prom: 0.3 },
     tag: () => `distance = ${fmt(dial('dist'), 2)} s · prominence = ${fmt(dial('prom'), 2)}`,
-    subtitle: '',
+    subtitle: 'The forearm barely turns in a squat, so the gyroscope splits each repetition while the accelerometer follows the body up and down.',
     code: () => `peaks, _ = find_peaks(normalized, <span class="hl">distance=int(<b class="p">${fmt(dial('dist'), 2)}</b> * 50)</span>, <span class="hl">prominence=<b class="p">${fmt(dial('prom'), 2)}</b></span>)`,
-    setup() {}, draw(p) { chart.innerHTML = ''; drawPipeline(['imu', 'count']); sensorPair(EX.squat, p); }
+    setup() {}, draw(p) { chart.innerHTML = ''; sensorPair(EX.squat, p);
+      verdictBox('Count the squat with the accelerometer.', 'The gyroscope does see the squat, but as two bursts per repetition, so it doubles the count until the spacing passes 0.9 s.', C.blue, ramp(p, 0.8, 0.97)); }
+  },
+  {
+    title: 'Held-out error across 43 exercises', dur: 12,
+    tag: () => 'RecoFit · error = |found − true| ÷ true',
+    subtitle: 'Tuned on a few sets of each exercise, then measured on the sets it was not tuned on.',
+    setup() {}, draw(p) { drawScatter(p); }
   },
 ];
 chart.addEventListener('mousemove', evt => {
