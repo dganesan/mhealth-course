@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Collapsing Three Axes into One</title>
+<title>Filtering Out the Noise</title>
 </head>
 <body>
 <style>
@@ -699,45 +699,43 @@ function cursorLine(P, i) { el('line', { x1: P.sx(T[i]), x2: P.sx(T[i]), y1: P.b
 
 const STEPS = [
   {
-    title: 'Three accelerometer axes during walking', dur: 8, presets: { rx: 0, ry: 0, rz: 0 },
-    tag: () => `50 Hz · rotation ${rotText(rotDial())}`,
-    dials: ['rx', 'ry', 'rz'],
-    subtitle: 'The angle of the phone sets the reading on each axis.',
-    setup() { chart.innerHTML = ''; }, draw(p) { chart.innerHTML = ''; G.top = drawAxesPanel(SINGLE_L, rotDial(), Math.max(2, Math.round(p * N))); drawPhone(chart, PHONE, rotDial()); }
-  },
-  {
-    title: 'Why the orientation of the phone matters', dur: 8, presets: { rx: 90, ry: 0, rz: 0 },
-    tag: () => `rotation ${rotText(rotDial(progress))}`,
-    dials: ['rx', 'ry', 'rz'],
-    subtitle: 'Turning the phone moves the signal between the axes, but the magnitude stays the same.',
-    setup() { G.dom = axesDomain([0, 0.25, 0.5, 0.75, 1].map(f => rotate(rotDial(f)))); },
-    draw(p) {
-      chart.innerHTML = '';
-      G.top = drawAxesPanel(TOP_L, rotDial(p), N, { dom: G.dom });
-      G.bot = drawMagPanel(BOT_L, MAG, N, 'magnitude |a| = √(x² + y² + z²)', C.violet);
-      legend(G.bot.top, BOT_L.x + BOT_L.w - 10, BOT_L.y + 8, G.bot.items, { horiz: true, right: true });
-      drawPhone(chart, PHONE, rotDial(p));
-    }
-  },
-  {
-    title: 'Collapsing three axes into one', dur: 12, presets: { rx: 0, ry: 0, rz: 0 },
-    code: `magnitude = np.sqrt(x**2 + y**2 + z**2)`,
-    tag: () => `|a| = √(x² + y² + z²)`,
-    dials: ['rx', 'ry', 'rz'],
+    title: 'Filtering out the noise', dur: 12, presets: { rx: 0, ry: 0, rz: 0, lo: 0.5, hi: 4 },
+    code: () => `b, a = butter(3, <span class="hl">[<b class="p">${fmt(dial('lo'), 1)}</b>, <b class="p">${fmt(dial('hi'), 1)}</b>]</span>, btype='bandpass', fs=50); filtered = filtfilt(b, a, magnitude)`,
+    tag: () => `butter(3, [${fmt(dial('lo'), 1)}, ${fmt(dial('hi'), 1)}] Hz) · filtfilt`,
+    dials: ['lo', 'hi'],
     subtitle: '',
-    setup() {},
+    setup() { computeFilter(); },
     draw(p) {
       chart.innerHTML = '';
       const i = Math.max(1, Math.round(p * (N - 1)));
-      G.top = drawAxesPanel(TOP, rotDial(), N);
-      G.bot = drawMagPanel(BOT, MAG, i + 1, 'magnitude |a|', C.violet);
-      legend(G.bot.top, BOT.x + 10, BOT.y + 8, G.bot.items);
+      G.top = drawMagPanel(TOP, MAGC, N, 'magnitude − mean', C.violet, { sym: true, zero: true, ylabel: '|a| − mean (m/s²)' });
+      legend(G.top.top, TOP.x + TOP.w - 10, TOP.y + 8, G.top.items, { horiz: true, right: true });
+      G.bot = drawMagPanel(BOT, FILT, i + 1, `filtered ${fmt(dial('lo'), 1)}–${fmt(dial('hi'), 1)} Hz`, C.blue, { sym: true, zero: true, ylabel: 'filtered (m/s²)', dom: G.top.yd });
+      legend(G.bot.top, BOT.x + BOT.w - 10, BOT.y + 8, G.bot.items, { horiz: true, right: true });
       cursorLine(G.top, i); cursorLine(G.bot, i);
-      const R = G.top.R;
-      AX.forEach(a => el('circle', { cx: G.top.sx(T[i]), cy: G.top.sy(R[a.k][i]), r: 4.5, fill: a.c, stroke: '#fff', 'stroke-width': 1.5 }, G.top.top));
-      el('circle', { cx: G.bot.sx(T[i]), cy: G.bot.sy(MAG[i]), r: 5.5, fill: C.violet, stroke: '#fff', 'stroke-width': 2 }, G.bot.top);
-      const s = `√(${fmt(R.ax[i], 2)}² + ${fmt(R.ay[i], 2)}² + ${fmt(R.az[i], 2)}²) = ${fmt(MAG[i], 2)} m/s²`;
-      txt(G.bot.top, BOT.x + BOT.w - 12, BOT.y + 24, s, { class: 'big', fill: C.violet, 'text-anchor': 'end', 'font-size': 18 });
+      el('circle', { cx: G.bot.sx(T[i]), cy: G.bot.sy(FILT[i]), r: 5.5, fill: C.blue, stroke: '#fff', 'stroke-width': 2 }, G.bot.top);
+    }
+  },
+  {
+    title: 'Finding peaks in the filtered magnitude', dur: 10, presets: { rx: 0, ry: 0, rz: 0, lo: 0.5, hi: 4 },
+    code: `peaks, _ = find_peaks(filtered)`,
+    tag: () => `find_peaks(filtered) → ${filtMax.filter(k => k <= progress * (N - 1)).length} peaks`,
+    dials: ['lo', 'hi'],
+    subtitle: '',
+    setup() { computeFilter(); },
+    draw(p) {
+      chart.innerHTML = '';
+      const i = Math.round(p * (N - 1));
+      G.top = drawMagPanel(TOP, MAGC, N, 'magnitude − mean', C.violet, { sym: true, zero: true, ylabel: '|a| − mean (m/s²)' });
+      G.bot = drawMagPanel(BOT, FILT, N, `filtered ${fmt(dial('lo'), 1)}–${fmt(dial('hi'), 1)} Hz`, C.blue, { sym: true, zero: true, ylabel: 'filtered (m/s²)', dom: G.top.yd });
+      legend(G.top.top, TOP.x + 10, TOP.y + 8, [G.top.items[0], { k: 'cross', n: 'local maxima' }], { horiz: true });
+      legend(G.bot.top, BOT.x + 10, BOT.y + 8, [G.bot.items[0], { k: 'circle', n: 'find_peaks(filtered)' }], { horiz: true });
+      const rm = rawMax.filter(k => k <= i), fm = filtMax.filter(k => k <= i);
+      rm.forEach(k => cross(G.top.top, G.top.sx(T[k]), G.top.sy(MAGC[k]), 5));
+      fm.forEach(k => el('circle', { cx: G.bot.sx(T[k]), cy: G.bot.sy(FILT[k]), r: 7, class: 'kept' }, G.bot.top));
+      cursorLine(G.top, i); cursorLine(G.bot, i);
+      badge(G.top.top, TOP.x + TOP.w - 250, TOP.y + 26, `local maxima: ${rm.length}`, C.greyDot);
+      badge(G.bot.top, BOT.x + BOT.w - 250, BOT.y + 26, `peaks: ${fm.length}`, C.red);
     }
   },
 ];
