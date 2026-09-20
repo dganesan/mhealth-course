@@ -68,6 +68,10 @@
   .dlabel { font-family: var(--sans); font-size: 17px; font-weight: 700; }
   .mono { font-family: var(--mono); }
   .big { font-family: var(--mono); font-size: 26px; font-weight: 700; }
+  .ov-name { font-family: var(--sans); font-size: 27px; font-weight: 700; fill: var(--ink); }
+  .ov-does { font-family: var(--sans); font-size: 22px; fill: var(--ink-2); }
+  .ov-code { font-family: var(--mono); font-size: 19px; fill: var(--ink); }
+  .ov-lab { font-family: var(--sans); font-size: 21px; font-weight: 700; }
   .badge { font-family: var(--mono); font-size: 26px; font-weight: 700; fill: var(--ink); }
   .kept { fill: none; stroke: var(--ewma); stroke-width: 2.9; }
   .cross { stroke: #4a4a4a; stroke-width: 2.6; }
@@ -406,7 +410,94 @@ const countBadge = (s, c) => badge(G.P.top, BOX.x + BOX.w - (s.length * 15.7 + 2
 const SIG = { c: C.blue, n: 'signal' }, MAXI = { k: 'cross', n: 'all local maxima' }, KEPT = { k: 'circle', n: 'kept by find_peaks' };
 let last = { n: 0 };
 
+
+// ------------------------------------------------------------ opening overview: the four criteria on one schematic signal
+const SCH = (() => {                                   // six peaks of different heights and widths on a gentle drift
+  const bumps = [[0.10, 1.05, 0.045], [0.24, 1.75, 0.050], [0.40, 0.95, 0.040], [0.55, 1.30, 0.032], [0.70, 1.62, 0.048], [0.87, 1.10, 0.042]];
+  const M = 600, x = [], y = [];
+  for (let i = 0; i < M; i++) {
+    const u = i / (M - 1); let v = 0.18 * Math.sin(2 * Math.PI * (u * 0.8 + 0.1));
+    bumps.forEach(([c, a, w]) => { v += a * Math.exp(-0.5 * ((u - c) / w) ** 2); });
+    x.push(u); y.push(v);
+  }
+  const pk = [], va = [];
+  for (let i = 1; i < M - 1; i++) { if (y[i] > y[i - 1] && y[i] >= y[i + 1]) pk.push(i); if (y[i] < y[i - 1] && y[i] <= y[i + 1]) va.push(i); }
+  // prominence of a peak: its height above the higher of the two lowest valleys on each side
+  const prom = i => {
+    let l = i, lm = y[i]; while (l > 0 && y[l - 1] <= y[i]) { l--; lm = Math.min(lm, y[l]); }
+    let r = i, rm = y[i]; while (r < M - 1 && y[r + 1] <= y[i]) { r++; rm = Math.min(rm, y[r]); }
+    return { p: y[i] - Math.max(lm, rm), base: Math.max(lm, rm) };
+  };
+  return { x, y, pk, va, prom, M };
+})();
+const OVP = [
+  { key: 'height', name: 'height', does: 'a fixed amplitude threshold', code: 'find_peaks(x, height=1.0)' },
+  { key: 'distance', name: 'distance', does: 'minimum spacing between peaks', code: 'find_peaks(x, distance=40)   # samples' },
+  { key: 'prominence', name: 'prominence', does: 'rise above the local baseline', code: 'find_peaks(x, prominence=0.8)' },
+  { key: 'width', name: 'width', does: 'extent at half prominence', code: 'find_peaks(x, width=15)   # samples' },
+];
+const OVBOX = [{ x: 96, y: 112, w: 570, h: 170 }, { x: 790, y: 112, w: 570, h: 170 },
+               { x: 96, y: 420, w: 570, h: 170 }, { x: 790, y: 420, w: 570, h: 170 }];
+function arrowH(parent, x1, x2, y, color, both) {   // horizontal arrow, head at each end
+  const g = el('g', {}, parent);
+  el('line', { x1, x2, y1: y, y2: y, stroke: color, 'stroke-width': 2 }, g);
+  const head = (x, dir) => el('path', { d: `M${x},${y}l${dir * 9},-5v10z`, fill: color }, g);
+  head(x2, -1); if (both) head(x1, 1);
+  return g;
+}
+function drawOverview(p) {
+  chart.innerHTML = '';
+  OVP.forEach((o, k) => {
+    const B = OVBOX[k], q = Math.max(0, Math.min(1, p * OVP.length - k));
+    const sx = u => B.x + u * B.w, sy = v => B.y + B.h - (v + 0.45) / 2.65 * B.h;
+    txt(chart, B.x, B.y - 52, o.name, { class: 'ov-name' });
+    txt(chart, B.x + o.name.length * 17 + 14, B.y - 52, o.does, { class: 'ov-does' });
+    el('rect', { x: B.x, y: B.y - 40, width: o.code.length * 11.6 + 16, height: 28, rx: 4, fill: '#f4f6f9', stroke: 'var(--rule)' }, chart);
+    txt(chart, B.x + 8, B.y - 20, o.code, { class: 'ov-code' });
+    el('path', { d: `M${B.x},${B.y + B.h}H${B.x + B.w}`, stroke: 'var(--ink-3)', fill: 'none' }, chart);
+    el('path', { d: pathOf(SCH.x.map(sx), SCH.y.map(sy)), fill: 'none', stroke: C.blue, 'stroke-width': 2.4 }, chart);
+    SCH.pk.forEach(i => el('circle', { cx: sx(SCH.x[i]), cy: sy(SCH.y[i]), r: 5, fill: C.red }, chart));
+    if (q <= 0) return;
+    const shown = n => Math.round(q * n);                    // annotations appear one by one
+    if (o.key === 'height') {
+      SCH.pk.forEach((i, j) => { if (j >= shown(SCH.pk.length)) return;
+        el('line', { x1: sx(SCH.x[i]), x2: sx(SCH.x[i]), y1: sy(0), y2: sy(SCH.y[i]), stroke: C.violet, 'stroke-width': 2.4 }, chart);
+        txt(chart, sx(SCH.x[i]) + 7, sy(SCH.y[i] / 2), 'h' + (j + 1), { class: 'ov-lab', fill: C.violet }); });
+    } else if (o.key === 'distance') {
+      for (let j = 0; j + 1 < SCH.pk.length; j++) { if (j >= shown(SCH.pk.length - 1)) break;
+        const a = SCH.pk[j], b = SCH.pk[j + 1], y = sy(Math.max(SCH.y[a], SCH.y[b]) + 0.18);
+        arrowH(chart, sx(SCH.x[a]), sx(SCH.x[b]), y, C.blue, true);
+        txt(chart, (sx(SCH.x[a]) + sx(SCH.x[b])) / 2, y - 8, 'd' + (j + 1) + (j + 2), { class: 'ov-lab', fill: C.blue, 'text-anchor': 'middle' }); }
+    } else {
+      const i = o.key === 'width' ? SCH.pk[4] : SCH.pk[3], { p: pr, base } = SCH.prom(i), xp = sx(SCH.x[i]);
+      if (o.key === 'prominence') {
+        el('line', { x1: xp - 120, x2: xp + 120, y1: sy(base), y2: sy(base), stroke: C.ink3, 'stroke-width': 1.6, 'stroke-dasharray': '5 4' }, chart);
+        const g = el('g', {}, chart);
+        el('line', { x1: xp, x2: xp, y1: sy(base), y2: sy(SCH.y[i]), stroke: C.green, 'stroke-width': 2.6 }, g);
+        el('path', { d: `M${xp},${sy(SCH.y[i])}l-5,9h10z`, fill: C.green }, g);
+        el('path', { d: `M${xp},${sy(base)}l-5,-9h10z`, fill: C.green }, g);
+        txt(chart, xp + 10, sy((base + SCH.y[i]) / 2), 'prominence', { class: 'ov-lab', fill: C.green });
+      } else {
+        const half = base + pr / 2;                          // the width is measured at half the prominence
+        let l = i; while (l > 0 && SCH.y[l] > half) l--;
+        let r = i; while (r < SCH.M - 1 && SCH.y[r] > half) r++;
+        el('line', { x1: sx(SCH.x[l]) - 40, x2: sx(SCH.x[r]) + 40, y1: sy(half), y2: sy(half), stroke: C.ink3, 'stroke-width': 1.6, 'stroke-dasharray': '5 4' }, chart);
+        arrowH(chart, sx(SCH.x[l]), sx(SCH.x[r]), sy(half), C.red, true);
+        txt(chart, xp, sy(half) - 16, 'width', { class: 'ov-lab', fill: C.red, 'text-anchor': 'middle' });
+        el('line', { x1: xp, x2: xp, y1: sy(base), y2: sy(SCH.y[i]), stroke: C.ink3, 'stroke-width': 1.4, 'stroke-dasharray': '3 3' }, chart);
+      }
+    }
+  });
+}
+
 const STEPS = [
+  {
+    title: 'The four find_peaks criteria', dur: 7,
+    tag: () => 'height · distance · prominence · width',
+    subtitle: 'height and prominence are in signal units; distance and width are counted in samples.',
+    code: `peaks, _ = find_peaks(signal, height=..., distance=..., prominence=..., width=...)`,
+    setup() {}, draw(p) { drawOverview(p); },
+  },
   {
     title: 'Every local maximum', dur: 8, tag: () => `find_peaks(signal) → ${last.n} local maxima`,
     subtitle: 'find_peaks with no arguments returns every local maximum.',
