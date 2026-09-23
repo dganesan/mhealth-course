@@ -394,11 +394,16 @@ const STEPS = [
       chart.innerHTML = ''; const i = Math.round(p * (N - 1));
       G.P = tracePanel(SINGLE, N); legendInline(G.P.top, SINGLE.x + SINGLE.w - 12, SINGLE.y + SINGLE.h - 44, [{ c: C.blue, n: 'filtered magnitude (0.5–5 Hz)' }, { k: 'circle', n: 'detected steps' }], true);
       const ks = peaksAt(dial('dist')).filter(k => k <= i); ks.forEach(k => ring(G.P, k)); cursorLine(G.P, i);
-      live.n = ks.length; rbadge(G.P, `found ${ks.length} · true ${TRUE}`, C.red);
+      live.n = ks.length; badge(G.P.top, G.P.box.x + 12, G.P.box.y + 26, `found ${ks.length} · true ${TRUE}`, C.red);
       // the recording is in raw sensor units, so prominence is scaled by the signal's spread
       const halo = 'paint-order:stroke; stroke:#fff; stroke-width:6px; stroke-linejoin:round';
-      txt(G.P.top, SINGLE.x + 16, SINGLE.y + 34, 'the sensor reports raw units, not m/s²', { class: 'sans', fill: C.ink, style: 'font-size:22px; font-weight:700; ' + halo });
-      txt(G.P.top, SINGLE.x + 16, SINGLE.y + 64, `so prominence = ${fmt(dial('promf'), 2)} × std = ${Math.round(promAbs())}`, { class: 'mono', fill: C.ink, style: 'font-size:21px; ' + halo });
+      // place the note directly under the prominence box of the code line
+      let nx = SINGLE.x + 600;
+      const hl = document.querySelectorAll('#code .hl')[1], ctm = chart.getScreenCTM();
+      if (hl && ctm) nx = (hl.getBoundingClientRect().left - ctm.e) / ctm.a;
+      nx = Math.max(SINGLE.x + 16, Math.min(nx, SINGLE.x + SINGLE.w - 470));
+      txt(G.P.top, nx, SINGLE.y + 22, 'the sensor reports raw units, not m/s²', { class: 'sans', fill: C.ink, style: 'font-size:22px; font-weight:700; ' + halo });
+      txt(G.P.top, nx, SINGLE.y + 52, `so prominence = ${fmt(dial('promf'), 2)} × std = ${Math.round(promAbs())}`, { class: 'mono', fill: C.ink, style: 'font-size:21px; ' + halo });
     }
   },
   {
