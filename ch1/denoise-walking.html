@@ -42,6 +42,7 @@
   .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
   .head p:empty { display: none; }
+  .head h1 .tag:empty { display: none; }
   .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
   .code .p { color: var(--ma); font-weight: 700; }
@@ -491,12 +492,12 @@ window.ACCEL = { fs: 50,
   const P = v => `<b class="p">${v}</b>`;
   const butterCall = () => `b, a = butter(4, [${P(fmtLo(lo))}, ${P(fmtHi(hi))}], btype='bandpass', fs=${FS})`;
   const STEPS = [
-    { id: 'raw', base: 4, title: 'Raw walking accelerometer magnitude', tag: () => `|a| · fs = ${FS} Hz · ${DUR} s`,
-      subtitle: `The acceleration magnitude from a phone in a pocket during ${DUR} s of walking.` },
-    { id: 'spec', base: 3.5, title: 'Spectrum of the walking magnitude', tag: () => `|a| · fs = ${FS} Hz · ${DUR} s`,
-      subtitle: 'Walking is a band around 2.3 Hz, not a single line, so the filter will be a band-pass.' },
+    { id: 'raw', base: 4, title: 'Raw walking accelerometer magnitude', tag: () => '',
+      subtitle: '' },
+    { id: 'spec', base: 3.5, title: 'Spectrum of the walking magnitude', tag: () => '',
+      subtitle: '' },
     { id: 'design', base: 3, title: 'Designing the band-pass from the spectrum', tag: () => `band-pass ${bandText()} · order 4`,
-      subtitle: 'A band-pass keeps the walking band and removes gravity below it and jitter above it.',
+      subtitle: '',
       code: () => butterCall() },
     { id: 'result', base: 4, title: 'Filtered walking magnitude', tag: () => `band-pass ${bandText()} · order 4`,
       subtitle: '',

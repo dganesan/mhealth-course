@@ -76,6 +76,7 @@
   }
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
   .head p:empty { display: none; }
+  .head h1 .tag:empty { display: none; }
   .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
   .code .p { color: var(--blue); font-weight: 700; }
@@ -505,19 +506,19 @@ window.ECG_SLICE = [-0.0763,-0.0806,-0.0784,-0.0719,-0.0675,-0.0588,-0.0501,-0.0
     return [
       {
         id: 'input', anim: 'draw',
-        title: 'Input signal and true R-peak times', tag: `real ECG · ${(N / FS).toFixed(1)} s at 1 kHz`,
+        title: 'Input signal and true R-peak times', tag: '',
         subtitle: ''
       },
       {
         id: 'causal', anim: 'forward',
         title: 'One forward pass: lfilter', tag: `order ${order} · ${cutoff} Hz low-pass · R-peak delay ${fmtMs(dc)}`,
-        subtitle: 'lfilter delays the peaks.',
+        subtitle: '',
         code: `b, a = butter(${P(order)}, ${P(cutoff)}, btype='lowpass', fs=${FS});  y = lfilter(b, a, x)`
       },
       {
         id: 'backward', anim: 'backward',
         title: 'Backward pass over the lfilter output', tag: `order ${order} · ${cutoff} Hz low-pass · second pass`,
-        subtitle: 'The backward pass shifts the peaks back.',
+        subtitle: '',
         code: `y = filtfilt(b, a, x)  <span class="k"># forward + backward, gives zero phase delay</span>`
       },
       {
@@ -529,7 +530,7 @@ window.ECG_SLICE = [-0.0763,-0.0806,-0.0784,-0.0719,-0.0675,-0.0588,-0.0501,-0.0
       {
         id: 'stream', anim: 'stream',
         title: 'filtfilt needs the whole record', tag: `order ${order} · ${cutoff} Hz low-pass · streaming`,
-        subtitle: 'The filtfilt output keeps changing as new samples arrive.',
+        subtitle: '',
         code: `y = filtfilt(b, a, x)  <span class="k"># needs the entire signal in advance</span>`
       }
     ];

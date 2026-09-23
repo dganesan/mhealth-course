@@ -25,6 +25,7 @@
   .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
   .head p:empty { display: none; }
+  .head h1 .tag:empty { display: none; }
   .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
   .code .p { color: var(--ma); font-weight: 700; }
@@ -581,7 +582,7 @@ const STEPS = [
   {
     title: 'Bicep curl: the gyroscope counts closer', dur: 12, presets: { dist: 0.5, prom: 0.3 },
     tag: () => `distance = ${fmt(dial('dist'), 2)} s · prominence = ${fmt(dial('prom'), 2)}`,
-    subtitle: 'The forearm turns through every curl, so the gyroscope peaks are regular while the accelerometer stays noisy.',
+    subtitle: '',
     code: () => `peaks, _ = find_peaks(normalized, <span class="hl">distance=int(<b class="p">${fmt(dial('dist'), 2)}</b> * 50)</span>, <span class="hl">prominence=<b class="p">${fmt(dial('prom'), 2)}</b></span>)`,
     setup() {}, draw(p) { chart.innerHTML = ''; sensorPair(EX.curl, p);
       verdictBox('Count the bicep curl with the gyroscope.', 'Raise the prominence past 0.5 and the accelerometer peaks vanish, while the gyroscope keeps counting.', C.violet, ramp(p, 0.8, 0.97)); }
@@ -589,7 +590,7 @@ const STEPS = [
   {
     title: 'Squat: the accelerometer counts closer', dur: 12, presets: { dist: 0.5, prom: 0.3 },
     tag: () => `distance = ${fmt(dial('dist'), 2)} s · prominence = ${fmt(dial('prom'), 2)}`,
-    subtitle: 'The forearm barely turns in a squat, so the gyroscope splits each repetition while the accelerometer follows the body up and down.',
+    subtitle: '',
     code: () => `peaks, _ = find_peaks(normalized, <span class="hl">distance=int(<b class="p">${fmt(dial('dist'), 2)}</b> * 50)</span>, <span class="hl">prominence=<b class="p">${fmt(dial('prom'), 2)}</b></span>)`,
     setup() {}, draw(p) { chart.innerHTML = ''; sensorPair(EX.squat, p);
       verdictBox('Count the squat with the accelerometer.', 'The gyroscope does see the squat, but as two bursts per repetition, so it doubles the count until the spacing passes 0.9 s.', C.blue, ramp(p, 0.8, 0.97)); }
@@ -597,7 +598,7 @@ const STEPS = [
   {
     title: 'Held-out error across 43 exercises', dur: 12,
     tag: () => 'RecoFit · error = |found − true| ÷ true',
-    subtitle: 'Tuned on a few sets of each exercise, then measured on the sets it was not tuned on.',
+    subtitle: '',
     setup() {}, draw(p) { drawScatter(p); }
   },
 ];

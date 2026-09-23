@@ -43,6 +43,7 @@
   .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
   .head p:empty { display: none; }
+  .head h1 .tag:empty { display: none; }
   .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
   .code .p { color: var(--ma); font-weight: 700; }
@@ -518,14 +519,14 @@ window.SPEECH = { fs: 16000, n: 48000, b64: 'ChAODw8PDw8PDw8PDw8PDw8ODg8PDg8ODg4
 
   // ------------------------------------------------------------ steps
   const P = v => `<b class="p">${v}</b>`;
-  const tag = () => `HP ${hp} Hz · LP ${lp} Hz · fs = 16 kHz`;
+  const tag = () => `HP ${hp} Hz · LP ${lp} Hz`;
   const STEPS = [
-    { id: 'raw', dur: 3, title: 'Speech recording with added noise', tag,
-      subtitle: 'Low rumble and hiss were added to a real 3 s voice recording.' },
-    { id: 'spec', dur: 3, title: 'Spectrum of the noisy recording', tag,
-      subtitle: 'Rumble below 200 Hz, hiss above 4 kHz, and speech between 300 Hz and 3400 Hz.' },
+    { id: 'raw', dur: 3, title: 'Speech recording with added noise', tag: () => '',
+      subtitle: '' },
+    { id: 'spec', dur: 3, title: 'Spectrum of the noisy recording', tag: () => '',
+      subtitle: '' },
     { id: 'design', dur: 4, title: 'Designing the filters from the spectrum', tag,
-      subtitle: 'A high-pass filter removes the rumble and a low-pass filter removes the hiss.',
+      subtitle: '',
       code: () => p < 0.5 ? `b_hp, a_hp = butter(4, ${P(hp)}, btype='highpass', fs=${FS})`
                           : `b_lp, a_lp = butter(4, ${P(lp)}, btype='lowpass', fs=${FS})` },
     { id: 'result', dur: 3, title: 'Filtered recording', tag,

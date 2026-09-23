@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Band-Pass Pre-processing of a Walking Trace</title>
+<title>Pre-processing with a Band-Pass Filter</title>
 </head>
 <body>
 <style>
@@ -79,6 +79,7 @@
   }
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
   .head p:empty { display: none; }
+  .head h1 .tag:empty { display: none; }
   .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
   .code .p { color: var(--ma); font-weight: 700; }
@@ -634,7 +635,7 @@ function sosfiltfilt(sos, x) {
     defaults: { lo: 0.5, hi: 5 },
     durNormal: 6,
     steps: [
-      { id: 'raw', title: () => 'Raw acceleration magnitude during walking', tag: () => '|a| − mean · 50 Hz · 6 s',
+      { id: 'raw', title: () => 'Raw acceleration magnitude during walking', tag: () => '',
         subtitle: '', span: () => DUR },
       { id: 'filt', title: () => `After a ${bandTxt()} band-pass filter`, tag: () => `band-pass ${bandTxt()} · filtfilt`,
         subtitle: '', code: () => `b, a = butter(3, [<b class="p">${fmt(lo(), 1)}</b>, <b class="p">${fmt(hi(), 1)}</b>], btype='bandpass', fs=50); filtered = filtfilt(b, a, magnitude)`, span: () => DUR },

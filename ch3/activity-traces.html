@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Accelerometer Traces of Six Activities</title>
+<title>What the Data Actually Looks Like</title>
 </head>
 <body>
 <style>
@@ -79,6 +79,7 @@
   }
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
   .head p:empty { display: none; }
+  .head h1 .tag:empty { display: none; }
   .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
   .code .p { color: var(--ma); font-weight: 700; }
@@ -375,7 +376,7 @@ const TRACES = {
   // ------------------------------------------------------------ page
   const FS = 50, DUR = 5, NS = DUR * FS;
   const AXES = [{ k: 'x', c: COL.blue, n: 'acceleration x' }, { k: 'y', c: COL.red, n: 'acceleration y' }, { k: 'z', c: COL.green, n: 'acceleration z' }];
-  const ORDER = ['Sitting', 'Standing', 'Walking', 'Upstairs', 'Downstairs', 'Running'];
+  const ORDER = ['Walking', 'Running', 'Upstairs', 'Downstairs', 'Sitting', 'Standing'];   // the chapter's order
   const NAME = { Sitting: 'sitting', Standing: 'standing', Walking: 'walking', Upstairs: 'walking upstairs', Downstairs: 'walking downstairs', Running: 'running' };
   const SUB = {
     Sitting: 'The three accelerometer axes while sitting with the phone in a hip pocket.',
@@ -391,16 +392,16 @@ const TRACES = {
   const start = () => DIALS.start.get();
   const offset = () => Math.round(start() * FS);
   const selAxes = () => { const a = DIALS.axes.get(); return a === 'xyz' ? AXES : AXES.filter(x => x.k === a); };
-  const tagTxt = () => `50 Hz · start ${fmt(start(), 1)} s · hip pocket`;
+  const tagTxt = () => 'phone in hip pocket';
 
   const PAGE = {
     defaults: { start: 0, axes: 'xyz' },
     durNormal: 6,
     steps: ORDER.map(act => ({
-      act, title: () => `Accelerometer traces during ${NAME[act]}`, tag: tagTxt, subtitle: SUB[act], span: () => DUR
+      act, title: () => NAME[act][0].toUpperCase() + NAME[act].slice(1), tag: tagTxt, subtitle: '', span: () => DUR
     })).concat([{
       act: null, static: true, title: () => 'Six activities side by side', tag: tagTxt,
-      subtitle: 'Same user, same phone, identical axes.', span: () => DUR
+      subtitle: '', span: () => DUR
     }]),
     setup(step) { chart.innerHTML = ''; G = {}; if (step.act) setupSingle(step); else setupGrid(); },
     draw(step, t) { if (step.act) drawSingle(step, t); }
@@ -464,7 +465,7 @@ const TRACES = {
       txt(g, px0 + PW / 2, py0 - 8, NAME[act], { class: 'dlabel', 'text-anchor': 'middle', fill: 'var(--ink)' });
       const o = offset();
       selAxes().forEach(a => el('path', { class: 'thin-line', d: path(TRACES[act][a.k], o, NS - 1, pxs, pys), stroke: a.c, 'stroke-width': 1.1 }, g));
-      if (k === 0) drawLegendRow(g, px1 - 4, py1 - 36, selAxes().map(a => ({ c: a.c, n: a.n })));   // bottom strip of the flat sitting panel
+      if (act === 'Sitting') drawLegendRow(g, px1 - 4, py1 - 36, selAxes().map(a => ({ c: a.c, n: a.n })));   // bottom strip of the flat sitting panel
     });
   }
 

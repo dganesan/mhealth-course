@@ -25,6 +25,7 @@
   .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
   .head p:empty { display: none; }
+  .head h1 .tag:empty { display: none; }
   .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
   .code .p { color: var(--ma); font-weight: 700; }
@@ -452,16 +453,16 @@ const CAP = {
 const caption = () => CAP[dial('ex')][dial('place')];
 const STEPS = [
   { title: 'A rotation-dominant exercise: the bicep curl', dur: 8, presets: { ex: 'curl', place: 'wrist' },
-    tag: () => `${FS} Hz`, subtitle: caption,
+    subtitle: '',
     setup() {}, draw: drawAll },
   { title: 'An acceleration-dominant exercise: the bench press', dur: 8, presets: { ex: 'bench', place: 'wrist' },
-    tag: () => `${FS} Hz`, subtitle: caption,
+    subtitle: '',
     setup() {}, draw: drawAll },
   { title: 'One exercise, three placements: the squat', dur: 8, presets: { ex: 'squat', place: 'pocket' },
-    tag: () => `${FS} Hz`, subtitle: caption,
+    subtitle: '',
     setup() {}, draw: drawAll },
   { title: 'A leg-driven exercise: the leg raise', dur: 8, presets: { ex: 'legraise', place: 'wrist' },
-    tag: () => `${FS} Hz`, subtitle: caption,
+    subtitle: '',
     setup() {}, draw: drawAll },
 ];
 

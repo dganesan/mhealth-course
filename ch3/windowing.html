@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Segmenting a Stream into Windows</title>
+<title>Segmenting the Data into Windows</title>
 </head>
 <body>
 <style>
@@ -79,6 +79,7 @@
   }
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
   .head p:empty { display: none; }
+  .head h1 .tag:empty { display: none; }
   .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
   .code .p { color: var(--ma); font-weight: 700; }
@@ -377,12 +378,12 @@ const STREAM = [7.34,8.62,9.28,9.96,10.24,10.09,9.56,9.31,9.01,9.42,9.8,9.8,12.2
     defaults: { win: 2, ov: 0 },
     durNormal: 6,
     steps: [
-      { id: 'stream', title: () => 'Continuous stream of samples', tag: () => `50 Hz · ${VIEW} s shown`,
+      { id: 'stream', title: () => 'Continuous stream of samples', tag: () => '',
         subtitle: '' },
       { id: 'nonov', presets: { win: 2, ov: 0 }, title: () => `Non-overlapping ${w() < 1 ? fmt(w(), 1) : w()}-second windows`, tag: tagTxt,
-        subtitle: () => `Cutting the stream into consecutive windows of ${Math.round(w() * FS)} samples, each producing one feature vector.` },
+        subtitle: '' },
       { id: 'ov', presets: { win: 2, ov: 50 }, title: () => `Overlapping windows`, tag: tagTxt,
-        subtitle: () => `Sliding windows with ${ov()} % overlap, each starting ${fmt(stepLen(), 1)} s after the previous.` },
+        subtitle: '' },
       { id: 'short', presets: { win: 0.2, ov: 0 }, title: 'Window shorter than one step', tag: tagTxt,
         subtitle: '' },
       { id: 'long', presets: { win: 30, ov: 0 }, title: 'Window spanning two activities', tag: tagTxt,
@@ -400,7 +401,6 @@ const STREAM = [7.34,8.62,9.28,9.96,10.24,10.09,9.56,9.31,9.01,9.42,9.8,9.8,12.2
       const items = [{ c: COL.ink2, n: 'acceleration magnitude |a|', w: 1.5 }];
       LABELS.filter(l => l.t0 < VIEW).forEach(l => items.push({ c: ACT_COL[l.name], n: `label: ${l.name}`, fill: true }));
       if (step.id !== 'stream') items.push({ c: '#8c8c8c', n: 'window', fill: true, op: .18, stroke: 'var(--ink-2)', dash: true });
-      drawLegend(chart, P.x1 - 6, P.y1 - (items.length * 30 + 12) - 6, items, true);   // the 0–5 m/s² band is empty
       G.hover = el('g', {}, chart);
       el('rect', { x: P.x0, y: P.y0, width: P.x1 - P.x0, height: P.yAx - P.y0, fill: 'transparent' }, chart);
       drawStrip();

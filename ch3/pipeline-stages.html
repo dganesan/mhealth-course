@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Pipeline Stage by Stage</title>
+<title>The Pipeline at a Glance</title>
 </head>
 <body>
 <style>
@@ -79,6 +79,7 @@
   }
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
   .head p:empty { display: none; }
+  .head h1 .tag:empty { display: none; }
   .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
   .code .p { color: var(--ma); font-weight: 700; }
@@ -385,10 +386,10 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
     defaults: { win: 2 },
     durNormal: 6,
     steps: [
-      { id: 'collect', title: () => 'Stage 1: collect labeled sensor data', tag: () => '50 Hz · 12 s · Walking 8 s + Sitting 4 s', span: () => DUR,
-        subtitle: 'Three-axis acceleration with an activity label while the user walks then sits.' },
-      { id: 'prep', title: () => 'Stage 2: pre-process with a band-pass filter', tag: () => 'band-pass 0.5–5 Hz · filtfilt', span: () => DUR,
-        subtitle: '0.5–5 Hz band-pass on the acceleration magnitude.',
+      { id: 'collect', title: () => 'Stage 1: collect labeled sensor data', tag: () => '', span: () => DUR,
+        subtitle: '' },
+      { id: 'prep', title: () => 'Stage 2: pre-process with a band-pass filter', tag: () => '', span: () => DUR,
+        subtitle: '',
         code: `b, a = butter(3, [0.5, 5.0], btype='bandpass', fs=50); filtered = filtfilt(b, a, magnitude)` },
       { id: 'window', title: () => `Stage 3: segment into ${w()}-second windows`, tag: () => `w = ${w()} s = ${w() * FS} samples · ${WS.length} windows`, span: () => DUR,
         subtitle: '' },
@@ -400,14 +401,15 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
     setup(step) {
       WS = windows();
       chart.innerHTML = ''; G = {};
+      document.querySelector('.row.dials').style.visibility = (step.id === 'collect' || step.id === 'prep') ? 'hidden' : '';
       drawStages(PAGE.steps.indexOf(step));
       const defs = el('defs', {}, chart);
       const m = el('marker', { id: 'arr', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: 'auto' }, defs);
       el('path', { d: 'M0,0L10,5L0,10z', fill: COL.blue }, m);
       G.static = el('g', {}, chart); G.dyn = el('g', {}, chart); G.hover = el('g', {}, chart);
-      if (step.id === 'collect') { P = Object.assign({}, P0, { x1: XR }); YR = [-20, 22]; YT = [-20, -10, 0, 10, 20]; axes('m/s²'); strip(); legend(AXES.map(a => ({ c: a.c, n: a.n })).concat(labelItems())); }
-      else if (step.id === 'prep') { P = Object.assign({}, P0, { x1: XR }); YR = [-6, 6]; YT = [-4, -2, 0, 2, 4]; axes('|a| − mean (m/s²)'); strip(); el('path', { class: 'thin-line', d: path(RAW, N - 1), stroke: COL.raw, 'stroke-width': 1.5 }, G.static); legend([{ c: COL.raw, n: 'raw |a| − mean' }, { c: COL.blue, n: 'band-pass 0.5–5 Hz (filtfilt)' }].concat(labelItems())); }
-      else if (step.id === 'window' || step.id === 'features') { P = Object.assign({}, P0, { x1: step.id === 'window' ? XR : 725 }); YR = [-6, 6]; YT = [-4, -2, 0, 2, 4]; axes('filtered |a| (m/s²)'); strip(); el('path', { class: 'thin-line', d: path(FILT, N - 1), stroke: COL.blue, 'stroke-width': 1.3 }, G.static); legend([{ c: COL.blue, n: 'band-pass 0.5–5 Hz' }].concat(labelItems(), [{ c: '#8c8c8c', n: 'window', fill: true, op: .18, stroke: 'var(--ink-2)', dash: true }])); if (step.id === 'features') tableHead(TB1); }
+      if (step.id === 'collect') { P = Object.assign({}, P0, { x1: XR }); YR = [-20, 30]; YT = [-20, -10, 0, 10, 20]; axes('m/s²'); strip(); legend(AXES.map(a => ({ c: a.c, n: a.n }))); }
+      else if (step.id === 'prep') { P = Object.assign({}, P0, { x1: XR }); YR = [-6, 8]; YT = [-4, -2, 0, 2, 4, 6]; axes('|a| − mean (m/s²)'); strip(); el('path', { class: 'thin-line', d: path(RAW, N - 1), stroke: COL.raw, 'stroke-width': 1.5 }, G.static); legend([{ c: COL.raw, n: 'raw |a| − mean' }, { c: COL.blue, n: 'band-pass 0.5–5 Hz' }]); }
+      else if (step.id === 'window' || step.id === 'features') { P = Object.assign({}, P0, { x1: step.id === 'window' ? XR : 725 }); YR = [-6, 9]; YT = [-4, -2, 0, 2, 4, 6]; axes('filtered |a| (m/s²)'); strip(); el('path', { class: 'thin-line', d: path(FILT, N - 1), stroke: COL.blue, 'stroke-width': 1.3 }, G.static); if (step.id === 'features') tableHead(TB1); }
       else { tableHead(TB2); classifierBox(); labelAxis(); }
       el('rect', { x: P.x0, y: P.y0, width: P.x1 - P.x0, height: P.y1 - P.y0, fill: 'transparent' }, chart);
     },
@@ -425,7 +427,7 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
   const P0 = { x0: 80, x1: XR, y0: 150, y1: 560, yAx: 592 };
   const TB1 = { x: 790, y: 176, w: XR - 790, cw: [96, 158, 158, 212] }, TB2 = { x: 48, y: 176, w: 532, cw: [84, 133, 133, 182] };
   const HEAD = ['window', 'var', 'f_dom', 'label'];
-  const CB = { x: 645, y: 320, w: 262, h: 80 };                     // classifier box
+  const CB = { x: 604, y: 320, w: 326, h: 80 };                     // classifier box
   const LA = { x0: 955, x1: XR, y: 330, h: 60 };                   // output label stream
   const xs = t => P.x0 + (t / DUR) * (P.x1 - P.x0);
   const ys = v => P.y1 - ((v - YR[0]) / (YR[1] - YR[0])) * (P.y1 - P.y0);
@@ -434,7 +436,7 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
   function axes(yTitle) { drawAxes(G.static, { x0: P.x0, x1: P.x1, y0: P.y0, y1: P.yAx, xs, ys, xTicks: [0, 2, 4, 6, 8, 10, 12], yTicks: YT, xTitle: 'time (seconds)', yTitle }); }
   function strip() { LABELS.forEach(l => { const a = xs(l.t0), b = xs(l.t1); el('rect', { x: a, y: P.y1 + 6, width: b - a, height: P.yAx - P.y1 - 10, fill: ACT_COL[l.name], 'fill-opacity': .35 }, G.static); txt(G.static, (a + b) / 2, P.yAx - 9, `label: ${l.name}`, { class: 'dlabel', 'text-anchor': 'middle', fill: 'var(--ink)' }); }); }
   const labelItems = () => LABELS.map(l => ({ c: ACT_COL[l.name], n: `label: ${l.name}`, fill: true }));
-  function legend(items) { drawLegend(G.static, P.x1 - 6, P.y1 - (items.length * 30 + 12) - 6, items, true); }   // bottom-right of the panel (above the label strip) is empty: sitting traces stay near the middle
+  function legend(items) { drawLegend(G.static, P.x1 - 6, P.y0 + 8, items, true); }   // top right, above the traces (YR leaves headroom)
   function cursorLine(t, upto) { if (t < DUR - 1e-9) { el('line', { class: 'cursor-line', x1: xs(t), x2: xs(t), y1: P.y0, y2: P.y1 }, G.dyn); txt(G.dyn, xs(t) + 6, P.y1 - 8, `t = ${fmt(t, 2)} s · sample ${upto + 1}`, { class: 'mono-2' }); } }
 
   // ---- the five stage boxes across the top, as in the chapter's pipeline figure
@@ -510,9 +512,8 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
     const axis = el('g', { class: 'axis' }, g);
     el('path', { d: `M${LA.x0},${LA.y + LA.h + 6}H${LA.x1}` }, axis);
     [0, 2, 4, 6, 8, 10, 12].forEach(v => { const x = lx(v); el('line', { x1: x, x2: x, y1: LA.y + LA.h + 6, y2: LA.y + LA.h + 11 }, axis); txt(axis, x, LA.y + LA.h + 24, v, { 'text-anchor': 'middle' }); });
-    txt(g, LA.x1, LA.y + LA.h + 40, 'time (seconds)', { class: 'axis-title', 'text-anchor': 'end' });
+    txt(g, LA.x1, LA.y + LA.h + 56, 'time (seconds)', { class: 'axis-title', 'text-anchor': 'end' });
     WS.forEach(win => el('rect', { x: lx(win.a) + 1, y: LA.y, width: lx(win.b) - lx(win.a) - 2, height: LA.h, fill: 'none', stroke: 'var(--rule)', 'stroke-dasharray': '3 3' }, g));
-    drawLegend(g, LA.x0, LA.y + LA.h + 56, labelItems());
   }
   const lx = t => LA.x0 + (t / DUR) * (LA.x1 - LA.x0);
   function drawClassify(t) {

@@ -42,6 +42,7 @@
   .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
   .head p:empty { display: none; }
+  .head h1 .tag:empty { display: none; }
   .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
   .code .p { color: var(--ma); font-weight: 700; }
@@ -484,14 +485,14 @@ window.PPG = [0.5601,0.5533,0.5454,0.5357,0.5249,0.5161,0.5083,0.5024,0.4976,0.4
   const P = v => `<b class="p">${v}</b>`;
   const butterCall = () => `b, a = butter(4, [${P(num(fLo))}, ${P(num(fHi))}], btype='bandpass', fs=${FS})`;
   const STEPS = [
-    { id: 'raw', base: 6, title: 'PPG recording', tag: () => `PPG · 30 s · fs = ${FS} Hz`,
-      subtitle: 'Thirty seconds of a real pulse recording from a patient monitor, sampled at 125 Hz.' },
-    { id: 'spec', base: 4, title: 'Spectrum of the PPG recording', tag: () => `PPG · 30 s · fs = ${FS} Hz`,
-      subtitle: 'Breathing drift below 0.5 Hz, the pulse near 1.5 Hz with harmonics, and a faint floor above 5 Hz.' },
-    { id: 'design', base: 3, title: 'Designing a band-pass filter from the spectrum', tag: () => `band-pass ${bandText()} · order 4 · fs = ${FS} Hz`,
-      subtitle: 'One band-pass keeps the pulse band and removes both the drift and the high-frequency floor.',
+    { id: 'raw', base: 6, title: 'PPG recording', tag: () => '',
+      subtitle: '' },
+    { id: 'spec', base: 4, title: 'Spectrum of the PPG recording', tag: () => '',
+      subtitle: '' },
+    { id: 'design', base: 3, title: 'Designing a band-pass filter from the spectrum', tag: () => `band-pass ${bandText()} · order 4`,
+      subtitle: '',
       code: butterCall },
-    { id: 'result', base: 6, title: 'Filtered PPG recording', tag: () => `band-pass ${bandText()} · order 4 · fs = ${FS} Hz`,
+    { id: 'result', base: 6, title: 'Filtered PPG recording', tag: () => `band-pass ${bandText()} · order 4`,
       subtitle: '',
       code: () => butterCall() + ';  y = filtfilt(b, a, x)' },
   ];

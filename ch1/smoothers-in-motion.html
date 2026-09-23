@@ -79,6 +79,7 @@
   }
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
   .head p:empty { display: none; }
+  .head h1 .tag:empty { display: none; }
   .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
   .group[hidden] { display: none; }
@@ -312,7 +313,7 @@
     return [
       {
         id: 'raw', series: null,
-        title: 'Input signal', tag: `N = ${N} samples`,
+        title: 'Input signal', tag: '',
         subtitle: '',
         formula: `xᵢ = cleanᵢ + noiseᵢ`,
         takeaway: 'Every filter below replaces each sample by a summary of its neighborhood. What differs is <strong>which</strong> neighbors count, and <strong>how much</strong>.'

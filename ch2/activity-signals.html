@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Activity Signals by Sensor and Placement</title>
+<title>Accelerometer vs Gyroscope Across Activities</title>
 </head>
 <body>
 <style>
@@ -25,6 +25,7 @@
   .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
   .head p:empty { display: none; }
+  .head h1 .tag:empty { display: none; }
   .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
   .code .p { color: var(--ma); font-weight: 700; }
@@ -90,7 +91,7 @@
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
-      <span>CS328 &nbsp;·&nbsp; The Activity Recognition Pipeline</span>
+      <span>CS328 &nbsp;·&nbsp; Counting Steps and Reps</span>
       <span class="ctr" id="counter"></span>
     </div>
   </section>
@@ -476,8 +477,6 @@ function drawFigure(parent, t) {
     const gg = el('g', { transform: `translate(${X(m.p)},${Y(m.p)}) rotate(${-m.rot * 180 / Math.PI})` }, g);
     el('rect', { x: -m.w / 2, y: -m.h / 2, width: m.w, height: m.h, rx: 2.5, fill: on ? pc : '#fff', stroke: on ? pc : C.ink2, 'stroke-width': on ? 2 : 1.5 }, gg);
   }
-  txt(parent, FIG.x + FIG.w / 2, FIG.y + 26, A.name, { class: 'mono', 'font-size': 17, 'font-weight': 700, fill: C.ink, 'text-anchor': 'middle' });
-  txt(parent, FIG.x + FIG.w / 2, FIG.y + 48, `t = ${fmt(t, 2)} s`, { class: 'mono', 'font-size': 15, fill: C.ink2, 'text-anchor': 'middle' });
 }
 
 // ------------------------------------------------------------ signal panels
@@ -493,7 +492,7 @@ function drawTrace(parent, box, arr, yd, o, tcur, col) {
 function drawAll(progress) {
   const t = progress * WIN, col = PLACES[dial('place')].color; chart.innerHTML = '';
   drawFigure(chart, t);
-  txt(chart, SIGX, TOP.y - 40, `${SIM.act.name} · ${PLACES[dial('place')].name}`, { class: 'sans', 'font-size': 26, 'font-weight': 700, fill: col });
+  txt(chart, SIGX, TOP.y - 40, PLACES[dial('place')].name, { class: 'sans', 'font-size': 26, 'font-weight': 700, fill: col });
   // legend row on the accelerometer panel's title line, right-aligned
   const ly = TOP.y - 8, items = [{ c: col, w: 2.6, n: 'sensor magnitude' }];
   if (SIM.act.mark) items.push({ c: C.ink3, w: 1.5, d: '5 4', n: SIM.act.mark });
@@ -534,16 +533,16 @@ const CAP = {
           ear: 'The head stays in line with the body, so the earbud sees almost nothing.' },
 };
 const caption = () => CAP[dial('act')][dial('place')];
-const tag = () => `${FS} Hz · ${SIM.act.rate}`;
+const tag = () => `${SIM.act.rate}`;
 const STEPS = [
-  { title: 'Walking on flat ground', dur: 8, presets: { act: 'walk', place: 'pocket' }, tag, subtitle: caption, setup() {}, draw: drawAll },
-  { title: 'Walking upstairs', dur: 8, presets: { act: 'up', place: 'pocket' }, tag, subtitle: caption, setup() {}, draw: drawAll },
-  { title: 'Walking downstairs', dur: 8, presets: { act: 'down', place: 'pocket' }, tag, subtitle: caption, setup() {}, draw: drawAll },
-  { title: 'Running', dur: 8, presets: { act: 'run', place: 'pocket' }, tag, subtitle: caption, setup() {}, draw: drawAll },
-  { title: 'Standing, sitting and lying down', dur: 8, presets: { act: 'stand', place: 'pocket' }, tag, subtitle: caption, setup() {}, draw: drawAll },
-  { title: 'Cycling', dur: 8, presets: { act: 'cycle', place: 'pocket' }, tag, subtitle: caption, setup() {}, draw: drawAll },
-  { title: 'Rowing', dur: 8, presets: { act: 'row', place: 'wrist' }, tag, subtitle: caption, setup() {}, draw: drawAll },
-  { title: 'Swimming', dur: 8, presets: { act: 'swim', place: 'wrist' }, tag, subtitle: caption, setup() {}, draw: drawAll },
+  { title: 'Walking on flat ground', dur: 8, presets: { act: 'walk', place: 'pocket' }, tag, subtitle: '', setup() {}, draw: drawAll },
+  { title: 'Walking upstairs', dur: 8, presets: { act: 'up', place: 'pocket' }, tag, subtitle: '', setup() {}, draw: drawAll },
+  { title: 'Walking downstairs', dur: 8, presets: { act: 'down', place: 'pocket' }, tag, subtitle: '', setup() {}, draw: drawAll },
+  { title: 'Running', dur: 8, presets: { act: 'run', place: 'pocket' }, tag, subtitle: '', setup() {}, draw: drawAll },
+  { title: 'Standing, sitting and lying down', dur: 8, presets: { act: 'stand', place: 'pocket' }, tag, subtitle: '', setup() {}, draw: drawAll },
+  { title: 'Cycling', dur: 8, presets: { act: 'cycle', place: 'pocket' }, tag, subtitle: '', setup() {}, draw: drawAll },
+  { title: 'Rowing', dur: 8, presets: { act: 'row', place: 'wrist' }, tag, subtitle: '', setup() {}, draw: drawAll },
+  { title: 'Swimming', dur: 8, presets: { act: 'swim', place: 'wrist' }, tag, subtitle: '', setup() {}, draw: drawAll },
 ];
 
 // ------------------------------------------------------------ hover

@@ -44,14 +44,17 @@ CSS verbatim where possible. Key facts of the template:
    No leading article ("Raw ECG recording", not "The raw ECG recording"); "vs", not "versus".
    The title must stay on one line: no `text-wrap: balance` on `.head h1`, and the mono tag
    chip after it (live parameter values, e.g. `w = 9 · α = 0.2`) is `white-space: nowrap` so
-   only the chip drops to a second line on a narrow screen. If the title reflects a dial
+   only the chip drops to a second line on a narrow screen. The chip holds only live dial values,
+   live results (`found 12 · true 45`), or context the viewer needs (`phone in hip pocket`).
+   Never the sampling rate, the duration, a sample count, or a start offset. An empty chip is
+   hidden with `.head h1 .tag:empty { display: none; }`. If the title reflects a dial
    (filter type, input signal), build it from the live state, never a fixed string.
-2. The second line (`subtitle`) is OPTIONAL and usually absent (`subtitle: ''`; the page must
-   hide an empty line: `.head p:empty { display: none; }`). Keep one only when it states a
-   fact the chart and title do not already show: data provenance ("Thirty seconds of a real
-   pulse recording, sampled at 125 Hz"), a mechanism ("Each cell adds its local cost to the
-   cheapest of its three neighbours"), or the point of the step ("The window mean fails to
-   separate standing from walking"). Never a restatement of the title ("How a low-pass filter
+2. The second line (`subtitle`) is almost always absent (`subtitle: ''`; the page must
+   hide an empty line: `.head p:empty { display: none; }`). The instructor explains the step
+   aloud, so the slide shows the idea rather than writing it out: no provenance, no mechanism,
+   no "point of the step". Keep one only when the instructor asks for it. A fact the viewer
+   must not miss (e.g. a unit such as "distance is in samples") goes into the chart as a short
+   annotation pointing at the thing it describes. Never a restatement of the title ("How a low-pass filter
    removes high-frequency noise" under "Low-pass filtering of high-frequency noise").
    When kept: one plain sentence, ≤ 15 words, no "How ..." / "Comparing ..." openers, no
    metaphors, no stacked clauses, and it must never wrap at 1920 px (≈ 110 characters).

@@ -25,6 +25,7 @@
   .head h1 .tag { display: inline-block; font-family: var(--mono); font-weight: 400; font-size: 0.6em; color: var(--ink-2); margin-left: 10px; vertical-align: middle; background: #f4f4f4; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
   .head p:empty { display: none; }
+  .head h1 .tag:empty { display: none; }
   .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
   .code .p { color: var(--ma); font-weight: 700; }
@@ -387,21 +388,21 @@ const STEPS = [
   {
     title: 'Lateral raise at a spacing of 0.7 s', dur: 10, presets: { dist: 0.7, prom: 0.12 },
     tag: () => `distance = ${fmt(dial('dist'), 2)} s · prominence = ${fmt(dial('prom'), 2)} → found ${live.a} · true 9`,
-    subtitle: 'A spacing tuned for a fast exercise double-counts a slow lateral raise.',
+    subtitle: '',
     code: () => `peaks, _ = find_peaks(normalized, <span class="hl">distance=int(<b class="p">${fmt(dial('dist'), 2)}</b> * 50)</span>, <span class="hl">prominence=<b class="p">${fmt(dial('prom'), 2)}</b></span>)`,
     setup() {}, draw(p) { chart.innerHTML = ''; G.cols = null; G.P = setPanel(SINGLE, RF.lat, p, dial('dist'), dial('prom')); live.a = G.P.n; G.Q = null; }
   },
   {
     title: 'Jumping jacks at a spacing of 0.7 s', dur: 10, presets: { dist: 0.7, prom: 0.12 },
     tag: () => `distance = ${fmt(dial('dist'), 2)} s · prominence = ${fmt(dial('prom'), 2)} → found ${live.a} · true 25`,
-    subtitle: 'The same detector counts every jumping jack exactly once.',
+    subtitle: '',
     code: () => `peaks, _ = find_peaks(normalized, <span class="hl">distance=int(<b class="p">${fmt(dial('dist'), 2)}</b> * 50)</span>, <span class="hl">prominence=<b class="p">${fmt(dial('prom'), 2)}</b></span>)`,
     setup() {}, draw(p) { chart.innerHTML = ''; G.cols = null; G.P = setPanel(SINGLE, RF.jj, p, dial('dist'), dial('prom')); live.a = G.P.n; G.Q = null; }
   },
   {
     title: 'No one spacing counts both exercises', presets: { dist: 1.3, prom: 0.12 },
     tag: () => `spacing = ${fmt(live.d, 2)} s · lateral raise ${live.a} / 9 · jumping jacks ${live.b} / 25`,
-    subtitle: 'Sweep the distance dial. A spacing wide enough for the slow lateral raise merges the faster jumping jacks.',
+    subtitle: '',
     code: () => `peaks, _ = find_peaks(normalized, <span class="hl">distance=int(<b class="p">${fmt(live.d, 2)}</b> * 50)</span>, prominence=<b class="p">${fmt(dial('prom'), 2)}</b>)`,
     setup() {}, draw(p) {
       chart.innerHTML = ''; G.cols = null;

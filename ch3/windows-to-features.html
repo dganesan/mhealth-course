@@ -79,6 +79,7 @@
   }
   .head p { margin: 6px 0 0; color: #444; font-size: clamp(18px, 1.7vw, 24px); max-width: none; }
   .head p:empty { display: none; }
+  .head h1 .tag:empty { display: none; }
   .code { margin: 8px 0 0; font-family: var(--mono); font-size: clamp(15px, 1.4vw, 21px); color: var(--ink); background: #f4f6f9; border: 1px solid var(--rule); border-radius: 5px; padding: 6px 12px; white-space: pre; overflow-x: auto; }
   .code[hidden] { display: none; }
   .code .p { color: var(--ma); font-weight: 700; }
@@ -380,21 +381,20 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
       { id: 'cut', title: () => `Stream cut into ${w()}-second windows`, tag: tagTxt, span: () => DUR,
         subtitle: '' },
       { id: 'rows', title: () => 'One row of features per window', tag: () => `${WS.length} rows × 3 features + label`, span: () => DUR,
-        subtitle: 'Each window becomes one row of mean, variance and dominant frequency.' },
+        subtitle: '' },
       { id: 'table', static: true, title: () => 'Feature table is the input to the classifier', tag: () => `${WS.length} rows × 3 features + label`, span: () => DUR,
         subtitle: '' }
     ],
     setup(step) {
       WS = windows();
       chart.innerHTML = ''; G = {};
-      drawAxes(chart, { x0: P.x0, x1: P.x1, y0: P.y0, y1: P.yAx, xs, ys, xTicks: [0, 2, 4, 6, 8, 10, 12], yTicks: [0, 5, 10, 15], xTitle: 'time (seconds)', yTitle: '|a| (m/s²)' });
+      drawAxes(chart, { x0: P.x0, x1: P.x1, y0: P.y0, y1: P.yAx, xs, ys, xTicks: [0, 2, 4, 6, 8, 10, 12], yTicks: [0, 5, 10, 15, 20], xTitle: 'time (seconds)', yTitle: '|a| (m/s²)' });
       LABELS.forEach(l => { const a = xs(l.t0), b = xs(l.t1); el('rect', { x: a, y: P.y1 + 6, width: b - a, height: P.yAx - P.y1 - 10, fill: ACT_COL[l.name], 'fill-opacity': .35 }, chart); txt(chart, (a + b) / 2, P.yAx - 9, `label: ${l.name}`, { class: 'dlabel', 'text-anchor': 'middle', fill: 'var(--ink)' }); });
       el('path', { class: 'thin-line', d: path(), stroke: COL.ink2, 'stroke-width': 1.1 }, chart);
       G.wins = el('g', {}, chart);
       G.arrow = el('g', {}, chart);
       G.rows = el('g', {}, chart);
       G.brk = el('g', {}, chart);
-      drawLegend(chart, P.x1 - 6, P.y1 - (4 * 30 + 12) - 6, [{ c: COL.ink2, n: 'acceleration magnitude |a|', w: 1.5 }, { c: ACT_COL.Walking, n: 'label: Walking', fill: true }, { c: ACT_COL.Sitting, n: 'label: Sitting', fill: true }, { c: '#8c8c8c', n: 'window', fill: true, op: .18, stroke: 'var(--ink-2)', dash: true }], true);   // bottom-right: the sitting half stays near 10 m/s², so the 0–5 band there is empty
       drawTableHead();
       G.hover = el('g', {}, chart);
       el('rect', { x: P.x0, y: P.y0, width: P.x1 - P.x0, height: P.y1 - P.y0, fill: 'transparent' }, chart);
@@ -441,7 +441,7 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
   const HEAD = ['window', 'mean', 'var', 'f_dom', 'label'];
   const rowH = () => Math.min(48, (P.yAx - TB.y - 34) / WS.length);
   const xs = t => P.x0 + (t / DUR) * (P.x1 - P.x0);
-  const ys = v => P.y1 - (v / 16) * (P.y1 - P.y0);
+  const ys = v => P.y1 - (v / 20) * (P.y1 - P.y0);   // headroom above the walking peaks for the window labels
   function path() { let d = ''; for (let i = 0; i < N; i++) d += (i ? 'L' : 'M') + xs(i / FS).toFixed(1) + ',' + ys(MAG[i]).toFixed(1); return d; }
   function drawTableHead() {
     const defs = el('defs', {}, chart);
