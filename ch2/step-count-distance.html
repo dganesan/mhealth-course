@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Trying It on Real Data</title>
+<title>Checking the Count Against Known Steps</title>
 </head>
 <body>
 <style>
@@ -377,7 +377,7 @@ let live = { n: 0, d: 0.3 };
 
 const STEPS = [
   {
-    title: 'Trying it on real data: 45 known steps', dur: 10, tag: () => `left hoodie pocket · 3 sets · 45 steps`,
+    title: 'Checking the count against 45 known steps', dur: 10, tag: () => `left hoodie pocket · 3 sets · 45 steps`,
     subtitle: '',
     setup() {}, draw(p) {
       chart.innerHTML = ''; const i = Math.max(1, Math.round(p * (N - 1)));

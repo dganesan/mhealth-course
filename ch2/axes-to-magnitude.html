@@ -702,7 +702,7 @@ const STEPS = [
     title: 'Three accelerometer axes during walking', dur: 8, presets: { rx: 0, ry: 0, rz: 0 },
     tag: () => `50 Hz · rotation ${rotText(rotDial())}`,
     dials: ['rx', 'ry', 'rz'],
-    subtitle: 'The angle of the phone sets the reading on each axis.',
+    subtitle: 'The angle of the phone determines the reading on each axis.',
     setup() { chart.innerHTML = ''; }, draw(p) { chart.innerHTML = ''; G.top = drawAxesPanel(SINGLE_L, rotDial(), Math.max(2, Math.round(p * N))); drawPhone(chart, PHONE, rotDial()); }
   },
   {

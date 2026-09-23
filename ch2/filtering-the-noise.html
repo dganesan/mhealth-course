@@ -717,7 +717,7 @@ const STEPS = [
     }
   },
   {
-    title: 'Finding peaks in the filtered magnitude', dur: 10, presets: { rx: 0, ry: 0, rz: 0, lo: 0.5, hi: 4 },
+    title: 'The filtered signal has one peak per step', dur: 10, presets: { rx: 0, ry: 0, rz: 0, lo: 0.5, hi: 4 },
     code: `peaks, _ = find_peaks(filtered)`,
     tag: () => `find_peaks(filtered) → ${filtMax.filter(k => k <= progress * (N - 1)).length} peaks`,
     dials: ['lo', 'hi'],

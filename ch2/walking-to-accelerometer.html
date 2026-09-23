@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>What an Accelerometer Sees During Walking</title>
+<title>How Sensor Placement Changes the Walking Signal</title>
 </head>
 <body>
 <style>
@@ -750,7 +750,7 @@ function drawMag(parent, box, tcur) {
 // ------------------------------------------------------------ steps
 let PANELS = [];
 const STEPS = [
-  { title: 'What an accelerometer sees during walking', dur: 8, presets: { view: 'axes' },
+  { title: 'Three axes at each placement', dur: 8, presets: { view: 'axes' },
     tag: () => `${CADENCE} steps/min · ${FS} Hz`,
     subtitle: '',
     setup() {}, draw(p) { drawSensor(p); } },
