@@ -367,7 +367,7 @@ function peaksAt(dSec) { const key = dSec.toFixed(2) + '|' + dial('promf'); if (
 
 let G = {};
 function tracePanel(box, upto, title) {
-  const P = panel(chart, box, [0, TMAX], YD, { xlabel: 'time (seconds)', ylabel: 'acceleration (filtered, centered)', ylx: 62, ny: 4, yf: v => v, title });
+  const P = panel(chart, box, [0, TMAX], YD, { xlabel: 'time (seconds)', ylabel: '|a| (sensor units)', ylx: 76, ny: 4, yf: v => v, title });
   el('path', { class: 'thin-line', d: pathOf(T.map(P.sx), F.map(P.sy), upto), stroke: C.blue, 'stroke-width': 1.2 }, P.g);
   return P;
 }
@@ -395,6 +395,10 @@ const STEPS = [
       G.P = tracePanel(SINGLE, N); legendInline(G.P.top, SINGLE.x + SINGLE.w - 12, SINGLE.y + SINGLE.h - 44, [{ c: C.blue, n: 'filtered magnitude (0.5–5 Hz)' }, { k: 'circle', n: 'detected steps' }], true);
       const ks = peaksAt(dial('dist')).filter(k => k <= i); ks.forEach(k => ring(G.P, k)); cursorLine(G.P, i);
       live.n = ks.length; rbadge(G.P, `found ${ks.length} · true ${TRUE}`, C.red);
+      // the recording is in raw sensor units, so prominence is scaled by the signal's spread
+      const halo = 'paint-order:stroke; stroke:#fff; stroke-width:6px; stroke-linejoin:round';
+      txt(G.P.top, SINGLE.x + 16, SINGLE.y + 34, 'the sensor reports raw units, not m/s²', { class: 'sans', fill: C.ink, style: 'font-size:22px; font-weight:700; ' + halo });
+      txt(G.P.top, SINGLE.x + 16, SINGLE.y + 64, `so prominence = ${fmt(dial('promf'), 2)} × std = ${Math.round(promAbs())}`, { class: 'mono', fill: C.ink, style: 'font-size:21px; ' + halo });
     }
   },
   {
