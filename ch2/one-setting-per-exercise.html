@@ -369,55 +369,121 @@ function detect(set, dSec, prom) {
 RF.ind.forEach((s, k) => s.name = `Participant ${k + 1}`);
 RF.lat.name = 'Lateral raise'; RF.jj.name = 'Jumping jacks';
 
-let G = {}, live = { d: 0.7, a: 0, b: 0 };
-const cursorLine = (P, t) => el('line', { x1: P.sx(t), x2: P.sx(t), y1: P.box.y, y2: P.box.y + P.box.h, stroke: 'var(--ink-2)', 'stroke-width': 1, 'stroke-dasharray': '3 3' }, P.top);
-const rbadge = (P, s, c, dy = 26) => badge(P.top, P.box.x + P.box.w - badgeW(s) - 12, P.box.y + dy, s, c);
-function setPanel(box, set, p, dSec, prom, o = {}) {
-  const n = set.g.length, T = Array.from({ length: n }, (_, i) => i / FS), i = Math.round(p * (n - 1));
-  const P = panel(chart, box, [0, n / FS], [0, Math.max(...set.g) * 1.32], { xlabel: 'time (seconds)', ylabel: o.ylabel === undefined ? 'angular velocity |ω| (rad/s)' : o.ylabel, ylx: 62, ny: 4, nx: o.nx || 8, yf: v => fmt(v, 0), title: o.title });
+let G = {}, live = { a: 0, b: 0 };
+// two panels, one below the other, each with a figure of its exercise on the left
+const FIGX = 150, PX = 340, PWW = W - PX - PR;
+const TOPP = { x: PX, y: 58, w: PWW, h: 210 }, BOTP = { x: PX, y: 368, w: PWW, h: 210 };
+const PROM = 0.12, D_LAT = 1.3, D_JJ = 0.7;
+const EXS = [
+  { set: RF.lat, box: TOPP, arm: [10, 88], leg: [0, 0], n: 3 },
+  { set: RF.jj, box: BOTP, arm: [12, 160], leg: [0, 1], n: 7 },
+];
+// front view of a standing body; arm = angle of the arms from hanging straight down (degrees), leg = how far the feet are apart (0..1)
+function frontPose(cx, footY, s, arm, leg) {
+  const hipY = footY - 0.48 * s, shY = footY - 0.82 * s, a = arm * Math.PI / 180, L = 0.36 * s;
+  const side = k => {
+    const sh = [cx + k * 0.09 * s, shY], hand = [sh[0] + k * L * Math.sin(a), sh[1] + L * Math.cos(a)];
+    return { sh, elb: [(sh[0] + hand[0]) / 2, (sh[1] + hand[1]) / 2], hand, hip: [cx + k * 0.04 * s, hipY], foot: [cx + k * (0.06 + 0.16 * leg) * s, footY] };
+  };
+  return { l: side(-1), r: side(1), neck: [cx, shY], hipC: [cx, hipY], head: [cx, footY - 0.94 * s], hr: 0.075 * s, L };
+}
+function drawFront(P, op, colr) {
+  [P.l, P.r].forEach(S => { limb(S.hip, S.foot, C.ink3, op, 6); limb(S.sh, S.elb, C.ink3, op, 6); });
+  limb([P.l.sh[0], P.l.sh[1]], [P.r.sh[0], P.r.sh[1]], C.ink3, op, 6);
+  limb(P.neck, P.hipC, C.ink3, op, 6);
+  limb(P.l.elb, P.l.hand, C.ink3, op, 6);
+  limb(P.r.elb, P.r.hand, colr, op, 6);   // the forearm that wears the sensor
+  el('circle', { cx: P.head[0], cy: P.head[1], r: P.hr, fill: '#fff', stroke: C.ink3, 'stroke-width': 5, opacity: op }, chart);
+  const m = [(P.r.elb[0] + P.r.hand[0]) / 2, (P.r.elb[1] + P.r.hand[1]) / 2], ang = Math.atan2(P.r.hand[1] - P.r.elb[1], P.r.hand[0] - P.r.elb[0]) * 180 / Math.PI;
+  const g = el('g', { transform: `translate(${m[0]},${m[1]}) rotate(${ang})`, opacity: op }, chart);
+  el('rect', { x: -11, y: -9, width: 22, height: 18, rx: 3, fill: '#fff', stroke: colr, 'stroke-width': 2.4 }, g);
+}
+function limb(a, b, color, op, w) { el('line', { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: color, 'stroke-width': w, 'stroke-linecap': 'round', opacity: op }, chart); }
+// the arc the sensor arm sweeps, from a0 to a1 degrees about the shoulder
+function swing(sh, r, a0, a1, colr) {
+  let d = ''; for (let a = a0; a <= a1 + 1e-6; a += 3) { const t = a * Math.PI / 180; d += (d ? 'L' : 'M') + (sh[0] + r * Math.sin(t)).toFixed(1) + ',' + (sh[1] + r * Math.cos(t)).toFixed(1); }
+  el('path', { d, fill: 'none', stroke: colr, 'stroke-width': 3 }, chart);
+  const t = a1 * Math.PI / 180, x = sh[0] + r * Math.sin(t), y = sh[1] + r * Math.cos(t), dir = Math.atan2(-Math.sin(t), Math.cos(t));
+  el('path', { d: `M${x},${y}l${-12 * Math.cos(dir - 0.42)},${-12 * Math.sin(dir - 0.42)}L${x - 12 * Math.cos(dir + 0.42)},${y - 12 * Math.sin(dir + 0.42)}z`, fill: colr }, chart);
+}
+const cycle = (p, n) => (1 - Math.cos(2 * Math.PI * p * n)) / 2;
+function figure(ex, p) {   // p = null draws the still version: resting pose faded, raised pose solid
+  const s = 190, footY = ex.box.y + ex.box.h + 6, lerp = (r, c) => r[0] + (r[1] - r[0]) * c;
+  const up = frontPose(FIGX, footY, s, ex.arm[1], ex.leg[1]);
+  if (p == null) { drawFront(frontPose(FIGX, footY, s, ex.arm[0], ex.leg[0]), 0.22, C.violet); drawFront(up, 1, C.violet); }
+  else { const c = cycle(p, ex.n); drawFront(frontPose(FIGX, footY, s, ex.arm[0], ex.leg[0]), 0.18, C.violet); drawFront(frontPose(FIGX, footY, s, lerp(ex.arm, c), lerp(ex.leg, c)), 1, C.violet); }
+  swing(up.r.sh, up.L + 22, ex.arm[0] + 12, ex.arm[1] - 4, C.violet);
+}
+function setPanel(ex, dSec, o = {}) {
+  const set = ex.set, box = ex.box, n = set.g.length, T = Array.from({ length: n }, (_, i) => i / FS);
+  const P = panel(chart, box, [0, n / FS], [0, Math.max(...set.g) * 1.42], { xlabel: 'time (seconds)', ylabel: '|ω| (rad/s)', ylx: 52, ny: 4, yf: v => fmt(v, 0) });
   el('path', { class: 'out-line', d: pathOf(T.map(P.sx), set.g.map(P.sy)), stroke: C.violet, 'stroke-width': 1.4 }, P.g);
-  const ks = detect(set, dSec, prom).filter(k => k <= i);
+  txt(P.top, box.x, box.y - 8, `${set.name}, ${set.reps} repetitions`, { class: 'ptitle' });
+  if (o.tuned) txt(P.top, box.x + (set.name.length + 17) * 11.2 + 14, box.y - 8, '← spacing tuned on this exercise', { class: 'dlabel', fill: C.blue });
+  P.T = T; P.set = set; P.n = 0;
+  if (dSec == null) { const i = Math.round((o.p == null ? 1 : o.p) * (n - 1)); el('line', { x1: P.sx(T[i]), x2: P.sx(T[i]), y1: box.y, y2: box.y + box.h, stroke: 'var(--ink-2)', 'stroke-width': 1, 'stroke-dasharray': '3 3' }, P.top); return P; }
+  const ks = detect(set, dSec, PROM);
   ks.forEach(k => el('circle', { cx: P.sx(T[k]), cy: P.sy(set.g[k]), r: 6.5, class: 'kept' }, P.top));
-  cursorLine(P, T[i]);
-  if (!o.noLegend) (o.legendCol ? legend : legendInline)(P.top, box.x + 10, box.y + 8, [{ c: C.violet, n: 'gyroscope magnitude' }, { k: 'circle', n: 'detected repetitions' }]);
-  rbadge(P, `true ${set.reps} · found ${ks.length}`, C.red, o.badgeY || 26);
-  P.T = T; P.set = set; P.n = ks.length; return P;
+  const ok = ks.length === set.reps, s = `true ${set.reps} · found ${ks.length}`;
+  badge(P.top, box.x + box.w - badgeW(s) - 12, box.y + 26, s).querySelector('text').style.fill = ok ? C.green : C.red;   // green when the count is right
+  const w = dSec * FS / n * box.w, x1 = box.x + box.w - 12;
+  el('rect', { class: 'win-rect', x: x1 - w, y: box.y + 44, width: w, height: 12 }, P.top);
+  txt(P.top, x1 - w - 8, box.y + 54, `minimum spacing ${fmt(dSec, 2)} s`, { class: 'dlabel', fill: C.ink, 'text-anchor': 'end' });
+  P.n = ks.length; return P;
+}
+function legendTop(dots) {
+  const items = [{ c: C.violet, n: 'gyroscope magnitude' }].concat(dots ? [{ k: 'circle', n: 'detected repetitions' }] : []);
+  const w = 2 * 10 + items.map(it => 26 + it.n.length * 11 + 16).reduce((a, b) => a + b, 0) - 16;
+  legendInline(chart, TOPP.x + TOPP.w - w, TOPP.y - 52, items);
+}
+const dialRow = on => { $('dist').closest('.row').style.visibility = on ? 'visible' : 'hidden'; };
+const call = (v, d) => `${v}, _ = find_peaks(normalized, <span class="hl">distance=int(<b class="p">${d}</b> * 50)</span>, prominence=<b class="p">${fmt(PROM, 2)}</b>)`;
+function drawBoth(dLat, dJJ, tuned) {
+  chart.innerHTML = '';
+  figure(EXS[0], null); figure(EXS[1], null);
+  G.P = setPanel(EXS[0], dLat, { tuned: tuned === 0 }); G.Q = setPanel(EXS[1], dJJ, { tuned: tuned === 1 });
+  legendTop(true); live.a = G.P.n; live.b = G.Q.n;
 }
 
 const STEPS = [
   {
-    title: 'Lateral raise at a spacing of 0.7 s', dur: 10, presets: { dist: 0.7, prom: 0.12 },
-    tag: () => `distance = ${fmt(dial('dist'), 2)} s · prominence = ${fmt(dial('prom'), 2)} → found ${live.a} · true 9`,
+    title: 'Two exercises, one peak detector', dur: 10, presets: { dist: 0.7, prom: PROM },
+    tag: () => 'forearm gyroscope · 50 Hz',
     subtitle: '',
-    code: () => `peaks, _ = find_peaks(normalized, <span class="hl">distance=int(<b class="p">${fmt(dial('dist'), 2)}</b> * 50)</span>, <span class="hl">prominence=<b class="p">${fmt(dial('prom'), 2)}</b></span>)`,
-    setup() {}, draw(p) { chart.innerHTML = ''; G.cols = null; G.P = setPanel(SINGLE, RF.lat, p, dial('dist'), dial('prom')); live.a = G.P.n; G.Q = null; }
-  },
-  {
-    title: 'Jumping jacks at a spacing of 0.7 s', dur: 10, presets: { dist: 0.7, prom: 0.12 },
-    tag: () => `distance = ${fmt(dial('dist'), 2)} s · prominence = ${fmt(dial('prom'), 2)} → found ${live.a} · true 25`,
-    subtitle: '',
-    code: () => `peaks, _ = find_peaks(normalized, <span class="hl">distance=int(<b class="p">${fmt(dial('dist'), 2)}</b> * 50)</span>, <span class="hl">prominence=<b class="p">${fmt(dial('prom'), 2)}</b></span>)`,
-    setup() {}, draw(p) { chart.innerHTML = ''; G.cols = null; G.P = setPanel(SINGLE, RF.jj, p, dial('dist'), dial('prom')); live.a = G.P.n; G.Q = null; }
-  },
-  {
-    title: 'No one spacing counts both exercises', presets: { dist: 1.3, prom: 0.12 },
-    tag: () => `spacing = ${fmt(live.d, 2)} s · lateral raise ${live.a} / 9 · jumping jacks ${live.b} / 25`,
-    subtitle: '',
-    code: () => `peaks, _ = find_peaks(normalized, <span class="hl">distance=int(<b class="p">${fmt(live.d, 2)}</b> * 50)</span>, prominence=<b class="p">${fmt(dial('prom'), 2)}</b>)`,
-    setup() {}, draw(p) {
-      chart.innerHTML = ''; G.cols = null;
-      const d = dial('dist');
-      G.P = setPanel(TOP, RF.lat, 1, d, dial('prom'), { title: 'Lateral raise' });
-      G.Q = setPanel(BOT, RF.jj, 1, d, dial('prom'), { title: 'Jumping jacks' });
-      live.d = d; live.a = G.P.n; live.b = G.Q.n;
-      [G.P, G.Q].forEach(P => { const w = d * FS / (P.set.g.length) * P.box.w, x1 = P.box.x + P.box.w - 12; el('rect', { class: 'win-rect', x: x1 - w, y: P.box.y + 44, width: w, height: 12 }, P.top); txt(P.top, x1 - w - 8, P.box.y + 54, `minimum spacing ${fmt(d, 2)} s`, { class: 'dlabel', fill: C.ink, 'text-anchor': 'end' }); });
+    code: () => call('peaks', '?'),
+    setup() { dialRow(false); },
+    draw(p) {
+      chart.innerHTML = '';
+      EXS.forEach(ex => figure(ex, p));
+      G.P = setPanel(EXS[0], null, { p }); G.Q = setPanel(EXS[1], null, { p });
+      legendTop(false);
     }
+  },
+  {
+    title: 'Spacing tuned for the lateral raise', presets: { dist: D_LAT, prom: PROM },
+    tag: () => `distance = ${fmt(dial('dist'), 2)} s → lateral raise ${live.a} / 9 · jumping jacks ${live.b} / 25`,
+    subtitle: '',
+    code: () => call('peaks', fmt(dial('dist'), 2)),
+    setup() { dialRow(true); }, draw() { drawBoth(dial('dist'), dial('dist'), 0); }
+  },
+  {
+    title: 'Spacing tuned for the jumping jacks', presets: { dist: D_JJ, prom: PROM },
+    tag: () => `distance = ${fmt(dial('dist'), 2)} s → lateral raise ${live.a} / 9 · jumping jacks ${live.b} / 25`,
+    subtitle: '',
+    code: () => call('peaks', fmt(dial('dist'), 2)),
+    setup() { dialRow(true); }, draw() { drawBoth(dial('dist'), dial('dist'), 1); }
+  },
+  {
+    title: 'One setting per exercise', presets: { dist: D_LAT, prom: PROM },
+    tag: () => `lateral raise ${fmt(D_LAT, 2)} s → ${live.a} / 9 · jumping jacks ${fmt(D_JJ, 2)} s → ${live.b} / 25`,
+    subtitle: '',
+    code: () => call('raise_peaks', fmt(D_LAT, 2)) + '\n' + call('jack_peaks', fmt(D_JJ, 2)),
+    setup() { dialRow(false); }, draw() { drawBoth(D_LAT, D_JJ, -1); }
   },
 ];
 chart.addEventListener('mousemove', evt => {
-  const pt = svgPoint(evt); let P = G.P; if (!P) return;
-  if (G.cols) P = G.cols.find(c => pt.x >= c.box.x && pt.x <= c.box.x + c.box.w) || G.cols[0];
-  else if (G.Q && pt.y >= BOT.y - 4) P = G.Q;
+  const pt = svgPoint(evt); if (!G.P || pt.x < PX) return;
+  const P = (G.Q && pt.y >= BOTP.y - 30) ? G.Q : G.P;
   const i = clamp(Math.round((pt.x - P.box.x) / P.box.w * (P.set.g.length - 1)), 0, P.set.g.length - 1);
   tipAt(evt, `<div class="row"><span>${P.set.name}</span></div><div class="row"><span>t</span><b>${fmt(P.T[i], 2)} s</b></div><div class="row"><span><i class="sw" style="background:${C.violet}"></i>|ω|</span><span>${fmt(P.set.g[i], 2)} rad/s</span></div>`);
 });

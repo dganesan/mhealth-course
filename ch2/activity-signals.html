@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Accelerometer vs Gyroscope</title>
+<title>Best Sensor for Each Activity</title>
 </head>
 <body>
 <style>
@@ -165,7 +165,9 @@
   // joint ahead of the root-to-target line (a knee), -1 behind it (an elbow).
   function ik2(root, target, l1, l2, bend) {
     const dx = target.x - root.x, dy = target.y - root.y;
-    const d = clamp(Math.hypot(dx, dy), 0.05, l1 + l2 - 0.002);
+    // a soft limit near full reach, so the knee straightens smoothly instead of locking in one frame
+    const dmax = l1 + l2 - 0.002, k = 0.03, d0 = Math.max(0.05, Math.hypot(dx, dy));
+    const d = d0 < dmax - k ? d0 : dmax - k * Math.exp(-(d0 - dmax + k) / k);
     const theta = Math.atan2(dx, -dy);
     const K = Math.acos(clamp((l1 * l1 + l2 * l2 - d * d) / (2 * l1 * l2), -1, 1));
     const alpha = Math.acos(clamp((l1 * l1 + d * d - l2 * l2) / (2 * l1 * d), -1, 1));
@@ -179,7 +181,7 @@
     const floor = Math.min(G.land.y, G.lift.y) - L.ankleH;
     if (ph < G.stance) { const u = ph / G.stance; return { x: lerp(G.land.x, G.lift.x, u), y: lerp(G.land.y, G.lift.y, u), on: true, floor }; }
     const u = (ph - G.stance) / (1 - G.stance);
-    return { x: hermite(G.lift.x, G.land.x, vx * Tsw, vx * Tsw, u), y: hermite(G.lift.y, G.land.y, vy * Tsw, vy * Tsw, u) + G.clear * Math.sin(Math.PI * u), on: false, floor };
+    return { x: hermite(G.lift.x, G.land.x, vx * Tsw, vx * Tsw, u), y: hermite(G.lift.y, G.land.y, vy * Tsw, vy * Tsw, u) + G.clear * Math.pow(Math.sin(Math.PI * u), 2), on: false, floor, sw: u };
   }
   function gait(t, G) {
     const phi = frac(t / G.T), c = Math.cos(2 * TAU * (phi - G.stance / 2));   // +1 at mid-stance of either leg
@@ -245,7 +247,9 @@
       const ankle = { x: kneeP.x + L.shank * Math.sin(shk), y: kneeP.y - L.shank * Math.cos(shk) };
       // sole angle from horizontal: flat when the foot is on the ground, else fixed to the shank, unless given
       const on = lg.ankle ? lg.ankle.on : false;
-      const sole = lg.sole != null ? lg.sole * D : (on || lg.thigh != null) ? 0 : 0.5 * shk;
+      // a swinging foot eases from flat to following the shin and back, so it does not snap at lift-off or landing
+    const ease = lg.ankle && lg.ankle.sw != null ? S5(lg.ankle.sw / 0.3) * S5((1 - lg.ankle.sw) / 0.3) : 1;
+    const sole = lg.sole != null ? lg.sole * D : (on || lg.thigh != null) ? 0 : 0.5 * shk * ease;
       let fang = sole - Math.asin(L.ankleH / L.foot);
       // a swinging foot turns with the shin but its toe never dips below the ground it left
       if (lg.ankle && !on && lg.ankle.floor != null) fang = Math.max(fang, Math.asin(clamp((lg.ankle.floor - ankle.y) / L.foot, -1, 1)));
