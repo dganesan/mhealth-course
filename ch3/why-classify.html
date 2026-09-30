@@ -446,7 +446,6 @@ const TRACES = {
     { k: 'meanX', n: 'mean of the x axis', u: 'm/s²', d: 1 },
     { k: 'minA', n: 'lowest |a| in the window', u: 'm/s²', d: 2 },
   ];
-  const ALL = FEATS.concat(MORE).map(f => f.k);
   const MAG = {};
   LANES.forEach(a => {
     const t = TRACES[a], m = t.x.map((v, j) => Math.hypot(v, t.y[j], t.z[j]));
@@ -490,7 +489,7 @@ const TRACES = {
         subtitle: '', code: () => `peaks, props = find_peaks(magnitude, height=0, distance=15, <span class="hl">prominence=<b class="p">${fmt(prom(), 2)}</b></span>, width=0)` },
       { id: 'strips', static: true, span: () => 1, title: () => 'The peak features are not enough to tell them apart', tag: () => `${WINS.length / LANES.length} windows of 4 s per activity · one dot per window`,
         subtitle: '', code: () => '' },
-      { id: 'two', static: true, span: () => 1, title: () => 'What we need: more features and a learned rule', tag: () => `prominence ${fmt(prom(), 2)} · hand rule ${G.nH} / ${WINS.length} · learned ${G.nM} / ${WINS.length}`,
+      { id: 'two', static: true, span: () => 1, title: () => 'More features help, but hand-written rules get messy', tag: () => `prominence ${fmt(prom(), 2)} · hand rule ${G.nH} / ${WINS.length}`,
         subtitle: '', code: () => '' },
     ],
     setup(step) {
@@ -561,37 +560,37 @@ const TRACES = {
     }
   }
 
-  // ---- step 3: (a) two features from the whole signal, (b) a rule written by hand against one learned from the labels
-  const HR = { still: 0.5, meanX: 2, run: 15, walk: 3.6, down: 1.55 };   // thresholds read off the strips at prominence 1
+  // ---- step 3: (a) two features from the whole signal, (b) the rule written by hand, a decision tree built by eye
+  // Each row: [indent, text pieces]; a number piece is a hand-picked threshold. The rule is evaluated from the same table, so what is shown is what runs.
+  const T = { still: 0.5, sitX: 2.0, standLow: 8.0, run: 15.0, runSp: 0.6, runPr: 5.0, walkPr: 3.6, walkRate: 1.5, walkW: 0.26, downLow: 1.55, upLow: 1.6, upH: 12.5 };
+  const nz = v => v == null ? 0 : v;
   function handRule(w) {
-    if (w.rate < HR.still) return w.meanX > HR.meanX ? 'Sitting' : 'Standing';
-    if (w.height > HR.run) return 'Running';
-    if (w.prom < HR.walk) return 'Walking';
-    return w.minA < HR.down ? 'Downstairs' : 'Upstairs';
+    const rate = w.rate, h = nz(w.height), pr = nz(w.prom), sp = nz(w.spacing), wd = nz(w.width), mx = w.meanX, lo = w.minA;
+    if (rate < T.still) { if (mx > T.sitX) return 'Sitting'; if (lo > T.standLow) return 'Standing'; return '?'; }
+    if (h > T.run) return sp < T.runSp && pr > T.runPr ? 'Running' : 'Upstairs';
+    if (pr < T.walkPr) return rate > T.walkRate && wd < T.walkW ? 'Walking' : 'Downstairs';
+    if (lo < T.downLow) return 'Downstairs';
+    if (lo > T.upLow && h > T.upH) return 'Upstairs';
+    return 'Walking';
   }
-  // the learned version: a Gini tree on all seven features (a missing peak feature counts as 0), refit whenever the windows change
-  const xv = (w, k) => w[k] == null ? 0 : w[k];
-  function gini(ps) { const c = {}; ps.forEach(p => c[p.act] = (c[p.act] || 0) + 1); let g = 1; for (const k in c) g -= (c[k] / ps.length) ** 2; return g; }
-  function major(ps) { const c = {}; ps.forEach(p => c[p.act] = (c[p.act] || 0) + 1); return Object.keys(c).sort((a, b) => c[b] - c[a] || LANES.indexOf(a) - LANES.indexOf(b))[0]; }
-  function grow(ps, depth) {
-    const node = { label: major(ps) };
-    if (depth === 0 || gini(ps) === 0) return node;
-    let best = null;
-    ALL.forEach(f => {
-      const vs = [...new Set(ps.map(p => xv(p, f)))].sort((a, b) => a - b);
-      for (let i = 0; i + 1 < vs.length; i++) {
-        const thr = (vs[i] + vs[i + 1]) / 2, L = ps.filter(p => xv(p, f) <= thr), R = ps.filter(p => xv(p, f) > thr);
-        const sc = (L.length * gini(L) + R.length * gini(R)) / ps.length;
-        if (!best || sc < best.sc - 1e-12) best = { sc, f, thr, L, R };
-      }
-    });
-    if (!best) return node;
-    return Object.assign(node, { f: best.f, thr: best.thr, left: grow(best.L, depth - 1), right: grow(best.R, depth - 1) });
-  }
-  const predict = (node, p) => node.f ? predict(xv(p, node.f) <= node.thr ? node.left : node.right, p) : node.label;
-  const scoreOf = fn => WINS.filter(w => fn(w) === w.act).length;
+  const CODE = [
+    [0, ['if rate < ', T.still, ':                          # no steps']],
+    [1, ['if mean_x > ', T.sitX, ':    label = "sitting"']],
+    [1, ['elif lowest > ', T.standLow, ': label = "standing"']],
+    [1, ['else:              label = "unknown"']],
+    [0, ['elif height > ', T.run, ':']],
+    [1, ['if spacing < ', T.runSp, ' and prominence > ', T.runPr, ': label = "running"']],
+    [1, ['else: label = "upstairs"']],
+    [0, ['elif prominence < ', T.walkPr, ':']],
+    [1, ['if rate > ', T.walkRate, ' and width < ', T.walkW, ': label = "walking"']],
+    [1, ['else: label = "downstairs"']],
+    [0, ['elif lowest < ', T.downLow, ':  label = "downstairs"']],
+    [0, ['elif lowest > ', T.upLow, ' and height > ', T.upH, ': label = "upstairs"']],
+    [0, ['else:               label = "walking"']],
+  ];
+  const NT = Object.keys(T).length;
   function setupTwo() {
-    const model = grow(WINS, 5), nH = scoreOf(handRule), nM = scoreOf(w => predict(model, w)), N = WINS.length;
+    const N = WINS.length, nH = WINS.filter(w => handRule(w) === w.act).length;
     G.dots = [];
     // (a) the left panel
     const LX = 40, LCW = 610;
@@ -599,34 +598,19 @@ const TRACES = {
     strip(MORE[0], LX, 104, LCW, 150);
     strip(MORE[1], LX, 330, LCW, 150);
     ['x-axis mean: how the phone is held', 'lowest |a|: the dip on each step down'].forEach((l, j) => txt(chart, LX + 112, 546 + j * 26, l, { class: 'note', style: 'font-size:18px' }));
-    // (b) the right panel
-    const RX = 730, RW = W - 36 - RX;
-    txt(chart, RX, 40, '(b) A better way to build the rule', { class: 'stage-name', fill: 'var(--ink)', style: 'font-size:25px' });
-    const box = (y, h, head, lines, n) => {
-      el('rect', { x: RX, y, width: RW, height: h, rx: 6, fill: '#f6f8fb', stroke: 'var(--rule)' }, chart);
-      txt(chart, RX + 16, y + 32, head, { class: 'dlabel', fill: 'var(--ink)', style: 'font-size:20px' });
-      const ok = n === N;
-      txt(chart, RX + RW - 16, y + 32, `${n} / ${N} correct`, { class: 'mono', 'text-anchor': 'end', style: `font-size:20px;font-weight:700;fill:${ok ? COL.green : COL.red}` });
-      lines.forEach((l, j) => { const t = el('text', { x: RX + 16, y: y + 66 + j * 27, class: 'mono', style: 'font-size:17px' }, chart); l.forEach(([s, hl]) => { const sp = el('tspan', hl ? { fill: COL.blue, 'font-weight': 700 } : s.startsWith('#') ? { fill: 'var(--ink-2)' } : {}, t); sp.textContent = s; }); });
-    };
-    box(64, 228, 'written by hand', [
-      [['# thresholds read off the strips at prominence 1', 0]],
-      [['if rate < ', 0], [HR.still, 1], [':  sitting if mean_x > ', 0], [HR.meanX, 1], [' else standing', 0]],
-      [['elif height > ', 0], [HR.run, 1], [':  running', 0]],
-      [['elif prominence < ', 0], [HR.walk, 1], [':  walking', 0]],
-      [['elif lowest < ', 0], [HR.down, 1], [':  downstairs', 0]],
-      [['else:  upstairs', 0]],
-    ], nH);
-    box(310, 150, 'learned from the labeled windows', [
-      [['model.fit(X, y)', 0]],
-      [['# X: the 7 features of each window, y: its label', 0]],
-      [['# thresholds chosen by the fit, redone when X changes', 0]],
-    ], nM);
-    const note = nH === N && nM === N ? ['At this prominence both get every window right.', 'Drag the prominence: the hand-written thresholds', 'go stale, while the fit simply runs again.']
-      : ['The hand-written thresholds were read off the strips', `at prominence 1; at ${fmt(prom(), 2)} they go stale, while the`, 'fit simply runs again on the new features.'];
-    note.forEach((s, j) => txt(chart, RX, 498 + j * 28, s, { class: 'note', style: 'font-size:19px' }));
-    txt(chart, RX, 498 + 3 * 28 + 6, 'Both are scored on the same 42 windows the thresholds came from.', { class: 'mono-2', style: 'font-size:15px' });
-    G.nH = nH; G.nM = nM;
+    // (b) the right panel: the rule, every threshold in blue
+    const RX = 730, RW = W - 36 - RX, y0 = 64, LHc = 27;
+    txt(chart, RX, 40, '(b) Writing the rule by hand gets messy', { class: 'stage-name', fill: 'var(--ink)', style: 'font-size:25px' });
+    el('rect', { x: RX, y: y0, width: RW, height: 60 + CODE.length * LHc, rx: 6, fill: '#f6f8fb', stroke: 'var(--rule)' }, chart);
+    txt(chart, RX + 16, y0 + 32, `${NT} thresholds, each picked by eye`, { class: 'dlabel', fill: 'var(--ink)', style: 'font-size:20px' });
+    txt(chart, RX + RW - 16, y0 + 32, `${nH} / ${N} correct`, { class: 'mono', 'text-anchor': 'end', style: `font-size:20px;font-weight:700;fill:${nH === N ? COL.green : COL.red}` });
+    CODE.forEach(([ind, parts], j) => {
+      const t = el('text', { x: RX + 16 + ind * 30, y: y0 + 66 + j * LHc, class: 'mono', style: 'font-size:16px' }, chart);
+      parts.forEach(pc => { const num = typeof pc === 'number', cm = !num && pc.includes('#'); const sp = el('tspan', num ? { fill: COL.blue, 'font-weight': 700 } : cm ? { fill: 'var(--ink-2)' } : {}, t); sp.textContent = num ? String(pc) : pc; });
+    });
+    const ny = y0 + 60 + CODE.length * LHc + 40;
+    ['Every number was picked from these 42 windows.', 'A new person, a new phone position or a new', 'find_peaks prominence means picking them again.'].forEach((l, j) => txt(chart, RX, ny + j * 30, l, { class: 'note', style: 'font-size:20px' }));
+    G.nH = nH;
   }
   chart.addEventListener('mousemove', evt => {
     if (!G.dots) return;
