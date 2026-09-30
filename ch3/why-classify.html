@@ -609,7 +609,7 @@ const TRACES = {
       parts.forEach(pc => { const num = typeof pc === 'number', cm = !num && pc.includes('#'); const sp = el('tspan', num ? { fill: COL.blue, 'font-weight': 700 } : cm ? { fill: 'var(--ink-2)' } : {}, t); sp.textContent = num ? String(pc) : pc; });
     });
     const ny = y0 + 60 + CODE.length * LHc + 40;
-    ['Every number was picked from these 42 windows.', 'A new person, a new phone position or a new', 'find_peaks prominence means picking them again.'].forEach((l, j) => txt(chart, RX, ny + j * 30, l, { class: 'note', style: 'font-size:20px' }));
+    ['A new person, a new phone position or a new', 'find_peaks prominence means picking every', 'threshold again.'].forEach((l, j) => txt(chart, RX, ny + j * 30, l, { class: 'note', style: 'font-size:20px' }));
     G.nH = nH;
   }
   chart.addEventListener('mousemove', evt => {
