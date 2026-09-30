@@ -442,6 +442,11 @@ const TRACES = {
     { k: 'spacing', n: 'average spacing between peaks', u: 's', d: 2 },
     { k: 'width', n: 'average peak width', u: 's', d: 2 },
   ];
+  const MORE = [                                                      // from the whole window, not from the peaks
+    { k: 'meanX', n: 'mean of the x axis', u: 'm/s²', d: 1 },
+    { k: 'minA', n: 'lowest |a| in the window', u: 'm/s²', d: 2 },
+  ];
+  const ALL = FEATS.concat(MORE).map(f => f.k);
   const MAG = {};
   LANES.forEach(a => {
     const t = TRACES[a], m = t.x.map((v, j) => Math.hypot(v, t.y[j], t.z[j]));
@@ -459,7 +464,15 @@ const TRACES = {
   let WINS = [];
   function windowsAll() {
     WINS = [];
-    LANES.forEach(a => { const M = MAG[a]; for (let o = 0, n = 0; o + WN <= M.length; o += HOP, n++) WINS.push(Object.assign({ act: a, n }, featuresOf(M.slice(o, o + WN)))); });
+    LANES.forEach(a => {
+      const M = MAG[a], t = TRACES[a];
+      for (let o = 0, n = 0; o + WN <= M.length; o += HOP, n++) {
+        const f = Object.assign({ act: a, n }, featuresOf(M.slice(o, o + WN)));
+        f.meanX = avg(t.x.slice(o, o + WN));
+        let mn = Infinity; for (let j = o; j < o + WN; j++) mn = Math.min(mn, Math.hypot(t.x[j], t.y[j], t.z[j])); f.minA = mn;   // raw magnitude, so brief dips stay visible
+        WINS.push(f);
+      }
+    });
   }
   function niceTicks(lo, hi, n) {
     const span = hi - lo, raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw)));
@@ -477,11 +490,13 @@ const TRACES = {
         subtitle: '', code: () => `peaks, props = find_peaks(magnitude, height=0, distance=15, <span class="hl">prominence=<b class="p">${fmt(prom(), 2)}</b></span>, width=0)` },
       { id: 'strips', static: true, span: () => 1, title: () => 'The peak features are not enough to tell them apart', tag: () => `${WINS.length / LANES.length} windows of 4 s per activity · one dot per window`,
         subtitle: '', code: () => '' },
+      { id: 'two', static: true, span: () => 1, title: () => 'What we need: more features and a learned rule', tag: () => `prominence ${fmt(prom(), 2)} · hand rule ${G.nH} / ${WINS.length} · learned ${G.nM} / ${WINS.length}`,
+        subtitle: '', code: () => '' },
     ],
     setup(step) {
       windowsAll();
       chart.innerHTML = ''; G = {};
-      if (step.id === 'series') setupSeries(); else setupStrips();
+      if (step.id === 'series') setupSeries(); else if (step.id === 'strips') setupStrips(); else setupTwo();
     },
     draw() {}
   };
@@ -519,8 +534,15 @@ const TRACES = {
   function setupStrips() {
     const GAPX = 70, CW = (W - 40 - 36 - GAPX) / 2, LW = 112, PH = 138, GX = [40, 40 + CW + GAPX], GY = [32, 232, 432], LH = PH / LANES.length;
     G.dots = [];
-    FEATS.forEach((F, k) => {
-      const cx = GX[k % 2], py0 = GY[Math.floor(k / 2)], x0 = cx + LW, x1 = cx + CW, g = el('g', {}, chart);
+    FEATS.forEach((F, k) => strip(F, GX[k % 2], GY[Math.floor(k / 2)], CW, PH));
+    // the sixth slot: what to read from the strips
+    const nx = GX[1] + LW, ny = GY[2] + 10;
+    ['Bars that overlap cannot be told', 'apart by that feature.'].forEach((s, j) => txt(chart, nx - 60, ny + 40 + j * 36, s, { class: 'note', style: 'font-size:26px' }));
+  }
+  // one feature: a lane per activity, a dot per window, a light bar over each activity's range
+  function strip(F, cx, py0, CW, PH) {
+    {
+      const LW = 112, LH = PH / LANES.length, x0 = cx + LW, x1 = cx + CW, g = el('g', {}, chart);
       const vals = WINS.map(w => w[F.k]).filter(v => v != null);
       let lo = Math.min(...vals), hi = Math.max(...vals); const pad = (hi - lo) * 0.08 || 0.1; lo = F.k === 'rate' ? 0 : lo - pad; hi += pad;
       const xs = v => x0 + (v - lo) / (hi - lo) * (x1 - x0), ticks = niceTicks(lo, hi, 5);
@@ -536,10 +558,75 @@ const TRACES = {
         el('rect', { x: xs(mn) - 7, y: y - 8, width: xs(mx) - xs(mn) + 14, height: 16, rx: 8, fill: ACOL[a], 'fill-opacity': 0.2 }, g);
         ws.forEach(w => { const x = xs(w[F.k]); el('circle', { cx: x, cy: y, r: 5, fill: ACOL[a], 'fill-opacity': .9, stroke: '#fff', 'stroke-width': 1 }, g); G.dots.push({ x, y, w, F }); });
       });
+    }
+  }
+
+  // ---- step 3: (a) two features from the whole signal, (b) a rule written by hand against one learned from the labels
+  const HR = { still: 0.5, meanX: 2, run: 15, walk: 3.6, down: 1.55 };   // thresholds read off the strips at prominence 1
+  function handRule(w) {
+    if (w.rate < HR.still) return w.meanX > HR.meanX ? 'Sitting' : 'Standing';
+    if (w.height > HR.run) return 'Running';
+    if (w.prom < HR.walk) return 'Walking';
+    return w.minA < HR.down ? 'Downstairs' : 'Upstairs';
+  }
+  // the learned version: a Gini tree on all seven features (a missing peak feature counts as 0), refit whenever the windows change
+  const xv = (w, k) => w[k] == null ? 0 : w[k];
+  function gini(ps) { const c = {}; ps.forEach(p => c[p.act] = (c[p.act] || 0) + 1); let g = 1; for (const k in c) g -= (c[k] / ps.length) ** 2; return g; }
+  function major(ps) { const c = {}; ps.forEach(p => c[p.act] = (c[p.act] || 0) + 1); return Object.keys(c).sort((a, b) => c[b] - c[a] || LANES.indexOf(a) - LANES.indexOf(b))[0]; }
+  function grow(ps, depth) {
+    const node = { label: major(ps) };
+    if (depth === 0 || gini(ps) === 0) return node;
+    let best = null;
+    ALL.forEach(f => {
+      const vs = [...new Set(ps.map(p => xv(p, f)))].sort((a, b) => a - b);
+      for (let i = 0; i + 1 < vs.length; i++) {
+        const thr = (vs[i] + vs[i + 1]) / 2, L = ps.filter(p => xv(p, f) <= thr), R = ps.filter(p => xv(p, f) > thr);
+        const sc = (L.length * gini(L) + R.length * gini(R)) / ps.length;
+        if (!best || sc < best.sc - 1e-12) best = { sc, f, thr, L, R };
+      }
     });
-    // the sixth slot: what to read from the strips
-    const nx = GX[1] + LW, ny = GY[2] + 10;
-    ['Bars that overlap cannot be told', 'apart by that feature.'].forEach((s, j) => txt(chart, nx - 60, ny + 40 + j * 36, s, { class: 'note', style: 'font-size:26px' }));
+    if (!best) return node;
+    return Object.assign(node, { f: best.f, thr: best.thr, left: grow(best.L, depth - 1), right: grow(best.R, depth - 1) });
+  }
+  const predict = (node, p) => node.f ? predict(xv(p, node.f) <= node.thr ? node.left : node.right, p) : node.label;
+  const scoreOf = fn => WINS.filter(w => fn(w) === w.act).length;
+  function setupTwo() {
+    const model = grow(WINS, 5), nH = scoreOf(handRule), nM = scoreOf(w => predict(model, w)), N = WINS.length;
+    G.dots = [];
+    // (a) the left panel
+    const LX = 40, LCW = 610;
+    txt(chart, LX, 40, '(a) More features, from the whole signal', { class: 'stage-name', fill: 'var(--ink)', style: 'font-size:25px' });
+    strip(MORE[0], LX, 104, LCW, 150);
+    strip(MORE[1], LX, 330, LCW, 150);
+    ['x-axis mean: how the phone is held', 'lowest |a|: the dip on each step down'].forEach((l, j) => txt(chart, LX + 112, 546 + j * 26, l, { class: 'note', style: 'font-size:18px' }));
+    // (b) the right panel
+    const RX = 730, RW = W - 36 - RX;
+    txt(chart, RX, 40, '(b) A better way to build the rule', { class: 'stage-name', fill: 'var(--ink)', style: 'font-size:25px' });
+    const box = (y, h, head, lines, n) => {
+      el('rect', { x: RX, y, width: RW, height: h, rx: 6, fill: '#f6f8fb', stroke: 'var(--rule)' }, chart);
+      txt(chart, RX + 16, y + 32, head, { class: 'dlabel', fill: 'var(--ink)', style: 'font-size:20px' });
+      const ok = n === N;
+      txt(chart, RX + RW - 16, y + 32, `${n} / ${N} correct`, { class: 'mono', 'text-anchor': 'end', style: `font-size:20px;font-weight:700;fill:${ok ? COL.green : COL.red}` });
+      lines.forEach((l, j) => { const t = el('text', { x: RX + 16, y: y + 66 + j * 27, class: 'mono', style: 'font-size:17px' }, chart); l.forEach(([s, hl]) => { const sp = el('tspan', hl ? { fill: COL.blue, 'font-weight': 700 } : s.startsWith('#') ? { fill: 'var(--ink-2)' } : {}, t); sp.textContent = s; }); });
+    };
+    box(64, 228, 'written by hand', [
+      [['# thresholds read off the strips at prominence 1', 0]],
+      [['if rate < ', 0], [HR.still, 1], [':  sitting if mean_x > ', 0], [HR.meanX, 1], [' else standing', 0]],
+      [['elif height > ', 0], [HR.run, 1], [':  running', 0]],
+      [['elif prominence < ', 0], [HR.walk, 1], [':  walking', 0]],
+      [['elif lowest < ', 0], [HR.down, 1], [':  downstairs', 0]],
+      [['else:  upstairs', 0]],
+    ], nH);
+    box(310, 150, 'learned from the labeled windows', [
+      [['model.fit(X, y)', 0]],
+      [['# X: the 7 features of each window, y: its label', 0]],
+      [['# thresholds chosen by the fit, redone when X changes', 0]],
+    ], nM);
+    const note = nH === N && nM === N ? ['At this prominence both get every window right.', 'Drag the prominence: the hand-written thresholds', 'go stale, while the fit simply runs again.']
+      : ['The hand-written thresholds were read off the strips', `at prominence 1; at ${fmt(prom(), 2)} they go stale, while the`, 'fit simply runs again on the new features.'];
+    note.forEach((s, j) => txt(chart, RX, 498 + j * 28, s, { class: 'note', style: 'font-size:19px' }));
+    txt(chart, RX, 498 + 3 * 28 + 6, 'Both are scored on the same 42 windows the thresholds came from.', { class: 'mono-2', style: 'font-size:15px' });
+    G.nH = nH; G.nM = nM;
   }
   chart.addEventListener('mousemove', evt => {
     if (!G.dots) return;
