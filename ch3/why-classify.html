@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>From Peak Rules to a Classifier</title>
+<title>Can Peak Features Tell Activities Apart?</title>
 </head>
 <body>
 <style>
@@ -156,7 +156,7 @@
       <pre class="code" id="code" hidden></pre>
     </div>
     <div class="chart-wrap">
-      <svg class="chart" id="chart" viewBox="0 0 1360 620" role="img" aria-label="Peak-based rule versus a learned classifier"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 1360 620" role="img" aria-label="Peak features from find_peaks across six activities"></svg>
       <div class="tt" id="tt"></div>
     </div>
     <div class="foot">
@@ -183,8 +183,8 @@
    <div class="row dials">
     <div class="group">
       <label for="prom">find_peaks prominence</label>
-      <input type="range" id="prom" min="0.5" max="4" step="0.25" value="2">
-      <span class="val" id="promVal">2.00 m/s²</span>
+      <input type="range" id="prom" min="0.5" max="4" step="0.25" value="1">
+      <span class="val" id="promVal">1.00 m/s²</span>
     </div>
    </div>
   </div>
@@ -430,186 +430,123 @@ const TRACES = {
 
   // ------------------------------------------------------------ page
   // 4-second windows (1-second hop) of the smoothed acceleration magnitude, one person, phone in hip pocket.
-  // Two peak features per window: peaks per second and the tallest peak, from find_peaks as in the step counter.
+  // Five features per window, all from find_peaks: step rate, and the average height, prominence, spacing and width of the peaks.
   const FS = 50, WN = 200, HOP = 50, SM = 5;                          // window 4 s, hop 1 s, moving average ±0.1 s
-  const ORDER = ['Walking', 'Running', 'Sitting', 'Upstairs', 'Downstairs', 'Standing'];
+  const LANES = ['Walking', 'Upstairs', 'Downstairs', 'Running', 'Sitting', 'Standing'];
   const NAME = { Walking: 'walking', Running: 'running', Sitting: 'sitting', Upstairs: 'upstairs', Downstairs: 'downstairs', Standing: 'standing' };
   const ACOL = { Walking: COL.blue, Running: COL.red, Sitting: '#7a7a7a', Upstairs: COL.green, Downstairs: COL.violet, Standing: '#c28a12' };
-  const FIRST3 = ['Walking', 'Running', 'Sitting'];
+  const FEATS = [
+    { k: 'rate', n: 'step rate', u: 'steps/s', d: 2 },
+    { k: 'height', n: 'average peak height', u: 'm/s²', d: 1 },
+    { k: 'prom', n: 'average prominence', u: 'm/s²', d: 1 },
+    { k: 'spacing', n: 'average spacing between peaks', u: 's', d: 2 },
+    { k: 'width', n: 'average peak width', u: 's', d: 2 },
+  ];
   const MAG = {};
-  ORDER.forEach(a => {
+  LANES.forEach(a => {
     const t = TRACES[a], m = t.x.map((v, j) => Math.hypot(v, t.y[j], t.z[j]));
     MAG[a] = m.map((_, j) => { let s = 0, c = 0; for (let k = j - SM; k <= j + SM; k++) if (k >= 0 && k < m.length) { s += m[k]; c++; } return s / c; });
   });
   const prom = () => DIALS.prom.get();
-  const peaksOf = w => findPeaks(w, { distance: 15, prominence: prom() }).kept;   // at least 0.3 s apart
-  let PTS = [];
+  const avg = a => a.reduce((s, v) => s + v, 0) / a.length;
+  function featuresOf(w) {
+    const res = findPeaks(w, { distance: 15, prominence: prom() }), K = res.kept, pk = res.all.filter(p => K.includes(p.i));
+    const f = { peaks: K, rate: K.length / (WN / FS) };
+    if (K.length) { f.height = avg(pk.map(p => p.v)); f.prom = avg(pk.map(p => p.prom)); f.width = avg(pk.map(p => p.width)) / FS; }
+    if (K.length > 1) f.spacing = avg(K.slice(1).map((k, j) => (k - K[j]) / FS));
+    return f;
+  }
+  let WINS = [];
   function windowsAll() {
-    PTS = [];
-    ORDER.forEach(a => {
-      const M = MAG[a];
-      for (let o = 0, n = 0; o + WN <= M.length; o += HOP, n++) {
-        const w = M.slice(o, o + WN), pk = peaksOf(w);
-        const rate = pk.length / (WN / FS), tall = pk.length ? Math.max(...pk.map(k => w[k])) : Math.max(...w);
-        PTS.push({ act: a, n, o, rate, tall, jx: ((n % 5) - 2) * 0.025 });   // a small fixed offset so equal rates do not hide each other
-      }
-    });
+    WINS = [];
+    LANES.forEach(a => { const M = MAG[a]; for (let o = 0, n = 0; o + WN <= M.length; o += HOP, n++) WINS.push(Object.assign({ act: a, n }, featuresOf(M.slice(o, o + WN)))); });
   }
-  // ---- the hand-written rule
-  const R_STILL = 0.5, R_RUN = 15.5;
-  const rule = p => p.rate < R_STILL ? 'still' : p.tall > R_RUN ? 'Running' : 'Walking';
-  const ruleRight = p => { const r = rule(p); return r === 'still' ? (p.act === 'Sitting') : r === p.act; };   // "still" is read as sitting, the only still activity the rule knows
-  // ---- a small decision tree (Gini, depth 3) fitted to the same windows
-  function gini(ps) { const c = {}; ps.forEach(p => c[p.act] = (c[p.act] || 0) + 1); let g = 1; for (const k in c) g -= (c[k] / ps.length) ** 2; return g; }
-  function major(ps) { const c = {}; ps.forEach(p => c[p.act] = (c[p.act] || 0) + 1); return Object.keys(c).sort((a, b) => c[b] - c[a] || ORDER.indexOf(a) - ORDER.indexOf(b))[0]; }
-  function grow(ps, depth) {
-    const node = { label: major(ps), n: ps.length };
-    if (depth === 0 || gini(ps) === 0 || ps.length < 4) return node;
-    let best = null;
-    ['rate', 'tall'].forEach(f => {
-      const vs = [...new Set(ps.map(p => p[f]))].sort((a, b) => a - b);
-      for (let i = 0; i + 1 < vs.length; i++) {
-        const thr = (vs[i] + vs[i + 1]) / 2, L = ps.filter(p => p[f] <= thr), R = ps.filter(p => p[f] > thr);
-        if (L.length < 2 || R.length < 2) continue;
-        const s = (L.length * gini(L) + R.length * gini(R)) / ps.length;
-        if (!best || s < best.s - 1e-12) best = { s, f, thr, L, R };
-      }
-    });
-    if (!best || best.s >= gini(ps) - 1e-12) return node;
-    return Object.assign(node, { f: best.f, thr: best.thr, left: grow(best.L, depth - 1), right: grow(best.R, depth - 1) });
+  function niceTicks(lo, hi, n) {
+    const span = hi - lo, raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => span / s <= n) || mag * 10;
+    const out = []; for (let v = Math.ceil(lo / step - 1e-9) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(6)); return out;
   }
-  const predict = (node, p) => node.f ? predict(p[node.f] <= node.thr ? node.left : node.right, p) : node.label;
-  let TREE = null;
 
   const chart = $('chart');
   const W = 1360;
-  // scatter geometry
-  const SC = { x0: 96, x1: 820, y0: 30, y1: 540 }, XD = [-0.15, 3.0], YD = [8, 22];
-  const sx = v => SC.x0 + (v - XD[0]) / (XD[1] - XD[0]) * (SC.x1 - SC.x0), sy = v => SC.y1 - (v - YD[0]) / (YD[1] - YD[0]) * (SC.y1 - SC.y0);
-  const shown = step => step.id === 'rule2' ? FIRST3 : ORDER;
-  const count = (ps, ok) => `${ps.filter(ok).length} / ${ps.length}`;
-
   const PAGE = {
-    defaults: { prom: 2 },
+    defaults: { prom: 1 },
     durNormal: 6,
     steps: [
-      { id: 'count', static: true, span: () => 1, title: () => 'Counting tells us how many, not what', tag: () => `find_peaks on |a|, first 4 s of each activity`,
-        subtitle: '', code: () => `peaks, _ = find_peaks(magnitude, distance=15, <span class="hl">prominence=<b class="p">${fmt(prom(), 2)}</b></span>)   # steps per second = len(peaks) / 4` },
-      { id: 'rule2', static: true, span: () => 1, title: () => 'A rule built from the peaks', tag: () => { const ps = PTS.filter(p => FIRST3.includes(p.act)); return `rule correct on ${count(ps, ruleRight)} windows`; },
-        subtitle: '', code: () => ruleCode(false) },
-      { id: 'rule6', static: true, span: () => 1, title: () => 'Add activities and the rule breaks', tag: () => `rule correct on ${count(PTS, ruleRight)} windows`,
-        subtitle: '', code: () => ruleCode(true) },
-      { id: 'tree', static: true, span: () => 1, title: () => 'Let labeled data choose the thresholds', tag: () => `tree correct on ${count(PTS, p => predict(TREE, p) === p.act)} windows (the same windows it was fit on)`,
-        subtitle: '', code: () => `tree = DecisionTreeClassifier(max_depth=3).fit(X, y)   # X = [steps per second, tallest peak], y = activity label` },
+      { id: 'series', static: true, span: () => 1, title: () => 'What find_peaks tells us about each activity', tag: () => 'first 4 s of each activity',
+        subtitle: '', code: () => `peaks, props = find_peaks(magnitude, height=0, distance=15, <span class="hl">prominence=<b class="p">${fmt(prom(), 2)}</b></span>, width=0)` },
+      { id: 'strips', static: true, span: () => 1, title: () => 'No single peak feature tells them apart', tag: () => `${WINS.length / LANES.length} windows of 4 s per activity · one dot per window`,
+        subtitle: '', code: () => '' },
     ],
     setup(step) {
-      windowsAll(); TREE = grow(PTS, 3);
-      chart.innerHTML = ''; G = { step };
-      if (step.id === 'count') setupCount(); else setupScatter(step);
+      windowsAll();
+      chart.innerHTML = ''; G = {};
+      if (step.id === 'series') setupSeries(); else setupStrips();
     },
     draw() {}
   };
   let G = {};
-  function ruleCode(more) {
-    const L = [`if rate < <b class="p">${R_STILL}</b>:     label = "sitting"      # no peaks`,
-               `elif tallest > <b class="p">${R_RUN}</b>: label = "running"`,
-               `else:                label = "walking"`];
-    if (more) L.splice(2, 0, `elif ???:            label = "upstairs" or "downstairs"?   # and "standing"?`);
-    return L.join('\n');
-  }
 
-  // ---- step 1: six small panels, one 4-second window each, with the detected peaks
-  function setupCount() {
-    const GAP = 110, CW = (W - 80 - 36 - GAP) / 2, PWc = CW - 200, PH = 118, GX = [80, 80 + CW + GAP], GY = [42, 218, 394];
+  // ---- step 1: six small panels, one 4-second window each, with the detected peaks and their five numbers
+  function setupSeries() {
+    const GAP = 110, CW = (W - 80 - 36 - GAP) / 2, PWc = CW - 236, PH = 124, GX = [80, 80 + CW + GAP], GY = [36, 214, 392];
     const TF = WN / FS, Y0 = 5, Y1 = 22;
     ['Walking', 'Running', 'Upstairs', 'Downstairs', 'Sitting', 'Standing'].forEach((act, k) => {
       const px0 = GX[k % 2], py0 = GY[Math.floor(k / 2)], px1 = px0 + PWc, py1 = py0 + PH;
       const pxs = t => px0 + (t / TF) * PWc, pys = v => py1 - ((v - Y0) / (Y1 - Y0)) * PH;
-      const w = MAG[act].slice(0, WN), pk = peaksOf(w), g = el('g', {}, chart);
+      const w = MAG[act].slice(0, WN), F = featuresOf(w), g = el('g', {}, chart);
       const grid = el('g', { class: 'grid' }, g), axis = el('g', { class: 'axis' }, g);
       [10, 20].forEach(v => { el('line', { x1: px0, x2: px1, y1: pys(v), y2: pys(v) }, grid); txt(axis, px0 - 8, pys(v) + 6, v, { 'text-anchor': 'end' }); });
       [0, 1, 2, 3, 4].forEach(v => { el('line', { x1: pxs(v), x2: pxs(v), y1: py0, y2: py1 }, grid); if (k >= 4) txt(axis, pxs(v), py1 + 17, v, { 'text-anchor': 'middle' }); });
       el('path', { d: `M${px0},${py0}V${py1}H${px1}` }, axis);
       { const yt = txt(g, 0, 0, '|a| (m/s²)', { class: 'axis-title', 'text-anchor': 'middle', style: 'font-size:19px' }); yt.setAttribute('transform', `translate(${px0 - 50},${(py0 + py1) / 2}) rotate(-90)`); }
       if (k >= 4) txt(g, px1, py1 + 38, 'time (seconds)', { class: 'axis-title', 'text-anchor': 'end' });
-      txt(g, px0, py0 - 8, NAME[act], { class: 'dlabel', fill: 'var(--ink)' });
+      txt(g, px0, py0 - 8, NAME[act], { class: 'dlabel', fill: ACOL[act] });
       el('path', { class: 'thin-line', d: w.map((v, i) => (i ? 'L' : 'M') + pxs(i / FS).toFixed(1) + ',' + pys(v).toFixed(1)).join(''), stroke: COL.ink, 'stroke-width': 1.8 }, g);
-      pk.forEach(i => el('circle', { cx: pxs(i / FS), cy: pys(w[i]), r: 6, fill: 'none', stroke: COL.red, 'stroke-width': 2.6 }, g));
-      const rx = px1 + 22;
-      el('rect', { x: rx - 10, y: py0 + 14, width: 186, height: 86, rx: 5, fill: '#f6f8fb', stroke: 'var(--rule)' }, g);
-      txt(g, rx + 83, py0 + 52, fmt(pk.length / TF, 2), { class: 'mono', 'text-anchor': 'middle', style: 'font-size:30px;font-weight:700' });
-      txt(g, rx + 83, py0 + 84, 'steps per second', { class: 'mono-2', 'text-anchor': 'middle', style: 'font-size:17px' });
+      F.peaks.forEach(i => el('circle', { cx: pxs(i / FS), cy: pys(w[i]), r: 6, fill: 'none', stroke: ACOL[act], 'stroke-width': 2.6 }, g));
+      // the readout: the five numbers for this window
+      const rx = px1 + 20, bw = 222;
+      el('rect', { x: rx - 8, y: py0 - 4, width: bw, height: PH + 8, rx: 5, fill: '#f6f8fb', stroke: 'var(--rule)' }, g);
+      const rows = [['step rate', fmt(F.rate, 2) + '/s'], ['height', F.height == null ? '–' : fmt(F.height, 1)], ['prominence', F.prom == null ? '–' : fmt(F.prom, 1)],
+                    ['spacing', F.spacing == null ? '–' : fmt(F.spacing, 2) + ' s'], ['width', F.width == null ? '–' : fmt(F.width, 2) + ' s']];
+      (F.peaks.length ? rows : rows.slice(0, 1)).forEach(([n, v], j) => { const y = py0 + 20 + j * 24; txt(g, rx, y, n, { class: 'mono-2', style: 'font-size:17px' }); txt(g, rx + bw - 20, y, v, { class: 'mono', 'text-anchor': 'end', style: 'font-size:17px' }); });
+      if (!F.peaks.length) txt(g, rx + bw / 2 - 8, py0 + 20 + 2.3 * 24, 'no peaks', { class: 'dlabel', 'text-anchor': 'middle', fill: COL.red, style: 'font-size:22px' });
     });
-    txt(chart, 80, 600, 'Walking, the stairs and running give nearly the same step rate, and sitting and standing give none.', { class: 'note' });
+    txt(chart, 80, 606, 'height and prominence in m/s²; each number is the average over the peaks found in the window', { class: 'note', style: 'font-size:18px' });
   }
 
-  // ---- steps 2–4: one scatter of all windows, steps per second against the tallest peak
-  function setupScatter(step) {
-    const acts = shown(step), ps = PTS.filter(p => acts.includes(p.act));
-    const grid = el('g', { class: 'grid' }, chart), axis = el('g', { class: 'axis' }, chart);
-    [0, 0.5, 1, 1.5, 2, 2.5, 3].forEach(v => { el('line', { x1: sx(v), x2: sx(v), y1: SC.y0, y2: SC.y1 }, grid); txt(axis, sx(v), SC.y1 + 22, fmt(v, 1), { 'text-anchor': 'middle' }); });
-    [10, 12, 14, 16, 18, 20, 22].forEach(v => { el('line', { x1: SC.x0, x2: SC.x1, y1: sy(v), y2: sy(v) }, grid); txt(axis, SC.x0 - 10, sy(v) + 6, v, { 'text-anchor': 'end' }); });
-    el('path', { d: `M${SC.x0},${SC.y0}V${SC.y1}H${SC.x1}` }, axis);
-    txt(chart, SC.x1, SC.y1 + 50, 'steps per second (peaks in the window ÷ 4 s)', { class: 'axis-title', 'text-anchor': 'end' });
-    { const yt = txt(chart, 0, 0, 'tallest peak (m/s²)', { class: 'axis-title', 'text-anchor': 'middle' }); yt.setAttribute('transform', `translate(${SC.x0 - 62},${(SC.y0 + SC.y1) / 2}) rotate(-90)`); }
-    const clip = el('clipPath', { id: 'scclip' }, chart); el('rect', { x: SC.x0, y: SC.y0, width: SC.x1 - SC.x0, height: SC.y1 - SC.y0 }, clip);
-    const plot = el('g', { 'clip-path': 'url(#scclip)' }, chart);
-
-    if (step.id === 'tree') {
-      // shade the region each leaf claims, then draw the learned splits on top
-      const leaves = (node, box) => {
-        if (!node.f) { el('rect', { x: sx(box.x0), y: sy(box.y1), width: sx(box.x1) - sx(box.x0), height: sy(box.y0) - sy(box.y1), fill: ACOL[node.label], 'fill-opacity': 0.14 }, plot); return; }
-        if (node.f === 'rate') { leaves(node.left, Object.assign({}, box, { x1: node.thr })); leaves(node.right, Object.assign({}, box, { x0: node.thr })); }
-        else { leaves(node.left, Object.assign({}, box, { y1: node.thr })); leaves(node.right, Object.assign({}, box, { y0: node.thr })); }
-      };
-      leaves(TREE, { x0: XD[0], x1: XD[1], y0: YD[0], y1: YD[1] });
-      const splits = (node, box) => {
-        if (!node.f) return;
-        if (node.f === 'rate') { el('line', { x1: sx(node.thr), x2: sx(node.thr), y1: sy(box.y1), y2: sy(box.y0), stroke: COL.ink, 'stroke-width': 2 }, plot); splits(node.left, Object.assign({}, box, { x1: node.thr })); splits(node.right, Object.assign({}, box, { x0: node.thr })); }
-        else { el('line', { x1: sx(box.x0), x2: sx(box.x1), y1: sy(node.thr), y2: sy(node.thr), stroke: COL.ink, 'stroke-width': 2 }, plot); splits(node.left, Object.assign({}, box, { y1: node.thr })); splits(node.right, Object.assign({}, box, { y0: node.thr })); }
-      };
-      splits(TREE, { x0: XD[0], x1: XD[1], y0: YD[0], y1: YD[1] });
-    } else {
-      // the hand-written thresholds
-      el('line', { x1: sx(R_STILL), x2: sx(R_STILL), y1: SC.y0, y2: SC.y1, stroke: COL.ink, 'stroke-width': 2, 'stroke-dasharray': '7 5' }, plot);
-      el('line', { x1: sx(R_STILL), x2: SC.x1, y1: sy(R_RUN), y2: sy(R_RUN), stroke: COL.ink, 'stroke-width': 2, 'stroke-dasharray': '7 5' }, plot);
-      txt(chart, sx(R_STILL) - 8, SC.y0 + 26, 'sitting', { class: 'dlabel', 'text-anchor': 'end', fill: COL.ink, style: 'font-size:20px' });
-      txt(chart, SC.x1 - 10, sy(R_RUN) - 12, 'running', { class: 'dlabel', 'text-anchor': 'end', fill: COL.ink, style: 'font-size:20px' });
-      txt(chart, SC.x1 - 10, sy(R_RUN) + 28, 'walking', { class: 'dlabel', 'text-anchor': 'end', fill: COL.ink, style: 'font-size:20px' });
-    }
-    // the windows; a cross marks one the current rule or tree gets wrong
-    const wrong = p => step.id === 'tree' ? predict(TREE, p) !== p.act : !ruleRight(p);
-    ps.forEach(p => {
-      const x = sx(p.rate + p.jx), y = sy(p.tall), c = ACOL[p.act];
-      if (p.act === 'Standing') el('rect', { x: x - 7, y: y - 7, width: 14, height: 14, fill: c, 'fill-opacity': .85, stroke: '#fff', 'stroke-width': 1.2 }, plot);
-      else el('circle', { cx: x, cy: y, r: 7.5, fill: c, 'fill-opacity': .85, stroke: '#fff', 'stroke-width': 1.2 }, plot);
-      if (step.id !== 'rule2' && wrong(p)) { el('line', { x1: x - 11, x2: x + 11, y1: y - 11, y2: y + 11, stroke: COL.ink, 'stroke-width': 2 }, plot); el('line', { x1: x - 11, x2: x + 11, y1: y + 11, y2: y - 11, stroke: COL.ink, 'stroke-width': 2 }, plot); }
+  // ---- step 2: one strip per feature, one lane per activity, one dot per window
+  function setupStrips() {
+    const GAPX = 70, CW = (W - 40 - 36 - GAPX) / 2, LW = 112, PH = 138, GX = [40, 40 + CW + GAPX], GY = [32, 232, 432], LH = PH / LANES.length;
+    G.dots = [];
+    FEATS.forEach((F, k) => {
+      const cx = GX[k % 2], py0 = GY[Math.floor(k / 2)], x0 = cx + LW, x1 = cx + CW, g = el('g', {}, chart);
+      const vals = WINS.map(w => w[F.k]).filter(v => v != null);
+      let lo = Math.min(...vals), hi = Math.max(...vals); const pad = (hi - lo) * 0.08 || 0.1; lo = F.k === 'rate' ? 0 : lo - pad; hi += pad;
+      const xs = v => x0 + (v - lo) / (hi - lo) * (x1 - x0), ticks = niceTicks(lo, hi, 5);
+      txt(g, x0, py0 - 8, `${F.n} (${F.u})`, { class: 'dlabel', fill: 'var(--ink)', style: 'font-size:19px' });
+      const grid = el('g', { class: 'grid' }, g), axis = el('g', { class: 'axis' }, g);
+      ticks.forEach(v => { el('line', { x1: xs(v), x2: xs(v), y1: py0, y2: py0 + PH }, grid); txt(axis, xs(v), py0 + PH + 18, String(+v.toFixed(4)), { 'text-anchor': 'middle', style: 'font-size:17px' }); });
+      el('path', { d: `M${x0},${py0 + PH}H${x1}` }, axis);
+      LANES.forEach((a, j) => {
+        const y = py0 + (j + 0.5) * LH, ws = WINS.filter(w => w.act === a && w[F.k] != null);
+        txt(g, x0 - 10, y + 6, NAME[a], { class: 'axis-title', 'text-anchor': 'end', fill: ACOL[a], style: 'font-size:17px' });
+        if (!ws.length) { txt(g, x0 + 10, y + 6, 'no peaks', { class: 'mono-2', style: 'font-size:16px;font-style:italic' }); return; }
+        const vs = ws.map(w => w[F.k]), mn = Math.min(...vs), mx = Math.max(...vs);
+        el('rect', { x: xs(mn) - 7, y: y - 8, width: xs(mx) - xs(mn) + 14, height: 16, rx: 8, fill: ACOL[a], 'fill-opacity': 0.2 }, g);
+        ws.forEach(w => { const x = xs(w[F.k]); el('circle', { cx: x, cy: y, r: 5, fill: ACOL[a], 'fill-opacity': .9, stroke: '#fff', 'stroke-width': 1 }, g); G.dots.push({ x, y, w, F }); });
+      });
     });
-    // the legend on the right, with each activity's score
-    const lx = 880; let ly = 52;
-    txt(chart, lx, ly, step.id === 'tree' ? 'correct / windows, by the tree' : 'correct / windows, by the rule', { class: 'dlabel', fill: 'var(--ink-2)', style: 'font-size:19px' }); ly += 38;
-    acts.forEach(a => {
-      const pa = ps.filter(p => p.act === a), ok = pa.filter(p => !wrong(p)).length;
-      if (a === 'Standing') el('rect', { x: lx, y: ly - 14, width: 14, height: 14, fill: ACOL[a] }, chart); else el('circle', { cx: lx + 7, cy: ly - 7, r: 7.5, fill: ACOL[a] }, chart);
-      txt(chart, lx + 26, ly, NAME[a], { class: 'axis-title', fill: 'var(--ink)' });
-      txt(chart, lx + 330, ly, `${ok} / ${pa.length}`, { class: 'mono', 'text-anchor': 'end', fill: ok === pa.length ? COL.green : COL.red, style: `fill:${ok === pa.length ? COL.green : COL.red};font-weight:700` });
-      ly += 40;
-    });
-    if (step.id !== 'rule2') { ly += 6; el('line', { x1: lx, x2: lx + 18, y1: ly - 20, y2: ly - 2, stroke: COL.ink, 'stroke-width': 2 }, chart); el('line', { x1: lx, x2: lx + 18, y1: ly - 2, y2: ly - 20, stroke: COL.ink, 'stroke-width': 2 }, chart); txt(chart, lx + 26, ly - 4, 'labeled wrong', { class: 'axis-title', fill: 'var(--ink)' }); ly += 40; }
-    const NOTE = {
-      rule2: ['Three activities, two thresholds', 'picked by eye, and every window', 'is labeled correctly.'],
-      rule6: ['The stairs fall between walking', 'and running, and standing sits', 'on top of sitting. Drag the', 'prominence: the dots cross', 'the lines.'],
-      tree: ['The tree’s splits have the same', '“if feature > threshold” form,', 'but the labeled windows set them.', 'It splits sitting from standing on', 'a 0.3 m/s² sway, a margin that', 'better features should replace.'],
-    }[step.id];
-    ly += 10; NOTE.forEach((s, j) => txt(chart, lx, ly + j * 30, s, { class: 'note' }));
-    G.ps = ps;
+    // the sixth slot: what to read from the strips
+    const nx = GX[1] + LW, ny = GY[2] + 10;
+    ['Bars that overlap cannot be told apart', 'by that feature. At prominence 1, step', 'rate, spacing and width overlap for every', 'moving activity; height separates walking', 'and running but not the two stair', 'directions; sitting and standing produce', 'no peaks at all.'].forEach((s, j) => txt(chart, nx - 60, ny + j * 28, s, { class: 'note', style: 'font-size:19px' }));
   }
   chart.addEventListener('mousemove', evt => {
-    if (!G.ps) return;
-    const q = svgPoint(chart, evt); let best = null, bd = 18 * 18;
-    G.ps.forEach(p => { const d = (sx(p.rate + p.jx) - q.x) ** 2 + (sy(p.tall) - q.y) ** 2; if (d < bd) { bd = d; best = p; } });
+    if (!G.dots) return;
+    const q = svgPoint(chart, evt); let best = null, bd = 12 * 12;
+    G.dots.forEach(d => { const e = (d.x - q.x) ** 2 + (d.y - q.y) ** 2; if (e < bd) { bd = e; best = d; } });
     if (!best) { hideTip(); return; }
-    showTip(chart, evt, `<div class="row"><span><i class="sw" style="background:${ACOL[best.act]}"></i>${NAME[best.act]}</span><span>${best.n}–${best.n + 4} s</span></div><div class="row"><span>steps per second</span><span>${fmt(best.rate, 2)}</span></div><div class="row"><span>tallest peak</span><span>${fmt(best.tall, 1)} m/s²</span></div>`);
+    showTip(chart, evt, `<div class="row"><span><i class="sw" style="background:${ACOL[best.w.act]}"></i>${NAME[best.w.act]}</span><span>${best.w.n}–${best.w.n + 4} s</span></div><div class="row"><span>${best.F.n}</span><span>${fmt(best.w[best.F.k], best.F.d)} ${best.F.u}</span></div>`);
   });
   chart.addEventListener('mouseleave', hideTip);
 
