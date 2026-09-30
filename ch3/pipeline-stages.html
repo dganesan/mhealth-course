@@ -377,9 +377,10 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
     return out;
   }
   let WS = [];
+  const stageOf = step => step.stage != null ? step.stage : ['collect', 'prep', 'window', 'features', 'classify'].indexOf(step.id);
 
   const STAGES = [
-    { n: 'Collect', s: 'labeled sensor data' }, { n: 'Pre-process', s: 'denoise, band-pass' }, { n: 'Window', s: '2–5 s segments' },
+    { n: 'Collect', s: 'labeled sensor data' }, { n: 'Pre-process', s: 'magnitude, band-pass' }, { n: 'Window', s: '2–5 s segments' },
     { n: 'Features', s: 'mean, FFT, DTW, …' }, { n: 'Classify', s: 'tree, random forest, …' }];
 
   const PAGE = {
@@ -388,7 +389,10 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
     steps: [
       { id: 'collect', title: () => 'Stage 1: collect labeled sensor data', tag: () => '', span: () => DUR,
         subtitle: '' },
-      { id: 'prep', title: () => 'Stage 2: pre-process with a band-pass filter', tag: () => '', span: () => DUR,
+      { id: 'mag', stage: 1, title: () => 'Stage 2: pre-process, first the magnitude', tag: () => 'three axes → one signal', span: () => DUR,
+        subtitle: '',
+        code: `magnitude = np.sqrt(x**2 + y**2 + z**2)` },
+      { id: 'prep', stage: 1, title: () => 'Stage 2: pre-process with a band-pass filter', tag: () => '', span: () => DUR,
         subtitle: '',
         code: `b, a = butter(3, [0.5, 5.0], btype='bandpass', fs=50); filtered = filtfilt(b, a, magnitude)` },
       { id: 'window', title: () => `Stage 3: segment into ${w()}-second windows`, tag: () => `w = ${w()} s = ${w() * FS} samples · ${WS.length} windows`, span: () => DUR,
@@ -401,13 +405,19 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
     setup(step) {
       WS = windows();
       chart.innerHTML = ''; G = {};
-      document.querySelector('.row.dials').style.visibility = (step.id === 'collect' || step.id === 'prep') ? 'hidden' : '';
-      drawStages(PAGE.steps.indexOf(step));
+      document.querySelector('.row.dials').style.visibility = (step.id === 'collect' || step.id === 'mag' || step.id === 'prep') ? 'hidden' : '';
+      drawStages(stageOf(step));
       const defs = el('defs', {}, chart);
       const m = el('marker', { id: 'arr', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: 'auto' }, defs);
       el('path', { d: 'M0,0L10,5L0,10z', fill: COL.blue }, m);
       G.static = el('g', {}, chart); G.dyn = el('g', {}, chart); G.hover = el('g', {}, chart);
       if (step.id === 'collect') { P = Object.assign({}, P0, { x1: XR }); YR = [-20, 30]; YT = [-20, -10, 0, 10, 20]; axes('m/s²'); strip(); legend(AXES.map(a => ({ c: a.c, n: a.n }))); }
+      else if (step.id === 'mag') {   // |a| = sqrt(x² + y² + z²): oscillates about gravity while walking, sits on it while sitting
+        P = Object.assign({}, P0, { x1: XR }); YR = [0, 26]; YT = [0, 5, 10, 15, 20]; axes('|a| (m/s²)'); strip();
+        el('line', { x1: P.x0, x2: P.x1, y1: ys(9.8), y2: ys(9.8), stroke: 'var(--ink-2)', 'stroke-width': 1.4, 'stroke-dasharray': '6 5' }, G.static);
+        txt(G.static, xs(8) + 10, ys(9.8) - 12, 'gravity 9.8 m/s²', { class: 'dlabel', fill: 'var(--ink-2)' });
+        legend([{ c: COL.ink, n: '|a| = √(x² + y² + z²)' }]);
+      }
       else if (step.id === 'prep') { P = Object.assign({}, P0, { x1: XR }); YR = [-6, 8]; YT = [-4, -2, 0, 2, 4, 6]; axes('|a| − mean (m/s²)'); strip(); el('path', { class: 'thin-line', d: path(RAW, N - 1), stroke: COL.raw, 'stroke-width': 1.5 }, G.static); legend([{ c: COL.raw, n: 'raw |a| − mean' }, { c: COL.blue, n: 'band-pass 0.5–5 Hz' }]); }
       else if (step.id === 'window' || step.id === 'features') { P = Object.assign({}, P0, { x1: step.id === 'window' ? XR : 725 }); YR = [-6, 9]; YT = [-4, -2, 0, 2, 4, 6]; axes('filtered |a| (m/s²)'); strip(); el('path', { class: 'thin-line', d: path(FILT, N - 1), stroke: COL.blue, 'stroke-width': 1.3 }, G.static); if (step.id === 'features') tableHead(TB1); }
       else { tableHead(TB2); classifierBox(); labelAxis(); }
@@ -417,6 +427,7 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
       G.dyn.innerHTML = '';
       const upto = Math.min(N - 1, Math.floor(t * FS));
       if (step.id === 'collect') { AXES.forEach(a => el('path', { class: 'thin-line', d: path(a.k, upto), stroke: a.c }, G.dyn)); cursorLine(t, upto); }
+      else if (step.id === 'mag') { el('path', { class: 'out-line', d: path(MAG, upto), stroke: COL.ink, 'stroke-width': 2 }, G.dyn); cursorLine(t, upto); }
       else if (step.id === 'prep') { el('path', { class: 'out-line', d: path(FILT, upto), stroke: COL.blue }, G.dyn); cursorLine(t, upto); }
       else if (step.id === 'window' || step.id === 'features') { drawWindows(t, step.id === 'features'); }
       else drawClassify(t);
@@ -549,7 +560,8 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
     G.hover.innerHTML = '';
     el('line', { class: 'crosshair', x1: xs(i / FS), x2: xs(i / FS), y1: P.y0, y2: P.y1 }, G.hover);
     let html = `<div class="row"><span>t</span><b>${fmt(i / FS, 2)} s</b></div>`;
-    if (step.id === 'collect') AXES.forEach(a => { html += `<div class="row"><span><i class="sw" style="background:${a.c}"></i>${a.n.slice(-1)}</span><span>${fmt(a.k[i])}</span></div>`; });
+    if (step.id === 'mag') html += `<div class="row"><span><i class="sw" style="background:${COL.ink}"></i>|a|</span><span>${fmt(MAG[i])}</span></div>`;
+    else if (step.id === 'collect') AXES.forEach(a => { html += `<div class="row"><span><i class="sw" style="background:${a.c}"></i>${a.n.slice(-1)}</span><span>${fmt(a.k[i])}</span></div>`; });
     else { html += `<div class="row"><span><i class="sw" style="background:${COL.raw}"></i>raw |a| − mean</span><span>${fmt(RAW[i])}</span></div>`; if (i <= Math.floor(ENG.t * FS) || step.id !== 'prep') html += `<div class="row"><span><i class="sw" style="background:${COL.blue}"></i>filtered</span><span>${fmt(FILT[i])}</span></div>`; }
     html += `<div class="row"><span>label</span><span>${labelAt(t)}</span></div>`;
     showTip(chart, evt, html);

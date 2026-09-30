@@ -402,8 +402,15 @@ const TRACES = {
     })).concat([{
       act: null, static: true, title: () => 'Six activities side by side', tag: tagTxt,
       subtitle: '', span: () => DUR
+    }, {
+      act: null, feats: true, static: true, title: () => 'What the features pick up', tag: () => `magnitude, one ${WF / FS}-second window from ${fmt(start(), 1)} s`,
+      subtitle: '', span: () => DUR
     }]),
-    setup(step) { chart.innerHTML = ''; G = {}; if (step.act) setupSingle(step); else setupGrid(); },
+    setup(step) {
+      chart.innerHTML = ''; G = {};
+      $('axes').closest('.group').style.visibility = step.feats ? 'hidden' : '';   // the magnitude step has no axis choice
+      if (step.act) setupSingle(step); else if (step.feats) setupFeatures(); else setupGrid();
+    },
     draw(step, t) { if (step.act) drawSingle(step, t); }
   };
   let G = {};
@@ -467,6 +474,48 @@ const TRACES = {
       selAxes().forEach(a => el('path', { class: 'thin-line', d: path(TRACES[act][a.k], o, NS - 1, pxs, pys), stroke: a.c, 'stroke-width': 1.1 }, g));
       if (act === 'Sitting') drawLegendRow(g, px1 - 4, py1 - 36, selAxes().map(a => ({ c: a.c, n: a.n })));   // bottom strip of the flat sitting panel
     });
+  }
+
+  // ---- one window of the magnitude per activity, with the three numbers the pipeline computes from it
+  const WF = 100;                                                     // 2 s, as in the pipeline's windows
+  function winFeatures(act) {
+    const tr = TRACES[act], o = offset();
+    const m = Array.from({ length: WF }, (_, j) => Math.hypot(tr.x[o + j], tr.y[o + j], tr.z[o + j]));
+    const mu = m.reduce((a, b) => a + b, 0) / WF, sd = Math.sqrt(m.reduce((a, v) => a + (v - mu) ** 2, 0) / WF);
+    let best = -1, fdom = null;                                       // dominant frequency 0.3–8 Hz; none if its amplitude is below 0.3 m/s²
+    for (let k = 1; k <= WF / 2; k++) {
+      const f = k * FS / WF; if (f < 0.3 || f > 8) continue;
+      let re = 0, im = 0; for (let j = 0; j < WF; j++) { const ph = 2 * Math.PI * k * j / WF; re += (m[j] - mu) * Math.cos(ph); im -= (m[j] - mu) * Math.sin(ph); }
+      const amp = 2 * Math.hypot(re, im) / WF; if (amp > best) { best = amp; fdom = f; }
+    }
+    const axm = ['x', 'y', 'z'].map(k => { let a = 0; for (let j = 0; j < WF; j++) a += tr[k][o + j]; return a / WF; });
+    return { m, mu, sd, fdom: best >= 0.3 ? fdom : null, axm };
+  }
+  function setupFeatures() {
+    const GAP = 110, CW = (W - 80 - 36 - GAP) / 2, PWF = CW - 210, PH = 118, GX = [80, 80 + CW + GAP], GY = [42, 218, 394];
+    const Y0 = 0, Y1 = 32, TF = WF / FS;
+    ORDER.forEach((act, k) => {
+      const px0 = GX[k % 2], py0 = GY[Math.floor(k / 2)], px1 = px0 + PWF, py1 = py0 + PH, still = act === 'Sitting' || act === 'Standing';
+      const pxs = t => px0 + (t / TF) * PWF, pys = v => py1 - ((v - Y0) / (Y1 - Y0)) * PH;
+      const F = winFeatures(act), g = el('g', {}, chart);
+      const grid = el('g', { class: 'grid' }, g), axis = el('g', { class: 'axis' }, g);
+      [0, 10, 20, 30].forEach(v => { el('line', { x1: px0, x2: px1, y1: pys(v), y2: pys(v) }, grid); txt(axis, px0 - 8, pys(v) + 6, v, { 'text-anchor': 'end' }); });
+      [0, 1, 2].forEach(v => { el('line', { x1: pxs(v), x2: pxs(v), y1: py0, y2: py1 }, grid); if (k >= 4) txt(axis, pxs(v), py1 + 17, v, { 'text-anchor': 'middle' }); });
+      el('path', { d: `M${px0},${py0}V${py1}H${px1}` }, axis);
+      { const yt = txt(g, 0, 0, '|a| (m/s²)', { class: 'axis-title', 'text-anchor': 'middle', style: 'font-size:19px' }); yt.setAttribute('transform', `translate(${px0 - 50},${(py0 + py1) / 2}) rotate(-90)`); }
+      if (k >= 4) txt(g, px1, py1 + 38, 'time (seconds)', { class: 'axis-title', 'text-anchor': 'end' });
+      txt(g, px0, py0 - 8, NAME[act], { class: 'dlabel', fill: 'var(--ink)' });
+      el('line', { x1: px0, x2: px1, y1: pys(9.8), y2: pys(9.8), stroke: 'var(--ink-3)', 'stroke-width': 1.2, 'stroke-dasharray': '5 4' }, g);
+      el('path', { class: 'thin-line', d: path(F.m, 0, WF - 1, pxs, pys), stroke: COL.ink, 'stroke-width': 1.8 }, g);
+      // the readout beside the panel
+      const rx = px1 + 22, rows = [['mean', fmt(F.mu, 1)], ['std', fmt(F.sd, 2)], ['f_dom', F.fdom == null ? 'none' : fmt(F.fdom, 1) + ' Hz']];
+      el('rect', { x: rx - 10, y: py0 - 4, width: 196, height: PH + 8, rx: 5, fill: '#f6f8fb', stroke: 'var(--rule)' }, g);
+      rows.forEach(([n, v], j) => { txt(g, rx, py0 + 24 + j * 28, n, { class: 'mono-2', style: 'font-size:19px' }); txt(g, rx + 176, py0 + 24 + j * 28, v, { class: 'mono', 'text-anchor': 'end', style: 'font-size:19px' }); });
+      const ax = F.axm.map(v => fmt(v, 1)).join(' ');
+      txt(g, rx, py0 + 24 + 3 * 28, 'axes', { class: 'mono-2', style: 'font-size:19px' + (still ? `;fill:${COL.red}` : '') });
+      txt(g, rx + 176, py0 + 24 + 3 * 28, ax, { class: 'mono', 'text-anchor': 'end', style: 'font-size:17px' + (still ? `;fill:${COL.red};font-weight:700` : '') });
+    });
+    txt(chart, 80, 600, 'Sitting and standing have nearly the same magnitude features; only the mean of each axis (x y z) separates them.', { class: 'note' });
   }
 
   dial('start', { valId: 'startVal', fmt: v => fmt(v, 1) + ' s' });
