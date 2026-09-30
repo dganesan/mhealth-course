@@ -475,7 +475,7 @@ const TRACES = {
     steps: [
       { id: 'series', static: true, span: () => 1, title: () => 'What find_peaks tells us about each activity', tag: () => 'first 4 s of each activity',
         subtitle: '', code: () => `peaks, props = find_peaks(magnitude, height=0, distance=15, <span class="hl">prominence=<b class="p">${fmt(prom(), 2)}</b></span>, width=0)` },
-      { id: 'strips', static: true, span: () => 1, title: () => 'No single peak feature tells them apart', tag: () => `${WINS.length / LANES.length} windows of 4 s per activity · one dot per window`,
+      { id: 'strips', static: true, span: () => 1, title: () => 'The peak features are not enough to tell them apart', tag: () => `${WINS.length / LANES.length} windows of 4 s per activity · one dot per window`,
         subtitle: '', code: () => '' },
     ],
     setup(step) {
@@ -539,7 +539,7 @@ const TRACES = {
     });
     // the sixth slot: what to read from the strips
     const nx = GX[1] + LW, ny = GY[2] + 10;
-    ['Bars that overlap cannot be told apart', 'by that feature. At prominence 1, step', 'rate, spacing and width overlap for every', 'moving activity; height separates walking', 'and running but not the two stair', 'directions; sitting and standing produce', 'no peaks at all.'].forEach((s, j) => txt(chart, nx - 60, ny + j * 28, s, { class: 'note', style: 'font-size:19px' }));
+    ['Bars that overlap cannot be told', 'apart by that feature.'].forEach((s, j) => txt(chart, nx - 60, ny + 40 + j * 36, s, { class: 'note', style: 'font-size:26px' }));
   }
   chart.addEventListener('mousemove', evt => {
     if (!G.dots) return;
