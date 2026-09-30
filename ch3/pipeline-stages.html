@@ -388,7 +388,8 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
     durNormal: 6,
     steps: [
       { id: 'collect', title: () => 'Stage 1: collect labeled sensor data', tag: () => '', span: () => DUR,
-        subtitle: '' },
+        subtitle: '',
+        code: `x, y, z, label = df['x'], df['y'], df['z'], df['label']   # 50 Hz: 8 s walking, then 4 s sitting` },
       { id: 'mag', stage: 1, title: () => 'Stage 2: pre-process, first the magnitude', tag: () => 'three axes → one signal', span: () => DUR,
         subtitle: '',
         code: `magnitude = np.sqrt(x**2 + y**2 + z**2)` },
@@ -396,11 +397,14 @@ const FILT = [0.007,0.879,1.604,2.074,2.245,2.147,1.872,1.545,1.29,1.198,1.316,1
         subtitle: '',
         code: `b, a = butter(3, [0.5, 5.0], btype='bandpass', fs=50); filtered = filtfilt(b, a, magnitude)` },
       { id: 'window', title: () => `Stage 3: segment into ${w()}-second windows`, tag: () => `w = ${w()} s = ${w() * FS} samples · ${WS.length} windows`, span: () => DUR,
-        subtitle: '' },
+        subtitle: '',
+        code: () => `n = <b class="p">${w() * FS}</b>; windows = [filtered[i:i + n] for i in range(0, len(filtered) - n + 1, n)]` },
       { id: 'features', title: () => 'Stage 4: extract features from each window', tag: () => `${WS.length} rows × 2 features + label`, span: () => DUR,
-        subtitle: '' },
+        subtitle: '',
+        code: `X = [[np.var(win), dominant_frequency(win)] for win in windows]` },
       { id: 'classify', title: () => 'Stage 5: classify each feature vector', tag: () => `${WS.length} windows → ${WS.length} labels`, span: () => DUR,
-        subtitle: '' }
+        subtitle: '',
+        code: `labels = clf.predict(X)   # clf was trained earlier on labeled windows` }
     ],
     setup(step) {
       WS = windows();
