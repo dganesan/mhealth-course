@@ -65,10 +65,17 @@ function submit_(p) {
   const st = state_();
   const lock = LockService.getScriptLock();
   lock.waitLock(5000);
-  try { sheet_().appendRow([new Date(), st.session, round, text]); }
+  // the leading apostrophe keeps Sheets from turning the session date into a date value
+  try { sheet_().appendRow([new Date(), "'" + st.session, round, text]); }
   finally { lock.releaseLock(); }
   CacheService.getScriptCache().remove('list' + round);
   return { ok: true };
+}
+
+// a session cell as 'yyyy-MM-dd', also for rows written before the apostrophe fix, where Sheets stored a date
+function sessionOf_(v) {
+  if (v instanceof Date) return Utilities.formatDate(v, SpreadsheetApp.getActive().getSpreadsheetTimeZone(), 'yyyy-MM-dd');
+  return String(v);
 }
 
 // this session's answers for one pair; cached for a few seconds because the projector polls every 3 s
@@ -78,7 +85,7 @@ function list_(p) {
   if (hit) return JSON.parse(hit);
   const session = state_().session;
   const rows = sheet_().getDataRange().getValues().slice(1)
-    .filter(r => String(r[1]) === session && Number(r[2]) === round)
+    .filter(r => sessionOf_(r[1]) === session && Number(r[2]) === round)
     .map(r => ({ t: new Date(r[0]).getTime(), text: String(r[3]) }));
   const out = { ok: true, round: round, answers: rows };
   const s = JSON.stringify(out);
