@@ -63,8 +63,6 @@
     <select id="setsel"><option value="activities">activities</option><option value="exercises">exercises</option><option value="challenge">challenge</option></select>
     <span class="lbl" id="chanLbl">values of</span>
     <span class="seg" id="chan"><button data-c="m">|a|</button><button data-c="x">x</button><button data-c="y">y</button><button data-c="z">z</button></span>
-    <span class="lbl" id="popLbl">from</span>
-    <span class="seg" id="pop"><button data-p="one">one person</button><button data-p="many">8 people</button></span>
     <button id="reveal" class="primary" title="Reveal (space)">Reveal</button>
   </div>
 </div>
@@ -169,11 +167,10 @@ function histPair(svg, va, vb, o) {          // o: { W, H, nb, labels, fs, mark:
 }
 // ------------------------------------------------------------ state and drawing
 let set = ((location.hash.match(/set=(\w+)/) || [])[1] || 'activities'); if (!['activities', 'exercises', 'challenge'].includes(set)) set = 'activities';
-let pair = 0, chan = 'm', pop = 'one', revealed = false;
+let pair = 0, chan = 'm', revealed = false;
 const inSet = () => PAIRS.map((P, i) => i).filter(i => PAIRS[i].set === set);
 function draw() {
   const P = PAIRS[pair], A = D[P.a[0]], B = D[P.b[0]], ids = inSet(), solo = src(P.a[0]) === 'pk';
-  if (solo) pop = 'one';
   $('title').textContent = `${P.a[1]} or ${P.b[1]}?`;
   $('tag').textContent = `${set} · pair ${ids.indexOf(pair) + 1} of ${ids.length} · ${PLACE[src(P.a[0])]}`;
   $('setsel').value = set;
@@ -181,15 +178,14 @@ function draw() {
   const hi = Math.max(20, Math.ceil(Math.max(hiOf(A), hiOf(B)) / 10) * 10), ghi = Math.max(1, Math.ceil(Math.max(...(exOf(A).w || [0]), ...(exOf(B).w || [0]))));
   plotTS($('tsA'), P.a[0], P.a[1], hi, ghi); plotTS($('tsB'), P.b[0], P.b[1], hi, ghi);
   [...$('chan').children].forEach(b => b.classList.toggle('on', b.dataset.c === chan));
-  [...$('pop').children].forEach(b => { b.classList.toggle('on', b.dataset.p === pop); b.disabled = solo && b.dataset.p === 'many'; });
   $('reveal').textContent = revealed ? 'Hide' : 'Reveal';
-  const who = pop === 'one' ? 'one person' : A.people + ' people';
+  const who = solo ? 'one person' : A.people + ' people';
   {
     const name = chan === 'm' ? '|a|' : 'acceleration ' + chan;
-    const sa = pop === 'one' ? (A.one || A) : A, sb = pop === 'one' ? (B.one || B) : B, va = sa.vals[chan], vb = sb.vals[chan];
+    const sa = A, sb = B, va = sa.vals[chan], vb = sb.vals[chan];   // every window available: 8 people, or the one pocket recording
     // on |a| the spread and the minimum are the window features (averaged over windows); on an axis only its mean is a feature
     const st = (S, v) => chan === 'm' ? { m: mean(v), s: mean(S.f.std), mn: mean(S.f.min) } : { m: mean(v), s: sd(v), mn: null };
-    $('q').innerHTML = `The distribution of ${name} values, ${who}<small>What single number would tell these two apart?${pop === 'many' ? ' Does it still work across people?' : ''}</small>`;
+    $('q').innerHTML = `The distribution of ${name} values, ${who}<small>What single number would tell these two apart?</small>`;
     $('view').innerHTML = '<svg></svg>';
     histPair($('view').firstChild, va, vb, { W: 1000, H: 560, nb: 40, fs: 18, labels: [P.a[1], P.b[1]], stats: revealed ? [st(sa, va), st(sb, vb)] : null, L: 14 });
     $('note').innerHTML = `<span class="key"><i style="background:${COL.A}"></i>${P.a[1]}</span><span class="key"><i style="background:${COL.B}"></i>${P.b[1]}</span>${name} in m/s²` +
@@ -202,7 +198,6 @@ const step = d => { const ids = inSet(), j = ids.indexOf(pair) + d; if (j >= 0 &
 $('prev').onclick = () => step(-1); $('next').onclick = () => step(1);
 $('setsel').onchange = () => { set = $('setsel').value; go(inSet()[0]); $('setsel').blur(); };
 [...$('chan').children].forEach(b => b.onclick = () => { chan = b.dataset.c; draw(); });
-[...$('pop').children].forEach(b => b.onclick = () => { pop = b.dataset.p; draw(); });
 $('reveal').onclick = () => { revealed = !revealed; draw(); };
 document.addEventListener('keydown', e => { if (e.target.tagName === 'SELECT') return; if (e.key === 'ArrowRight') step(1); else if (e.key === 'ArrowLeft') step(-1); else if (e.key === ' ') { e.preventDefault(); $('reveal').click(); } });
 { const n = parseInt((location.hash.match(/pair=(\d+)/) || [])[1] || '1', 10), ids = inSet(); go(ids[Math.max(0, Math.min(ids.length, n) - 1)]); }

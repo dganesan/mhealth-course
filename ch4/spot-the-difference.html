@@ -153,7 +153,7 @@
 const API = 'https://script.google.com/macros/s/AKfycbwl9bZajvzRGBFQHL9rMPdHwL7kuF76KvjF3JYfCNU7UIzaei5437aBAuwjlYRwin8SLA/exec';
 // Local test mode keeps everything in this browser (localStorage), so a projector tab and a phone tab on one machine can talk.
 
-const BUILD = '2026-10-13e';   // bumped on each change; the QR code carries it so phones never run a stale cached copy
+const BUILD = '2026-10-13f';   // bumped on each change; the QR code carries it so phones never run a stale cached copy
 // Built by tools/feature-distributions-data.py from the chapter 3 pocket traces, UCI HAR and RecoFit (also used by ch4/feature-distributions.html).
 // For each activity: 4-s windows pooled over 8 people (f: feature values per window; vals: sampled values of |a| and each axis),
 // the same from one person (one.f, one.vals), and that person's example window (one.ex: a = x y z in m/s², w = |ω| in rad/s).
@@ -328,7 +328,7 @@ if (isPhone) phone(); else projector();
 function projector() {
   $('proj').classList.remove('hidden');
   const key = (location.hash.match(/key=([^&]+)/) || [])[1] || '';
-  let round = 1, stage = 0, chan = 'm', pop = 'one', seen = new Set(), hiddenTxt = new Set(), last = [];
+  let round = 1, stage = 0, chan = 'm', seen = new Set(), hiddenTxt = new Set(), last = [];
   const NEXT = ['Look at the distributions', 'Draw the features', 'Check across people', 'Back to the vote'];
   let set = ((location.hash.match(/set=(\w+)/) || [])[1] || 'class');
   if (set === 'unusual') set = 'challenge';   // the old name still works
@@ -364,20 +364,18 @@ function projector() {
   const topVotes = P => { const T = tally(); return votesFor(P).filter(v => T.n[v.id] > 0).sort((p, q) => T.n[q.id] - T.n[p.id]).slice(0, 2).map(v => ({ ...v, n: T.n[v.id] })); };
   const keyRow = P => `<span class="key"><i style="background:${COL.A}"></i>${P.a[1]}</span><span class="key"><i style="background:${COL.B}"></i>${P.b[1]}</span>`;
   function drawDist(P) {
-    const A = D[P.a[0]], B = D[P.b[0]], solo = !A.one || !B.one, who = solo || pop === 'one' ? 'one person' : `${A.people} people`;
+    const A = D[P.a[0]], B = D[P.b[0]], solo = !A.one || !B.one, who = solo ? 'one person' : `${A.people} people`;
     const tv = topVotes(P), voteLine = isOpen(round) ? '' : tv.length ? 'Class vote: ' + tv.map(v => `${v.h} (${v.n})`).join(', ') : 'No votes yet.';
-    if (stage < 3) {                                                     // look: the values of |a| or of one axis, with the features drawn on them on the second press
-      const sa = solo || pop === 'one' ? (A.one || A) : A, sb = solo || pop === 'one' ? (B.one || B) : B, va = sa.vals[chan], vb = sb.vals[chan];
+    if (stage < 3) {                                                     // look: the values of |a| or of one axis over every window available, with the features drawn on them on the second press
+      const sa = A, sb = B, va = sa.vals[chan], vb = sb.vals[chan];
       // on |a| the spread and the minimum are the window features (averaged over windows); on an axis only its mean is a feature
       const st = (S, v) => chan === 'm' ? { m: mean(v), s: mean(S.f.std), mn: mean(S.f.min) } : { m: mean(v), s: sd(v), mn: null };
       const name = chan === 'm' ? '|a|' : 'acceleration ' + chan;
       $('dist').innerHTML = `<div class="dq">The distribution of ${name} values, ${who}<small>${voteLine || 'What single number would tell these two apart?'}</small></div>
-        <div class="ctl"><span class="lbl">values of</span><span class="seg" id="dchan">${['m', 'x', 'y', 'z'].map(c => `<button data-c="${c}" class="${c === chan ? 'on' : ''}">${c === 'm' ? '|a|' : c}</button>`).join('')}</span>
-        <span class="lbl">from</span><span class="seg" id="dpop"><button data-p="one" class="${solo || pop === 'one' ? 'on' : ''}">one person</button><button data-p="many" class="${!solo && pop === 'many' ? 'on' : ''}"${solo ? ' disabled' : ''}>8 people</button></span></div>
+        <div class="ctl"><span class="lbl">values of</span><span class="seg" id="dchan">${['m', 'x', 'y', 'z'].map(c => `<button data-c="${c}" class="${c === chan ? 'on' : ''}">${c === 'm' ? '|a|' : c}</button>`).join('')}</span></div>
         <svg></svg><div class="note">${keyRow(P)}${name} in m/s²` + (stage === 2 ? ' · solid line: mean · shaded: ±1 standard deviation' + (chan === 'm' ? ' within a 4-s window · ▼ dotted: minimum of a 4-s window, on average' : '') : '') + '</div>';
       histPair($('dist').querySelector('svg'), va, vb, { W: 1000, H: 560, nb: 40, fs: 18, labels: [P.a[1], P.b[1]], stats: stage === 2 ? [st(sa, va), st(sb, vb)] : null, L: 14 });
       [...$('dchan').children].forEach(b => b.onclick = () => { chan = b.dataset.c; drawDist(P); });
-      [...$('dpop').children].forEach(b => b.onclick = () => { pop = b.dataset.p; drawDist(P); });
       return;
     }
     // check: how well one threshold on each feature separates the pair, for one person and pooled over 8 people
