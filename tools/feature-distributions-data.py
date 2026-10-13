@@ -1,5 +1,6 @@
 """Builds the data for ch4/feature-distributions.html: for each activity, 4-second windows pooled across several people,
-the features of every window, the sampled values of |a| and of each axis (for the value histograms), and one example window.
+the features of every window and the sampled values of |a| and of each axis (for the value histograms); the same from one person
+(one), with that person's example window (one.ex). The pocket recording is one person, so it has its example window at the top level.
 
 Sources (as in tools/spot-the-difference-data.py)
   uci    : UCI HAR, phone at the waist; 8 subjects × 4 non-overlapping windows, stitched from the 50 % overlapping windows
@@ -10,7 +11,8 @@ Features match the page: mean of each axis, standard deviation / minimum / domin
 average peak height (find_peaks on |a| smoothed over ±0.1 s, prominence 1 m/s², 15 samples apart), mean and standard
 deviation of |ω| where there is a gyroscope.
 
-Usage: python3 tools/feature-distributions-data.py   (writes tools/feature-distributions-data.json)
+Usage: python3 tools/feature-distributions-data.py   (writes tools/feature-distributions-data.json, which both
+       ch4/feature-distributions.html and ch4/spot-the-difference.html embed)
 """
 import json, pathlib, pickle, re
 import numpy as np
@@ -54,10 +56,12 @@ def pack(wins, people):
 
 
 def one(wins):
-    """features of windows from a single person, for the one-person versus many-people comparison"""
+    """features of windows from a single person, for the one-person versus many-people comparison, and that person's example window"""
     feats = [features(a, g) for a, g in wins]
+    a0, g0 = wins[int(np.argsort([w["std"] for w in feats])[len(feats) // 2])]
+    ex = {"a": [[round(float(v), 2) for v in a0[:, i]] for i in range(3)], **({"w": [round(float(v), 3) for v in np.linalg.norm(g0, axis=1)]} if g0 is not None else {})}
     allA = np.concatenate([a for a, _ in wins[::8]])[::4]                # non-overlapping windows (every 4 s), every 4th sample
-    return {"n": len(feats), "f": {k: [w[k] for w in feats] for k in feats[0]},
+    return {"n": len(feats), "f": {k: [w[k] for w in feats] for k in feats[0]}, "ex": ex,
             "vals": {"m": [round(float(v), 2) for v in np.linalg.norm(allA, axis=1)], **{c: [round(float(v), 2) for v in allA[:, i]] for i, c in enumerate("xyz")}}}
 
 
@@ -88,7 +92,7 @@ def uci(label):
             used.append(int(subj[i])); i += 14
         else:
             i += 1
-    return dict(pack(wins, len(used)), one=solo)
+    return dict({k: v for k, v in pack(wins, len(used)).items() if k != "ex"}, one=solo)
 
 
 def recofit(db, name):
@@ -103,7 +107,7 @@ def recofit(db, name):
         wins += [(a[o:o + WN], g[o:o + WN]) for o in range(100, 100 + PER * WN, WN)]
         if len(used) >= PEOPLE:
             break
-    return dict(pack(wins, len(used)), one=solo)
+    return dict({k: v for k, v in pack(wins, len(used)).items() if k != "ex"}, one=solo)
 
 
 def pocket(act):
