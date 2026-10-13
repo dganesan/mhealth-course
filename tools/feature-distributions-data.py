@@ -56,7 +56,9 @@ def pack(wins, people):
 def one(wins):
     """features of windows from a single person, for the one-person versus many-people comparison"""
     feats = [features(a, g) for a, g in wins]
-    return {"n": len(feats), "f": {k: [w[k] for w in feats] for k in feats[0]}}
+    allA = np.concatenate([a for a, _ in wins[::8]])[::4]                # non-overlapping windows (every 4 s), every 4th sample
+    return {"n": len(feats), "f": {k: [w[k] for w in feats] for k in feats[0]},
+            "vals": {"m": [round(float(v), 2) for v in np.linalg.norm(allA, axis=1)], **{c: [round(float(v), 2) for v in allA[:, i]] for i, c in enumerate("xyz")}}}
 
 
 def uci(label):
