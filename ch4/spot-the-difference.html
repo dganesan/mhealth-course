@@ -81,7 +81,7 @@
   .tile .tn { font-size: 19px; font-weight: 700; display: flex; justify-content: space-between; gap: 8px; }
   .tile .tv { font-family: var(--mono); font-size: 16px; color: var(--ma); white-space: nowrap; }
   .tile .tbig { font-size: 44px; font-weight: 700; font-family: var(--mono); align-self: center; line-height: 1; }
-  .tile .tbig small { font-size: 18px; font-weight: 400; color: var(--ink-2); font-family: var(--sans); margin-left: 8px; }
+  .tile .tbig small { font-size: 30px; font-weight: 400; color: var(--ink-2); margin-right: 6px; }
   .tile .tbar { position: relative; height: 12px; background: rgba(0, 0, 0, .08); border-radius: 3px; }
   .tile .tbar span { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; }
   .tile .tbar i { position: absolute; top: -4px; bottom: -4px; width: 4px; margin-left: -2px; background: var(--ink); border-radius: 2px; }
@@ -153,7 +153,7 @@
 const API = 'https://script.google.com/macros/s/AKfycbwl9bZajvzRGBFQHL9rMPdHwL7kuF76KvjF3JYfCNU7UIzaei5437aBAuwjlYRwin8SLA/exec';
 // Local test mode keeps everything in this browser (localStorage), so a projector tab and a phone tab on one machine can talk.
 
-const BUILD = '2026-10-13g';   // bumped on each change; the QR code carries it so phones never run a stale cached copy
+const BUILD = '2026-10-13h';   // bumped on each change; the QR code carries it so phones never run a stale cached copy
 // Built by tools/feature-distributions-data.py from the chapter 3 pocket traces, UCI HAR and RecoFit (also used by ch4/feature-distributions.html).
 // For each activity: 4-s windows pooled over 8 people (f: feature values per window; vals: sampled values of |a| and each axis),
 // the same from one person (one.f, one.vals), and that person's example window (one.ex: a = x y z in m/s², w = |ω| in rad/s).
@@ -386,15 +386,15 @@ function projector() {
     const tile = r => { const col = solo ? '#9a9a9a' : holdCol(r.one - r.many);
       return `<div class="tile${picks.has(r.F.v) ? ' pick' : ''}" style="background:${solo ? '#f4f5f7' : TINT[col]};border-left-color:${col}">
         <div class="tn"><span>${shown(r) >= top - 0.005 ? '★ ' : ''}${r.F.n}</span><span class="tv">${T[r.F.v] ? T[r.F.v] + (T[r.F.v] === 1 ? ' vote' : ' votes') : ''}</span></div>
-        <div class="tbig">${pc(shown(r))}${solo ? '' : `<small>one person ${pc(r.one)}</small>`}</div>
+        <div class="tbig">${solo ? '' : `<small>${pc(r.one)} →</small>`}${pc(shown(r))}</div>
         <div class="tbar"><span style="width:${w(shown(r))}%;background:${col}"></span>${solo ? '' : `<i style="left:${w(r.one)}%"></i>`}</div></div>`; };
     // one row per kind of feature: tilt, the spread and shape of |a|, its peaks, rotation
     const GROUPS = [['mx', 'my', 'mz'], ['std', 'min', 'freq'], ['rate', 'height'], ['wmean', 'wstd']];
     const cells = GROUPS.filter(g => g.some(k => acc[k])).map(g => [0, 1, 2].map(c => acc[g[c]] ? tile(acc[g[c]]) : '<div></div>').join('')).join('');
-    $('dist').innerHTML = `<div class="dq">How well does each feature tell them apart?<small>${solo ? 'One recording only, so there is no check across people.' : 'Does the feature that works for one person still work for 8?'}${voteLine ? ' ' + voteLine : ''}</small></div>
-      <div class="note">Each number is the share of 4-s windows that one threshold on the feature gets right; 50% is guessing.${solo ? '' : ' The bar shows 8 people, the black mark one person.'}</div>
+    $('dist').innerHTML = `<div class="dq">How well does each feature tell them apart?<small>${solo ? 'One person only, so no check across people.' : 'One person → 8 people. Does it still work?'}${voteLine ? ' ' + voteLine : ''}</small></div>
+      <div class="note" style="font-size:20px;color:var(--ink)">100% means the feature always tells them apart. 50% is a coin flip.</div>
       <div class="cgrid">${cells}</div>
-      <div class="note">` + (solo ? '' : `<span class="key"><i style="background:${holdCol(0)}"></i>holds up across people</span><span class="key"><i style="background:${holdCol(0.2)}"></i>loses 10 to 25 points</span><span class="key"><i style="background:${holdCol(0.5)}"></i>loses more</span>`) + '★ best' + (solo ? '' : ' across people') + (tv.length ? ' · outlined: the class vote' : '') + '</div>';
+      <div class="note">` + (solo ? '' : `<span class="key"><i style="background:${holdCol(0)}"></i>still works</span><span class="key"><i style="background:${holdCol(0.2)}"></i>weaker</span><span class="key"><i style="background:${holdCol(0.5)}"></i>fails</span>`) + '★ best' + (solo ? '' : ' across people') + (tv.length ? ' · outlined: the class vote' : '') + '</div>';
   }
   function drawWall() {                                                 // typed answers as cards in arrival order (click to hide); on voted pairs, the live vote bars above them
     const P = PAIRS[round - 1], open = isOpen(round), notes = last.filter(a => !isVote(a)), shown = notes.filter(a => !hiddenTxt.has(a.t + a.text));
