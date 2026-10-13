@@ -157,7 +157,7 @@
 const API = 'https://script.google.com/macros/s/AKfycbwl9bZajvzRGBFQHL9rMPdHwL7kuF76KvjF3JYfCNU7UIzaei5437aBAuwjlYRwin8SLA/exec';
 // Local test mode keeps everything in this browser (localStorage), so a projector tab and a phone tab on one machine can talk.
 
-const BUILD = '2026-10-13k';   // bumped on each change; the QR code carries it so phones never run a stale cached copy
+const BUILD = '2026-10-13l';   // bumped on each change; the QR code carries it so phones never run a stale cached copy
 // Built by tools/feature-distributions-data.py from the chapter 3 pocket traces, UCI HAR and RecoFit (also used by ch4/feature-distributions.html).
 // For each activity: 4-s windows pooled over 8 people (f: feature values per window; vals: sampled values of |a| and each axis),
 // the same from one person (one.f, one.vals), and that person's example window (one.ex: a = x y z in m/s², w = |ω| in rad/s).
@@ -205,7 +205,7 @@ function scaleOf(P) {
   return { hi, ghi: Math.max(1, Math.ceil(Math.max(wm(P.a[0]), wm(P.b[0])))) };
 }
 
-// ------------------------------------------------------------ one 4-second window: three accelerometer axes, and |ω| below when there is a gyroscope
+// ------------------------------------------------------------ one 4-second window: three accelerometer axes, and gyro magnitude below when there is a gyroscope
 function plot(svg, key, label, S, big, gyro) {
   svg.innerHTML = '';
   const r = exOf(key), X0 = big ? 64 : 58, X1 = 690, Y0 = big ? 34 : 30, Y1 = gyro ? 142 : 214, G0 = 172, G1 = 214, lo = -S.hi, hi = S.hi;
@@ -223,8 +223,8 @@ function plot(svg, key, label, S, big, gyro) {
   }
   txt(svg, X0, Y0 - 10, label, { style: `font-family:var(--sans);font-size:${big ? 24 : 28}px;font-weight:700;fill:var(--ink)` });
   if (big) {
-    let lx = X1 - (gyro ? 330 : 250);
-    [['x', 'acc. x'], ['y', 'acc. y'], ['z', 'acc. z']].concat(gyro ? [['w', '|ω| rad/s']] : []).forEach(([k, n]) => { el('line', { x1: lx, x2: lx + 18, y1: Y0 - 16, y2: Y0 - 16, stroke: COL[k], 'stroke-width': 3 }, svg); txt(svg, lx + 24, Y0 - 10, n, { style: 'font-family:var(--sans);font-size:17px;fill:var(--ink-2)' }); lx += 84; });
+    let lx = X1 - (gyro ? 292 : 132);   // legend widths: 44 per axis, 160 for gyro magnitude
+    [['x', 'x'], ['y', 'y'], ['z', 'z']].concat(gyro ? [['w', 'gyro magnitude']] : []).forEach(([k, n]) => { el('line', { x1: lx, x2: lx + 18, y1: Y0 - 16, y2: Y0 - 16, stroke: COL[k], 'stroke-width': 3 }, svg); txt(svg, lx + 24, Y0 - 10, n, { style: 'font-family:var(--sans);font-size:17px;fill:var(--ink-2)' }); lx += k === 'w' ? 160 : 44; });
     txt(svg, 14, (Y0 + Y1) / 2, 'm/s²', { transform: `rotate(-90 14 ${(Y0 + Y1) / 2})`, 'text-anchor': 'middle', style: 'font-family:var(--sans);font-size:17px;fill:var(--ink-2)' });
   }
 }
@@ -282,23 +282,23 @@ function bestCut(va, vb) {
   }
   return best;
 }
-// what students vote for; each one names a row (or rows) of the reveal table
+// what students vote for, named as on the check tiles; tilt and rotation each cover several tiles
 const VOTES = [
-  { id: 'tilt', s: 'tilt', h: 'mean of an axis' },
-  { id: 'std', s: 'how much it varies', h: 'standard deviation of |a|' },
-  { id: 'min', s: 'deepest dip', h: 'minimum of |a|' },
-  { id: 'freq', s: 'how fast it repeats', h: 'dominant frequency' },
-  { id: 'rate', s: 'how often it peaks', h: 'peaks per second' },
-  { id: 'height', s: 'how tall the peaks are', h: 'average peak height' },
-  { id: 'rot', s: 'how much it rotates', h: 'rotation |ω|', gyro: true },
+  { id: 'tilt', h: 'tilt: mean of x, y or z' },
+  { id: 'std', h: 'standard deviation of accel magnitude' },
+  { id: 'min', h: 'minimum of accel magnitude' },
+  { id: 'freq', h: 'dominant frequency' },
+  { id: 'rate', h: 'peaks per second' },
+  { id: 'height', h: 'average peak height' },
+  { id: 'rot', h: 'rotation: gyro magnitude', gyro: true },
 ];
 const votesFor = P => VOTES.filter(v => !v.gyro || hasGyro(P));
 // the window features of tools/feature-distributions-data.py, each tied to the vote it answers
 const FEATS = [
-  { k: 'mx', n: 'mean of x', v: 'tilt' }, { k: 'my', n: 'mean of y', v: 'tilt' }, { k: 'mz', n: 'mean of z', v: 'tilt' },
-  { k: 'std', n: 'standard deviation of |a|', v: 'std' }, { k: 'min', n: 'minimum of |a|', v: 'min' }, { k: 'freq', n: 'dominant frequency', v: 'freq' },
+  { k: 'mx', n: 'tilt: mean of x', v: 'tilt' }, { k: 'my', n: 'tilt: mean of y', v: 'tilt' }, { k: 'mz', n: 'tilt: mean of z', v: 'tilt' },
+  { k: 'std', n: 'standard deviation of accel magnitude', v: 'std' }, { k: 'min', n: 'minimum of accel magnitude', v: 'min' }, { k: 'freq', n: 'dominant frequency', v: 'freq' },
   { k: 'rate', n: 'peaks per second', v: 'rate' }, { k: 'height', n: 'average peak height', v: 'height' },
-  { k: 'wmean', n: 'mean of |ω|', v: 'rot' }, { k: 'wstd', n: 'standard deviation of |ω|', v: 'rot' },
+  { k: 'wmean', n: 'rotation: mean of gyro magnitude', v: 'rot' }, { k: 'wstd', n: 'rotation: standard deviation of gyro magnitude', v: 'rot' },
 ];
 // green if a feature keeps its accuracy across people, amber if it loses 10 to 25 points, red if it loses more
 const holdCol = drop => drop <= 0.10 ? '#1baf7a' : drop <= 0.25 ? '#e0a100' : '#d6453d';
@@ -371,13 +371,13 @@ function projector() {
   function drawDist(P) {
     const A = D[P.a[0]], B = D[P.b[0]], solo = !A.one || !B.one, who = solo ? 'one person' : `${A.people} people`;
     const tv = topVotes(P), voteLine = isOpen(round) ? '' : tv.length ? 'Class vote: ' + tv.map(v => `${v.h} (${v.n})`).join(', ') : 'No votes yet.';
-    if (stage < 3) {                                                     // look: the values of |a| or of one axis over every window available, with the features drawn on them on the second press
+    if (stage < 3) {                                                     // look: the values of accel magnitude or of one axis over every window available, with the features drawn on them on the second press
       const sa = A, sb = B, va = sa.vals[chan], vb = sb.vals[chan];
-      // on |a| the spread and the minimum are the window features (averaged over windows); on an axis only its mean is a feature
+      // on accel magnitude the spread and the minimum are the window features (averaged over windows); on an axis only its mean is a feature
       const st = (S, v) => chan === 'm' ? { m: mean(v), s: mean(S.f.std), mn: mean(S.f.min) } : { m: mean(v), s: sd(v), mn: null };
-      const name = chan === 'm' ? '|a|' : 'acceleration ' + chan;
+      const name = chan === 'm' ? 'accel magnitude' : 'acceleration ' + chan;
       $('dist').innerHTML = `<div class="dq">The distribution of ${name} values, ${who}<small>${voteLine || 'What single number would tell these two apart?'}</small></div>
-        <div class="ctl"><span class="lbl">values of</span><span class="seg" id="dchan">${['m', 'x', 'y', 'z'].map(c => `<button data-c="${c}" class="${c === chan ? 'on' : ''}">${c === 'm' ? '|a|' : c}</button>`).join('')}</span></div>
+        <div class="ctl"><span class="lbl">values of</span><span class="seg" id="dchan">${['m', 'x', 'y', 'z'].map(c => `<button data-c="${c}" class="${c === chan ? 'on' : ''}">${c === 'm' ? 'accel magnitude' : c}</button>`).join('')}</span></div>
         <svg></svg><div class="note">${keyRow(P)}${name} in m/s²` + (stage === 2 ? ' · solid line: mean · shaded: ±1 standard deviation' + (chan === 'm' ? ' within a 4-s window · ▼ dotted: minimum of a 4-s window, on average' : '') : '') + '</div>';
       histPair($('dist').querySelector('svg'), va, vb, { W: 1000, H: 560, nb: 40, fs: 18, labels: [P.a[1], P.b[1]], stats: stage === 2 ? [st(sa, va), st(sb, vb)] : null, L: 14 });
       [...$('dchan').children].forEach(b => b.onclick = () => { chan = b.dataset.c; drawDist(P); });
@@ -394,7 +394,7 @@ function projector() {
         <div class="tn"><span>${r.F.n}${best ? '<span class="best">BEST</span>' : ''}</span><span class="tv">${T[r.F.v] ? T[r.F.v] + (T[r.F.v] === 1 ? ' vote' : ' votes') : ''}</span></div>
         <div class="tbig">${solo ? '' : `<small>${pc(r.one)} → </small>`}${pc(shown(r))}</div>
         <div class="tbar"><span style="width:${w(shown(r))}%;background:${col}"></span>${solo ? '' : `<i style="left:${w(r.one)}%"></i>`}</div></div>`; };
-    // one row per kind of feature: tilt, the spread and shape of |a|, its peaks, rotation
+    // one row per kind of feature: tilt, the spread and shape of accel magnitude, its peaks, rotation
     const GROUPS = [['mx', 'my', 'mz'], ['std', 'min', 'freq'], ['rate', 'height'], ['wmean', 'wstd']];
     const cells = GROUPS.filter(g => g.some(k => acc[k])).map(g => [0, 1, 2].map(c => acc[g[c]] ? tile(acc[g[c]]) : '<div></div>').join('')).join('');
     $('dist').innerHTML = `<div class="dq">How well does each feature tell them apart?<small>${solo ? 'One person only, so no check across people.' : 'One person → 8 people. Does it still work?'}${voteLine ? ' ' + voteLine : ''}</small></div>
@@ -444,7 +444,7 @@ function phone() {
     $('vgrid').innerHTML = '';
     votesFor(P).forEach(v => {
       const b = document.createElement('button'); b.className = 'vbtn' + (picked.includes(v.id) ? ' on' : ''); b.type = 'button';
-      b.innerHTML = '<b></b><small></small>'; b.querySelector('b').textContent = v.s; b.querySelector('small').textContent = v.h;
+      b.innerHTML = '<b></b>'; b.querySelector('b').textContent = v.h;
       b.onclick = () => { picked = picked.includes(v.id) ? picked.filter(x => x !== v.id) : picked.concat(v.id).slice(-2); drawButtons(P); };   // one or two picks
       $('vgrid').appendChild(b);
     });
@@ -457,7 +457,7 @@ function phone() {
         round = n; picked = [];
         const P = PAIRS[n - 1], S = scaleOf(P), gy = hasGyro(P), open = isOpen(n);
         $('ftitle').textContent = `${P.a[1]} or ${P.b[1]}?`;
-        $('flegend').innerHTML = `${placeOf(P)}, 4 s<i style="background:${COL.x}"></i>x<i style="background:${COL.y}"></i>y<i style="background:${COL.z}"></i>z` + (gy ? `<i style="background:${COL.w}"></i>|ω|` : '');
+        $('flegend').innerHTML = `${placeOf(P)}, 4 s<i style="background:${COL.x}"></i>x<i style="background:${COL.y}"></i>y<i style="background:${COL.z}"></i>z` + (gy ? `<i style="background:${COL.w}"></i>gyro magnitude` : '');
         plot($('fA'), P.a[0], P.a[1], S, false, gy); plot($('fB'), P.b[0], P.b[1], S, false, gy);
         $('fvote').classList.toggle('hidden', open); $('fother').textContent = open ? 'What tells these two apart?' : 'Something else? Type it (optional).';
         $('ftext').placeholder = open ? 'e.g. one is flat, the other bounces' : 'your own idea';
