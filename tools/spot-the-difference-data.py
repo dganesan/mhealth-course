@@ -79,7 +79,8 @@ def main():
     rec = {}
     for name in ["Bicep Curl", "Squat (arms in front of body, parallel to ground)", "Lateral Raise", "Jumping Jacks",
                  "Jump Rope", "Running (treadmill)", "Plank", "Side Plank Left side", "Rowing machine", "Elliptical machine",
-                 "Kettlebell Swing", "Medicine Ball Slam", "Lawnmower (right arm)", "Lawnmower (left arm)", "Fast Alternating Punches"]:
+                 "Kettlebell Swing", "Medicine Ball Slam", "Lawnmower (right arm)", "Lawnmower (left arm)", "Fast Alternating Punches",
+                 "Lunge (alternating both legs, weight optional)", "Walk", "Squat Jump", "Burpee"]:
         rec[name] = segment(typical(db[name]))
     # the same exercise at two speeds, and the same exercise by two people
     curls = sorted([s for s in long_sets(db["Bicep Curl"]) if rate(s) == rate(s)], key=rate)
