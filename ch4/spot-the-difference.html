@@ -173,7 +173,7 @@
 const API = 'https://script.google.com/macros/s/AKfycbwl9bZajvzRGBFQHL9rMPdHwL7kuF76KvjF3JYfCNU7UIzaei5437aBAuwjlYRwin8SLA/exec';
 // Local test mode keeps everything in this browser (localStorage), so a projector tab and a phone tab on one machine can talk.
 
-const BUILD = '2026-10-14j';   // bumped on each change; the QR code carries it so phones never run a stale cached copy
+const BUILD = '2026-10-14k';   // bumped on each change; the QR code carries it so phones never run a stale cached copy
 // Built by tools/feature-distributions-data.py from the chapter 3 pocket traces, UCI HAR and RecoFit (also used by ch4/feature-distributions.html).
 // For each activity: 4-s windows pooled over 8 people (f: feature values per window; vals: sampled values of |a| and each axis),
 // the same from one person (one.f, one.vals), and that person's example window (one.ex: a = x y z in m/s², w = |ω| in rad/s).
@@ -357,11 +357,15 @@ function projector() {
   if (set === 'class') set = 'activities';
   if (!SETS.includes(set)) set = 'activities';
   const inSet = () => PAIRS.map((P, i) => i + 1).filter(i => PAIRS[i - 1].set === set);
-  const phoneUrl = location.origin + location.pathname + '?phone&v=' + BUILD;
-  $('purl').textContent = (location.origin + location.pathname + '?phone').replace(/^https?:\/\//, '');
-  try { const q = qrcode(0, 'M'); q.addData(phoneUrl); q.make(); $('qr').innerHTML = q.createSvgTag({ cellSize: 5, margin: 2, scalable: true }); }
-  catch (_) { $('qr').textContent = ''; }
+  // one QR code per pair: the phone opens that pair directly, so it does not depend on the projector sharing its pair
+  function qrFor(n) {
+    const url = location.origin + location.pathname + '?phone&pair=' + n + '&v=' + BUILD;
+    $('purl').textContent = (location.origin + location.pathname + '?phone&pair=' + n).replace(/^https?:\/\//, '');
+    try { const q = qrcode(0, 'M'); q.addData(url); q.make(); $('qr').innerHTML = q.createSvgTag({ cellSize: 5, margin: 2, scalable: true }); }
+    catch (_) { $('qr').textContent = ''; }
+  }
   function show() {
+    qrFor(round);
     const P = PAIRS[round - 1], S = scaleOf(P), gy = hasGyro(P), ids = inSet();
     $('ptitle').textContent = `Spot the difference: ${P.a[1]} or ${P.b[1]}?`;
     $('ptag').textContent = `${set} · pair ${ids.indexOf(round) + 1} of ${ids.length}`;
@@ -494,7 +498,9 @@ function phone() {
   }
   async function sync() {
     try {
-      const r = await api.getRound(); if (r && r.error) throw new Error(r.error);
+      // the pair comes from the QR code; without one, from the projector
+      const fixed = parseInt(new URLSearchParams(location.search).get('pair'), 10);
+      const r = fixed ? { round: fixed } : await api.getRound(); if (r && r.error) throw new Error(r.error);
       const n = Math.max(1, Math.min(PAIRS.length, r.round || 1));
       if (n !== round) {
         round = n; picked = [];
