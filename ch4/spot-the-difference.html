@@ -76,6 +76,17 @@
   .seg button:last-child { border-radius: 0 6px 6px 0; }
   .seg button.on { background: #e8f1fd; border-color: var(--ma); font-weight: 700; }
   .seg button:disabled { opacity: .45; cursor: default; }
+  .clist { min-height: 0; overflow-y: auto; }
+  .crow2 { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr) 44px; align-items: center; gap: 12px; margin: 8px 0; font-size: clamp(16px, 1.2vw, 21px); }
+  .crow2.pick .clab { font-weight: 700; }
+  .crow2 .best { font-size: 14px; font-weight: 700; color: #fff; background: var(--ink); border-radius: 4px; padding: 2px 7px; margin-left: 8px; vertical-align: 2px; }
+  .crow2.top .ctk { box-shadow: 0 0 0 3px var(--ink); }
+  .ctk { position: relative; height: clamp(34px, 2.6vw, 46px); background: #f1f3f6; border-radius: 5px; border-left: 8px solid #9a9a9a; overflow: hidden; display: block; }
+  .cvb { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(42,120,214,.25); }
+  .cacc { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-family: var(--mono); font-weight: 700; font-size: clamp(17px, 1.5vw, 26px); white-space: nowrap; }
+  .cacc small { font-size: inherit; font-weight: 400; color: var(--ink-2); }
+  .cacc .cw { font-family: var(--sans); font-size: clamp(14px, 1vw, 18px); font-weight: 400; color: var(--ink-2); }
+  .crow2 .cn { font-family: var(--mono); font-weight: 700; text-align: right; color: var(--ma); font-size: clamp(17px, 1.3vw, 22px); }
   .cgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: auto; align-content: start; gap: 10px; min-height: 0; overflow-y: auto; }
   .tile { border-radius: 8px; border: 2px solid transparent; border-left: 10px solid #9a9a9a; padding: 6px 12px; display: grid; grid-template-rows: auto auto auto; gap: 3px; }
   .tile.pick { border-top-color: var(--ma); border-right-color: var(--ma); border-bottom-color: var(--ma); box-shadow: 0 0 0 2px var(--ma); }
@@ -157,7 +168,7 @@
 const API = 'https://script.google.com/macros/s/AKfycbwl9bZajvzRGBFQHL9rMPdHwL7kuF76KvjF3JYfCNU7UIzaei5437aBAuwjlYRwin8SLA/exec';
 // Local test mode keeps everything in this browser (localStorage), so a projector tab and a phone tab on one machine can talk.
 
-const BUILD = '2026-10-14c';   // bumped on each change; the QR code carries it so phones never run a stale cached copy
+const BUILD = '2026-10-14d';   // bumped on each change; the QR code carries it so phones never run a stale cached copy
 // Built by tools/feature-distributions-data.py from the chapter 3 pocket traces, UCI HAR and RecoFit (also used by ch4/feature-distributions.html).
 // For each activity: 4-s windows pooled over 8 people (f: feature values per window; vals: sampled values of |a| and each axis),
 // the same from one person (one.f, one.vals), and that person's example window (one.ex: a = x y z in m/s², w = |ω| in rad/s).
@@ -390,21 +401,24 @@ function projector() {
     const sep = (va, vb) => { const ma = mean(va), mb = mean(vb); return Math.min(100, Math.abs(ma - mb) / (sd(va) + sd(vb) + 0.02 * (Math.abs(ma) + Math.abs(mb)) / 2 + 1e-9)); };
     Object.values(acc).forEach(r => { const k = r.F.k; r.sep = solo ? sep(sa.f[k], sb.f[k]) : sep(A.f[k], B.f[k]); });
     const bestK = Object.values(acc).reduce((b, r) => { const v = (solo ? r.one : r.many) * 1000 + r.sep, bv = b ? (solo ? b.one : b.many) * 1000 + b.sep : -1; return v > bv ? r : b; }, null).F.k;
-    const shown = r => solo ? r.one : r.many, top = Math.max(...Object.values(acc).map(shown)), pc = a => Math.round(100 * a) + '%', w = a => Math.max(0, (a - 0.5) / 0.5 * 100);
-    const TINT = { '#1baf7a': '#e2f5ec', '#e0a100': '#fcf0cc', '#d6453d': '#fbe0de' };
-    const tile = r => { const col = solo ? '#9a9a9a' : holdCol(r.one - r.many);
-      const best = r.F.k === bestK;
-      return `<div class="tile${picks.has(r.F.v) ? ' pick' : ''}${best ? ' top' : ''}" style="background:${solo ? '#f4f5f7' : TINT[col]};border-left-color:${col}">
-        <div class="tn"><span>${r.F.n}${best ? '<span class="best">BEST</span>' : ''}</span><span class="tv">${T[r.F.v] ? T[r.F.v] + (T[r.F.v] === 1 ? ' vote' : ' votes') : ''}</span></div>
-        <div class="tbig">${solo ? '' : `<small>${pc(r.one)} → </small>`}${pc(shown(r))}</div>
-        <div class="tbar"><span style="width:${w(shown(r))}%;background:${col}"></span>${solo ? '' : `<i style="left:${w(r.one)}%"></i>`}</div></div>`; };
-    // one row per kind of feature: tilt, the spread and shape of accel magnitude, its peaks, rotation
-    const GROUPS = [['mx', 'my', 'mz'], ['std', 'min', 'freq'], ['rate', 'height'], ['wmean', 'wstd']];
-    const cells = GROUPS.filter(g => g.some(k => acc[k])).map(g => [0, 1, 2].map(c => acc[g[c]] ? tile(acc[g[c]]) : '<div></div>').join('')).join('');
-    $('dist').innerHTML = `<div class="dq">How well does each feature tell them apart?<small>${solo ? 'One person only, so no check across people.' : 'One person → 8 people. Does it still work?'}${voteLine ? ' ' + voteLine : ''}</small></div>
+    const shown = r => solo ? r.one : r.many, pc = a => Math.round(100 * a) + '%';
+    // the vote list again: one row per thing students voted on, the votes as the bar, and inside it how well the feature does
+    // (for tilt and rotation, the member feature that does best is shown)
+    const opts = votesFor(P), mx = Math.max(1, ...opts.map(v => T[v.id] || 0));
+    const rowsHtml = opts.map(v => {
+      const mem = Object.values(acc).filter(r => r.F.v === v.id);
+      if (!mem.length) return '';
+      const r = mem.reduce((b, x) => (shown(x) * 1000 + x.sep > shown(b) * 1000 + b.sep ? x : b));
+      const col = solo ? 'var(--ink)' : holdCol(r.one - r.many), best = mem.some(x => x.F.k === bestK), n = T[v.id] || 0;
+      const which = mem.length > 1 ? ` <span class="cw">${r.F.n.replace(/^(tilt|rotation): /, '')}</span>` : '';
+      return `<div class="crow2${best ? ' top' : ''}${picks.has(v.id) ? ' pick' : ''}"><span class="clab">${v.h}${best ? '<span class="best">BEST</span>' : ''}</span>
+        <span class="ctk" style="border-left-color:${col}"><span class="cvb" style="width:${100 * n / mx}%"></span><span class="cacc" style="color:${col}">${solo ? '' : `<small>${pc(r.one)} → </small>`}${pc(shown(r))}${which}</span></span>
+        <span class="cn">${n}</span></div>`;
+    }).join('');
+    $('dist').innerHTML = `<div class="dq">How well does each feature tell them apart?<small>${solo ? 'One person only.' : 'One person → 8 people. Does it still work?'}</small></div>
       <div class="note" style="font-size:clamp(16px, 1.1vw, 20px);color:var(--ink)">100% means the feature always tells them apart. 50% is a coin flip.</div>
-      <div class="cgrid">${cells}</div>
-      <div class="note">` + (solo ? '' : `<span class="key"><i style="background:${holdCol(0)}"></i>good generalization</span><span class="key"><i style="background:${holdCol(0.2)}"></i>mediocre</span><span class="key"><i style="background:${holdCol(0.5)}"></i>poor</span>`) + (tv.length ? '<span class="key"><i style="background:var(--ma)"></i>blue outline: the class vote</span>' : '') + '</div>';
+      <div class="clist">${rowsHtml}</div>
+      <div class="note">` + (solo ? '' : `<span class="key"><i style="background:${holdCol(0)}"></i>good generalization</span><span class="key"><i style="background:${holdCol(0.2)}"></i>mediocre</span><span class="key"><i style="background:${holdCol(0.5)}"></i>poor</span>`) + '<span class="key"><i style="background:rgba(42,120,214,.25)"></i>votes</span></div>';
   }
   function drawWall() {                                                 // typed answers as cards in arrival order (click to hide); on voted pairs, the live vote bars above them
     const P = PAIRS[round - 1], open = isOpen(round), notes = last.filter(a => !isVote(a)), shown = notes.filter(a => !hiddenTxt.has(a.t + a.text));
