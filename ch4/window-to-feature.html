@@ -69,7 +69,8 @@ const FS = 50, WN = 200, HOP = WN / 2,   // windows overlap by half
       T = DATA.trace, LEN = T.walking.length / FS;
 const COL = { downstairs: '#2a78d6', walking: '#eb6834' }, NAME = { walking: 'walking', downstairs: 'walking downstairs' };
 const starts = Array.from({ length: Math.floor((T.walking.length - WN) / HOP) + 1 }, (_, i) => i * HOP);
-const feat = (sig, o) => { const w = sig.slice(o, o + WN); return { mean: mean(w), std: sd(w), min: Math.min(...w) }; };
+const quant = (w, p) => { const v = w.slice().sort((a, b) => a - b), k = (v.length - 1) * p, f0 = Math.floor(k); return v[f0] + (v[Math.min(v.length - 1, f0 + 1)] - v[f0]) * (k - f0); };
+const feat = (sig, o) => { const w = sig.slice(o, o + WN); return { mean: mean(w), median: quant(w, 0.5), std: sd(w), min: Math.min(...w), max: Math.max(...w) }; };
 const FEATS = [
   { k: 'mean', n: 'mean of accel magnitude' },
   { k: 'std', n: 'standard deviation of accel magnitude' },
@@ -84,8 +85,9 @@ function niceTicks(lo, hi, n) {
 }
 
 // ------------------------------------------------------------ the trace, with the window, and the histogram of the window's values beside it on the same axis
+let curBox = null;                     // the trace's box as last drawn, for turning a drag into a window position
 function traceWithHist(svg, sig, act, o, box, showStats) {
-  const { x0, x1, y0, y1, hx0, hx1 } = box;
+  const { x0, x1, y0, y1, hx0, hx1 } = box; curBox = box;
   const xs = t => x0 + t / LEN * (x1 - x0), ys = v => y1 - (v - YLO) / (YHI - YLO) * (y1 - y0);
   const grid = el('g', { class: 'grid' }, svg), axis = el('g', { class: 'axis' }, svg);
   niceTicks(YLO, YHI, 5).forEach(v => { el('line', { x1: x0, x2: hx1, y1: ys(v), y2: ys(v) }, grid); txt(axis, x0 - 10, ys(v) + 7, v, { 'text-anchor': 'end', style: 'font-size:20px' }); });
@@ -108,12 +110,24 @@ function traceWithHist(svg, sig, act, o, box, showStats) {
   [xs(t1), hx0].reduce((a, b) => { el('path', { d: `M${a + 6},${y0 + 16}H${b - 8}`, stroke: 'var(--ma)', 'stroke-width': 2, fill: 'none', 'marker-end': 'url(#arr)', 'stroke-dasharray': '6 5' }, svg); return b; });
   const f = feat(sig, o);
   if (showStats) {
+    // the usual time-domain features, drawn where they fall among the window's values; labels are pushed apart so they never overlap
+    const q = p => quant(w, p);
     el('rect', { x: hx0, y: ys(f.mean + f.std), width: hx1 - hx0, height: Math.max(2, ys(f.mean - f.std) - ys(f.mean + f.std)), fill: COL[act], 'fill-opacity': .14, stroke: COL[act], 'stroke-dasharray': '4 3' }, svg);
-    el('line', { x1: hx0, x2: hx1, y1: ys(f.mean), y2: ys(f.mean), stroke: 'var(--ink)', 'stroke-width': 3 }, svg);
-    el('line', { x1: hx0, x2: hx1, y1: ys(f.min), y2: ys(f.min), stroke: 'var(--ink)', 'stroke-width': 3, 'stroke-dasharray': '3 5' }, svg);
-    txt(svg, hx1 + 10, ys(f.mean) + 7, 'mean', { style: 'font-size:20px;font-weight:700' });
-    txt(svg, hx1 + 10, ys(f.min) + 7, 'minimum', { style: 'font-size:20px;font-weight:700' });
-    txt(svg, hx1 + 10, ys(f.mean + f.std) - 6, '±1 std', { style: `font-size:20px;fill:${COL[act]};font-weight:700` });
+    const marks = [
+      { n: 'maximum', v: Math.max(...w), dash: '3 5', wd: 2.5 }, { n: '75th percentile', v: q(0.75), dash: '8 5', wd: 2 },
+      { n: 'median', v: q(0.5), dash: '14 6', wd: 2.5 }, { n: 'mean', v: f.mean, dash: '', wd: 3.5 },
+      { n: '25th percentile', v: q(0.25), dash: '8 5', wd: 2 }, { n: 'minimum', v: f.min, dash: '3 5', wd: 2.5 },
+    ];
+    marks.sort((a, b) => b.v - a.v);   // top to bottom, so each label sits in the order of its line
+    let ly = -1e9;
+    marks.forEach(m => {
+      const y = ys(m.v); m.ly = Math.max(y, ly + 30); ly = m.ly;
+      el('line', { x1: hx0, x2: hx1, y1: y, y2: y, stroke: 'var(--ink)', 'stroke-width': m.wd, 'stroke-dasharray': m.dash }, svg);
+      el('path', { d: `M${hx1},${y}L${hx1 + 14},${m.ly - 7}`, stroke: 'var(--ink-3)', 'stroke-width': 1.2, fill: 'none' }, svg);
+      txt(svg, hx1 + 18, m.ly, `${m.n} ${fmt(m.v)}`, { style: `font-size:20px;${m.n === 'mean' ? 'font-weight:700' : ''}` });
+    });
+    txt(svg, hx1 + 18, ly + 40, `standard deviation ${fmt(f.std)}`, { style: `font-size:20px;font-weight:700;fill:${COL[act]}` });
+    txt(svg, hx1 + 18, ly + 66, '(shaded: mean ± 1 std)', { style: `font-size:18px;fill:${COL[act]}` });
   }
   return { xs, ys };
 }
@@ -145,31 +159,25 @@ const STEPS = [
   { title: 'Features of one window',
     draw() {
       const sig = T[act], f = feat(sig, starts[pos]);
-      traceWithHist($('fig'), sig, act, starts[pos], { ...BOX, y1: 640 }, true);
-      $('note').innerHTML = `This window: mean <b>${fmt(f.mean)}</b> · standard deviation <b>${fmt(f.std)}</b> · minimum <b>${fmt(f.min)}</b> m/s². Three numbers stand in for the whole window.`;
+      traceWithHist($('fig'), sig, act, starts[pos], { ...BOX, x1: 1100, hx0: 1150, hx1: 1340, y1: 660 }, true);
+      $('note').innerHTML = '';
     } },
   { title: 'One row of features per window',
     draw() {
       const sig = T[act], svg = $('fig');
       traceWithHist(svg, sig, act, starts[pos], BOX, false);
-      // the table of rows so far, and the standard deviation of each row as a dot
-      const rows = ALL[act].slice(0, shown), TX = 90, TY = 470, RH = 34, cols = [['window', 0], ['mean', 160], ['standard deviation', 330], ['minimum', 620]];
-      cols.forEach(([n, dx]) => txt(svg, TX + dx, TY, n, { style: 'font-size:21px;font-weight:700;fill:var(--ink-2)' }));
-      el('line', { x1: TX, x2: TX + 760, y1: TY + 10, y2: TY + 10, stroke: 'var(--rule)' }, svg);
+      // the table of rows so far, the most recent at the bottom
+      const rows = ALL[act].slice(0, shown), TX = 110, TY = 480, RH = 36;
+      const cols = [['window', 0, r => ''], ['mean', 170, r => fmt(r.mean)], ['median', 380, r => fmt(r.median)], ['standard deviation', 590, r => fmt(r.std, 2)], ['minimum', 930, r => fmt(r.min)], ['maximum', 1140, r => fmt(r.max)]];
+      cols.forEach(([n, dx]) => txt(svg, TX + dx, TY, n, { style: 'font-size:22px;font-weight:700;fill:var(--ink-2)' }));
+      el('line', { x1: TX - 10, x2: TX + 1330, y1: TY + 12, y2: TY + 12, stroke: 'var(--rule)' }, svg);
       const last = rows.slice(-6), first = rows.length - last.length;
       last.forEach((r, i) => {
-        const y = TY + 42 + i * RH, now = first + i === shown - 1;
-        if (now) el('rect', { x: TX - 8, y: y - 25, width: 780, height: RH - 2, fill: '#e8f1fd', rx: 4 }, svg);
-        [String(first + i + 1), fmt(r.mean), fmt(r.std, 2), fmt(r.min)].forEach((s, j) => txt(svg, TX + cols[j][1], y, s, { style: `font-family:var(--mono);font-size:22px;${now ? 'font-weight:700' : ''}` }));
+        const y = TY + 46 + i * RH, now = first + i === shown - 1;
+        if (now) el('rect', { x: TX - 10, y: y - 26, width: 1340, height: RH - 2, fill: '#e8f1fd', rx: 4 }, svg);
+        cols.forEach(([, dx, f], j) => txt(svg, TX + dx, y, j ? f(r) : String(first + i + 1), { style: `font-family:var(--mono);font-size:23px;${now ? 'font-weight:700' : ''}` }));
       });
-      if (!rows.length) txt(svg, TX, TY + 42, 'press ▶ to slide the window', { style: 'font-size:22px;fill:var(--ink-3)' });
-      const DX0 = 960, DX1 = 1460, DY = 700, xs = v => DX0 + v / 3 * (DX1 - DX0);
-      const axis = el('g', { class: 'axis' }, svg);
-      el('path', { d: `M${DX0},${DY}H${DX1}` }, axis);
-      [0, 1, 2, 3].forEach(v => { el('line', { x1: xs(v), x2: xs(v), y1: DY, y2: DY + 8 }, axis); txt(axis, xs(v), DY + 30, v, { 'text-anchor': 'middle', style: 'font-size:20px' }); });
-      txt(svg, DX0, TY, 'standard deviation of each window', { style: 'font-size:21px;font-weight:700;fill:var(--ink-2)' });
-      const stack = {};
-      rows.forEach((r, i) => { const b = Math.round(r.std / 0.06), k = stack[b] = (stack[b] || 0) + 1; el('circle', { cx: xs(b * 0.06), cy: DY - 10 - (k - 1) * 14, r: 6.5, fill: COL[act], 'fill-opacity': i === shown - 1 ? 1 : .6, stroke: i === shown - 1 ? 'var(--ink)' : 'none', 'stroke-width': 2 }, svg); });
+      if (!rows.length) txt(svg, TX, TY + 46, 'press ▶ to slide the window', { style: 'font-size:22px;fill:var(--ink-3)' });
       $('note').innerHTML = `${shown} of ${starts.length} windows. The table is what the classifier sees: one row per window, one column per feature.`;
     } },
   { title: 'Walking or walking downstairs: which feature tells them apart?',
@@ -229,7 +237,7 @@ $('play').onclick = play;
 [...$('act').children].forEach(b => b.onclick = () => { act = b.dataset.a; stop(); if (step === 1) { shown = 0; pos = 0; } draw(); });
 // drag the window along the signal (steps 1 and 2)
 let dragging = false;
-const toPos = e => { const svg = $('fig'), p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; const q = p.matrixTransform(svg.getScreenCTM().inverse()); const t = (q.x - BOX.x0) / (BOX.x1 - BOX.x0) * LEN - WN / FS / 2; return Math.max(0, Math.min(starts.length - 1, Math.round(t * FS / HOP))); };
+const toPos = e => { const svg = $('fig'), p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; const q = p.matrixTransform(svg.getScreenCTM().inverse()); const t = (q.x - curBox.x0) / (curBox.x1 - curBox.x0) * LEN - WN / FS / 2; return Math.max(0, Math.min(starts.length - 1, Math.round(t * FS / HOP))); };
 $('fig').addEventListener('pointerdown', e => { if (step > 1 || !e.target.dataset.drag) return; dragging = true; stop(); $('fig').setPointerCapture(e.pointerId); });
 $('fig').addEventListener('pointermove', e => { if (!dragging) return; pos = toPos(e); if (step === 1) shown = pos + 1; draw(); });
 $('fig').addEventListener('pointerup', () => { dragging = false; });
