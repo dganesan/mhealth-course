@@ -53,11 +53,16 @@
   #phone #fother { margin-top: 18px; }
   .votes { margin: 4px 0 12px; }
   .vrow { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr) 44px; align-items: center; gap: 12px; font-size: 21px; margin: 7px 0; }
-  .vtrack { background: #f1f3f6; border-radius: 4px; height: 28px; overflow: hidden; }
+  .vtrack { position: relative; background: #f1f3f6; border-radius: 4px; height: 34px; overflow: hidden; }
+  .vacc { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-family: var(--mono); font-weight: 700; font-size: 22px; white-space: nowrap; }
+  .vacc small { font-family: var(--sans); font-weight: 400; font-size: 16px; color: var(--ink-2); }
+  .vbest { font-size: 14px; font-weight: 700; color: #fff; background: var(--ink); border-radius: 4px; padding: 2px 7px; margin-left: 8px; vertical-align: 2px; }
+  .vnote { font-size: 19px; color: var(--ink); margin: 6px 2px; }
   .vbar { display: block; height: 100%; background: var(--ma); border-radius: 4px; transition: width .4s; }
   .vn { font-family: var(--mono); font-weight: 700; text-align: right; }
   .vrow.best .vlab { font-weight: 700; }
-  .vrow.best .vbar { background: #eb6834; }
+  .vrow.best .vtrack { box-shadow: 0 0 0 3px var(--ink); }
+  .votes.res .vbar { opacity: .3; }   /* with results written over the bars */
   h3.also { margin: 14px 0 6px; font-size: 18px; color: var(--ink-2); }
   /* look and check: the value histograms, and how well each feature separates the pair for one person and across people */
   .dist { min-height: 0; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 8px; }
@@ -168,7 +173,7 @@
 const API = 'https://script.google.com/macros/s/AKfycbwl9bZajvzRGBFQHL9rMPdHwL7kuF76KvjF3JYfCNU7UIzaei5437aBAuwjlYRwin8SLA/exec';
 // Local test mode keeps everything in this browser (localStorage), so a projector tab and a phone tab on one machine can talk.
 
-const BUILD = '2026-10-14i';   // bumped on each change; the QR code carries it so phones never run a stale cached copy
+const BUILD = '2026-10-14j';   // bumped on each change; the QR code carries it so phones never run a stale cached copy
 // Built by tools/feature-distributions-data.py from the chapter 3 pocket traces, UCI HAR and RecoFit (also used by ch4/feature-distributions.html).
 // For each activity: 4-s windows pooled over 8 people (f: feature values per window; vals: sampled values of |a| and each axis),
 // the same from one person (one.f, one.vals), and that person's example window (one.ex: a = x y z in m/s², w = |ω| in rad/s).
@@ -362,10 +367,11 @@ function projector() {
     $('ptag').textContent = `${set} · pair ${ids.indexOf(round) + 1} of ${ids.length}`;
     plot($('plotA'), P.a[0], P.a[1], S, true, gy); plot($('plotB'), P.b[0], P.b[1], S, true, gy);
     $('setsel').value = set;
-    $('wall').classList.toggle('hidden', stage > 0); $('join').classList.toggle('hidden', stage > 0); $('dist').classList.toggle('hidden', stage === 0);
+    const wallLike = stage === 0 || stage === 3;   // the result looks exactly like the vote, with the results filled in
+    $('wall').classList.toggle('hidden', !wallLike); $('join').classList.toggle('hidden', !wallLike); $('dist').classList.toggle('hidden', wallLike);
     $('toggle').textContent = NEXT[stage];
-    document.querySelector('#proj .main').classList.toggle('wide', stage > 0);
-    if (stage === 0) drawWall(); else drawDist(P);
+    document.querySelector('#proj .main').classList.toggle('wide', !wallLike);
+    if (wallLike) drawWall(); else drawDist(P);
   }
   // votes are answers of the form "vote:std,rate;d=<device>"; only each device's latest vote counts
   const isVote = a => a.text.startsWith('vote:');
@@ -375,9 +381,25 @@ function projector() {
     const n = {}; VOTES.forEach(v => n[v.id] = 0); Object.values(byDev).forEach(ids => ids.forEach(id => { if (id in n) n[id]++; }));
     return { n, voters: Object.keys(byDev).length };
   }
-  function bars(P, best) {
+  // how well each voted-for feature tells the pair apart: the best single threshold over every window available
+  // (for tilt, the axis that does best); BEST is the top one, ties broken by the widest gap between the two activities
+  function results(P) {
+    const A = D[P.a[0]], B = D[P.b[0]];
+    const sep = (va, vb) => { const ma = mean(va), mb = mean(vb); return Math.min(100, Math.abs(ma - mb) / (sd(va) + sd(vb) + 0.02 * (Math.abs(ma) + Math.abs(mb)) / 2 + 1e-9)); };
+    const feats = FEATS.filter(F => A.f[F.k] && B.f[F.k]).map(F => ({ F, acc: bestCut(A.f[F.k], B.f[F.k]), sep: sep(A.f[F.k], B.f[F.k]) }));
+    const score = r => r.acc * 1000 + r.sep, byVote = {};
+    feats.forEach(r => { const b = byVote[r.F.v]; if (!b || score(r) > score(b)) byVote[r.F.v] = r; });
+    const best = Object.values(byVote).reduce((b, r) => (!b || score(r) > score(b) ? r : b), null);
+    return { byVote, bestVote: best && best.F.v };
+  }
+  // the vote list; with results, each bar also says how well that feature does
+  function bars(P, R) {
     const T = tally(), opts = votesFor(P), mx = Math.max(1, ...opts.map(v => T.n[v.id]));
-    return `<div class="votes">` + opts.map(v => `<div class="vrow${best && best.has(v.id) ? ' best' : ''}"><span class="vlab">${best && best.has(v.id) ? '★ ' : ''}${v.h}</span><span class="vtrack"><span class="vbar" style="width:${100 * T.n[v.id] / mx}%"></span></span><span class="vn">${T.n[v.id]}</span></div>`).join('') + `</div>`;
+    return `<div class="votes${R ? ' res' : ''}">` + opts.map(v => {
+      const r = R && R.byVote[v.id], best = R && R.bestVote === v.id;
+      const res = r ? `<span class="vacc">${Math.round(100 * r.acc)}%${best ? '<span class="vbest">BEST</span>' : ''}${v.id === 'tilt' ? ` <small>${r.F.n.replace(/^tilt: /, '')}</small>` : ''}</span>` : '';
+      return `<div class="vrow${best ? ' best' : ''}"><span class="vlab">${v.h}</span><span class="vtrack"><span class="vbar" style="width:${100 * T.n[v.id] / mx}%"></span>${res}</span><span class="vn">${T.n[v.id]}</span></div>`;
+    }).join('') + `</div>` + (R ? '<p class="vnote">100% means the feature always tells them apart. 50% is a coin flip.</p>' : '');
   }
   // the class's two most-voted features, for pointing at during look and check
   const topVotes = P => { const T = tally(); return votesFor(P).filter(v => T.n[v.id] > 0).sort((p, q) => T.n[q.id] - T.n[p.id]).slice(0, 2).map(v => ({ ...v, n: T.n[v.id] })); };
@@ -425,7 +447,7 @@ function projector() {
   }
   function drawWall() {                                                 // typed answers as cards in arrival order (click to hide); on voted pairs, the live vote bars above them
     const P = PAIRS[round - 1], open = isOpen(round), notes = last.filter(a => !isVote(a)), shown = notes.filter(a => !hiddenTxt.has(a.t + a.text));
-    $('wall').innerHTML = open ? '' : bars(P, null) + (notes.length ? '<h3 class="also">also suggested</h3>' : '');
+    $('wall').innerHTML = open ? '' : bars(P, stage === 3 ? results(P) : null) + (notes.length ? '<h3 class="also">also suggested</h3>' : '');
     const chips = document.createElement('div'); chips.className = 'chips';
     shown.forEach(a => {
       const c = document.createElement('span'), id = a.t + a.text; c.className = 'chip' + (seen.has(id) ? '' : ' new');
@@ -438,7 +460,7 @@ function projector() {
     $('ask').innerHTML = open ? 'What tells these two apart?<br>Answer on your phone.' : 'Which features tell these two apart?<br>Vote on your phone.';
   }
   async function poll() {
-    try { const r = await api.list(round); const a = (r.answers || []).sort((p, q) => p.t - q.t); const changed = a.length !== last.length; last = a; if (changed) { if (stage === 0) drawWall(); else drawDist(PAIRS[round - 1]); } $('status').textContent = API ? 'live' : 'test mode (this browser only)'; }
+    try { const r = await api.list(round); const a = (r.answers || []).sort((p, q) => p.t - q.t); const changed = a.length !== last.length; last = a; if (changed) { if (stage === 0 || stage === 3) drawWall(); else drawDist(PAIRS[round - 1]); } $('status').textContent = API ? 'live' : 'test mode (this browser only)'; }
     catch (e) { $('status').textContent = 'cannot reach the answer sheet'; }
   }
   async function go(r) {
