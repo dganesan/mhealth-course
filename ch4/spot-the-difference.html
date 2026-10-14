@@ -157,7 +157,7 @@
 const API = 'https://script.google.com/macros/s/AKfycbwl9bZajvzRGBFQHL9rMPdHwL7kuF76KvjF3JYfCNU7UIzaei5437aBAuwjlYRwin8SLA/exec';
 // Local test mode keeps everything in this browser (localStorage), so a projector tab and a phone tab on one machine can talk.
 
-const BUILD = '2026-10-13l';   // bumped on each change; the QR code carries it so phones never run a stale cached copy
+const BUILD = '2026-10-14a';   // bumped on each change; the QR code carries it so phones never run a stale cached copy
 // Built by tools/feature-distributions-data.py from the chapter 3 pocket traces, UCI HAR and RecoFit (also used by ch4/feature-distributions.html).
 // For each activity: 4-s windows pooled over 8 people (f: feature values per window; vals: sampled values of |a| and each axis),
 // the same from one person (one.f, one.vals), and that person's example window (one.ex: a = x y z in m/s², w = |ω| in rad/s).
@@ -345,7 +345,7 @@ function projector() {
   function show() {
     const P = PAIRS[round - 1], S = scaleOf(P), gy = hasGyro(P), ids = inSet();
     $('ptitle').textContent = `Spot the difference: ${P.a[1]} or ${P.b[1]}?`;
-    $('ptag').textContent = `${set} · pair ${ids.indexOf(round) + 1} of ${ids.length} · ${placeOf(P)}`;
+    $('ptag').textContent = `${set} · pair ${ids.indexOf(round) + 1} of ${ids.length}`;
     plot($('plotA'), P.a[0], P.a[1], S, true, gy); plot($('plotB'), P.b[0], P.b[1], S, true, gy);
     $('setsel').value = set;
     $('wall').classList.toggle('hidden', stage > 0); $('join').classList.toggle('hidden', stage > 0); $('dist').classList.toggle('hidden', stage === 0);
@@ -457,7 +457,7 @@ function phone() {
         round = n; picked = [];
         const P = PAIRS[n - 1], S = scaleOf(P), gy = hasGyro(P), open = isOpen(n);
         $('ftitle').textContent = `${P.a[1]} or ${P.b[1]}?`;
-        $('flegend').innerHTML = `${placeOf(P)}, 4 s<i style="background:${COL.x}"></i>x<i style="background:${COL.y}"></i>y<i style="background:${COL.z}"></i>z` + (gy ? `<i style="background:${COL.w}"></i>gyro magnitude` : '');
+        $('flegend').innerHTML = `<i style="background:${COL.x}"></i>x<i style="background:${COL.y}"></i>y<i style="background:${COL.z}"></i>z` + (gy ? `<i style="background:${COL.w}"></i>gyro magnitude` : '');
         plot($('fA'), P.a[0], P.a[1], S, false, gy); plot($('fB'), P.b[0], P.b[1], S, false, gy);
         $('fvote').classList.toggle('hidden', open); $('fother').textContent = open ? 'What tells these two apart?' : 'Something else? Type it (optional).';
         $('ftext').placeholder = open ? 'e.g. one is flat, the other bounces' : 'your own idea';

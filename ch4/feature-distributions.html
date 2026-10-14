@@ -172,7 +172,7 @@ const inSet = () => PAIRS.map((P, i) => i).filter(i => PAIRS[i].set === set);
 function draw() {
   const P = PAIRS[pair], A = D[P.a[0]], B = D[P.b[0]], ids = inSet(), solo = src(P.a[0]) === 'pk';
   $('title').textContent = `${P.a[1]} or ${P.b[1]}?`;
-  $('tag').textContent = `${set} · pair ${ids.indexOf(pair) + 1} of ${ids.length} · ${PLACE[src(P.a[0])]}`;
+  $('tag').textContent = `${set} · pair ${ids.indexOf(pair) + 1} of ${ids.length}`;
   $('setsel').value = set;
   const exOf = r => (r.one || r).ex, hiOf = r => Math.max(...exOf(r).a.map(c => Math.max(...c.map(Math.abs))));
   const hi = Math.max(20, Math.ceil(Math.max(hiOf(A), hiOf(B)) / 10) * 10), ghi = Math.max(1, Math.ceil(Math.max(...(exOf(A).w || [0]), ...(exOf(B).w || [0]))));
