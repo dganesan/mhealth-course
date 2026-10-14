@@ -71,11 +71,6 @@ const COL = { downstairs: '#2a78d6', walking: '#eb6834' }, NAME = { walking: 'wa
 const starts = Array.from({ length: Math.floor((T.walking.length - WN) / HOP) + 1 }, (_, i) => i * HOP);
 const quant = (w, p) => { const v = w.slice().sort((a, b) => a - b), k = (v.length - 1) * p, f0 = Math.floor(k); return v[f0] + (v[Math.min(v.length - 1, f0 + 1)] - v[f0]) * (k - f0); };
 const feat = (sig, o) => { const w = sig.slice(o, o + WN); return { mean: mean(w), median: quant(w, 0.5), std: sd(w), min: Math.min(...w), max: Math.max(...w) }; };
-const FEATS = [
-  { k: 'mean', n: 'mean of accel magnitude' },
-  { k: 'std', n: 'standard deviation of accel magnitude' },
-  { k: 'min', n: 'minimum of accel magnitude' },
-];
 const ALL = { walking: starts.map(o => feat(T.walking, o)), downstairs: starts.map(o => feat(T.downstairs, o)) };
 const YLO = 0, YHI = Math.ceil(Math.max(...T.walking, ...T.downstairs) / 5) * 5;
 function niceTicks(lo, hi, n) {
@@ -133,36 +128,17 @@ function traceWithHist(svg, sig, act, o, box, showStats) {
 }
 const defs = () => { const d = el('defs', {}, $('fig')); const m = el('marker', { id: 'arr', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto' }, d); el('path', { d: 'M0,0L10,5L0,10z', fill: 'var(--ma)' }, m); };
 
-// two activities' per-window feature values on a shared axis, one above the other
-function featPair(svg, F, box) {
-  const va = ALL.walking.map(r => r[F.k]), vb = ALL.downstairs.map(r => r[F.k]);
-  // every feature gets at least 3 m/s² of axis, so a small difference also looks small
-  let lo = Math.min(...va, ...vb), hi = Math.max(...va, ...vb); const pad = (hi - lo) * 0.06 || 0.5; lo -= pad; hi += pad;
-  if (hi - lo < 3) { const c = (hi + lo) / 2; lo = c - 1.5; hi = c + 1.5; }
-  const { x0, x1, y0, y1 } = box, nb = 36, bw = (x1 - x0) / nb, mid = (y1 - y0) / 2, xs = v => x0 + (v - lo) / (hi - lo) * (x1 - x0);
-  const grid = el('g', { class: 'grid' }, svg), axis = el('g', { class: 'axis' }, svg);
-  niceTicks(lo, hi, 6).forEach(v => { el('line', { x1: xs(v), x2: xs(v), y1: y0, y2: y1 }, grid); txt(axis, xs(v), y1 + 24, String(+v.toFixed(3)), { 'text-anchor': 'middle', style: 'font-size:19px' }); });
-  txt(svg, x0, y0 - 12, F.n + ' (m/s²), one value per window', { style: 'font-size:22px;font-weight:700' });
-  [[va, 'walking', y0], [vb, 'downstairs', y0 + mid]].forEach(([v, act, top]) => {
-    const c = new Array(nb).fill(0); v.forEach(x => c[Math.min(nb - 1, Math.floor((x - lo) / (hi - lo) * nb))]++);
-    const mx = Math.max(...c), h = mid - 8;
-    c.forEach((n, i) => { if (n) el('rect', { x: x0 + i * bw + 1, y: top + h - n / mx * h, width: bw - 2, height: n / mx * h, fill: COL[act], 'fill-opacity': .85 }, svg); });
-    el('line', { x1: x0, x2: x1, y1: top + h, y2: top + h, stroke: 'var(--ink-3)' }, svg);
-    txt(svg, x0 - 12, top + h - 8, NAME[act], { 'text-anchor': 'end', style: `font-size:20px;font-weight:700;fill:${COL[act]}` });
-  });
-}
-
 // ------------------------------------------------------------ steps
 let step = 0, act = 'walking', pos = 0, shown = 0, timer = null;
 const BOX = { x0: 90, x1: 1180, y0: 60, y1: 400, hx0: 1240, hx1: 1460 };
 const STEPS = [
-  { title: 'Features of one window',
+  { title: 'What can we measure in one window?',
     draw() {
       const sig = T[act], f = feat(sig, starts[pos]);
       traceWithHist($('fig'), sig, act, starts[pos], { ...BOX, x1: 1100, hx0: 1150, hx1: 1340, y1: 660 }, true);
       $('note').innerHTML = '';
     } },
-  { title: 'One row of features per window',
+  { title: 'How does a recording become a table of features?',
     draw() {
       const sig = T[act], svg = $('fig');
       traceWithHist(svg, sig, act, starts[pos], BOX, false);
@@ -180,22 +156,7 @@ const STEPS = [
       if (!rows.length) txt(svg, TX, TY + 46, 'press ▶ to slide the window', { style: 'font-size:22px;fill:var(--ink-3)' });
       $('note').innerHTML = `${shown} of ${starts.length} windows. The table is what the classifier sees: one row per window, one column per feature.`;
     } },
-  { title: 'Walking or walking downstairs: which feature tells them apart?',
-    draw() {
-      const svg = $('fig');
-      ['walking', 'downstairs'].forEach((a, i) => {
-        const sig = T[a].slice(0, 10 * FS), x0 = 90, x1 = 540, y0 = 70 + i * 340, y1 = y0 + 250, ys = v => y1 - (v - YLO) / (YHI - YLO) * (y1 - y0), xs = j => x0 + j / (sig.length - 1) * (x1 - x0);
-        const grid = el('g', { class: 'grid' }, svg), axis = el('g', { class: 'axis' }, svg);
-        niceTicks(YLO, YHI, 4).forEach(v => { el('line', { x1: x0, x2: x1, y1: ys(v), y2: ys(v) }, grid); txt(axis, x0 - 10, ys(v) + 7, v, { 'text-anchor': 'end', style: 'font-size:19px' }); });
-        el('path', { d: `M${x0},${y0}V${y1}H${x1}` }, axis);
-        [0, 5, 10].forEach(s => txt(axis, xs(s * FS - (s ? 1 : 0)), y1 + 24, s === 10 ? '10 s' : s, { 'text-anchor': s === 10 ? 'end' : 'middle', style: 'font-size:19px' }));
-        el('path', { d: sig.map((v, j) => (j ? 'L' : 'M') + xs(j).toFixed(1) + ',' + ys(v).toFixed(1)).join(''), fill: 'none', stroke: COL[a], 'stroke-width': 2.2 }, svg);
-        txt(svg, x0, y0 - 14, NAME[a], { style: `font-size:26px;font-weight:700;fill:${COL[a]}` });
-      });
-      FEATS.forEach((F, i) => featPair(svg, F, { x0: 800, x1: 1560, y0: 50 + i * 240, y1: 50 + i * 240 + 170 }));
-      $('note').innerHTML = 'Bars that overlap cannot be told apart by that feature.';
-    } },
-  { title: 'Two features: each window is one point',
+  { title: 'Which features can best separate the activities?',
     draw() {
       // the same person doing all six activities; tilt (mean of y) on one axis, standard deviation of accel magnitude on the other
       const svg = $('fig'), PL = DATA.plane, ACTS = Object.keys(PL), X0 = 110, X1 = 1240, Y0 = 40, Y1 = 660;

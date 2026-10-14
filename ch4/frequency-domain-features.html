@@ -93,14 +93,20 @@ function draw() {
   pts.forEach((p, i) => el('circle', { cx: p[0], cy: p[1], r: i === pos ? 10 : 7, fill: 'var(--ma)', stroke: i === pos ? 'var(--ink)' : '#fff', 'stroke-width': 2 }, svg));
   el('line', { x1: pts[pos][0], x2: pts[pos][0], y1: T1, y2: pts[pos][1] - 10, stroke: 'var(--ma)', 'stroke-width': 2, 'stroke-dasharray': '5 5' }, svg);
   // ---- where the number comes from: the spectrum of this window, with its peak
-  const P0 = 580, P1 = 730, PX0 = X0, PX1 = 1060, amax = Math.max(1, ...SPEC.map(s => Math.max(...s.out.filter(p => p.f > 0).map(p => p.a)))), xf = f => PX0 + f / F_MAX * (PX1 - PX0), ya = a => P1 - a / amax * (P1 - P0);
+  const P0 = 580, P1 = 730, PX0 = X0, PX1 = 1060, amax = Math.max(1, ...S.out.filter(p => p.f > 0).map(p => p.a)) * 1.15   /* scaled to this window, but never below 1 so sitting stays flat */, xf = f => PX0 + f / F_MAX * (PX1 - PX0), ya = a => P1 - a / amax * (P1 - P0);
   grid = el('g', { class: 'grid' }, svg); axis = el('g', { class: 'axis' }, svg);
   for (let f = 0; f <= F_MAX; f++) { el('line', { x1: xf(f), x2: xf(f), y1: P0, y2: P1 }, grid); txt(axis, xf(f), P1 + 28, f === F_MAX ? f + ' Hz' : f, { 'text-anchor': f === F_MAX ? 'end' : 'middle', style: 'font-size:20px' }); }
   el('path', { d: `M${PX0},${P0}V${P1}H${PX1}` }, axis);
-  txt(svg, PX0 + 10, P0 - 14, 'spectrum of this window', { style: 'font-size:22px;font-weight:700' });
-  const bw = (xf(FS / WN) - xf(0)) * 0.6;
-  S.out.filter(p => p.f > 0 && p.f <= F_MAX).forEach(p => el('rect', { x: xf(p.f) - bw / 2, y: ya(p.a), width: bw, height: P1 - ya(p.a), fill: S.dom && p.f === S.pk.f ? 'var(--ma)' : '#b9c3d0' }, svg));
-  if (S.dom) txt(svg, xf(S.pk.f), ya(S.pk.a) - 10, 'peak', { 'text-anchor': 'middle', style: 'font-size:20px;font-weight:700;fill:var(--ma)' });
+  txt(svg, PX0 + 10, P0 - 14, 'FFT of this window', { style: 'font-size:22px;font-weight:700' });
+  // the FFT magnitude at each frequency bin, drawn as a line through the bins
+  const sp = S.out.filter(p => p.f <= F_MAX);
+  el('path', { d: sp.map((p, i) => (i ? 'L' : 'M') + xf(p.f).toFixed(1) + ',' + ya(p.a).toFixed(1)).join(''), fill: 'none', stroke: '#d63384', 'stroke-width': 3 }, svg);
+  sp.forEach(p => el('circle', { cx: xf(p.f), cy: ya(p.a), r: 4.5, fill: '#d63384' }, svg));
+  if (S.dom) {
+    el('circle', { cx: xf(S.pk.f), cy: ya(S.pk.a), r: 14, fill: 'none', stroke: 'var(--ink)', 'stroke-width': 3 }, svg);
+    txt(svg, xf(S.pk.f) + 22, ya(S.pk.a) + 2, `peak at ${S.pk.f.toFixed(1)} Hz`, { style: 'font-size:20px;font-weight:700' });
+  }
+  txt(svg, 22, (P0 + P1) / 2, '|FFT|', { transform: `rotate(-90 22 ${(P0 + P1) / 2})`, 'text-anchor': 'middle', style: 'font-size:20px;fill:var(--ink-2)' });
   // ---- the feature value
   const seg = SEGS[Math.min(SEGS.length - 1, Math.floor(((t0 + t1) / 2) / SEG_S))];
   txt(svg, 1140, P0 + 20, 'this window', { style: 'font-size:22px;fill:var(--ink-2)' });
