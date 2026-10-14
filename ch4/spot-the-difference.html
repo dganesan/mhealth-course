@@ -168,7 +168,7 @@
 const API = 'https://script.google.com/macros/s/AKfycbwl9bZajvzRGBFQHL9rMPdHwL7kuF76KvjF3JYfCNU7UIzaei5437aBAuwjlYRwin8SLA/exec';
 // Local test mode keeps everything in this browser (localStorage), so a projector tab and a phone tab on one machine can talk.
 
-const BUILD = '2026-10-14f';   // bumped on each change; the QR code carries it so phones never run a stale cached copy
+const BUILD = '2026-10-14g';   // bumped on each change; the QR code carries it so phones never run a stale cached copy
 // Built by tools/feature-distributions-data.py from the chapter 3 pocket traces, UCI HAR and RecoFit (also used by ch4/feature-distributions.html).
 // For each activity: 4-s windows pooled over 8 people (f: feature values per window; vals: sampled values of |a| and each axis),
 // the same from one person (one.f, one.vals), and that person's example window (one.ex: a = x y z in m/s², w = |ω| in rad/s).
@@ -381,14 +381,14 @@ function projector() {
   const topVotes = P => { const T = tally(); return votesFor(P).filter(v => T.n[v.id] > 0).sort((p, q) => T.n[q.id] - T.n[p.id]).slice(0, 2).map(v => ({ ...v, n: T.n[v.id] })); };
   const keyRow = P => `<span class="key"><i style="background:${COL.A}"></i>${P.a[1]}</span><span class="key"><i style="background:${COL.B}"></i>${P.b[1]}</span>`;
   function drawDist(P) {
-    const A = D[P.a[0]], B = D[P.b[0]], solo = !A.one || !B.one, who = solo ? 'one person' : `${A.people} people`;
+    const A = D[P.a[0]], B = D[P.b[0]], solo = !A.one || !B.one;
     const tv = topVotes(P), voteLine = isOpen(round) ? '' : tv.length ? 'Class vote: ' + tv.map(v => `${v.h} (${v.n})`).join(', ') : 'No votes yet.';
     if (stage < 3) {                                                     // look: the values of accel magnitude or of one axis over every window available, with the features drawn on them on the second press
       const sa = A, sb = B, va = sa.vals[chan], vb = sb.vals[chan];
       // on accel magnitude the spread and the minimum are the window features (averaged over windows); on an axis only its mean is a feature
       const st = (S, v) => chan === 'm' ? { m: mean(v), s: mean(S.f.std), mn: mean(S.f.min) } : { m: mean(v), s: sd(v), mn: null };
       const name = chan === 'm' ? 'accel magnitude' : 'acceleration ' + chan;
-      $('dist').innerHTML = `<div class="dq">The distribution of ${name} values, ${who}<small>${voteLine || 'What single number would tell these two apart?'}</small></div>
+      $('dist').innerHTML = `<div class="dq">The distribution of ${name} values<small>${voteLine || 'What single number would tell these two apart?'}</small></div>
         <div class="ctl"><span class="lbl">values of</span><span class="seg" id="dchan">${['m', 'x', 'y', 'z'].map(c => `<button data-c="${c}" class="${c === chan ? 'on' : ''}">${c === 'm' ? 'accel magnitude' : c}</button>`).join('')}</span></div>
         <svg></svg><div class="note">${keyRow(P)}${name} in m/s²` + (stage === 2 ? ' · solid line: mean · shaded: ±1 std dev' + (chan === 'm' ? ' within a window · ▼ dotted: minimum of a window, on average' : '') : '') + '</div>';
       histPair($('dist').querySelector('svg'), va, vb, { W: 1000, H: 560, nb: 40, fs: 18, labels: [P.a[1], P.b[1]], stats: stage === 2 ? [st(sa, va), st(sb, vb)] : null, L: 14 });
@@ -416,7 +416,7 @@ function projector() {
         <span class="ctk" style="border-left-color:${col}"><span class="cvb" style="width:${100 * n / mx}%"></span><span class="cacc" style="color:${col}">${pc(shown(r))}${which}</span></span>
         <span class="cn">${n}</span></div>`;
     }).join('');
-    $('dist').innerHTML = `<div class="dq">How well does each feature tell them apart?<small>${solo ? 'one person' : `windows from ${A.people} people`}</small></div>
+    $('dist').innerHTML = `<div class="dq">How well does each feature tell them apart?</div>
       <div class="note" style="font-size:clamp(16px, 1.1vw, 20px);color:var(--ink)">100% means the feature always tells them apart. 50% is a coin flip.</div>
       <div class="clist">${rowsHtml}</div>
       <div class="note"><span class="key"><i style="background:rgba(42,120,214,.25)"></i>votes</span></div>`;
