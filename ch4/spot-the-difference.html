@@ -157,7 +157,7 @@
 const API = 'https://script.google.com/macros/s/AKfycbwl9bZajvzRGBFQHL9rMPdHwL7kuF76KvjF3JYfCNU7UIzaei5437aBAuwjlYRwin8SLA/exec';
 // Local test mode keeps everything in this browser (localStorage), so a projector tab and a phone tab on one machine can talk.
 
-const BUILD = '2026-10-14a';   // bumped on each change; the QR code carries it so phones never run a stale cached copy
+const BUILD = '2026-10-14b';   // bumped on each change; the QR code carries it so phones never run a stale cached copy
 // Built by tools/feature-distributions-data.py from the chapter 3 pocket traces, UCI HAR and RecoFit (also used by ch4/feature-distributions.html).
 // For each activity: 4-s windows pooled over 8 people (f: feature values per window; vals: sampled values of |a| and each axis),
 // the same from one person (one.f, one.vals), and that person's example window (one.ex: a = x y z in m/s², w = |ω| in rad/s).
@@ -193,7 +193,7 @@ const PAIRS = [
   { set: 'challenge', a: ['rf:Fast Alternating Punches', 'fast punches'], b: ['rf:Jumping Jacks', 'jumping jacks'] },
 ];
 const SETS = ['class', 'activities', 'exercises', 'challenge'];
-const isOpen = n => PAIRS.findIndex(P => P.set === PAIRS[n - 1].set) + 1 === n;   // the first pair of each set is typed; the rest are voted
+const isOpen = n => false;   // every pair is voted on; a typed comment is optional on the phone
 const placeOf = P => PLACE[P.a[0].split(':')[0]];
 const exOf = k => (D[k].one || D[k]).ex;                              // the example window shown as a time series
 const hasGyro = P => !!(exOf(P.a[0]).w && exOf(P.b[0]).w);
@@ -386,10 +386,14 @@ function projector() {
     // check: one tile per feature, coloured by how well its single best threshold holds up from one person to 8 people
     const T = tally().n, picks = new Set(tv.map(v => v.id)), sa = A.one || A, sb = B.one || B;
     const acc = {}; FEATS.filter(F => sa.f[F.k] && sb.f[F.k]).forEach(F => acc[F.k] = { F, one: bestCut(sa.f[F.k], sb.f[F.k]), many: solo ? null : bestCut(A.f[F.k], B.f[F.k]) });
+    // BEST is one feature: the highest accuracy, and among ties (often several at 100%), the widest gap between the two activities
+    const sep = (va, vb) => { const ma = mean(va), mb = mean(vb); return Math.min(100, Math.abs(ma - mb) / (sd(va) + sd(vb) + 0.02 * (Math.abs(ma) + Math.abs(mb)) / 2 + 1e-9)); };
+    Object.values(acc).forEach(r => { const k = r.F.k; r.sep = solo ? sep(sa.f[k], sb.f[k]) : sep(A.f[k], B.f[k]); });
+    const bestK = Object.values(acc).reduce((b, r) => { const v = (solo ? r.one : r.many) * 1000 + r.sep, bv = b ? (solo ? b.one : b.many) * 1000 + b.sep : -1; return v > bv ? r : b; }, null).F.k;
     const shown = r => solo ? r.one : r.many, top = Math.max(...Object.values(acc).map(shown)), pc = a => Math.round(100 * a) + '%', w = a => Math.max(0, (a - 0.5) / 0.5 * 100);
     const TINT = { '#1baf7a': '#e2f5ec', '#e0a100': '#fcf0cc', '#d6453d': '#fbe0de' };
     const tile = r => { const col = solo ? '#9a9a9a' : holdCol(r.one - r.many);
-      const best = shown(r) >= top - 0.005;
+      const best = r.F.k === bestK;
       return `<div class="tile${picks.has(r.F.v) ? ' pick' : ''}${best ? ' top' : ''}" style="background:${solo ? '#f4f5f7' : TINT[col]};border-left-color:${col}">
         <div class="tn"><span>${r.F.n}${best ? '<span class="best">BEST</span>' : ''}</span><span class="tv">${T[r.F.v] ? T[r.F.v] + (T[r.F.v] === 1 ? ' vote' : ' votes') : ''}</span></div>
         <div class="tbig">${solo ? '' : `<small>${pc(r.one)} → </small>`}${pc(shown(r))}</div>
