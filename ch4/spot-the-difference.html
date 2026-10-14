@@ -168,7 +168,7 @@
 const API = 'https://script.google.com/macros/s/AKfycbwl9bZajvzRGBFQHL9rMPdHwL7kuF76KvjF3JYfCNU7UIzaei5437aBAuwjlYRwin8SLA/exec';
 // Local test mode keeps everything in this browser (localStorage), so a projector tab and a phone tab on one machine can talk.
 
-const BUILD = '2026-10-14d';   // bumped on each change; the QR code carries it so phones never run a stale cached copy
+const BUILD = '2026-10-14e';   // bumped on each change; the QR code carries it so phones never run a stale cached copy
 // Built by tools/feature-distributions-data.py from the chapter 3 pocket traces, UCI HAR and RecoFit (also used by ch4/feature-distributions.html).
 // For each activity: 4-s windows pooled over 8 people (f: feature values per window; vals: sampled values of |a| and each axis),
 // the same from one person (one.f, one.vals), and that person's example window (one.ex: a = x y z in m/s², w = |ω| in rad/s).
@@ -409,16 +409,16 @@ function projector() {
       const mem = Object.values(acc).filter(r => r.F.v === v.id);
       if (!mem.length) return '';
       const r = mem.reduce((b, x) => (shown(x) * 1000 + x.sep > shown(b) * 1000 + b.sep ? x : b));
-      const col = solo ? 'var(--ink)' : holdCol(r.one - r.many), best = mem.some(x => x.F.k === bestK), n = T[v.id] || 0;
+      const col = 'var(--ink)', best = mem.some(x => x.F.k === bestK), n = T[v.id] || 0;
       const which = mem.length > 1 ? ` <span class="cw">${r.F.n.replace(/^(tilt|rotation): /, '')}</span>` : '';
       return `<div class="crow2${best ? ' top' : ''}${picks.has(v.id) ? ' pick' : ''}"><span class="clab">${v.h}${best ? '<span class="best">BEST</span>' : ''}</span>
-        <span class="ctk" style="border-left-color:${col}"><span class="cvb" style="width:${100 * n / mx}%"></span><span class="cacc" style="color:${col}">${solo ? '' : `<small>${pc(r.one)} → </small>`}${pc(shown(r))}${which}</span></span>
+        <span class="ctk" style="border-left-color:${col}"><span class="cvb" style="width:${100 * n / mx}%"></span><span class="cacc" style="color:${col}">${pc(shown(r))}${which}</span></span>
         <span class="cn">${n}</span></div>`;
     }).join('');
-    $('dist').innerHTML = `<div class="dq">How well does each feature tell them apart?<small>${solo ? 'One person only.' : 'One person → 8 people. Does it still work?'}</small></div>
+    $('dist').innerHTML = `<div class="dq">How well does each feature tell them apart?<small>${solo ? 'one person' : `windows from ${A.people} people`}</small></div>
       <div class="note" style="font-size:clamp(16px, 1.1vw, 20px);color:var(--ink)">100% means the feature always tells them apart. 50% is a coin flip.</div>
       <div class="clist">${rowsHtml}</div>
-      <div class="note">` + (solo ? '' : `<span class="key"><i style="background:${holdCol(0)}"></i>good generalization</span><span class="key"><i style="background:${holdCol(0.2)}"></i>mediocre</span><span class="key"><i style="background:${holdCol(0.5)}"></i>poor</span>`) + '<span class="key"><i style="background:rgba(42,120,214,.25)"></i>votes</span></div>';
+      <div class="note"><span class="key"><i style="background:rgba(42,120,214,.25)"></i>votes</span></div>`;
   }
   function drawWall() {                                                 // typed answers as cards in arrival order (click to hide); on voted pairs, the live vote bars above them
     const P = PAIRS[round - 1], open = isOpen(round), notes = last.filter(a => !isVote(a)), shown = notes.filter(a => !hiddenTxt.has(a.t + a.text));
