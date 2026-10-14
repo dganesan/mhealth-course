@@ -140,25 +140,6 @@ function peaksIn(x) {                                                  // the fi
 let step = 0, act = 'walking', pos = 0, shown = 0, timer = null;
 const BOX = { x0: 90, x1: 1180, y0: 60, y1: 400, hx0: 1240, hx1: 1460 };
 const STEPS = [
-  { id: 'windows', title: 'How do we cut the recording into windows?',
-    draw() {
-      // the whole recording, and every window above it in two staggered rows so the half overlap shows; click one to pick it
-      const svg = $('fig'), sig = T[act], X0 = 90, X1 = 1540, Y0 = 250, Y1 = 690, xs = t => X0 + t / LEN * (X1 - X0), ys = v => Y1 - (v - YLO) / (YHI - YLO) * (Y1 - Y0);
-      const grid = el('g', { class: 'grid' }, svg), axis = el('g', { class: 'axis' }, svg);
-      niceTicks(YLO, YHI, 5).forEach(v => { el('line', { x1: X0, x2: X1, y1: ys(v), y2: ys(v) }, grid); txt(axis, X0 - 10, ys(v) + 7, v, { 'text-anchor': 'end', style: 'font-size:20px' }); });
-      for (let t = 0; t <= LEN; t += 5) txt(axis, xs(t), Y1 + 28, t === LEN ? t + ' s' : t, { 'text-anchor': t === LEN ? 'end' : 'middle', style: 'font-size:20px' });
-      el('path', { d: `M${X0},${Y0}V${Y1}H${X1}` }, axis);
-      txt(svg, 22, (Y0 + Y1) / 2, 'accel magnitude (m/s²)', { transform: `rotate(-90 22 ${(Y0 + Y1) / 2})`, 'text-anchor': 'middle', style: 'font-size:20px;fill:var(--ink-2)' });
-      const o = starts[pos];
-      el('rect', { x: xs(o / FS), y: Y0, width: xs(WN / FS) - xs(0), height: Y1 - Y0, fill: 'rgba(42,120,214,.12)' }, svg);
-      el('path', { d: sig.map((v, i) => (i ? 'L' : 'M') + xs(i / FS).toFixed(1) + ',' + ys(v).toFixed(1)).join(''), fill: 'none', stroke: COL[act], 'stroke-width': 2 }, svg);
-      txt(svg, X0, 40, NAME[act], { style: 'font-size:26px;font-weight:700' });
-      starts.forEach((st, k) => {
-        const y = k % 2 ? 140 : 80, on = k === pos, g = el('g', { style: 'cursor:pointer' }, svg);
-        el('rect', { x: xs(st / FS) + 2, y, width: xs(WN / FS) - xs(0) - 4, height: 46, rx: 5, fill: on ? 'var(--ma)' : '#fff', stroke: 'var(--ma)', 'stroke-width': 2, 'data-win': k }, g);
-        txt(g, xs((st + WN / 2) / FS), y + 31, k + 1, { 'text-anchor': 'middle', 'data-win': k, style: `font-family:var(--mono);font-size:20px;font-weight:700;fill:${on ? '#fff' : 'var(--ma)'}` });
-      });
-    } },
   { id: 'hist', title: 'How do features describe the values in a window?',
     draw() { traceWithHist($('fig'), T[act], act, starts[pos], { ...BOX, x1: 1100, hx0: 1150, hx1: 1340, y1: 660 }, true); } },
   { id: 'one', title: 'What features can we compute from one window?',
@@ -247,7 +228,7 @@ function draw() {
   $('stepno').textContent = `step ${step + 1} of ${STEPS.length}`;
   ['act', 'actLbl'].forEach(id => $(id).classList.toggle('hide', S.id === 'plane'));
   $('play').classList.toggle('hide', S.id !== 'table');
-  $('winseg').classList.toggle('hide', !['windows', 'hist', 'one'].includes(S.id));
+  $('winseg').classList.toggle('hide', !['hist', 'one'].includes(S.id));
   [...$('act').children].forEach(b => b.classList.toggle('on', b.dataset.a === act));
   $('play').textContent = timer ? '❚❚ Pause' : shown >= starts.length ? '↺ Start again' : '▶ Slide the window';
   $('fig').innerHTML = ''; defs(); S.draw();
@@ -268,7 +249,6 @@ $('wnext').onclick = () => { pos = Math.min(starts.length - 1, pos + 1); draw();
 // drag the window along the signal (steps 1 and 2)
 let dragging = false;
 const toPos = e => { const svg = $('fig'), p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; const q = p.matrixTransform(svg.getScreenCTM().inverse()); const t = (q.x - curBox.x0) / (curBox.x1 - curBox.x0) * LEN - WN / FS / 2; return Math.max(0, Math.min(starts.length - 1, Math.round(t * FS / HOP))); };
-$('fig').addEventListener('click', e => { const k = e.target.dataset.win; if (k != null && STEPS[step].id === 'windows') { pos = +k; draw(); } });
 $('fig').addEventListener('pointerdown', e => { if (!['hist', 'table'].includes(STEPS[step].id) || !e.target.dataset.drag) return; dragging = true; stop(); $('fig').setPointerCapture(e.pointerId); });
 $('fig').addEventListener('pointermove', e => { if (!dragging) return; pos = toPos(e); if (STEPS[step].id === 'table') shown = pos + 1; draw(); });
 $('fig').addEventListener('pointerup', () => { dragging = false; });
