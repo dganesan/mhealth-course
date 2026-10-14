@@ -46,6 +46,7 @@
     <button id="next" title="Next step (→)">step ⏭</button>
     <span class="lbl" id="actLbl">activity</span>
     <span class="seg" id="act"><button data-a="walking">walking</button><button data-a="downstairs">walking downstairs</button></span>
+    <span class="seg" id="winseg"><button id="wprev" title="Previous window">◀ window</button><button id="wnext" title="Next window">window ▶</button></span>
     <button id="play" class="primary" title="Slide the window (space)">▶ Slide the window</button>
     <span class="step" id="stepno"></span>
   </div>
@@ -158,6 +159,8 @@ const STEPS = [
         txt(g, xs((st + WN / 2) / FS), y + 31, k + 1, { 'text-anchor': 'middle', 'data-win': k, style: `font-family:var(--mono);font-size:20px;font-weight:700;fill:${on ? '#fff' : 'var(--ma)'}` });
       });
     } },
+  { id: 'hist', title: 'How do features describe the values in a window?',
+    draw() { traceWithHist($('fig'), T[act], act, starts[pos], { ...BOX, x1: 1100, hx0: 1150, hx1: 1340, y1: 660 }, true); } },
   { id: 'one', title: 'What features can we compute from one window?',
     draw() {
       const svg = $('fig'), o = starts[pos], w = T[act].slice(o, o + WN), A = DATA.xyz[act].map(c => c.slice(o, o + WN)), sm = smooth(w), pk = peaksIn(sm);
@@ -244,6 +247,7 @@ function draw() {
   $('stepno').textContent = `step ${step + 1} of ${STEPS.length}`;
   ['act', 'actLbl'].forEach(id => $(id).classList.toggle('hide', S.id === 'plane'));
   $('play').classList.toggle('hide', S.id !== 'table');
+  $('winseg').classList.toggle('hide', !['windows', 'hist', 'one'].includes(S.id));
   [...$('act').children].forEach(b => b.classList.toggle('on', b.dataset.a === act));
   $('play').textContent = timer ? '❚❚ Pause' : shown >= starts.length ? '↺ Start again' : '▶ Slide the window';
   $('fig').innerHTML = ''; defs(); S.draw();
@@ -258,6 +262,8 @@ function play() {
 function go(s) { stop(); step = Math.max(0, Math.min(STEPS.length - 1, s)); if (STEPS[step].id === 'table') { shown = 0; pos = 0; } draw(); history.replaceState(null, '', '#' + (step + 1)); }   // replaceState: no history entry per step, so Back leaves the page
 $('prev').onclick = () => go(step - 1); $('next').onclick = () => go(step + 1);
 $('play').onclick = play;
+$('wprev').onclick = () => { pos = Math.max(0, pos - 1); draw(); };
+$('wnext').onclick = () => { pos = Math.min(starts.length - 1, pos + 1); draw(); };
 [...$('act').children].forEach(b => b.onclick = () => { act = b.dataset.a; stop(); if (STEPS[step].id === 'table') { shown = 0; pos = 0; } draw(); });
 // drag the window along the signal (steps 1 and 2)
 let dragging = false;
