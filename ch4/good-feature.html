@@ -121,6 +121,8 @@ function draw() {
   niceTicks(lo, hi, 8).forEach(v => { el('line', { x1: xs(v), x2: xs(v), y1: Y0, y2: Y1 }, grid); txt(axis, xs(v), Y1 + 30, String(+v.toFixed(3)), { 'text-anchor': 'middle', style: 'font-size:22px' }); });
   txt(svg, X0, Y1 + 72, `${FEATS[feat]} (m/s²), one value per window`, { style: 'font-size:22px;fill:var(--ink-2)' });
   // the two sides of the threshold
+  // each side of the line is called whichever activity makes more windows correct, for the windows now shown
+  side = scoreAt(va, vb, cut, true).acc >= scoreAt(va, vb, cut, false).acc;
   const cx = xs(cut), names = side ? [P.a[1], P.b[1]] : [P.b[1], P.a[1]], cols = side ? [COL.A, COL.B] : [COL.B, COL.A];
   el('rect', { x: X0, y: Y0, width: Math.max(0, cx - X0), height: Y1 - Y0, fill: cols[0], 'fill-opacity': .06 }, svg);
   el('rect', { x: cx, y: Y0, width: Math.max(0, X1 - cx), height: Y1 - Y0, fill: cols[1], 'fill-opacity': .06 }, svg);
