@@ -168,7 +168,7 @@
 const API = 'https://script.google.com/macros/s/AKfycbwl9bZajvzRGBFQHL9rMPdHwL7kuF76KvjF3JYfCNU7UIzaei5437aBAuwjlYRwin8SLA/exec';
 // Local test mode keeps everything in this browser (localStorage), so a projector tab and a phone tab on one machine can talk.
 
-const BUILD = '2026-10-14g';   // bumped on each change; the QR code carries it so phones never run a stale cached copy
+const BUILD = '2026-10-14h';   // bumped on each change; the QR code carries it so phones never run a stale cached copy
 // Built by tools/feature-distributions-data.py from the chapter 3 pocket traces, UCI HAR and RecoFit (also used by ch4/feature-distributions.html).
 // For each activity: 4-s windows pooled over 8 people (f: feature values per window; vals: sampled values of |a| and each axis),
 // the same from one person (one.f, one.vals), and that person's example window (one.ex: a = x y z in m/s², w = |ω| in rad/s).
@@ -293,7 +293,7 @@ function bestCut(va, vb) {
   }
   return best;
 }
-// what students vote for, named as on the check tiles; tilt and rotation each cover several tiles
+// what students vote for, named as in the check step; tilt covers the mean of each axis
 const VOTES = [
   { id: 'tilt', h: 'tilt: mean of x, y or z' },
   { id: 'std', h: 'std dev of accel magnitude' },
@@ -301,7 +301,8 @@ const VOTES = [
   { id: 'freq', h: 'dominant frequency' },
   { id: 'rate', h: 'peaks per second' },
   { id: 'height', h: 'average peak height' },
-  { id: 'rot', h: 'rotation: gyro magnitude', gyro: true },
+  { id: 'wmean', h: 'mean of gyro magnitude', gyro: true },
+  { id: 'wstd', h: 'std dev of gyro magnitude', gyro: true },
 ];
 const votesFor = P => VOTES.filter(v => !v.gyro || hasGyro(P));
 // the window features of tools/feature-distributions-data.py, each tied to the vote it answers
@@ -309,7 +310,7 @@ const FEATS = [
   { k: 'mx', n: 'tilt: mean of x', v: 'tilt' }, { k: 'my', n: 'tilt: mean of y', v: 'tilt' }, { k: 'mz', n: 'tilt: mean of z', v: 'tilt' },
   { k: 'std', n: 'std dev of accel magnitude', v: 'std' }, { k: 'min', n: 'minimum of accel magnitude', v: 'min' }, { k: 'freq', n: 'dominant frequency', v: 'freq' },
   { k: 'rate', n: 'peaks per second', v: 'rate' }, { k: 'height', n: 'average peak height', v: 'height' },
-  { k: 'wmean', n: 'rotation: mean of gyro magnitude', v: 'rot' }, { k: 'wstd', n: 'rotation: std dev of gyro magnitude', v: 'rot' },
+  { k: 'wmean', n: 'mean of gyro magnitude', v: 'wmean' }, { k: 'wstd', n: 'std dev of gyro magnitude', v: 'wstd' },
 ];
 // green if a feature keeps its accuracy across people, amber if it loses 10 to 25 points, red if it loses more
 const holdCol = drop => drop <= 0.10 ? '#1baf7a' : drop <= 0.25 ? '#e0a100' : '#d6453d';
@@ -404,14 +405,14 @@ function projector() {
     const bestK = Object.values(acc).reduce((b, r) => { const v = (solo ? r.one : r.many) * 1000 + r.sep, bv = b ? (solo ? b.one : b.many) * 1000 + b.sep : -1; return v > bv ? r : b; }, null).F.k;
     const shown = r => solo ? r.one : r.many, pc = a => Math.round(100 * a) + '%';
     // the vote list again: one row per thing students voted on, the votes as the bar, and inside it how well the feature does
-    // (for tilt and rotation, the member feature that does best is shown)
+    // (for tilt, the axis that does best is shown)
     const opts = votesFor(P), mx = Math.max(1, ...opts.map(v => T[v.id] || 0));
     const rowsHtml = opts.map(v => {
       const mem = Object.values(acc).filter(r => r.F.v === v.id);
       if (!mem.length) return '';
       const r = mem.reduce((b, x) => (shown(x) * 1000 + x.sep > shown(b) * 1000 + b.sep ? x : b));
       const col = 'var(--ink)', best = mem.some(x => x.F.k === bestK), n = T[v.id] || 0;
-      const which = mem.length > 1 ? ` <span class="cw">${r.F.n.replace(/^(tilt|rotation): /, '')}</span>` : '';
+      const which = mem.length > 1 ? ` <span class="cw">${r.F.n.replace(/^tilt: /, '')}</span>` : '';
       return `<div class="crow2${best ? ' top' : ''}${picks.has(v.id) ? ' pick' : ''}"><span class="clab">${v.h}${best ? '<span class="best">BEST</span>' : ''}</span>
         <span class="ctk" style="border-left-color:${col}"><span class="cvb" style="width:${100 * n / mx}%"></span><span class="cacc" style="color:${col}">${pc(shown(r))}${which}</span></span>
         <span class="cn">${n}</span></div>`;
