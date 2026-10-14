@@ -139,7 +139,7 @@
     <button id="prev" title="Previous pair (←)">⏮ pair</button>
     <button id="next" title="Next pair (→)">pair ⏭</button>
     <button id="toggle" class="primary" title="Next stage (space)">Look at the distributions</button>
-    <select id="setsel" title="Which set of pairs"><option value="class">in class</option><option value="activities">activities</option><option value="exercises">exercises</option><option value="challenge">challenge</option></select>
+    <select id="setsel" title="Which set of pairs"><option value="activities">activities</option><option value="exercises">exercises</option><option value="other">other</option></select>
     <span class="status" id="status"></span>
   </div>
 </div>
@@ -168,7 +168,7 @@
 const API = 'https://script.google.com/macros/s/AKfycbwl9bZajvzRGBFQHL9rMPdHwL7kuF76KvjF3JYfCNU7UIzaei5437aBAuwjlYRwin8SLA/exec';
 // Local test mode keeps everything in this browser (localStorage), so a projector tab and a phone tab on one machine can talk.
 
-const BUILD = '2026-10-14e';   // bumped on each change; the QR code carries it so phones never run a stale cached copy
+const BUILD = '2026-10-14f';   // bumped on each change; the QR code carries it so phones never run a stale cached copy
 // Built by tools/feature-distributions-data.py from the chapter 3 pocket traces, UCI HAR and RecoFit (also used by ch4/feature-distributions.html).
 // For each activity: 4-s windows pooled over 8 people (f: feature values per window; vals: sampled values of |a| and each axis),
 // the same from one person (one.f, one.vals), and that person's example window (one.ex: a = x y z in m/s², w = |ω| in rad/s).
@@ -185,25 +185,25 @@ const FS = 50, WN = 200;                                             // 4-second
 const PLACE = { pk: 'phone in hip pocket, one person', uci: 'phone at the waist (UCI HAR)', rf: 'sensor on the forearm (RecoFit)' };
 // every pair, in class order; its position in this list (from 1) is the number the phones follow
 const PAIRS = [
-  { set: 'class', a: ['pk:Walking', 'walking'], b: ['pk:Running', 'running'] },
-  { set: 'class', a: ['uci:Sitting', 'sitting'], b: ['uci:Standing', 'standing'] },
-  { set: 'class', a: ['rf:Jump Rope', 'jump rope'], b: ['rf:Running (treadmill)', 'running on a treadmill'] },
-  { set: 'class', a: ['rf:Squat Jump', 'squat jump'], b: ['rf:Burpee', 'burpee'] },
-  { set: 'class', a: ['uci:Walking', 'walking'], b: ['uci:Upstairs', 'walking upstairs'] },
-  { set: 'class', a: ['rf:Rowing machine', 'rowing machine'], b: ['rf:Elliptical machine', 'elliptical machine'] },
+  { set: 'activities', a: ['pk:Walking', 'walking'], b: ['pk:Running', 'running'] },
+  { set: 'activities', a: ['uci:Sitting', 'sitting'], b: ['uci:Standing', 'standing'] },
+  { set: 'activities', a: ['uci:Walking', 'walking'], b: ['uci:Upstairs', 'walking upstairs'] },
   { set: 'activities', a: ['uci:Standing', 'standing'], b: ['uci:Walking', 'walking'] },
   { set: 'activities', a: ['uci:Upstairs', 'walking upstairs'], b: ['uci:Downstairs', 'walking downstairs'] },
   { set: 'activities', a: ['uci:Sitting', 'sitting'], b: ['uci:Lying', 'lying down'] },
+  { set: 'exercises', a: ['rf:Squat Jump', 'squat jump'], b: ['rf:Burpee', 'burpee'] },
   { set: 'exercises', a: ['rf:Bicep Curl', 'bicep curl'], b: ['rf:Squat (arms in front of body, parallel to ground)', 'squat, arms in front'] },
   { set: 'exercises', a: ['rf:Lateral Raise', 'lateral raise'], b: ['rf:Jumping Jacks', 'jumping jacks'] },
   { set: 'exercises', a: ['rf:Lunge (alternating both legs, weight optional)', 'lunge'], b: ['rf:Walk', 'walking'] },
   { set: 'exercises', a: ['rf:Crunch', 'crunch'], b: ['rf:Sit-up (hands positioned behind head)', 'sit-up'] },
-  { set: 'challenge', a: ['rf:Plank', 'plank'], b: ['rf:Side Plank Left side', 'side plank'] },
-  { set: 'challenge', a: ['rf:Kettlebell Swing', 'kettlebell swing'], b: ['rf:Medicine Ball Slam', 'medicine ball slam'] },
-  { set: 'challenge', a: ['rf:Lawnmower (right arm)', 'lawnmower row, right arm'], b: ['rf:Lawnmower (left arm)', 'lawnmower row, left arm'] },
-  { set: 'challenge', a: ['rf:Fast Alternating Punches', 'fast punches'], b: ['rf:Jumping Jacks', 'jumping jacks'] },
+  { set: 'other', a: ['rf:Jump Rope', 'jump rope'], b: ['rf:Running (treadmill)', 'running on a treadmill'] },
+  { set: 'other', a: ['rf:Rowing machine', 'rowing machine'], b: ['rf:Elliptical machine', 'elliptical machine'] },
+  { set: 'other', a: ['rf:Plank', 'plank'], b: ['rf:Side Plank Left side', 'side plank'] },
+  { set: 'other', a: ['rf:Kettlebell Swing', 'kettlebell swing'], b: ['rf:Medicine Ball Slam', 'medicine ball slam'] },
+  { set: 'other', a: ['rf:Lawnmower (right arm)', 'lawnmower row, right arm'], b: ['rf:Lawnmower (left arm)', 'lawnmower row, left arm'] },
+  { set: 'other', a: ['rf:Fast Alternating Punches', 'fast punches'], b: ['rf:Jumping Jacks', 'jumping jacks'] },
 ];
-const SETS = ['class', 'activities', 'exercises', 'challenge'];
+const SETS = ['activities', 'exercises', 'other'];
 const isOpen = n => false;   // every pair is voted on; a typed comment is optional on the phone
 const placeOf = P => PLACE[P.a[0].split(':')[0]];
 const exOf = k => (D[k].one || D[k]).ex;                              // the example window shown as a time series
@@ -345,9 +345,10 @@ function projector() {
   const key = (location.hash.match(/key=([^&]+)/) || [])[1] || '';
   let round = 1, stage = 0, chan = 'm', seen = new Set(), hiddenTxt = new Set(), last = [];
   const NEXT = ['Look at the distributions', 'Draw the features', 'Check across people', 'Back to the vote'];
-  let set = ((location.hash.match(/set=(\w+)/) || [])[1] || 'class');
-  if (set === 'unusual') set = 'challenge';   // the old name still works
-  if (!SETS.includes(set)) set = 'class';
+  let set = ((location.hash.match(/set=(\w+)/) || [])[1] || 'activities');
+  if (set === 'unusual' || set === 'challenge') set = 'other';   // older names still work
+  if (set === 'class') set = 'activities';
+  if (!SETS.includes(set)) set = 'activities';
   const inSet = () => PAIRS.map((P, i) => i + 1).filter(i => PAIRS[i - 1].set === set);
   const phoneUrl = location.origin + location.pathname + '?phone&v=' + BUILD;
   $('purl').textContent = (location.origin + location.pathname + '?phone').replace(/^https?:\/\//, '');

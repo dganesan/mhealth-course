@@ -60,7 +60,7 @@
   <div class="bar">
     <button id="prev" title="Previous pair (←)">⏮ pair</button>
     <button id="next" title="Next pair (→)">pair ⏭</button>
-    <select id="setsel"><option value="activities">activities</option><option value="exercises">exercises</option><option value="challenge">challenge</option></select>
+    <select id="setsel"><option value="activities">activities</option><option value="exercises">exercises</option><option value="other">other</option></select>
     <span class="lbl" id="chanLbl">values of</span>
     <span class="seg" id="chan"><button data-c="m">accel magnitude</button><button data-c="x">x</button><button data-c="y">y</button><button data-c="z">z</button></span>
     <button id="reveal" class="primary" title="Reveal (space)">Reveal</button>
@@ -92,12 +92,12 @@ const PAIRS = [
   { set: 'exercises', a: ['rf:Lunge (alternating both legs, weight optional)', 'lunge'], b: ['rf:Walk', 'walking'] },
   { set: 'exercises', a: ['rf:Squat Jump', 'squat jump'], b: ['rf:Burpee', 'burpee'] },
   { set: 'exercises', a: ['rf:Crunch', 'crunch'], b: ['rf:Sit-up (hands positioned behind head)', 'sit-up'] },
-  { set: 'challenge', a: ['rf:Jump Rope', 'jump rope'], b: ['rf:Running (treadmill)', 'running on a treadmill'] },
-  { set: 'challenge', a: ['rf:Plank', 'plank'], b: ['rf:Side Plank Left side', 'side plank'] },
-  { set: 'challenge', a: ['rf:Rowing machine', 'rowing machine'], b: ['rf:Elliptical machine', 'elliptical machine'] },
-  { set: 'challenge', a: ['rf:Kettlebell Swing', 'kettlebell swing'], b: ['rf:Medicine Ball Slam', 'medicine ball slam'] },
-  { set: 'challenge', a: ['rf:Fast Alternating Punches', 'fast punches'], b: ['rf:Jumping Jacks', 'jumping jacks'] },
-  { set: 'challenge', a: ['rf:Lawnmower (right arm)', 'lawnmower row, right arm'], b: ['rf:Lawnmower (left arm)', 'lawnmower row, left arm'] },
+  { set: 'other', a: ['rf:Jump Rope', 'jump rope'], b: ['rf:Running (treadmill)', 'running on a treadmill'] },
+  { set: 'other', a: ['rf:Plank', 'plank'], b: ['rf:Side Plank Left side', 'side plank'] },
+  { set: 'other', a: ['rf:Rowing machine', 'rowing machine'], b: ['rf:Elliptical machine', 'elliptical machine'] },
+  { set: 'other', a: ['rf:Kettlebell Swing', 'kettlebell swing'], b: ['rf:Medicine Ball Slam', 'medicine ball slam'] },
+  { set: 'other', a: ['rf:Fast Alternating Punches', 'fast punches'], b: ['rf:Jumping Jacks', 'jumping jacks'] },
+  { set: 'other', a: ['rf:Lawnmower (right arm)', 'lawnmower row, right arm'], b: ['rf:Lawnmower (left arm)', 'lawnmower row, left arm'] },
 ];
 const FEATS = [
   { k: 'mx', n: 'mean of x', u: 'm/s²' }, { k: 'my', n: 'mean of y', u: 'm/s²' }, { k: 'mz', n: 'mean of z', u: 'm/s²' },
@@ -166,7 +166,7 @@ function histPair(svg, va, vb, o) {          // o: { W, H, nb, labels, fs, mark:
   if (o.cut != null) el('line', { x1: xs(o.cut), x2: xs(o.cut), y1: T - 2, y2: T + 2 * mid, stroke: 'var(--ink)', 'stroke-width': 2, 'stroke-dasharray': '5 4' }, svg);
 }
 // ------------------------------------------------------------ state and drawing
-let set = ((location.hash.match(/set=(\w+)/) || [])[1] || 'activities'); if (!['activities', 'exercises', 'challenge'].includes(set)) set = 'activities';
+let set = ((location.hash.match(/set=(\w+)/) || [])[1] || 'activities'); if (!['activities', 'exercises', 'other'].includes(set)) set = 'activities';
 let pair = 0, chan = 'm', revealed = false;
 const inSet = () => PAIRS.map((P, i) => i).filter(i => PAIRS[i].set === set);
 function draw() {
