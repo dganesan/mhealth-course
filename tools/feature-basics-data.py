@@ -3,7 +3,8 @@
 window-to-feature: 30 s of acceleration magnitude (m/s², 50 Hz) from one UCI HAR subject (phone at the waist) while walking
                    and while walking downstairs, stitched from the dataset's 50 % overlapping 2.56-s windows; and, for the
                    same subject and all six activities, two features per half-overlapping window (the mean of y and the
-                   standard deviation of the magnitude) for the feature-plane step.
+                   standard deviation of the magnitude) for the feature-plane step. The x y z axes of the two traces are kept for the
+                   full feature table.
 good-feature     : the per-window feature values of three pairs, for one person and pooled over 8 people, taken from
                    tools/feature-distributions-data.json (run tools/feature-distributions-data.py first).
 
@@ -49,7 +50,9 @@ def main():
     D = json.loads((HERE / "feature-distributions-data.json").read_text())
     keys = ["uci:Walking", "uci:Upstairs", "rf:Jump Rope", "rf:Running (treadmill)"]
     feats = {k: {"people": D[k]["people"], "many": D[k]["f"], "one": D[k]["one"]["f"]} for k in keys}
-    out = {"trace": {"subject": who, "walking": mag(run["walking"]), "downstairs": mag(run["walking downstairs"])}, "plane": plane, "feats": feats}
+    axes = lambda a: [[round(float(v), 2) for v in a[:, i]] for i in range(3)]
+    out = {"trace": {"subject": who, "walking": mag(run["walking"]), "downstairs": mag(run["walking downstairs"])},
+           "xyz": {"walking": axes(run["walking"]), "downstairs": axes(run["walking downstairs"])}, "plane": plane, "feats": feats}
     (HERE / "feature-basics-data.json").write_text(json.dumps(out, separators=(",", ":")))
     print("subject", who, round(len(json.dumps(out)) / 1024), "KB")
 
