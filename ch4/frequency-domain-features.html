@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dominant Frequency</title>
+<title>Frequency-Domain Features</title>
 </head>
 <body>
 <style>
@@ -34,7 +34,7 @@
 </style>
 
 <div id="app">
-  <div class="head"><h1>Dominant frequency: how fast the signal repeats</h1></div>
+  <div class="head"><h1>What can the FFT of each window tell us?</h1></div>
   <div class="main"><svg id="fig" viewBox="0 0 1600 760"></svg></div>
   <div class="bar">
     <button id="prev" title="Previous window (←)">⏮</button>
@@ -56,6 +56,7 @@ const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svg
 const txt = (parent, x, y, s, attrs = {}) => { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; };
 const FS = 50, WN = 100, HOP = WN / 2, LEN = MAG.length / FS;       // windows overlap by half
 const F_LO = 0.7, F_HI = 6, PEAK_MIN = 0.3, F_MAX = 6;               // search band for the peak, and the smallest peak that counts
+const E_LO = 0.5, E_HI = 5;                                          // the band for the energy features
 const SEGS = [{ n: 'sitting', c: '#2a78d6' }, { n: 'walking', c: '#1baf7a' }, { n: 'running', c: '#d63384' }];
 const SEG_S = LEN / SEGS.length;
 const starts = Array.from({ length: Math.floor((MAG.length - WN) / HOP) + 1 }, (_, i) => i * HOP);
@@ -73,7 +74,7 @@ function draw() {
   const svg = $('fig'); svg.innerHTML = '';
   const X0 = 110, X1 = 1560, xs = t => X0 + t / LEN * (X1 - X0), o = starts[pos], t0 = o / FS, t1 = (o + WN) / FS, S = SPEC[pos];
   // ---- the signal, with the activity segments and the window
-  const T0 = 50, T1 = 250, hi = Math.ceil(Math.max(...MAG) / 10) * 10, ys = v => T1 - v / hi * (T1 - T0);
+  const T0 = 40, T1 = 220, hi = Math.ceil(Math.max(...MAG) / 10) * 10, ys = v => T1 - v / hi * (T1 - T0);
   SEGS.forEach((g, i) => { el('rect', { x: xs(i * SEG_S), y: T0, width: xs(SEG_S) - xs(0), height: T1 - T0, fill: g.c, 'fill-opacity': .07 }, svg); txt(svg, xs((i + 0.5) * SEG_S), T0 + 30, g.n, { 'text-anchor': 'middle', style: `font-size:26px;font-weight:700;fill:${g.c}` }); });
   let grid = el('g', { class: 'grid' }, svg), axis = el('g', { class: 'axis' }, svg);
   [0, hi / 2, hi].forEach(v => { el('line', { x1: X0, x2: X1, y1: ys(v), y2: ys(v) }, grid); txt(axis, X0 - 12, ys(v) + 7, v, { 'text-anchor': 'end', style: 'font-size:20px' }); });
@@ -82,7 +83,7 @@ function draw() {
   el('path', { d: MAG.map((v, i) => (i ? 'L' : 'M') + xs(i / FS).toFixed(1) + ',' + ys(v).toFixed(1)).join(''), fill: 'none', stroke: 'var(--ink)', 'stroke-width': 1.8 }, svg);
   el('rect', { x: xs(t0), y: T0 - 4, width: xs(t1) - xs(t0), height: T1 - T0 + 4, fill: 'rgba(42,120,214,.14)', stroke: 'var(--ma)', 'stroke-width': 3, rx: 4, 'data-drag': '1', style: 'cursor:grab' }, svg);
   // ---- dominant frequency of every window so far, at the window's centre
-  const D0 = 320, D1 = 480, FH = 4, yd = f => D1 - f / FH * (D1 - D0);
+  const D0 = 280, D1 = 410, FH = 4, yd = f => D1 - f / FH * (D1 - D0);
   grid = el('g', { class: 'grid' }, svg); axis = el('g', { class: 'axis' }, svg);
   [0, 1, 2, 3, 4].forEach(f => { el('line', { x1: X0, x2: X1, y1: yd(f), y2: yd(f) }, grid); txt(axis, X0 - 12, yd(f) + 7, f, { 'text-anchor': 'end', style: 'font-size:20px' }); });
   for (let s = 0; s <= LEN; s += 4) txt(axis, xs(s), D1 + 30, s === LEN ? s + ' s' : s, { 'text-anchor': s === LEN ? 'end' : 'middle', style: 'font-size:20px' });
@@ -93,12 +94,14 @@ function draw() {
   pts.forEach((p, i) => el('circle', { cx: p[0], cy: p[1], r: i === pos ? 10 : 7, fill: 'var(--ma)', stroke: i === pos ? 'var(--ink)' : '#fff', 'stroke-width': 2 }, svg));
   el('line', { x1: pts[pos][0], x2: pts[pos][0], y1: T1, y2: pts[pos][1] - 10, stroke: 'var(--ma)', 'stroke-width': 2, 'stroke-dasharray': '5 5' }, svg);
   // ---- where the number comes from: the spectrum of this window, with its peak
-  const P0 = 580, P1 = 730, PX0 = X0, PX1 = 1060, amax = Math.max(1, ...S.out.filter(p => p.f > 0).map(p => p.a)) * 1.15   /* scaled to this window, but never below 1 so sitting stays flat */, xf = f => PX0 + f / F_MAX * (PX1 - PX0), ya = a => P1 - a / amax * (P1 - P0);
+  const P0 = 490, P1 = 720, PX0 = X0, PX1 = 1000, amax = Math.max(1, ...S.out.filter(p => p.f > 0).map(p => p.a)) * 1.15   /* scaled to this window, but never below 1 so sitting stays flat */, xf = f => PX0 + f / F_MAX * (PX1 - PX0), ya = a => P1 - a / amax * (P1 - P0);
   grid = el('g', { class: 'grid' }, svg); axis = el('g', { class: 'axis' }, svg);
   for (let f = 0; f <= F_MAX; f++) { el('line', { x1: xf(f), x2: xf(f), y1: P0, y2: P1 }, grid); txt(axis, xf(f), P1 + 28, f === F_MAX ? f + ' Hz' : f, { 'text-anchor': f === F_MAX ? 'end' : 'middle', style: 'font-size:20px' }); }
   el('path', { d: `M${PX0},${P0}V${P1}H${PX1}` }, axis);
   txt(svg, PX0 + 10, P0 - 14, 'FFT of this window', { style: 'font-size:22px;font-weight:700' });
-  // the FFT magnitude at each frequency bin, drawn as a line through the bins
+  // the FFT magnitude at each frequency bin, drawn as a line through the bins, with the energy band shaded
+  el('rect', { x: xf(E_LO), y: P0, width: xf(E_HI) - xf(E_LO), height: P1 - P0, fill: '#d63384', 'fill-opacity': .06 }, svg);
+  txt(svg, xf(E_HI) - 8, P0 + 22, `${E_LO}–${E_HI} Hz band`, { 'text-anchor': 'end', style: 'font-size:18px;fill:#b0306e' });
   const sp = S.out.filter(p => p.f <= F_MAX);
   el('path', { d: sp.map((p, i) => (i ? 'L' : 'M') + xf(p.f).toFixed(1) + ',' + ya(p.a).toFixed(1)).join(''), fill: 'none', stroke: '#d63384', 'stroke-width': 3 }, svg);
   sp.forEach(p => el('circle', { cx: xf(p.f), cy: ya(p.a), r: 4.5, fill: '#d63384' }, svg));
@@ -108,11 +111,14 @@ function draw() {
   }
   txt(svg, 22, (P0 + P1) / 2, '|FFT|', { transform: `rotate(-90 22 ${(P0 + P1) / 2})`, 'text-anchor': 'middle', style: 'font-size:20px;fill:var(--ink-2)' });
   // ---- the feature value
-  const seg = SEGS[Math.min(SEGS.length - 1, Math.floor(((t0 + t1) / 2) / SEG_S))];
-  txt(svg, 1140, P0 + 20, 'this window', { style: 'font-size:22px;fill:var(--ink-2)' });
-  txt(svg, 1140, P0 + 92, S.dom ? `${S.dom.toFixed(1)} Hz` : 'none', { style: 'font-family:var(--mono);font-size:64px;font-weight:700;fill:var(--ma)' });
-  txt(svg, 1140, P0 + 136, S.dom ? `about ${Math.round(S.dom * 10) / 10} repeats per second` : 'no repeating motion', { style: 'font-size:22px;fill:var(--ink-2)' });
-  txt(svg, 1140, P0 + 172, seg.n, { style: `font-size:24px;font-weight:700;fill:${seg.c}` });
+  // the frequency-domain features of this window, from the same FFT (power = magnitude squared, the 0 Hz bin left out)
+  const bins = S.out.filter(p => p.f > 0), pw = bins.map(p => p.a * p.a), tot = pw.reduce((a, b) => a + b, 0) || 1e-9;
+  const band = bins.reduce((a, p, i) => a + (p.f >= E_LO && p.f <= E_HI ? pw[i] : 0), 0);
+  const cen = bins.reduce((a, p, i) => a + p.f * pw[i], 0) / tot, spr = Math.sqrt(bins.reduce((a, p, i) => a + (p.f - cen) ** 2 * pw[i], 0) / tot);
+  const ent = -pw.reduce((a, v) => a + (v > 0 ? v / tot * Math.log2(v / tot) : 0), 0);
+  const ROWS = [['dominant frequency', S.dom ? S.dom.toFixed(1) + ' Hz' : 'none'], ['peak magnitude', S.pk.a.toFixed(2)], [`energy ${E_LO}–${E_HI} Hz`, band.toFixed(1)], ['total energy', tot.toFixed(1)],
+    [`share in ${E_LO}–${E_HI} Hz`, Math.round(100 * band / tot) + '%'], ['spectral centroid', cen.toFixed(2) + ' Hz'], ['spectral spread', spr.toFixed(2) + ' Hz'], ['spectral entropy', ent.toFixed(2) + ' bits']];
+  ROWS.forEach(([n, v], i) => { const y = P0 + 2 + i * 31; txt(svg, 1080, y, n, { style: `font-size:21px;${i ? '' : 'font-weight:700'}` }); txt(svg, 1560, y, v, { 'text-anchor': 'end', style: `font-family:var(--mono);font-size:21px;font-weight:700;${i ? '' : 'fill:var(--ma)'}` }); });
   $('pos').max = starts.length - 1; $('pos').value = pos;
   $('play').textContent = timer ? '❚❚ Pause' : pos >= starts.length - 1 ? '↺ Again' : '▶ Play';
 }
