@@ -1,0 +1,103 @@
+__HEAD__
+<div id="app">
+  <div class="head"><h1 id="title"></h1></div>
+  <div class="main"><svg id="fig" viewBox="0 0 1600 760"></svg></div>
+  <div class="bar">
+    <button id="prev" title="Previous step (←)">⏮ step</button>
+    <button id="next" title="Next step (→)">step ⏭</button>
+    <span class="ctl" id="c-depth"><span class="lbl">max_depth</span><input type="range" id="depth" min="1" max="15" step="1"><b id="v-depth"></b></span>
+    <span class="ctl" id="c-split"><span class="lbl">min_samples_split</span><input type="range" id="split" min="2" max="60" step="1"><b id="v-split"></b></span>
+    <span class="ctl" id="c-leaf"><span class="lbl">min_samples_leaf</span><input type="range" id="leaf" min="1" max="30" step="1"><b id="v-leaf"></b></span>
+    <span class="step" id="stepno"></span>
+  </div>
+</div>
+<script>
+(() => {
+__COMMON__
+
+// ------------------------------------------------------------ the book's three diagrams, drawn with coloured dots for windows
+function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+function dots(g, x, y, w, h, n, seed, opts = {}) {
+  el(g, 'rect', { x, y, width: w, height: h, rx: 10, fill: opts.fill || '#fafafa', stroke: opts.stroke || '#9a9a9a', 'stroke-width': 2, 'stroke-dasharray': opts.dash || 'none' });
+  const r = rng(seed), per = Math.max(1, Math.floor((w - 16) / 26));
+  for (let i = 0; i < n; i++) el(g, 'circle', { cx: x + 20 + (i % per) * 26, cy: y + 22 + Math.floor(i / per) * 26, r: 9, fill: CCOL[Math.floor(r() * 3)] });
+}
+const label = (g, x, y, s, o = {}) => el(g, 'text', Object.assign({ x, y, 'text-anchor': 'middle', 'font-size': 23, fill: '#222' }, o), s);
+const arrow = (g, x1, y1, x2, y2) => el(g, 'line', { x1, y1, x2, y2, stroke: '#9a9a9a', 'stroke-width': 2.5 });
+function depthDiagram(g) {
+  [1, 2, 3, 4].forEach((d, k) => {
+    const cx = 210 + k * 390, top = 120, w = 330, lvl = 110;
+    (function node(x, depth, span, seed) {
+      const y = top + depth * lvl;
+      if (depth < d) [-1, 1].forEach(s => { const nx = x + s * span / 4; arrow(g, x, y, nx, y + lvl); node(nx, depth + 1, span / 2, seed * 2 + (s > 0)); });
+      el(g, 'circle', { cx: x, cy: y, r: depth < d ? 13 : 11, fill: depth < d ? '#9a9a9a' : CCOL[seed % 3], stroke: '#fff', 'stroke-width': 2 });
+    })(cx, 0, w, 1);
+    label(g, cx, 60, `max_depth = ${d}`, { 'font-size': 26, 'font-weight': 700, 'font-family': 'Menlo, monospace' });
+    label(g, cx, 680, `up to ${2 ** d} leaves`, { fill: '#444' });
+  });
+}
+function splitDiagram(g) {
+  label(g, 800, 50, 'min_samples_split = 20', { 'font-size': 28, 'font-weight': 700, 'font-family': 'Menlo, monospace' });
+  dots(g, 150, 200, 300, 70, 6, 3);
+  label(g, 300, 330, '6 windows', { 'font-weight': 700 }); label(g, 300, 366, 'fewer than 20, so it stays a leaf', { fill: '#444' });
+  dots(g, 880, 120, 300, 100, 22, 5);
+  arrow(g, 960, 220, 860, 320); arrow(g, 1100, 220, 1200, 320);
+  dots(g, 700, 320, 300, 70, 13, 8); dots(g, 1060, 320, 300, 70, 9, 9);
+  label(g, 1030, 470, '22 windows', { 'font-weight': 700 }); label(g, 1030, 506, 'at least 20, so it may be split', { fill: '#444' });
+  el(g, 'line', { x1: 600, x2: 600, y1: 100, y2: 620, stroke: '#ececec', 'stroke-width': 2 });
+}
+function leafDiagram(g) {
+  label(g, 800, 50, 'min_samples_leaf = 5', { 'font-size': 28, 'font-weight': 700, 'font-family': 'Menlo, monospace' });
+  [[[19, 1], 380, false], [[12, 8], 1180, true]].forEach(([[a, b], cx, ok], k) => {
+    const bad = !ok, rw = bad ? 80 : 240;
+    dots(g, cx - 150, 120, 300, 100, 20, 11 + k);
+    arrow(g, cx - 80, 220, cx - 190, 320); arrow(g, cx + 80, 220, cx + 60 + rw / 2, 320);
+    dots(g, cx - 320, 320, 260, 100, a, 21 + k);
+    dots(g, cx + 60, 320, rw, bad ? 46 : 100, b, 31 + k, bad ? { stroke: '#c0392b', dash: '8 6' } : {});
+    if (bad) { const x = cx + 100, y = 343; el(g, 'path', { d: `M${x - 26} ${y - 26} L${x + 26} ${y + 26} M${x + 26} ${y - 26} L${x - 26} ${y + 26}`, stroke: '#c0392b', 'stroke-width': 6, 'stroke-linecap': 'round' }); }
+    label(g, cx, 480, `leaves of ${a} and ${b}`, { 'font-weight': 700 });
+    label(g, cx, 516, ok ? 'both have at least 5, so the split is allowed' : 'a leaf of 1 is fewer than 5, so the split is not allowed', { fill: bad ? '#c0392b' : '#444' });
+  });
+  el(g, 'line', { x1: 780, x2: 780, y1: 100, y2: 620, stroke: '#ececec', 'stroke-width': 2 });
+}
+
+// ------------------------------------------------------------ the dataset: decision regions on the left, the tree on the right, for the current settings
+let P = { depth: 15, split: 2, leaf: 1 };
+function viz(g) {
+  const t = growTree(TRAIN, params(P));
+  legend(g, 120, 30, false);
+  el(g, 'text', { x: 1590, y: 30, 'text-anchor': 'end', 'font-size': 22, fill: '#222' }, statLine(t, true));
+  plane(g, t, 120, 70, 700, 640);
+  treeDiagram(g, t, 760, 100, 830, 620);
+}
+
+// ------------------------------------------------------------ steps; `ctl` lists the sliders shown, `start` the settings a step opens with
+const NOLIMIT = { depth: 15, split: 2, leaf: 1 };
+const STEPS = [
+  { title: 'How does max_depth limit the tree?', draw: depthDiagram },
+  { title: 'What does max_depth do to the decision regions?', ctl: ['depth'], start: { ...NOLIMIT, depth: 3 }, draw: viz },
+  { title: 'How does min_samples_split limit the tree?', draw: splitDiagram },
+  { title: 'What does min_samples_split do to the decision regions?', ctl: ['split'], start: { ...NOLIMIT, split: 20 }, draw: viz },
+  { title: 'How does min_samples_leaf limit the tree?', draw: leafDiagram },
+  { title: 'What does min_samples_leaf do to the decision regions?', ctl: ['leaf'], start: { ...NOLIMIT, leaf: 10 }, draw: viz },
+  { title: 'What happens when we use all three together?', ctl: ['depth', 'split', 'leaf'], start: { depth: 5, split: 20, leaf: 10 }, draw: viz },
+];
+const show = k => k === 'depth' && P.depth >= 15 ? 'None' : P[k];
+['depth', 'split', 'leaf'].forEach(k => $(k).addEventListener('input', () => { P[k] = +$(k).value; draw(); }));
+
+let step = Math.max(0, Math.min(STEPS.length - 1, (parseInt(location.hash.slice(1), 10) || 1) - 1));
+function draw() {
+  const S = STEPS[step], svg = $('fig'); svg.innerHTML = '';
+  $('title').textContent = S.title; $('stepno').textContent = `step ${step + 1} of ${STEPS.length}`;
+  $('prev').disabled = step === 0; $('next').disabled = step === STEPS.length - 1;
+  ['depth', 'split', 'leaf'].forEach(k => { $('c-' + k).classList.toggle('hide', !(S.ctl || []).includes(k)); $(k).value = P[k]; $('v-' + k).textContent = show(k); });
+  S.draw(el(svg, 'g', {}));
+}
+function go(s) { step = Math.max(0, Math.min(STEPS.length - 1, s)); if (STEPS[step].start) P = { ...STEPS[step].start }; draw(); history.replaceState(null, '', '#' + (step + 1)); }
+$('prev').onclick = () => go(step - 1); $('next').onclick = () => go(step + 1);
+document.addEventListener('keydown', e => { if (e.target.tagName === 'INPUT') return; if (e.key === 'ArrowRight') go(step + 1); else if (e.key === 'ArrowLeft') go(step - 1); });
+go(step);
+})();
+</script>
+</body>
+</html>

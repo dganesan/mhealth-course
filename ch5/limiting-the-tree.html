@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Limiting the Tree</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff; --ink: #222222; --ink-2: #666666; --ink-3: #9a9a9a; --rule: #dcdcdc; --grid: #ececec; --ma: #2a78d6;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+  #app { height: 100vh; padding: 10px 14px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 10px; }
+  .head { padding: 4px 16px 0; }
+  h1 { margin: 0; font-size: clamp(24px, 2.4vw, 36px); font-weight: 700; letter-spacing: -0.01em; }
+  .main { user-select: none; -webkit-user-select: none; min-height: 0; border: 1px solid var(--rule); border-radius: 6px; padding: 10px 16px; }
+  .main svg { width: 100%; height: 100%; display: block; }
+  svg { font-family: var(--sans); }   /* inherited, so a font-family attribute on a text element still wins */
+  .bar { display: flex; gap: 10px; align-items: center; padding: 10px 18px; border: 1px solid var(--rule); border-radius: 6px; background: #f6f7f9; flex-wrap: wrap; }
+  button { font: inherit; font-size: 18px; color: var(--ink); background: #fff; border: 1px solid #9a9a9a; border-radius: 6px; padding: 9px 16px; cursor: pointer; }
+  button:hover { border-color: var(--ink); }
+  button:disabled { opacity: .45; cursor: default; }
+  .ctl { display: flex; align-items: center; gap: 10px; margin-left: 16px; }
+  .ctl .lbl { font-family: var(--mono); font-size: 18px; color: var(--ink); }
+  .ctl b { font-family: var(--mono); font-size: 19px; min-width: 48px; color: var(--ma); }
+  .ctl input[type=range] { width: 230px; -webkit-appearance: none; appearance: none; height: 8px; border-radius: 4px; background: #d9dde3; }
+  .ctl input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 26px; height: 26px; border-radius: 50%; background: var(--ma); cursor: pointer; }
+  .ctl input[type=range]::-moz-range-thumb { width: 26px; height: 26px; border: 0; border-radius: 50%; background: var(--ma); cursor: pointer; }
+  .step { font-family: var(--mono); font-size: 17px; color: var(--ink-2); margin-left: auto; }
+  .hide { display: none !important; }
+</style>
+
+<div id="app">
+  <div class="head"><h1 id="title"></h1></div>
+  <div class="main"><svg id="fig" viewBox="0 0 1600 760"></svg></div>
+  <div class="bar">
+    <button id="prev" title="Previous step (←)">⏮ step</button>
+    <button id="next" title="Next step (→)">step ⏭</button>
+    <span class="ctl" id="c-depth"><span class="lbl">max_depth</span><input type="range" id="depth" min="1" max="15" step="1"><b id="v-depth"></b></span>
+    <span class="ctl" id="c-split"><span class="lbl">min_samples_split</span><input type="range" id="split" min="2" max="60" step="1"><b id="v-split"></b></span>
+    <span class="ctl" id="c-leaf"><span class="lbl">min_samples_leaf</span><input type="range" id="leaf" min="1" max="30" step="1"><b id="v-leaf"></b></span>
+    <span class="step" id="stepno"></span>
+  </div>
+</div>
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const NS = 'http://www.w3.org/2000/svg';
+function el(parent, tag, attrs, text) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (text != null) e.textContent = text;
+  parent.appendChild(e); return e;
+}
+const mono = { 'font-family': 'Menlo, monospace', fill: '#666' };
+
+// ------------------------------------------------------------ data: windows from HAR-data/dataset1.csv, [mean of a_y, std dev of a_y, class]
+// TRAIN is the chapter figure's 150-window subsample; TEST is the remaining windows of the same three activities
+const DATA = {"train":[[9.495,1.982,1],[9.331,2.358,1],[9.662,1.558,2],[9.384,1.842,0],[9.593,1.652,0],[9.73,1.783,0],[9.431,1.415,0],[9.553,1.646,0],[9.666,1.654,0],[9.53,2.302,0],[9.242,2.334,1],[9.677,1.342,0],[9.17,5.845,1],[9.709,1.832,0],[9.621,3.906,2],[9.708,1.703,0],[8.715,6.786,2],[9.596,1.762,1],[9.105,3.78,2],[8.797,1.188,2],[8.622,5.586,2],[9.049,1.794,1],[9.447,1.83,0],[9.373,2.792,0],[9.043,4.309,2],[9.649,1.582,0],[9.83,3.61,2],[9.858,4.076,2],[9.526,1.604,0],[9.125,2.282,1],[9.55,2.182,0],[9.299,1.765,1],[9.557,1.968,0],[9.112,2.409,1],[8.703,7.552,1],[9.683,1.572,0],[9.405,2.468,1],[9.555,7.307,1],[9.304,2.524,0],[9.7,1.306,2],[9.362,1.323,1],[9.702,1.613,0],[9.313,1.367,2],[9.45,1.142,0],[9.947,5.842,1],[8.577,6.004,2],[9.724,1.695,0],[9.646,2.677,0],[9.707,1.53,0],[9.479,3.242,2],[9.68,1.461,0],[9.333,5.626,2],[9.621,5.527,2],[9.359,1.46,1],[9.802,2.642,1],[9.373,2.347,1],[9.368,1.256,1],[9.39,2.009,0],[9.67,1.597,0],[9.677,1.761,2],[9.379,2.098,0],[9.686,5.163,2],[9.531,1.979,0],[9.18,5.338,1],[9.195,6.529,2],[9.515,1.818,0],[9.748,5.724,1],[9.905,3.186,2],[9.541,3.217,1],[9.704,1.385,0],[9.475,2.023,0],[9.193,2.391,1],[9.723,1.99,0],[9.022,6.675,2],[9.57,1.934,1],[9.335,2.869,0],[8.732,3.187,2],[9.671,4.788,1],[9.474,4.379,2],[9.631,2.0,0],[9.711,2.678,2],[9.491,2.105,0],[9.479,3.709,2],[9.432,2.604,0],[9.507,2.7,2],[9.715,1.455,0],[9.471,3.449,1],[9.718,1.601,0],[9.511,2.28,1],[9.068,2.411,1],[9.499,2.321,1],[9.461,2.707,0],[9.191,2.558,1],[9.251,4.738,2],[9.705,2.148,2],[9.425,2.011,0],[9.471,1.374,0],[9.276,4.99,2],[9.443,1.959,1],[9.444,1.804,0],[9.053,1.696,2],[9.385,1.477,0],[9.509,1.798,0],[9.258,3.728,1],[9.214,3.166,2],[9.432,2.078,0],[9.818,4.335,2],[9.204,2.155,1],[8.901,3.629,2],[9.413,1.648,0],[9.553,1.623,0],[9.138,4.308,2],[9.285,2.601,1],[9.639,1.588,0],[9.44,5.959,1],[9.432,2.178,0],[9.357,6.49,2],[9.315,2.598,1],[9.453,1.959,2],[9.432,1.974,2],[9.755,1.645,0],[8.974,5.557,2],[9.239,2.686,1],[9.356,3.676,2],[9.596,1.409,1],[9.397,2.89,0],[9.711,1.639,0],[9.164,2.895,2],[9.667,1.336,0],[9.435,4.617,2],[9.344,2.254,0],[9.306,1.676,0],[9.333,2.295,1],[9.711,1.593,0],[9.196,3.093,2],[9.757,1.42,0],[9.506,1.619,2],[9.49,2.023,0],[9.54,2.675,1],[9.647,1.558,0],[9.189,2.958,1],[9.351,2.194,1],[9.671,1.719,0],[9.616,1.397,0],[9.69,1.769,0],[9.804,1.471,0],[9.254,2.078,0],[9.575,1.334,2],[9.42,2.98,0],[9.652,4.185,1]],"test":[[9.267,6.205,2],[8.778,6.554,2],[9.657,2.682,2],[8.788,6.738,2],[8.927,5.398,2],[9.856,5.201,2],[9.061,4.25,2],[9.202,6.139,2],[9.158,2.316,2],[8.601,5.711,2],[8.841,7.154,2],[8.651,6.322,2],[8.975,5.27,2],[9.839,5.281,2],[9.492,3.563,2],[8.594,6.46,2],[9.054,6.07,2],[9.196,6.714,2],[9.73,3.812,2],[8.84,5.962,2],[9.038,5.64,2],[8.72,6.189,2],[9.852,4.247,2],[9.516,2.091,2],[9.07,6.554,2],[9.114,4.005,2],[9.573,4.514,2],[8.847,3.654,2],[9.784,5.164,2],[9.124,3.768,2],[9.507,3.979,2],[9.003,4.187,2],[9.501,4.266,2],[9.607,5.132,2],[9.069,4.056,2],[9.86,4.782,2],[9.693,4.117,2],[9.312,4.386,2],[9.727,1.843,2],[8.993,4.542,2],[9.482,3.997,2],[10.056,4.896,2],[9.203,4.396,2],[8.851,1.723,2],[9.592,4.662,2],[8.914,3.361,2],[9.844,4.582,2],[9.331,4.23,2],[9.232,4.401,2],[9.694,4.28,2],[9.74,4.602,2],[9.189,2.16,2],[9.713,4.599,2],[9.425,3.735,2],[9.365,5.056,2],[9.658,3.941,2],[9.408,4.422,2],[9.467,4.662,2],[9.472,4.43,2],[9.256,4.843,2],[9.538,4.65,2],[9.32,2.653,2],[9.6,4.205,2],[9.061,4.454,2],[9.527,3.223,2],[9.301,2.692,2],[9.069,3.134,2],[9.516,4.008,2],[9.51,3.239,2],[9.205,3.552,2],[10.058,3.583,2],[9.356,3.714,2],[9.581,3.659,2],[9.771,4.081,2],[9.153,3.237,2],[9.742,3.456,2],[9.646,3.629,2],[8.981,3.389,2],[9.664,3.735,2],[9.152,3.417,2],[9.691,3.723,2],[9.239,3.739,2],[9.895,3.973,2],[9.738,1.43,2],[9.582,3.591,2],[9.17,2.977,2],[9.706,4.096,2],[9.461,3.455,2],[9.543,1.819,2],[9.266,3.313,2],[9.675,3.676,2],[9.722,3.806,2],[9.546,3.935,2],[9.332,2.726,2],[9.853,3.558,2],[9.163,3.437,2],[9.647,3.13,2],[9.759,1.436,2],[9.219,2.748,2],[10.027,4.154,2],[9.941,3.798,2],[9.896,4.102,2],[9.357,1.838,2],[9.295,2.088,2],[9.441,3.001,2],[9.525,3.814,2],[9.706,3.562,2],[9.293,3.564,2],[9.971,2.484,2],[9.762,3.745,2],[9.174,3.67,2],[9.906,3.845,2],[9.232,3.187,2],[9.987,4.069,2],[9.579,2.568,2],[9.204,3.54,2],[9.431,3.389,2],[9.815,4.151,2],[9.62,4.363,2],[8.412,3.58,2],[9.248,4.09,2],[9.341,5.229,2],[9.37,1.83,2],[9.27,3.175,2],[9.016,4.23,2],[9.228,3.932,2],[9.729,4.041,2],[9.398,1.471,2],[9.432,3.948,2],[9.361,4.221,2],[9.577,4.308,2],[9.107,3.609,2],[9.765,3.865,2],[9.391,4.643,2],[9.303,3.899,2],[9.427,4.21,2],[8.713,4.856,2],[9.787,3.511,2],[8.859,2.999,2],[9.587,4.548,2],[8.26,3.003,2],[7.797,3.628,1],[7.851,2.157,1],[9.015,2.415,1],[9.455,1.496,1],[9.88,2.893,1],[9.699,2.978,1],[9.627,2.637,1],[9.341,7.098,1],[9.574,2.156,1],[8.794,6.522,1],[9.184,7.275,1],[9.129,6.485,1],[8.666,2.781,1],[9.822,5.321,1],[8.923,5.744,1],[9.329,5.232,1],[9.866,2.891,1],[9.068,2.165,1],[9.568,5.634,1],[9.127,4.311,1],[9.433,2.639,1],[9.638,2.872,1],[9.287,1.867,1],[9.477,3.544,1],[9.406,2.152,1],[10.115,5.996,1],[9.156,6.122,1],[9.426,6.863,1],[9.486,6.271,1],[9.284,6.149,1],[9.429,6.792,1],[9.403,2.54,1],[8.873,4.303,1],[9.577,2.932,1],[7.468,2.985,1],[9.138,1.35,1],[9.938,4.364,1],[8.875,6.207,1],[9.816,3.042,1],[9.189,2.488,1],[9.363,2.234,1],[9.129,3.092,1],[9.458,2.703,1],[9.453,1.784,1],[9.634,2.264,1],[8.93,2.094,1],[8.853,2.806,1],[8.906,3.012,1],[9.46,2.325,1],[9.379,2.564,1],[9.731,2.035,1],[9.493,2.124,1],[9.198,2.095,1],[9.573,2.214,1],[9.239,2.831,1],[9.633,2.525,1],[9.117,2.05,1],[9.523,2.069,1],[9.617,2.291,1],[9.368,1.981,1],[9.261,2.989,1],[9.63,2.403,1],[9.199,2.635,1],[9.371,2.374,1],[9.151,2.249,1],[9.656,2.414,1],[9.435,2.647,1],[9.4,2.393,1],[9.357,2.811,1],[9.247,2.078,1],[9.213,2.917,1],[9.452,1.732,1],[9.539,1.808,1],[9.246,2.886,1],[9.73,2.233,1],[9.409,3.068,1],[9.249,2.015,1],[9.532,1.853,1],[9.398,2.039,1],[9.59,2.579,1],[9.53,2.371,1],[9.457,1.857,1],[9.368,2.091,1],[9.297,1.983,1],[9.688,2.47,1],[9.146,2.739,1],[9.211,2.017,1],[9.443,1.318,1],[9.01,2.498,1],[9.743,2.336,1],[9.438,2.345,1],[9.106,2.232,1],[9.022,3.74,1],[9.449,1.455,1],[9.794,1.447,1],[9.089,2.602,1],[9.55,2.396,1],[9.49,2.106,1],[9.512,1.434,1],[9.57,2.322,1],[9.154,2.381,1],[9.772,1.719,1],[9.571,2.259,1],[9.204,2.523,1],[9.398,2.401,1],[9.543,2.314,1],[9.272,2.497,1],[9.702,1.311,1],[9.305,2.015,1],[9.323,2.347,1],[9.462,1.993,1],[9.289,2.065,1],[9.447,2.258,1],[9.553,1.228,1],[9.106,2.354,1],[9.286,2.16,1],[9.339,2.289,1],[9.678,2.219,1],[9.211,1.819,1],[9.195,2.328,1],[8.542,2.166,1],[9.852,2.444,1],[9.719,2.488,1],[9.572,1.959,1],[9.581,2.624,1],[9.372,2.64,1],[9.228,2.559,1],[9.743,2.702,1],[9.319,1.567,1],[9.692,2.727,1],[9.226,2.367,1],[9.529,2.403,1],[9.359,2.4,1],[9.862,2.472,1],[9.39,2.707,1],[9.205,1.544,1],[9.576,1.233,1],[9.437,2.262,1],[9.379,2.482,1],[9.754,2.319,1],[9.315,2.159,1],[9.446,2.592,1],[9.55,2.246,1],[9.276,1.943,1],[9.395,1.319,1],[9.932,2.185,1],[9.53,2.134,1],[9.132,2.67,1],[9.108,2.367,1],[9.014,2.173,1],[9.231,2.049,1],[9.04,2.568,1],[9.183,3.086,1],[8.86,2.472,1],[9.535,3.579,1],[8.857,3.254,1],[9.535,2.093,1],[9.237,2.728,1],[9.277,2.921,1],[9.605,3.3,1],[8.985,3.331,1],[9.157,2.283,1],[9.721,3.003,1],[9.181,1.94,1],[9.469,1.822,1],[9.221,3.027,1],[9.117,2.42,1],[8.843,2.986,1],[9.55,2.577,1],[8.986,3.222,1],[9.163,2.463,1],[9.508,3.229,1],[9.118,2.804,1],[9.003,2.568,1],[9.202,3.047,1],[9.576,1.721,0],[9.628,1.581,0],[9.617,1.589,0],[9.507,1.669,0],[9.385,1.674,0],[9.569,1.803,0],[9.707,1.724,0],[9.699,1.683,0],[9.631,1.675,0],[9.692,1.685,0],[9.469,1.802,0],[9.672,1.865,0],[9.713,1.773,0],[9.625,1.607,0],[9.642,1.656,0],[9.534,1.842,0],[9.597,1.761,0],[9.609,1.673,0],[9.686,1.944,0],[9.735,1.663,0],[9.512,1.724,0],[9.525,1.617,0],[9.688,1.705,0],[9.463,1.622,0],[9.518,1.573,0],[9.752,1.65,0],[9.652,1.597,0],[9.668,1.753,0],[9.661,1.552,0],[9.565,1.825,0],[9.592,1.677,0],[9.655,1.635,0],[9.572,1.607,0],[9.624,1.576,0],[9.645,1.02,0],[9.683,1.251,0],[9.761,1.332,0],[9.63,1.364,0],[9.631,1.577,0],[9.704,1.601,0],[9.543,1.482,0],[9.78,1.658,0],[9.58,1.739,0],[9.635,1.548,0],[9.732,1.505,0],[9.503,1.969,0],[9.454,1.664,0],[9.606,1.584,0],[9.648,1.725,0],[9.642,1.557,0],[9.595,1.503,0],[9.64,1.58,0],[9.702,1.754,0],[9.654,1.583,0],[9.616,1.675,0],[9.734,1.713,0],[9.693,1.719,0],[9.617,1.665,0],[9.703,1.687,0],[9.558,1.642,0],[9.644,1.534,0],[9.606,1.504,0],[9.675,1.642,0],[9.582,1.371,0],[9.662,1.478,0],[9.619,1.352,0],[9.695,1.417,0],[9.644,1.394,0],[9.484,0.857,0],[8.729,0.555,0],[9.163,1.546,0],[9.211,1.537,0],[9.397,1.756,0],[9.352,1.834,0],[9.31,1.822,0],[9.437,2.015,0],[9.505,1.936,0],[9.493,2.001,0],[9.489,2.155,0],[9.388,2.055,0],[9.309,1.916,0],[9.423,2.114,0],[9.515,2.12,0],[9.376,2.042,0],[9.403,2.087,0],[9.483,2.024,0],[9.387,2.083,0],[9.304,2.114,0],[9.474,1.966,0],[9.506,2.015,0],[9.423,2.03,0],[9.504,1.943,0],[9.364,1.939,0],[9.363,1.697,0],[9.359,1.51,0],[9.521,1.18,0],[9.223,1.691,0],[9.505,1.786,0],[9.474,1.925,0],[9.207,2.088,0],[9.417,1.901,0],[9.571,2.088,0],[9.576,2.037,0],[9.53,2.098,0],[9.435,2.058,0],[9.31,2.001,0],[9.376,2.117,0],[9.503,2.157,0],[9.368,2.185,0],[9.42,2.275,0],[9.316,2.139,0],[9.242,1.986,0],[9.478,2.017,0],[9.542,2.056,0],[9.424,2.118,0],[9.437,2.16,0],[9.483,2.07,0],[9.603,2.104,0],[9.635,2.206,0],[9.474,2.12,0],[9.501,2.136,0],[9.273,2.142,0],[9.448,1.857,0],[9.404,1.789,0],[9.507,1.648,0],[8.387,1.293,0],[9.501,1.838,0],[9.608,1.798,0],[9.638,1.636,0],[9.616,1.511,0],[9.466,1.697,0],[9.469,1.628,0],[9.664,1.316,0],[9.387,1.455,0],[9.583,1.609,0],[9.698,1.593,0],[9.492,1.861,0],[9.471,1.942,0],[9.715,1.82,0],[9.438,1.671,0],[9.69,1.88,0],[9.527,1.911,0],[9.602,1.987,0],[9.474,1.748,0],[9.538,1.848,0],[9.833,1.668,0],[9.594,1.825,0],[9.801,1.748,0],[9.648,1.669,0],[9.491,1.623,0],[9.623,1.631,0],[9.702,1.638,0],[9.7,1.62,0],[9.727,1.644,0],[9.483,1.491,0],[9.751,0.975,0],[9.582,1.534,0],[9.449,1.315,0],[9.644,1.465,0],[9.678,1.483,0],[9.539,1.36,0],[9.754,1.38,0],[9.442,1.404,0],[9.559,1.567,0],[9.573,1.546,0],[9.608,1.588,0],[9.765,1.403,0],[9.569,1.462,0],[9.636,1.482,0],[9.825,1.531,0],[9.423,1.322,0],[9.567,1.471,0],[9.639,1.648,0],[9.765,1.475,0],[9.451,1.475,0],[9.618,1.562,0],[9.722,1.567,0],[9.602,1.56,0],[9.607,1.482,0],[9.5,1.586,0],[9.745,1.577,0],[9.582,1.472,0],[9.64,1.51,0],[9.403,1.465,0],[9.616,1.524,0],[9.706,1.669,0],[9.73,1.65,0],[9.461,1.507,0],[9.793,1.323,0],[9.599,1.595,0],[9.772,1.519,0],[9.652,1.466,0],[9.437,2.743,0],[9.426,2.659,0],[9.358,2.642,0],[9.366,2.747,0],[9.4,2.711,0],[9.38,2.73,0],[9.356,2.619,0],[9.353,2.719,0],[9.382,2.697,0],[9.419,2.831,0],[9.377,2.813,0],[9.411,2.947,0],[9.428,2.853,0],[9.342,2.95,0],[9.359,2.922,0],[9.256,2.902,0],[9.305,2.854,0],[9.306,3.01,0],[9.378,2.849,0],[9.519,2.747,0],[9.478,2.847,0],[9.472,2.841,0],[9.302,2.888,0],[9.541,2.737,0],[9.372,2.924,0],[9.355,2.868,0],[9.5,2.978,0],[9.564,2.684,0],[9.474,2.025,0],[9.656,0.847,0],[9.397,2.302,0],[9.39,2.682,0],[9.623,2.637,0],[9.661,2.549,0],[9.379,2.642,0],[9.411,2.722,0],[9.431,2.752,0],[9.399,2.922,0],[9.509,2.963,0],[9.467,2.922,0],[9.511,2.898,0],[9.477,2.923,0],[9.486,2.852,0],[9.57,2.972,0],[9.584,2.864,0],[9.539,3.096,0],[9.389,3.156,0],[9.485,3.167,0],[9.446,3.033,0],[9.476,3.033,0],[9.324,2.791,0],[9.385,2.985,0],[9.576,3.016,0],[9.668,2.779,0],[9.727,2.838,0],[9.405,2.722,0],[9.371,2.799,0],[9.429,3.051,0],[9.645,2.656,0],[9.681,2.693,0],[9.395,2.636,0],[9.475,2.61,0],[9.406,2.633,0]]};
+const TRAIN = DATA.train, TEST = DATA.test;
+const CLS = ['Walking', 'Upstairs', 'Downstairs'], CCOL = ['#2a78d6', '#eb6834', '#1baf7a'];
+const FN = ['mean', 'std dev'];
+const BOX = [8.4, 10.3, 0.5, 8];   // the feature plane drawn: mean from 8.4 to 10.3, std dev from 0.5 to 8
+
+// ------------------------------------------------------------ CART with gini impurity, binary splits at midpoints, as scikit-learn does
+function gini(ct) { const n = ct[0] + ct[1] + ct[2]; if (!n) return 0; return 1 - ct.reduce((s, c) => s + (c / n) ** 2, 0); }
+function growTree(data, { maxDepth = 99, minSplit = 2, minLeaf = 1 } = {}) {
+  const X = data.map(d => [d[0], d[1]]), y = data.map(d => d[2]);
+  function make(idx, depth, box) {
+    const ct = [0, 0, 0]; idx.forEach(i => ct[y[i]]++);
+    const node = { n: idx.length, ct, depth, box, imp: gini(ct), cls: ct.indexOf(Math.max(...ct)) };
+    if (node.imp === 0 || node.n < minSplit || node.n < 2 * minLeaf || depth >= maxDepth) return node;
+    let best = null;
+    for (let f = 0; f < 2; f++) {
+      const s = idx.slice().sort((a, b) => X[a][f] - X[b][f]), lc = [0, 0, 0], rc = ct.slice();
+      for (let j = 0; j < s.length - 1; j++) {
+        lc[y[s[j]]]++; rc[y[s[j]]]--;
+        if (X[s[j]][f] === X[s[j + 1]][f]) continue;
+        const nl = j + 1, nr = s.length - nl;
+        if (nl < minLeaf || nr < minLeaf) continue;
+        const avg = (nl * gini(lc) + nr * gini(rc)) / s.length;
+        if (!best || avg < best.avg - 1e-12) best = { f, t: (X[s[j]][f] + X[s[j + 1]][f]) / 2, avg };
+      }
+    }
+    if (!best || node.imp - best.avg <= 1e-12) return node;
+    node.split = { f: best.f, t: best.t };
+    const L = idx.filter(i => X[i][best.f] <= best.t), R = idx.filter(i => X[i][best.f] > best.t), bl = box.slice(), br = box.slice();
+    if (best.f === 0) { bl[1] = best.t; br[0] = best.t; } else { bl[3] = best.t; br[2] = best.t; }
+    node.kids = [make(L, depth + 1, bl), make(R, depth + 1, br)];
+    return node;
+  }
+  return make(data.map((_, i) => i), 0, [-1e9, 1e9, -1e9, 1e9]);
+}
+const predict = (n, x) => { while (n.kids) n = x[n.split.f] <= n.split.t ? n.kids[0] : n.kids[1]; return n.cls; };
+const leavesOf = n => n.kids ? n.kids.flatMap(leavesOf) : [n];
+const depthOf = n => n.kids ? 1 + Math.max(...n.kids.map(depthOf)) : 0;
+const acc = (t, data) => data.filter(d => predict(t, d) === d[2]).length / data.length;
+const params = p => ({ maxDepth: p.depth >= 15 ? 99 : p.depth, minSplit: p.split, minLeaf: p.leaf });
+
+// ------------------------------------------------------------ the feature plane: each leaf's region shaded in its class colour, the splits drawn, the windows on top
+function plane(g, tree, X0, Y0, X1, Y1, opts = {}) {
+  const xs = v => X0 + (v - BOX[0]) / (BOX[1] - BOX[0]) * (X1 - X0), ys = v => Y1 - (v - BOX[2]) / (BOX[3] - BOX[2]) * (Y1 - Y0);
+  const clip = b => [Math.max(b[0], BOX[0]), Math.min(b[1], BOX[1]), Math.max(b[2], BOX[2]), Math.min(b[3], BOX[3])];
+  const s = opts.s || 1;
+  if (tree) leavesOf(tree).forEach(l => { const b = clip(l.box); if (b[1] > b[0] && b[3] > b[2]) el(g, 'rect', { x: xs(b[0]), y: ys(b[3]), width: xs(b[1]) - xs(b[0]), height: ys(b[2]) - ys(b[3]), fill: CCOL[l.cls], opacity: 0.26 }); });
+  for (let v = 8.5; v <= BOX[1] + 1e-9; v += 0.5) { el(g, 'line', { x1: xs(v), x2: xs(v), y1: Y0, y2: Y1, stroke: '#000', 'stroke-opacity': 0.06, 'stroke-width': 1.3 }); el(g, 'text', { x: xs(v), y: Y1 + 26 * s, 'text-anchor': 'middle', 'font-size': 19 * s, ...mono }, v.toFixed(1)); }
+  for (let v = 1; v <= BOX[3] + 1e-9; v += 1) { el(g, 'line', { x1: X0, x2: X1, y1: ys(v), y2: ys(v), stroke: '#000', 'stroke-opacity': 0.06, 'stroke-width': 1.3 }); el(g, 'text', { x: X0 - 10, y: ys(v) + 7, 'text-anchor': 'end', 'font-size': 19 * s, ...mono }, v); }
+  (function lines(n) { if (!n.kids) return; const b = clip(n.box), t = n.split.t;
+    el(g, 'line', Object.assign(n.split.f === 0 ? { x1: xs(t), x2: xs(t), y1: ys(b[2]), y2: ys(b[3]) } : { x1: xs(b[0]), x2: xs(b[1]), y1: ys(t), y2: ys(t) }, { stroke: '#333', 'stroke-width': 1.6 }));
+    n.kids.forEach(lines); })(tree || {});
+  el(g, 'rect', { x: X0, y: Y0, width: X1 - X0, height: Y1 - Y0, fill: 'none', stroke: '#666', 'stroke-width': 1.5 });
+  (opts.points || TRAIN).forEach(d => { if (d[0] < BOX[0] || d[0] > BOX[1] || d[1] < BOX[2] || d[1] > BOX[3]) return; el(g, 'circle', { cx: xs(d[0]), cy: ys(d[1]), r: (opts.r || 5.5) * s, fill: CCOL[d[2]], stroke: '#fff', 'stroke-width': 1.2 }); });
+  if (!opts.noAxes) {
+    el(g, 'text', { x: (X0 + X1) / 2, y: Y1 + 58 * s, 'text-anchor': 'middle', 'font-size': 21 * s, fill: '#444' }, 'mean of aᵧ');
+    el(g, 'text', { x: X0 - 52 * s, y: (Y0 + Y1) / 2, 'text-anchor': 'middle', 'font-size': 21 * s, fill: '#444', transform: `rotate(-90 ${X0 - 52 * s} ${(Y0 + Y1) / 2})` }, 'std dev of aᵧ');
+  }
+}
+// the class key, as one row above the figure rather than on top of it
+function legend(g, x, y, shading = true) {
+  CLS.forEach((c, k) => { const xx = x + k * 165; el(g, 'circle', { cx: xx + 8, cy: y - 7, r: 8, fill: CCOL[k], stroke: '#fff' }); el(g, 'text', { x: xx + 24, y, 'font-size': 21, fill: '#444' }, c); });
+  if (!shading) return;
+  el(g, 'rect', { x: x + 520, y: y - 16, width: 22, height: 18, fill: '#888', opacity: 0.3 });
+  el(g, 'text', { x: x + 550, y, 'font-size': 21, fill: '#444' }, 'shading: what the tree predicts');
+}
+
+// ------------------------------------------------------------ the tree itself: labelled boxes while it is small, a skeleton of dots once it is too big to read
+function treeDiagram(g, tree, X, Y, W, H) {
+  const L = leavesOf(tree).length, D = depthOf(tree), slot = W / L, lvl = D ? Math.min((H - 70) / D, 130) : 0, big = L > 10;
+  const edges = el(g, 'g', {}), nodes = el(g, 'g', {});
+  function place(n, first) {
+    let cx;
+    if (!n.kids) cx = X + (first + 0.5) * slot;
+    else { const a = place(n.kids[0], first), b = place(n.kids[1], first + leavesOf(n.kids[0]).length); cx = (a + b) / 2;
+      [a, b].forEach(k => el(edges, 'line', { x1: cx, y1: Y + n.depth * lvl, x2: k, y2: Y + (n.depth + 1) * lvl, stroke: '#9a9a9a', 'stroke-width': big ? 1 : 2 })); }
+    const cy = Y + n.depth * lvl;
+    if (big) el(nodes, 'circle', { cx, cy, r: Math.max(2, Math.min(6, slot / 3)), fill: n.kids ? '#9a9a9a' : CCOL[n.cls] });
+    else if (n.kids) {
+      const bw = Math.min(170, slot * 1.6);
+      el(nodes, 'rect', { x: cx - bw / 2, y: cy - 26, width: bw, height: 52, rx: 8, fill: '#e8f1fd', stroke: '#2a78d6', 'stroke-width': 2 });
+      el(nodes, 'text', { x: cx, y: cy - 3, 'text-anchor': 'middle', 'font-size': 19, 'font-weight': 700, fill: '#1d5fae' }, `${FN[n.split.f]} ≤ ${n.split.t.toFixed(2)}`);
+      el(nodes, 'text', { x: cx, y: cy + 19, 'text-anchor': 'middle', 'font-size': 16, fill: '#444' }, `n = ${n.n}`);
+    } else {
+      const bw = Math.min(140, slot - 8);
+      el(nodes, 'rect', { x: cx - bw / 2, y: cy - 26, width: bw, height: 52, rx: 8, fill: '#fff' });   // opaque under the tint, so edges do not show through
+      el(nodes, 'rect', { x: cx - bw / 2, y: cy - 26, width: bw, height: 52, rx: 8, fill: CCOL[n.cls] + '33', stroke: CCOL[n.cls], 'stroke-width': 2 });
+      if (bw > 100) el(nodes, 'text', { x: cx, y: cy - 3, 'text-anchor': 'middle', 'font-size': 17, 'font-weight': 700, fill: CCOL[n.cls] }, CLS[n.cls]);
+      el(nodes, 'text', { x: cx, y: bw > 100 ? cy + 19 : cy + 6, 'text-anchor': 'middle', 'font-size': 16, fill: '#444' }, `n = ${n.n}`);
+    }
+    return cx;
+  }
+  place(tree, 0);
+}
+const statLine = (t, test) => `depth ${depthOf(t)} · ${leavesOf(t).length} leaves · training accuracy ${acc(t, TRAIN).toFixed(2)}` + (test ? ` · test accuracy ${acc(t, TEST).toFixed(2)}` : '');
+
+
+// ------------------------------------------------------------ the book's three diagrams, drawn with coloured dots for windows
+function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+function dots(g, x, y, w, h, n, seed, opts = {}) {
+  el(g, 'rect', { x, y, width: w, height: h, rx: 10, fill: opts.fill || '#fafafa', stroke: opts.stroke || '#9a9a9a', 'stroke-width': 2, 'stroke-dasharray': opts.dash || 'none' });
+  const r = rng(seed), per = Math.max(1, Math.floor((w - 16) / 26));
+  for (let i = 0; i < n; i++) el(g, 'circle', { cx: x + 20 + (i % per) * 26, cy: y + 22 + Math.floor(i / per) * 26, r: 9, fill: CCOL[Math.floor(r() * 3)] });
+}
+const label = (g, x, y, s, o = {}) => el(g, 'text', Object.assign({ x, y, 'text-anchor': 'middle', 'font-size': 23, fill: '#222' }, o), s);
+const arrow = (g, x1, y1, x2, y2) => el(g, 'line', { x1, y1, x2, y2, stroke: '#9a9a9a', 'stroke-width': 2.5 });
+function depthDiagram(g) {
+  [1, 2, 3, 4].forEach((d, k) => {
+    const cx = 210 + k * 390, top = 120, w = 330, lvl = 110;
+    (function node(x, depth, span, seed) {
+      const y = top + depth * lvl;
+      if (depth < d) [-1, 1].forEach(s => { const nx = x + s * span / 4; arrow(g, x, y, nx, y + lvl); node(nx, depth + 1, span / 2, seed * 2 + (s > 0)); });
+      el(g, 'circle', { cx: x, cy: y, r: depth < d ? 13 : 11, fill: depth < d ? '#9a9a9a' : CCOL[seed % 3], stroke: '#fff', 'stroke-width': 2 });
+    })(cx, 0, w, 1);
+    label(g, cx, 60, `max_depth = ${d}`, { 'font-size': 26, 'font-weight': 700, 'font-family': 'Menlo, monospace' });
+    label(g, cx, 680, `up to ${2 ** d} leaves`, { fill: '#444' });
+  });
+}
+function splitDiagram(g) {
+  label(g, 800, 50, 'min_samples_split = 20', { 'font-size': 28, 'font-weight': 700, 'font-family': 'Menlo, monospace' });
+  dots(g, 150, 200, 300, 70, 6, 3);
+  label(g, 300, 330, '6 windows', { 'font-weight': 700 }); label(g, 300, 366, 'fewer than 20, so it stays a leaf', { fill: '#444' });
+  dots(g, 880, 120, 300, 100, 22, 5);
+  arrow(g, 960, 220, 860, 320); arrow(g, 1100, 220, 1200, 320);
+  dots(g, 700, 320, 300, 70, 13, 8); dots(g, 1060, 320, 300, 70, 9, 9);
+  label(g, 1030, 470, '22 windows', { 'font-weight': 700 }); label(g, 1030, 506, 'at least 20, so it may be split', { fill: '#444' });
+  el(g, 'line', { x1: 600, x2: 600, y1: 100, y2: 620, stroke: '#ececec', 'stroke-width': 2 });
+}
+function leafDiagram(g) {
+  label(g, 800, 50, 'min_samples_leaf = 5', { 'font-size': 28, 'font-weight': 700, 'font-family': 'Menlo, monospace' });
+  [[[19, 1], 380, false], [[12, 8], 1180, true]].forEach(([[a, b], cx, ok], k) => {
+    const bad = !ok, rw = bad ? 80 : 240;
+    dots(g, cx - 150, 120, 300, 100, 20, 11 + k);
+    arrow(g, cx - 80, 220, cx - 190, 320); arrow(g, cx + 80, 220, cx + 60 + rw / 2, 320);
+    dots(g, cx - 320, 320, 260, 100, a, 21 + k);
+    dots(g, cx + 60, 320, rw, bad ? 46 : 100, b, 31 + k, bad ? { stroke: '#c0392b', dash: '8 6' } : {});
+    if (bad) { const x = cx + 100, y = 343; el(g, 'path', { d: `M${x - 26} ${y - 26} L${x + 26} ${y + 26} M${x + 26} ${y - 26} L${x - 26} ${y + 26}`, stroke: '#c0392b', 'stroke-width': 6, 'stroke-linecap': 'round' }); }
+    label(g, cx, 480, `leaves of ${a} and ${b}`, { 'font-weight': 700 });
+    label(g, cx, 516, ok ? 'both have at least 5, so the split is allowed' : 'a leaf of 1 is fewer than 5, so the split is not allowed', { fill: bad ? '#c0392b' : '#444' });
+  });
+  el(g, 'line', { x1: 780, x2: 780, y1: 100, y2: 620, stroke: '#ececec', 'stroke-width': 2 });
+}
+
+// ------------------------------------------------------------ the dataset: decision regions on the left, the tree on the right, for the current settings
+let P = { depth: 15, split: 2, leaf: 1 };
+function viz(g) {
+  const t = growTree(TRAIN, params(P));
+  legend(g, 120, 30, false);
+  el(g, 'text', { x: 1590, y: 30, 'text-anchor': 'end', 'font-size': 22, fill: '#222' }, statLine(t, true));
+  plane(g, t, 120, 70, 700, 640);
+  treeDiagram(g, t, 760, 100, 830, 620);
+}
+
+// ------------------------------------------------------------ steps; `ctl` lists the sliders shown, `start` the settings a step opens with
+const NOLIMIT = { depth: 15, split: 2, leaf: 1 };
+const STEPS = [
+  { title: 'How does max_depth limit the tree?', draw: depthDiagram },
+  { title: 'What does max_depth do to the decision regions?', ctl: ['depth'], start: { ...NOLIMIT, depth: 3 }, draw: viz },
+  { title: 'How does min_samples_split limit the tree?', draw: splitDiagram },
+  { title: 'What does min_samples_split do to the decision regions?', ctl: ['split'], start: { ...NOLIMIT, split: 20 }, draw: viz },
+  { title: 'How does min_samples_leaf limit the tree?', draw: leafDiagram },
+  { title: 'What does min_samples_leaf do to the decision regions?', ctl: ['leaf'], start: { ...NOLIMIT, leaf: 10 }, draw: viz },
+  { title: 'What happens when we use all three together?', ctl: ['depth', 'split', 'leaf'], start: { depth: 5, split: 20, leaf: 10 }, draw: viz },
+];
+const show = k => k === 'depth' && P.depth >= 15 ? 'None' : P[k];
+['depth', 'split', 'leaf'].forEach(k => $(k).addEventListener('input', () => { P[k] = +$(k).value; draw(); }));
+
+let step = Math.max(0, Math.min(STEPS.length - 1, (parseInt(location.hash.slice(1), 10) || 1) - 1));
+function draw() {
+  const S = STEPS[step], svg = $('fig'); svg.innerHTML = '';
+  $('title').textContent = S.title; $('stepno').textContent = `step ${step + 1} of ${STEPS.length}`;
+  $('prev').disabled = step === 0; $('next').disabled = step === STEPS.length - 1;
+  ['depth', 'split', 'leaf'].forEach(k => { $('c-' + k).classList.toggle('hide', !(S.ctl || []).includes(k)); $(k).value = P[k]; $('v-' + k).textContent = show(k); });
+  S.draw(el(svg, 'g', {}));
+}
+function go(s) { step = Math.max(0, Math.min(STEPS.length - 1, s)); if (STEPS[step].start) P = { ...STEPS[step].start }; draw(); history.replaceState(null, '', '#' + (step + 1)); }
+$('prev').onclick = () => go(step - 1); $('next').onclick = () => go(step + 1);
+document.addEventListener('keydown', e => { if (e.target.tagName === 'INPUT') return; if (e.key === 'ArrowRight') go(step + 1); else if (e.key === 'ArrowLeft') go(step - 1); });
+go(step);
+})();
+</script>
+</body>
+</html>
