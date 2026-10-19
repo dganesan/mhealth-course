@@ -253,6 +253,21 @@ function drawTree(g, tree, x, y, w, h, s, cur) {
   place(tree, 0, 0);
 }
 
+// an empty tree: the first question, a second question under each answer, and the predictions at the bottom
+function skeleton(g, x, y, w, h) {
+  const box = (cx, cy, label, pill) => {
+    const bw = pill ? 230 : 180, bh = pill ? 56 : 70;
+    el(g, 'rect', { x: cx - bw / 2, y: cy - bh / 2, width: bw, height: bh, rx: pill ? 28 : 8, fill: '#fff', stroke: '#9a9a9a', 'stroke-width': 2.5, 'stroke-dasharray': '9 7' });
+    el(g, 'text', { x: cx, y: cy + 9, 'text-anchor': 'middle', 'font-size': 25, 'font-weight': 700, fill: '#666' }, label);
+  };
+  const line = (x1, y1, x2, y2) => el(g, 'line', { x1, y1, x2, y2, stroke: '#c4c4c4', 'stroke-width': 2.5 });
+  const y0 = y + 40, y1 = y + h * 0.42, y2 = y + h * 0.84, mid = [x + w * 0.25, x + w * 0.75], leaf = [0.09, 0.37, 0.63, 0.91].map(f => x + f * w);
+  mid.forEach((mx, k) => { line(x + w / 2, y0 + 28, mx, y1 - 28); [0, 1].forEach(j => line(mx, y1 + 28, leaf[2 * k + j], y2 - 35)); });
+  box(x + w / 2, y0, '1st question?', true);
+  mid.forEach(mx => box(mx, y1, '2nd question?', true));
+  leaf.forEach(lx => box(lx, y2, 'High or Low?', false));
+}
+
 // ------------------------------------------------------------ projector: guess the first question; see the splits and vote again; vote on the second level; compare with the algorithm
 function projector() {
   $('proj').classList.remove('hidden');
@@ -270,7 +285,7 @@ function projector() {
   });
   function steps() {
     const gs = groupsUnder(classRoot());
-    return [{ k: 'guess', round: 17 }, { k: 'root', round: 18 }, ...gs.map((g, i) => ({ k: 'next', round: 19, g, last: i === gs.length - 1 })), { k: 'compare' }];
+    return [{ k: 'intro' }, { k: 'guess', round: 17 }, { k: 'root', round: 18 }, ...gs.map((g, i) => ({ k: 'next', round: 19, g, last: i === gs.length - 1 })), { k: 'compare' }];
   }
   function qrFor(S) {
     const qs = '?phone&q=' + (S.round - 16) + (S.k === 'next' ? '&root=' + S.g.root : '');
@@ -279,7 +294,7 @@ function projector() {
     catch (_) { $('qr').textContent = ''; }
   }
   function drawSide(S) {
-    if (S.k === 'compare') return;
+    if (S.k === 'compare' || S.k === 'intro') return;
     const opts = S.k === 'next' ? S.g.opts : ORDER, T = tally(ans[S.round]), counts = T.n[S.k === 'next' ? S.g.key : ''] || {};
     const before = S.k === 'root' ? tally(ans[17]).n[''] || {} : null, mx = Math.max(1, ...opts.map(o => counts[o] || 0));
     $('wall').innerHTML = '<div class="votes">' + opts.map(o => `<div class="vrow"><span class="vlab">${ATTR[o].name}${before ? `<small>first guess ${before[o] || 0}</small>` : ''}</span>
@@ -290,10 +305,11 @@ function projector() {
       : 'Which question would you ask next?<br>Vote for each group on your phone.';
   }
   function drawLeft(S) {
-    const svg = $('left'), wide = S.k === 'compare';
+    const svg = $('left'), wide = S.k === 'compare' || S.k === 'intro';
     svg.setAttribute('viewBox', wide ? '0 0 1600 860' : '0 0 1000 860'); svg.innerHTML = '';
     const g = el(svg, 'g', {});
-    if (S.k === 'guess') table(g, ALL, 0, 0, 1000, 48);
+    if (S.k === 'intro') { table(g, ALL, 0, 0, 760, 48); skeleton(g, 860, 60, 740, 760); }
+    else if (S.k === 'guess') table(g, ALL, 0, 0, 1000, 48);
     else if (S.k === 'root') splits(g, ALL, ORDER, 0, 0, 1000, 860);
     else if (S.k === 'next') { drawTree(g, classTree(false), 0, 30, 1000, 330, 0.8, S.g.key + '/'); splits(g, S.g.ids, S.g.opts, 0, 380, 1000, 480); }
     else {                                                               // the class's tree beside the algorithm's
@@ -307,11 +323,12 @@ function projector() {
   function show() {
     const ST = steps(), i = Math.min(step, ST.length - 1);   // the number of steps follows the class's first question, so keep the step asked for
     const S = ST[i];
-    $('ptitle').textContent = S.k === 'guess' ? 'Which question should we ask first?' : S.k === 'root' ? 'How does each question split the patients?'
+    $('ptitle').textContent = S.k === 'intro' ? 'What questions should the tree ask?' : S.k === 'guess' ? 'Which question should we ask first?' : S.k === 'root' ? 'How does each question split the patients?'
       : S.k === 'next' ? `Which question next, for ${S.g.title}?` : 'How does your tree compare with the algorithm’s?';
-    $('main').classList.toggle('full', S.k === 'compare'); $('side').classList.toggle('hidden', S.k === 'compare');
+    const wide = S.k === 'compare' || S.k === 'intro';
+    $('main').classList.toggle('full', wide); $('side').classList.toggle('hidden', wide);
     $('prev').disabled = i === 0; $('next').classList.toggle('hidden', i === ST.length - 1);
-    $('next').textContent = S.k === 'guess' ? 'Show the splits' : S.k === 'root' ? 'Next level' : S.k === 'next' ? (S.last ? 'Compare with the algorithm' : 'Next group') : '';
+    $('next').textContent = S.k === 'intro' ? 'Start' : S.k === 'guess' ? 'Show the splits' : S.k === 'root' ? 'Next level' : S.k === 'next' ? (S.last ? 'Compare with the algorithm' : 'Next group') : '';
     history.replaceState(null, '', '#step=' + (i + 1) + (key ? '&key=' + key : '') + (TEST ? '&test' : ''));
     if (S.round) { qrFor(S); if (S.round !== shared) { shared = S.round; share(S.round); } }
     drawLeft(S); drawSide(S);
