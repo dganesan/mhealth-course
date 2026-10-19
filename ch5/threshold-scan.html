@@ -27,7 +27,12 @@
   button:disabled { opacity: .45; cursor: default; }
   button.on { background: #e8f1fd; border-color: var(--ma); font-weight: 700; }
   .ctl { display: flex; gap: 8px; align-items: center; margin-left: 18px; }
-  .ctl .lbl { font-size: 17px; color: var(--ink-2); margin: 0 4px 0 8px; }
+  .ctl .lbl { font-size: 18px; color: var(--ink-2); margin: 0 4px 0 14px; }
+  .ctl b { font-family: var(--mono); font-size: 19px; min-width: 52px; }
+  .ctl input[type=range] { width: 260px; -webkit-appearance: none; appearance: none; height: 8px; border-radius: 4px; background: #d9dde3; }
+  .ctl input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 26px; height: 26px; border-radius: 50%; background: var(--ma); cursor: pointer; }
+  .ctl input[type=range]::-moz-range-thumb { width: 26px; height: 26px; border: 0; border-radius: 50%; background: var(--ma); cursor: pointer; }
+  button.primary { background: var(--ma); color: #fff; border-color: var(--ma); font-weight: 700; margin-left: 14px; }
   .step { font-family: var(--mono); font-size: 17px; color: var(--ink-2); margin-left: auto; }
   .hide { display: none !important; }
 </style>
@@ -38,8 +43,9 @@
   <div class="bar">
     <button id="prev" title="Previous step (←)">⏮ step</button>
     <button id="next" title="Next step (→)">step ⏭</button>
-    <span class="ctl" id="cuts"><span class="lbl">cut</span><button id="cl" title="Move the cut left">◀</button><button id="cr" title="Move the cut right">▶</button><button id="cbest">Best cut</button></span>
-    <span class="ctl" id="feats"><span class="lbl">feature</span><button data-f="std">std dev</button><button data-f="mean">mean</button></span>
+    <span class="ctl" id="ctl"><span class="lbl">std dev ≤</span><input type="range" id="s-std" min="0" step="1"><b id="v-std"></b>
+      <span class="lbl">mean ≤</span><input type="range" id="s-mean" min="0" step="1"><b id="v-mean"></b>
+      <button id="best" class="primary">Best for each</button></span>
     <span class="step" id="stepno"></span>
   </div>
 </div>
@@ -102,60 +108,46 @@ function plane(g, X, Y, w, h, opts = {}) {
   (opts.lines || []).forEach(L => {
     const p = L.f === 'mean' ? { x1: sx(L.t), x2: sx(L.t), y1: sy(L.lo ?? FEAT.std.lo), y2: sy(L.hi ?? FEAT.std.hi) } : { x1: sx(L.lo ?? FEAT.mean.lo), x2: sx(L.hi ?? FEAT.mean.hi), y1: sy(L.t), y2: sy(L.t) };
     el(g, 'line', { ...p, stroke: '#222', 'stroke-width': 3, 'stroke-dasharray': '10 7' });
+    if (L.label) el(g, 'text', L.f === 'mean' ? { x: p.x1 + 8, y: p.y2 + 24, 'font-size': 20, 'font-weight': 700, fill: '#222', stroke: '#fff', 'stroke-width': 6, 'paint-order': 'stroke' } : { x: p.x2 - 8, y: p.y1 - 10, 'text-anchor': 'end', 'font-size': 20, 'font-weight': 700, fill: '#222', stroke: '#fff', 'stroke-width': 6, 'paint-order': 'stroke' }, L.label);
   });
-  W.forEach(p => { el(g, 'circle', { cx: sx(p.mean), cy: sy(p.std), r: 15, fill: CLS[p.c].col, stroke: '#fff', 'stroke-width': 2.5 }); el(g, 'text', { x: sx(p.mean) + 20, y: sy(p.std) + 7, 'font-size': 18, fill: '#444' }, p.id); });
+  W.forEach(p => { const o = opts.only && !opts.only.includes(p.id) ? 0.25 : 1;
+    el(g, 'circle', { cx: sx(p.mean), cy: sy(p.std), r: 15, fill: CLS[p.c].col, stroke: '#fff', 'stroke-width': 2.5, opacity: o }); el(g, 'text', { x: sx(p.mean) + 20, y: sy(p.std) + 7, 'font-size': 18, fill: '#444', opacity: o }, p.id); });
 }
 
-// ------------------------------------------------------------ the cut on one feature: the values on a line, the windows on each side, and the gain worked out
-let cut = { std: 2.5, mean: 9.85 }, feat = 'std';
-function scan(g, ids, f, header) {
-  const F = FEAT[f], cs = cuts(ALL, f), t = cut[f],   // candidate cuts come from all twelve windows, as in the book
-    X = 360, Wd = 1210, sx = v => X + (v - F.lo) / (F.hi - F.lo) * Wd;
-  el(g, 'text', { x: 0, y: 28, 'font-size': 24, 'font-weight': 700, fill: '#222' }, `${header}: ${tally(ids)}`);
-  el(g, 'text', { x: 1580, y: 28, 'text-anchor': 'end', 'font-size': 24, 'font-style': 'italic', fill: '#222' }, `H = ${terms(ids).join(' ')} = ${f3(H(ids))}`);
-  // the number line, with each window as a dot (stacked where values repeat) and every candidate cut as a tick
-  const LY = 190;
-  el(g, 'text', { x: 0, y: LY + 8, 'font-size': 22, fill: '#444' }, F.short);
-  el(g, 'text', { x: 0, y: LY + 34, 'font-size': 18, fill: '#666' }, 'of accel magnitude');
-  el(g, 'line', { x1: X, x2: X + Wd, y1: LY, y2: LY, stroke: '#666', 'stroke-width': 2 });
-  for (let v = Math.ceil(F.lo); v <= F.hi; v++) el(g, 'text', { x: sx(v), y: LY + 34, 'text-anchor': 'middle', 'font-size': 18, ...mono }, v);
-  cs.forEach(c => el(g, 'line', { x1: sx(c), x2: sx(c), y1: LY - 8, y2: LY + 8, stroke: '#9a9a9a', 'stroke-width': 2 }));
-  const seen = {};
-  ids.slice().sort((a, b) => win(a).c - win(b).c).forEach(i => { const v = win(i)[f], k = seen[v] = (seen[v] || 0) + 1; el(g, 'circle', { cx: sx(v), cy: LY - 4 - k * 22, r: 10, fill: CLS[win(i).c].col, stroke: '#fff', 'stroke-width': 2 }); });
-  el(g, 'line', { x1: sx(t), x2: sx(t), y1: LY - 92, y2: LY + 14, stroke: '#222', 'stroke-width': 3.5 });
-  el(g, 'text', { x: sx(t), y: LY - 100, 'text-anchor': 'middle', 'font-size': 22, 'font-weight': 700, fill: '#222', stroke: '#fff', 'stroke-width': 6, 'paint-order': 'stroke' }, `${F.short} ≤ ${fmt(t)}`);
-  // dragging on the line moves the cut to the nearest candidate
-  const hit = el(g, 'rect', { x: X - 20, y: LY - 110, width: Wd + 40, height: 150, fill: 'transparent', style: 'cursor: ew-resize' });
-  const svg = $('fig');
-  const set = e => { const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; const u = p.matrixTransform(svg.getScreenCTM().inverse()), v = F.lo + (u.x - X) / Wd * (F.hi - F.lo);
-    const nc = cs.reduce((b, c) => Math.abs(c - v) < Math.abs(b - v) ? c : b); if (nc !== cut[f]) { cut[f] = nc; draw(); } };
-  hit.addEventListener('pointerdown', e => { e.preventDefault(); set(e); const mv = ev => set(ev), up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); }; addEventListener('pointermove', mv); addEventListener('pointerup', up); });
-  // the two sides
-  const [L, R] = sides(ids, f, t), BY = 280, bw = 470, bh = 130;
-  [[L, `${F.short} ≤ ${fmt(t)}`, 0], [R, `${F.short} > ${fmt(t)}`, 1]].forEach(([p, lab, k]) => {
-    const bx = 230 + k * (bw + 20);
-    el(g, 'text', { x: bx + bw / 2, y: BY - 10, 'text-anchor': 'middle', 'font-size': 22, 'font-weight': 700, fill: '#666' }, lab);
-    el(g, 'rect', { x: bx, y: BY, width: bw, height: bh, rx: 8, fill: '#fafafa', stroke: '#dcdcdc', 'stroke-width': 1.5 });
-    chips(g, p, bx + 10, BY + 14, bw - 20, 1.15);
-    const tt = terms(p);
-    if (!p.length) el(g, 'text', { x: bx + bw / 2, y: BY + bh + 34, 'text-anchor': 'middle', 'font-size': 20, fill: '#666' }, 'empty');
-    else { const half = Math.ceil(tt.length / 2), rows = tt.length > 2 ? [tt.slice(0, half).join(' '), tt.slice(half).join(' ')] : tt;
-      rows.forEach((s, j) => el(g, 'text', { x: bx + bw / 2, y: BY + bh + 32 + j * 28, 'text-anchor': 'middle', 'font-size': 20, 'font-style': 'italic', fill: '#222' }, (j ? '' : 'H = ') + s + (j === rows.length - 1 ? ` = ${f3(H(p))}` : ''))); }
+// ------------------------------------------------------------ one candidate question: the windows on each side of the cut, each side's entropy, and the gain
+// the cut on each feature; a tie for the best cut goes to the book's choice
+let cut = { std: 2.5, mean: 9.85 }, shown = false;
+const PREFER = { std: 2.5, mean: 11.75 };
+const bestCut = (ids, f) => { const cs = cuts(ALL, f), top = Math.max(...cs.map(c => gain(ids, f, c))), tied = cs.filter(c => gain(ids, f, c) === top); return tied.includes(PREFER[f]) ? PREFER[f] : tied[0]; };
+function panel(g, ids, f, y, best) {
+  const t = cut[f], [L, R] = sides(ids, f, t), N = ids.length, bw = 262, bh = 112, x0 = 760;
+  el(g, 'text', { x: x0, y: y + 30, 'font-size': 28, 'font-weight': 700, fill: '#222' }, `${FEAT[f].short} ≤ ${fmt(t)} ?`);
+  [[L, 'yes'], [R, 'no']].forEach(([p, lab], k) => {
+    const bx = x0 + k * (bw + 16), by = y + 64;
+    el(g, 'text', { x: bx + bw / 2, y: by - 10, 'text-anchor': 'middle', 'font-size': 20, 'font-weight': 700, fill: '#666' }, lab);
+    el(g, 'rect', { x: bx, y: by, width: bw, height: bh, rx: 8, fill: '#fafafa', stroke: '#dcdcdc', 'stroke-width': 1.5 });
+    chips(g, p, bx + 8, by + 10, bw - 16, 0.9);
+    el(g, 'text', { x: bx + bw / 2, y: by + bh + 30, 'text-anchor': 'middle', 'font-size': 23, 'font-style': 'italic', fill: '#222' }, p.length ? `H = ${f3(H(p))}` : 'empty');
   });
-  const N = ids.length, cx = 1350, ty = BY + 50;
-  el(g, 'text', { x: cx, y: ty, 'text-anchor': 'middle', 'font-size': 21, fill: '#444' }, `(${L.length}/${N})(${f3(H(L))}) + (${R.length}/${N})(${f3(H(R))})`);
-  el(g, 'text', { x: cx, y: ty + 34, 'text-anchor': 'middle', 'font-size': 23, fill: '#222' }, `weighted entropy = ${f3(weighted(ids, f, t))}`);
-  el(g, 'text', { x: cx, y: ty + 76, 'text-anchor': 'middle', 'font-size': 28, 'font-weight': 700, fill: '#c0392b' }, `gain = ${f3(H(ids))} − ${f3(weighted(ids, f, t))} = ${f3(gain(ids, f, t))}`);
-  // the gain of every candidate cut, with the current one marked
-  const GY = 570, GH = 150, top = Math.max(...cs.map(c => gain(ids, f, c))), gy = v => GY + GH - v / Math.max(1, Math.ceil(top * 4) / 4) * GH;
-  el(g, 'text', { x: 0, y: GY + GH / 2 + 8, 'font-size': 22, fill: '#444' }, 'gain at each cut');
-  el(g, 'line', { x1: X, x2: X + Wd, y1: GY + GH, y2: GY + GH, stroke: '#666', 'stroke-width': 1.5 });
-  cs.forEach(c => { const v = gain(ids, f, c), on = c === t;
-    el(g, 'rect', { x: sx(c) - 6, y: gy(v), width: 12, height: GY + GH - gy(v), rx: 2, fill: on ? '#222' : '#b9c3cf' });
-    if (on) el(g, 'text', { x: sx(c), y: gy(v) - 10, 'text-anchor': 'middle', 'font-size': 20, 'font-weight': 700, fill: '#222', stroke: '#fff', 'stroke-width': 6, 'paint-order': 'stroke' }, f3(v)); });   // only the current cut is labelled; neighbouring cuts sit too close for labels
+  const cx = 1450, gv = gain(ids, f, t);
+  el(g, 'text', { x: cx, y: y + 100, 'text-anchor': 'middle', 'font-size': 20, fill: '#444' }, `(${L.length}/${N})(${f3(H(L))}) + (${R.length}/${N})(${f3(H(R))})`);
+  el(g, 'text', { x: cx, y: y + 134, 'text-anchor': 'middle', 'font-size': 22, fill: '#222' }, `weighted = ${f3(weighted(ids, f, t))}`);
+  el(g, 'text', { x: cx, y: y + 176, 'text-anchor': 'middle', 'font-size': 28, 'font-weight': 700, fill: best ? '#c0392b' : '#222' }, `gain = ${f3(gv)}`);
+  if (best) { el(g, 'rect', { x: cx - 38, y: y + 192, width: 76, height: 28, rx: 5, fill: '#222' }); el(g, 'text', { x: cx, y: y + 213, 'text-anchor': 'middle', 'font-size': 17, 'font-weight': 700, fill: '#fff' }, 'BEST'); }
+}
+// a group to split: the feature plane on the left with both cuts drawn, one panel per feature on the right
+function split2(g, ids, header, extra) {
+  el(g, 'text', { x: 760, y: 28, 'font-size': 23, 'font-weight': 700, fill: '#222' }, `${header}: ${tally(ids)}`);
+  el(g, 'text', { x: 1590, y: 28, 'text-anchor': 'end', 'font-size': 23, 'font-style': 'italic', fill: '#222' }, `H = ${f3(H(ids))}`);
+  plane(g, 90, 20, 580, 600, { only: ids, regions: extra && extra.regions, lines: [...(extra ? extra.lines : []), { f: 'std', t: cut.std, label: `std dev ≤ ${fmt(cut.std)}` }, { f: 'mean', t: cut.mean, label: `mean ≤ ${fmt(cut.mean)}` }] });
+  const gs = { std: gain(ids, 'std', cut.std), mean: gain(ids, 'mean', cut.mean) }, top = Math.max(gs.std, gs.mean);
+  panel(g, ids, 'std', 60, shown && gs.std === top);
+  el(g, 'line', { x1: 760, x2: 1590, y1: 405, y2: 405, stroke: '#ececec', 'stroke-width': 1.5 });
+  panel(g, ids, 'mean', 420, shown && gs.mean === top);
+  if (shown && gs.std === gs.mean) el(g, 'text', { x: 1175, y: 740, 'text-anchor': 'middle', 'font-size': 22, fill: '#444' }, 'A tie: either question gives the same gain.');
 }
 
-// ------------------------------------------------------------ the finished tree, drawn by hand from the book's choices
+// ------------------------------------------------------------ the finished tree, as in the book's figure
 function tree(g) {
   const box = (x, y, w, h, fill, stroke) => el(g, 'rect', { x: x - w / 2, y, width: w, height: h, rx: h > 60 ? 10 : h / 2, fill, stroke, 'stroke-width': 2.5 });
   const edge = (x1, y1, x2, y2, lab, side) => { el(g, 'line', { x1, y1, x2, y2, stroke: '#9a9a9a', 'stroke-width': 2.5 }); el(g, 'text', { x: x1 + 0.4 * (x2 - x1) + side * 10, y: y1 + 0.4 * (y2 - y1) + 6, 'text-anchor': side < 0 ? 'end' : 'start', 'font-size': 22, fill: '#444' }, lab); };
@@ -168,10 +160,9 @@ function tree(g) {
 }
 
 // ------------------------------------------------------------ steps
-const BOOK = [['mean', 9.85], ['mean', 10.05], ['mean', 11.75], ['std', 2.05], ['std', 2.5], ['std', 4.9]];
 const RIGHT = ALL.filter(i => win(i).std > 2.5);
 const STEPS = [
-  { title: 'How do we split on a feature that is a number?', draw(g) {
+  { title: 'How mixed are the twelve windows?', draw(g) {
       const cols = [['window', 60], ['mean', 210], ['std dev', 350], ['activity', 500]];
       cols.forEach(([h, x]) => el(g, 'text', { x, y: 34, 'text-anchor': 'middle', 'font-size': 22, 'font-weight': 700, fill: '#666' }, h));
       el(g, 'line', { x1: 0, x2: 600, y1: 48, y2: 48, stroke: '#9a9a9a', 'stroke-width': 1.5 });
@@ -183,48 +174,27 @@ const STEPS = [
       el(g, 'text', { x: 300, y: 724, 'text-anchor': 'middle', 'font-size': 23, 'font-style': 'italic', fill: '#222' }, `= ${f3(H(ALL))}`);
       plane(g, 820, 20, 720, 580);
     } },
-  { title: 'Where should we cut the std dev of accel magnitude?', cuts: true, f: 'std', draw: g => scan(g, ALL, 'std', 'All 12 windows') },
-  { title: 'Where should we cut the mean of accel magnitude?', cuts: true, f: 'mean', draw: g => scan(g, ALL, 'mean', 'All 12 windows') },
-  { title: 'Which cut gives the most information gain?', draw(g) {
-      const top = Math.max(...BOOK.map(([f, t]) => gain(ALL, f, t)));
-      BOOK.forEach(([f, t], i) => { const v = gain(ALL, f, t), y = 40 + i * 104, best = v === top, [L, R] = sides(ALL, f, t);
-        el(g, 'text', { x: 0, y: y + 42, 'font-size': 26, 'font-weight': best ? 700 : 400, fill: '#222' }, `${FEAT[f].short} ≤ ${fmt(t)}`);
-        chips(g, L, 230, y + 12, 330, 0.8); el(g, 'line', { x1: 575, x2: 575, y1: y + 6, y2: y + 76, stroke: '#9a9a9a', 'stroke-width': 2 }); chips(g, R, 590, y + 12, 330, 0.8);
-        el(g, 'rect', { x: 960, y: y + 14, width: 520, height: 46, rx: 4, fill: '#f1f3f6' });
-        el(g, 'rect', { x: 960, y: y + 14, width: 520 * v / H(ALL), height: 46, rx: 4, fill: best ? '#2a78d6' : '#b9c3cf' });
-        el(g, 'text', { x: 1495, y: y + 48, 'font-size': 26, 'font-weight': 700, fill: '#222', 'font-family': 'Menlo, monospace' }, f3(v));
-        if (best) { el(g, 'rect', { x: 975, y: y + 24, width: 66, height: 26, rx: 4, fill: '#222' }); el(g, 'text', { x: 1008, y: y + 43, 'text-anchor': 'middle', 'font-size': 16, 'font-weight': 700, fill: '#fff' }, 'BEST'); }
-      });
-      el(g, 'text', { x: 395, y: 26, 'text-anchor': 'middle', 'font-size': 20, fill: '#666', 'font-weight': 700 }, 'yes'); el(g, 'text', { x: 755, y: 26, 'text-anchor': 'middle', 'font-size': 20, fill: '#666', 'font-weight': 700 }, 'no');
-      el(g, 'text', { x: 1220, y: 26, 'text-anchor': 'middle', 'font-size': 20, fill: '#666', 'font-weight': 700 }, 'information gain');
-    } },
-  { title: 'Which cut next, for the windows with std dev above 2.5?', cuts: true, toggle: true, draw: g => scan(g, RIGHT, feat, 'Windows with std dev > 2.5') },
+  { title: 'Which feature, and where should we cut it?', sliders: true, ids: ALL, start: { std: 2.05, mean: 9.85 }, draw: g => split2(g, ALL, 'All 12 windows') },
+  { title: 'Which question next, for the windows with std dev above 2.5?', sliders: true, ids: RIGHT, start: { std: 4.9, mean: 10.05 },
+    draw: g => split2(g, RIGHT, 'Windows with std dev > 2.5', { lines: [{ f: 'std', t: 2.5 }], regions: [{ x0: FEAT.mean.lo, x1: FEAT.mean.hi, y0: FEAT.std.lo, y1: 2.5, c: 0 }] }) },
   { title: 'What does the finished tree look like?', draw: tree },
 ];
 
+// the sliders step through the candidate cuts: every midpoint between neighbouring values over the twelve windows
+['std', 'mean'].forEach(f => { const s = $('s-' + f); s.max = cuts(ALL, f).length - 1; s.addEventListener('input', () => { cut[f] = cuts(ALL, f)[+s.value]; shown = false; draw(); }); });
 let step = Math.max(0, Math.min(STEPS.length - 1, (parseInt(location.hash.slice(1), 10) || 1) - 1));
 function draw() {
   const S = STEPS[step], svg = $('fig'); svg.innerHTML = '';
   $('title').textContent = S.title; $('stepno').textContent = `step ${step + 1} of ${STEPS.length}`;
   $('prev').disabled = step === 0; $('next').disabled = step === STEPS.length - 1;
-  $('cuts').classList.toggle('hide', !S.cuts); $('feats').classList.toggle('hide', !S.toggle);
-  [...$('feats').querySelectorAll('button')].forEach(b => b.classList.toggle('on', b.dataset.f === feat));
+  $('ctl').classList.toggle('hide', !S.sliders);
+  ['std', 'mean'].forEach(f => { $('s-' + f).value = cuts(ALL, f).indexOf(cut[f]); $('v-' + f).textContent = fmt(cut[f]); });
   S.draw(el(svg, 'g', {}));
 }
-const curF = () => STEPS[step].toggle ? feat : STEPS[step].f;
-const curIds = () => STEPS[step].toggle ? RIGHT : ALL;
-function move(d) { const f = curF(), cs = cuts(ALL, f); let i = cs.indexOf(cut[f]); if (i < 0) i = 0; cut[f] = cs[Math.max(0, Math.min(cs.length - 1, i + d))]; draw(); }
-$('cl').onclick = () => move(-1); $('cr').onclick = () => move(1);
-$('cbest').onclick = () => { const f = curF(), ids = curIds(); cut[f] = cuts(ALL, f).reduce((b, c) => gain(ids, f, c) > gain(ids, f, b) ? c : b); draw(); };
-[...$('feats').querySelectorAll('button')].forEach(b => b.onclick = () => { feat = b.dataset.f; draw(); });
-function go(s) {
-  step = Math.max(0, Math.min(STEPS.length - 1, s));
-  // each step starts on the book's cut: std dev ≤ 2.5 and mean ≤ 9.85 at the root, mean ≤ 11.75 for the remaining windows
-  if (STEPS[step].f === 'std') cut.std = 2.5; if (STEPS[step].f === 'mean') cut.mean = 9.85; if (STEPS[step].toggle) { feat = 'mean'; cut.mean = 11.75; cut.std = 4.9; }
-  draw(); history.replaceState(null, '', '#' + (step + 1));
-}
+function go(s) { step = Math.max(0, Math.min(STEPS.length - 1, s)); const S = STEPS[step]; if (S.start) { cut = { ...S.start }; shown = false; } draw(); history.replaceState(null, '', '#' + (step + 1)); }
+$('best').onclick = () => { const ids = STEPS[step].ids; cut = { std: bestCut(ids, 'std'), mean: bestCut(ids, 'mean') }; shown = true; draw(); };
 $('prev').onclick = () => go(step - 1); $('next').onclick = () => go(step + 1);
-document.addEventListener('keydown', e => { if (e.key === 'ArrowRight') go(step + 1); else if (e.key === 'ArrowLeft') go(step - 1); });
+document.addEventListener('keydown', e => { if (e.target.tagName === 'INPUT') return; if (e.key === 'ArrowRight') go(step + 1); else if (e.key === 'ArrowLeft') go(step - 1); });
 go(step);
 })();
 </script>
