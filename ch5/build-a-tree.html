@@ -288,20 +288,19 @@ function projector() {
     return [{ k: 'intro' }, { k: 'guess', round: 17 }, { k: 'root', round: 17 }, ...gs.map((g, i) => ({ k: 'next', round: 19, g, last: i === gs.length - 1 })), { k: 'compare' }];
   }
   function qrFor(S) {
-    const qs = '?phone&q=' + (S.round - 16) + (S.k === 'next' ? '&root=' + S.g.root : '');
-    const url = page + qs + (TEST ? '&test' : '') + '&v=' + BUILD;
+    const url = page + '?phone' + (TEST ? '&test' : '') + '&v=' + BUILD;   // one code for every step: the phone follows the round
     try { const c = qrcode(0, 'M'); c.addData(url); c.make(); $('qr').innerHTML = c.createSvgTag({ cellSize: 5, margin: 2, scalable: true }); }
     catch (_) { $('qr').textContent = ''; }
   }
   function drawSide(S) {
     if (S.k === 'compare' || S.k === 'intro') return;
     const opts = S.k === 'next' ? S.g.opts : ORDER, T = tally(ans[S.round]), counts = T.n[S.k === 'next' ? S.g.key : ''] || {};
-    const before = S.k === 'root' ? tally(ans[17], true).n[''] || {} : null, mx = Math.max(1, ...opts.map(o => counts[o] || 0));
-    $('wall').innerHTML = '<div class="votes">' + opts.map(o => `<div class="vrow"><span class="vlab">${ATTR[o].name}${before ? `<small>first guess ${before[o] || 0}</small>` : ''}</span>
+    const mx = Math.max(1, ...opts.map(o => counts[o] || 0));
+    $('wall').innerHTML = '<div class="votes">' + opts.map(o => `<div class="vrow"><span class="vlab">${ATTR[o].name}</span>
       <span class="vtrack"><span class="vbar" style="width:${100 * (counts[o] || 0) / mx}%"></span></span><span class="vn">${counts[o] || 0}</span></div>`).join('') + '</div>';
     $('pcount').textContent = `${T.voters} vote${T.voters === 1 ? '' : 's'}`;
     $('ask').innerHTML = S.k === 'guess' ? 'Which question would you ask first?<br>Vote on your phone.'
-      : S.k === 'root' ? 'Which question would you ask first?<br>Change your vote on your phone if you wish.'
+      : S.k === 'root' ? 'Which question would you ask first?<br>You can change your vote.'
       : 'Which question would you ask next?<br>Vote for each group on your phone.';
   }
   function drawLeft(S) {
@@ -358,13 +357,30 @@ function projector() {
 function phone() {
   $('phone').classList.remove('hidden');
   if (!API) $('vmsg').textContent = 'Test mode: votes stay on this device.';
-  const sp = new URLSearchParams(location.search), qn = Math.max(1, Math.min(3, parseInt(sp.get('q'), 10) || 1));
-  const root = ATTR[sp.get('root')] ? sp.get('root') : 'ex', round = 16 + qn;
-  const groups = qn === 3 ? groupsUnder(root) : [{ key: '', opts: ORDER }];
-  const picked = {};
+  // one QR code for the whole game: the phone follows the round the projector has shared, unless ?q= fixes the question
+  const sp = new URLSearchParams(location.search), fixed = sp.has('q') ? Math.max(1, Math.min(3, parseInt(sp.get('q'), 10) || 1)) : 0;
+  let round = 0, root = '', groups = [], picked = {};
   let busy = false, dev = '';
   try { dev = localStorage.getItem('sd-dev') || ''; if (!dev) { dev = Math.random().toString(36).slice(2, 10); localStorage.setItem('sd-dev', dev); } } catch (_) { dev = Math.random().toString(36).slice(2, 10); }
-  $('ftitle').textContent = qn === 3 ? 'Which question would you ask next?' : 'Which question would you ask first?';
+  function setQuestion(r, rt) {
+    if (r === round && rt === root) return;
+    round = r; root = rt; picked = {};
+    groups = round === 19 ? groupsUnder(root) : round === 17 ? [{ key: '', opts: ORDER }] : [];
+    $('ftitle').textContent = round === 19 ? 'Which question would you ask next?' : round === 17 ? 'Which question would you ask first?' : 'Waiting for the next question…';
+    $('vsend').classList.toggle('hidden', !groups.length);
+    if (groups.length) $('vmsg').textContent = API ? '' : 'Test mode: votes stay on this device.';
+    draw();
+  }
+  // the second level hangs under the class's first question, worked out from the first-question votes as on the projector
+  async function follow() {
+    try {
+      const r = fixed ? 16 + fixed : (await api.getRound()).round;
+      let rt = sp.get('root') || '';
+      if (r === 19 && !ATTR[rt] && round === 19) rt = root;          // already worked out for this round
+      if (r === 19 && !ATTR[rt]) rt = top(tally(((await api.list(17)).answers || []).sort((p, o) => p.t - o.t)).n[''], ORDER) || ALGO.attr;
+      setQuestion(r, ATTR[rt] ? rt : '');
+    } catch (_) { if (!round) $('vmsg').textContent = 'Cannot reach the class page; check your connection.'; }
+  }
   function draw() {
     $('vgrid').innerHTML = '';
     groups.forEach(g => {
@@ -375,7 +391,7 @@ function phone() {
       });
     });
   }
-  draw();
+  follow(); if (!fixed) setInterval(follow, 3000);
   $('vsend').onclick = async () => {
     const picks = groups.filter(g => picked[g.key]).map(g => (g.key ? g.key + '.' : '') + picked[g.key]);
     if (picks.length < groups.length) { $('vmsg').textContent = groups.length > 1 ? 'Pick one question for each group first.' : 'Tap one first.'; return; }
