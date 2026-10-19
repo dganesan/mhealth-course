@@ -91,7 +91,7 @@
   <h1 id="ftitle"></h1>
   <p class="sub">CS328 · Tap your choice, then send.</p>
   <div class="vgrid" id="vgrid"></div>
-  <button class="primary" id="vsend">Send vote</button>
+  <button class="primary hidden" id="vsend">Send vote</button>
   <div class="msg" id="vmsg"></div>
 </div>
 
@@ -101,7 +101,7 @@ const $ = id => document.getElementById(id);
 // the same web app as ch4/spot-the-difference.html; this game uses its rounds 17 to 19. Add ?test or #test for a local test (this browser only).
 const TEST = /(^|[?&#])test\b/.test(location.search + location.hash);
 const API = TEST ? '' : 'https://script.google.com/macros/s/AKfycbwl9bZajvzRGBFQHL9rMPdHwL7kuF76KvjF3JYfCNU7UIzaei5437aBAuwjlYRwin8SLA/exec';
-const BUILD = '2026-10-19a';
+const BUILD = '2026-10-19b';
 const ROUND = { guess: 17, root: 17, next: 19 };
 
 // ------------------------------------------------------------ the 16 patients: age (0 <40, 1 40–55, 2 >55), family history (0 no, 1 yes), exercise (0 rarely, 1 regularly), risk (0 low, 1 high)
@@ -141,22 +141,25 @@ const groupsUnder = root => split(ALL, root).map((ids, v) => ({ key: root + v, r
 // ------------------------------------------------------------ backend: the Apps Script web app, or localStorage in test mode
 const LS = { round: 'bt-round', answers: 'bt-answers' };
 const today = () => new Date().toISOString().slice(0, 10);
+// the web app can take several seconds to reply; give up after 15 s so a phone never waits forever
+const getJSON = async url => { const c = new AbortController(), t = setTimeout(() => c.abort(), 15000);
+  try { return await (await fetch(url, { signal: c.signal })).json(); } catch (e) { throw e.name === 'AbortError' ? new Error('no reply in 15 s') : e; } finally { clearTimeout(t); } };
 const api = {
   async getRound() {
     if (!API) return JSON.parse(localStorage.getItem(LS.round) || '{"round":17}');
-    return (await fetch(`${API}?action=round&t=${Date.now()}`)).json();
+    return getJSON(`${API}?action=round&t=${Date.now()}`);
   },
   async setRound(round, key) {
     if (!API) { localStorage.setItem(LS.round, JSON.stringify({ round, session: today() })); return { ok: true }; }
-    return (await fetch(`${API}?action=setRound&round=${round}&session=${today()}&key=${encodeURIComponent(key)}`)).json();
+    return getJSON(`${API}?action=setRound&round=${round}&session=${today()}&key=${encodeURIComponent(key)}`);
   },
   async submit(round, text) {
     if (!API) { const a = JSON.parse(localStorage.getItem(LS.answers) || '[]'); a.push({ t: Date.now(), round, text, session: today() }); localStorage.setItem(LS.answers, JSON.stringify(a)); return { ok: true }; }
-    return (await fetch(`${API}?action=submit&round=${round}&text=${encodeURIComponent(text)}`)).json();
+    return getJSON(`${API}?action=submit&round=${round}&text=${encodeURIComponent(text)}`);
   },
   async list(round) {
     if (!API) return { answers: JSON.parse(localStorage.getItem(LS.answers) || '[]').filter(a => a.round === round && a.session === today()) };
-    return (await fetch(`${API}?action=list&round=${round}&t=${Date.now()}`)).json();
+    return getJSON(`${API}?action=list&round=${round}&t=${Date.now()}`);
   },
 };
 // votes are answers of the form "vote:<group>.<choice>,...;d=<device>" (the group is empty for the first question); each device's latest vote counts, or its earliest with `first`
@@ -349,8 +352,8 @@ function projector() {
   const go = d => { const n = steps().length, s = Math.min(step, n - 1) + d; if (s >= 0 && s < n) { step = s; show(); } };
   $('prev').onclick = () => go(-1); $('next').onclick = () => go(1);
   document.addEventListener('keydown', e => { if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(1); } else if (e.key === 'ArrowLeft') go(-1); });
-  show(); poll();
-  setInterval(poll, 3000);
+  show();
+  (async function loop() { await poll(); setTimeout(loop, 3000); })();   // the next check starts 3 s after the last reply, so slow replies do not pile up
 }
 
 // ------------------------------------------------------------ phone: the question (or one per group), a button per answer, send
@@ -362,13 +365,14 @@ function phone() {
   let round = 0, root = '', groups = [], picked = {};
   let busy = false, dev = '';
   try { dev = localStorage.getItem('sd-dev') || ''; if (!dev) { dev = Math.random().toString(36).slice(2, 10); localStorage.setItem('sd-dev', dev); } } catch (_) { dev = Math.random().toString(36).slice(2, 10); }
+  $('ftitle').textContent = 'Loading the question…';
   function setQuestion(r, rt) {
     if (r === round && rt === root) return;
     round = r; root = rt; picked = {};
     groups = round === 19 ? groupsUnder(root) : round === 17 ? [{ key: '', opts: ORDER }] : [];
     $('ftitle').textContent = round === 19 ? 'Which question would you ask next?' : round === 17 ? 'Which question would you ask first?' : 'Waiting for the next question…';
     $('vsend').classList.toggle('hidden', !groups.length);
-    if (groups.length) $('vmsg').textContent = API ? '' : 'Test mode: votes stay on this device.';
+    if (groups.length && !busy) $('vmsg').textContent = API ? '' : 'Test mode: votes stay on this device.';
     draw();
   }
   // the second level hangs under the class's first question, worked out from the first-question votes as on the projector
@@ -379,7 +383,7 @@ function phone() {
       if (r === 19 && !ATTR[rt] && round === 19) rt = root;          // already worked out for this round
       if (r === 19 && !ATTR[rt]) rt = top(tally(((await api.list(17)).answers || []).sort((p, o) => p.t - o.t)).n[''], ORDER) || ALGO.attr;
       setQuestion(r, ATTR[rt] ? rt : '');
-    } catch (_) { if (!round) $('vmsg').textContent = 'Cannot reach the class page; check your connection.'; }
+    } catch (e) { if (!round) $('vmsg').textContent = 'Cannot reach the class page (' + (e && e.message || e) + '); still trying.'; }
   }
   function draw() {
     $('vgrid').innerHTML = '';
@@ -391,9 +395,11 @@ function phone() {
       });
     });
   }
-  follow(); if (!fixed) setInterval(follow, 3000);
+  // one request at a time: the next check starts 3 s after the last reply, and waits while a vote is being sent
+  (async function loop() { if (!busy) await follow(); if (!fixed) setTimeout(loop, 3000); })();
   $('vsend').onclick = async () => {
     const picks = groups.filter(g => picked[g.key]).map(g => (g.key ? g.key + '.' : '') + picked[g.key]);
+    if (!groups.length) return;
     if (picks.length < groups.length) { $('vmsg').textContent = groups.length > 1 ? 'Pick one question for each group first.' : 'Tap one first.'; return; }
     if (busy) return;
     busy = true; $('vsend').disabled = true; $('vmsg').textContent = 'Sending…';
@@ -401,8 +407,8 @@ function phone() {
       const r = await api.submit(round, 'vote:' + picks.join(',') + ';d=' + dev);
       $('vmsg').textContent = r.ok ? 'Vote sent. To change it, tap again and resend.' : 'Not sent (' + (r.error || 'unknown') + '); try again.';
     }
-    catch (e) { $('vmsg').textContent = 'Not sent (' + (e && e.message || e) + '); check your connection.'; }
-    setTimeout(() => { busy = false; $('vsend').disabled = false; }, 2500);
+    catch (e) { $('vmsg').textContent = 'Not sent (' + (e && e.message || e) + '); try again.'; }
+    busy = false; $('vsend').disabled = false;
   };
 }
 
