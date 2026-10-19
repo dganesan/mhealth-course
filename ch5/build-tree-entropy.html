@@ -25,6 +25,8 @@
   button { font: inherit; font-size: 18px; color: var(--ink); background: #fff; border: 1px solid #9a9a9a; border-radius: 6px; padding: 9px 16px; cursor: pointer; }
   button:hover { border-color: var(--ink); }
   button:disabled { opacity: .45; cursor: default; }
+  button.primary { background: var(--ma); color: #fff; border-color: var(--ma); font-weight: 700; }
+  .hide { display: none !important; }
   .step { font-family: var(--mono); font-size: 17px; color: var(--ink-2); margin-left: auto; }
 </style>
 
@@ -34,6 +36,7 @@
   <div class="bar">
     <button id="prev" title="Previous step (←)">⏮ step</button>
     <button id="next" title="Next step (→)">step ⏭</button>
+    <button id="show" class="primary" title="Show the next number (space)"></button>
     <span class="step" id="stepno"></span>
   </div>
 </div>
@@ -124,7 +127,7 @@ function drawTree(g, tree, x, y, w, h, s, cur) {
       el(nodes, 'rect', { x: cx - bw / 2, y: cy - 24 * s, width: bw, height: 48 * s, rx: 24 * s, fill: '#e8f1fd', stroke: '#2a78d6', 'stroke-width': 2 * s });
       el(nodes, 'text', { x: cx, y: cy + 8 * s, 'text-anchor': 'middle', 'font-size': 23 * s, 'font-weight': 700, fill: '#1d5fae' }, ATTR[n.attr].q);
     } else {                                                             // a leaf, or a group still waiting for its question
-      const open = !isLeaf(n), here = open && n.path === cur, bw = Math.min(slot - 10 * s, 160 * s);
+      const open = !isLeaf(n), here = open && [].concat(cur).includes(n.path), bw = Math.min(slot - 10 * s, 160 * s);
       const cs = 0.9 * s, per = Math.max(1, Math.floor((bw - 10 * s + 6 * cs) / (50 * cs))), rows = Math.ceil(n.ids.length / per);
       const bh = 52 * s + rows * 40 * cs, tp = cy - 4 * s;
       const fill = open ? '#fff' : n.leaf === 'mixed' ? '#fdf3cf' : n.leaf ? '#fbe3e1' : '#ddf3ea';
@@ -140,80 +143,113 @@ function drawTree(g, tree, x, y, w, h, s, cur) {
 }
 
 
-// ------------------------------------------------------------ one candidate question at a group: its branches, each branch's entropy, the weighted average and the gain
-function candidate(g, ids, a, x, y, h, opts) {
-  const lw = 210, W = 1000, parts = split(ids, a), n = parts.length, gap = 14, bw = (W - lw - gap * (n - 1)) / n, bh = Math.min(h - 112, 170);
+// ------------------------------------------------------------ layout: a small tree on the left showing where we are, the working to its right
+const X0 = 370, XB = 1090, XC = 1345;   // start of the boxes, end of the boxes, centre of the arithmetic column
+const Q = '?';
+// the patients as a table, as in the Build the Tree game
+function table(g, ids, x, y, w, rh) {
+  const cols = [['ID', 0.07], ['Age', 0.24], ['Family history', 0.46], ['Exercise', 0.7], ['Risk', 0.9]];
+  cols.forEach(([h, f]) => el(g, 'text', { x: x + f * w, y: y + rh * 0.65, 'text-anchor': 'middle', 'font-size': 23, 'font-weight': 700, fill: '#666' }, h));
+  el(g, 'line', { x1: x, x2: x + w, y1: y + rh, y2: y + rh, stroke: '#9a9a9a', 'stroke-width': 1.5 });
+  ids.forEach((id, i) => {
+    const p = pt(id), yy = y + rh * (i + 1);
+    if (i % 2) el(g, 'rect', { x, y: yy, width: w, height: rh, fill: '#f6f7f9' });
+    [id, ATTR.age.vals[p.age], ATTR.fh.vals[p.fh], ATTR.ex.vals[p.ex]].forEach((c, k) => el(g, 'text', { x: x + cols[k][1] * w, y: yy + rh * 0.68, 'text-anchor': 'middle', 'font-size': 23, fill: '#222', 'font-weight': k ? 400 : 700 }, c));
+    el(g, 'text', { x: x + cols[4][1] * w, y: yy + rh * 0.68, 'text-anchor': 'middle', 'font-size': 23, 'font-weight': 700, fill: COL[p.risk] }, p.risk ? 'High' : 'Low');
+  });
+}
+function mini(g, tree, cur) {
+  drawTree(g, tree, 0, 40, 340, 680, 0.5, cur);
+  el(g, 'line', { x1: 350, x2: 350, y1: 0, y2: 760, stroke: '#dcdcdc', 'stroke-width': 2 });
+}
+
+// one candidate question at a group: its branches, each branch's entropy, the weighted average and the gain.
+// show: 0 nothing worked out yet, 1 the branch entropies, 2 also the weighted entropy and the gain
+function candidate(g, ids, a, y, h, opts) {
+  const show = opts.show, parts = split(ids, a), n = parts.length, gap = 14, bw = (XB - X0 - gap * (n - 1)) / n, bh = Math.min(h - 112, 170);
   y += (h - 112 - bh) / 2; h = bh + 112;   // short boxes, centred in the row, when a row has room to spare
-  el(g, 'text', { x, y: y + h / 2 + 4, 'font-size': 27, 'font-weight': opts.best ? 700 : 400, fill: '#222' }, ATTR[a].q);
   parts.forEach((p, v) => {
-    const bx = x + lw + v * (bw + gap);
+    const bx = X0 + v * (bw + gap);
     el(g, 'text', { x: bx + bw / 2, y: y + 24, 'text-anchor': 'middle', 'font-size': 22, fill: '#666', 'font-weight': 700 }, ATTR[a].vals[v]);
     el(g, 'rect', { x: bx, y: y + 34, width: bw, height: bh, rx: 8, fill: '#fafafa', stroke: '#dcdcdc', 'stroke-width': 1.5 });
     chips(g, p, bx + 10, y + 44, bw - 20, 1.05);
     // the branch's entropy worked out, one term per line
-    const t = terms(p), last = t.length - 1;
-    if (!p.length) el(g, 'text', { x: bx + bw / 2, y: y + 34 + bh + 28, 'text-anchor': 'middle', 'font-size': 19, fill: '#666' }, 'empty');
-    else t.forEach((s, j) => el(g, 'text', { x: bx + bw / 2, y: y + 34 + bh + 26 + j * 26, 'text-anchor': 'middle', 'font-size': 18, 'font-style': 'italic', fill: '#222' }, (j ? '' : 'H = ') + s + (j === last ? ` = ${f3(H(p))}` : '')));
+    const t = terms(p), last = t.length - 1, at = j => ({ x: bx + bw / 2, y: y + 34 + bh + 26 + j * 26, 'text-anchor': 'middle', 'font-size': 17, 'font-style': 'italic', fill: '#222' });
+    if (!p.length) el(g, 'text', { ...at(0), fill: '#666', 'font-style': 'normal' }, 'empty');
+    else if (show < 1) el(g, 'text', { ...at(0), 'font-size': 22 }, `H = ${Q}`);
+    else t.forEach((s, j) => el(g, 'text', at(j), (j ? '' : 'H = ') + s + (j === last ? ` = ${f3(H(p))}` : '')));
   });
-  // the arithmetic, to the right
-  const N = ids.length, sum = parts.filter(p => p.length).map(p => `(${p.length}/${N})(${f3(H(p))})`).join(' + ');
-  const cx = 1250, top = y + h / 2 - 46;
-  el(g, 'text', { x: cx, y: top, 'text-anchor': 'middle', 'font-size': 21, fill: '#444' }, sum);
-  el(g, 'text', { x: cx, y: top + 34, 'text-anchor': 'middle', 'font-size': 23, fill: '#222' }, `weighted entropy = ${f3(weighted(ids, a))}`);
-  el(g, 'text', { x: cx, y: top + 74, 'text-anchor': 'middle', 'font-size': 27, 'font-weight': 700, fill: opts.best ? '#c0392b' : '#222' }, `gain = ${f3(H(ids))} − ${f3(weighted(ids, a))} = ${f3(gain(ids, a))}`);
-  if (opts.best) { el(g, 'rect', { x: cx - 38, y: top + 92, width: 76, height: 28, rx: 5, fill: '#222' }); el(g, 'text', { x: cx, y: top + 113, 'text-anchor': 'middle', 'font-size': 17, 'font-weight': 700, fill: '#fff' }, 'BEST'); }
+  // the question and its arithmetic, to the right
+  const N = ids.length, hv = p => show >= 1 ? f3(H(p)) : Q, sum = parts.filter(p => p.length).map(p => `(${p.length}/${N})(${hv(p)})`).join(' + ');
+  const top = y + h / 2 - 56;
+  el(g, 'text', { x: XC, y: top - 6, 'text-anchor': 'middle', 'font-size': 27, 'font-weight': 700, fill: '#222' }, ATTR[a].q);
+  el(g, 'text', { x: XC, y: top + 32, 'text-anchor': 'middle', 'font-size': 20, fill: '#444' }, sum);
+  el(g, 'text', { x: XC, y: top + 66, 'text-anchor': 'middle', 'font-size': 23, fill: '#222' }, `weighted entropy = ${show >= 2 ? f3(weighted(ids, a)) : Q}`);
+  el(g, 'text', { x: XC, y: top + 106, 'text-anchor': 'middle', 'font-size': 27, 'font-weight': 700, fill: opts.best ? '#c0392b' : '#222' }, show >= 2 ? `gain = ${f3(H(ids))} − ${f3(weighted(ids, a))} = ${f3(gain(ids, a))}` : `gain = ${Q}`);
+  if (opts.best && show >= 2) { el(g, 'rect', { x: XC - 38, y: top + 122, width: 76, height: 28, rx: 5, fill: '#222' }); el(g, 'text', { x: XC, y: top + 143, 'text-anchor': 'middle', 'font-size': 17, 'font-weight': 700, fill: '#fff' }, 'BEST'); }
 }
 // the group being split, with its own entropy, as one line across the top
-function header(g, ids, path) {
+function header(g, ids, path, y, showH, below) {
   const who = path ? 'Patients ' + describe(path) : 'All 16 patients';
-  el(g, 'text', { x: 0, y: 30, 'font-size': 25, 'font-weight': 700, fill: '#222' }, `${who}: ${tally(ids)}`);
-  el(g, 'text', { x: 1580, y: 30, 'text-anchor': 'end', 'font-size': 25, 'font-style': 'italic', fill: '#222' }, `H = ${working(ids)} = ${f3(H(ids))}`);
+  el(g, 'text', { x: X0, y, 'font-size': 24, 'font-weight': 700, fill: '#222' }, `${who}: ${tally(ids)}`);
+  el(g, 'text', { x: 1590, y: below ? y + 34 : y, 'text-anchor': 'end', 'font-size': 23, 'font-style': 'italic', fill: '#222' }, showH ? `H = ${working(ids)} = ${f3(H(ids))}` : `H = ${Q}`);
 }
-// a node's candidates, shown up to `upto`, with BEST marked once all are shown
-function node(g, path, upto) {
-  const N = find(TREE, path), cands = N.attrs, h = (760 - 56) / cands.length, done = upto >= cands.length;
-  header(g, N.ids, path);
-  cands.slice(0, upto).forEach((a, i) => { candidate(g, N.ids, a, 0, 56 + i * h, h, { best: done && a === N.attr }); el(g, 'line', { x1: 0, x2: 1580, y1: 56 + (i + 1) * h, y2: 56 + (i + 1) * h, stroke: '#ececec', 'stroke-width': 1.5 }); });
+// a node's candidates up to row `upto`; that row is worked out to level `r`, the rows before it in full
+function node(g, path, upto, r) {
+  const N = find(TREE, path), cands = N.attrs, h = (760 - 56) / cands.length, done = upto >= cands.length && r >= 2;
+  mini(g, treeTo(depthOf(N)), path);
+  header(g, N.ids, path, 30, path === '' || upto > 1 || r >= 1);   // the root's entropy was worked out on the first step
+  cands.slice(0, upto).forEach((a, i) => {
+    candidate(g, N.ids, a, 56 + i * h, h, { best: done && a === N.attr, show: i < upto - 1 ? 2 : r });
+    if (i < upto - 1) el(g, 'line', { x1: X0, x2: 1590, y1: 56 + (i + 1) * h, y2: 56 + (i + 1) * h, stroke: '#ececec', 'stroke-width': 1.5 });
+  });
 }
 
-// ------------------------------------------------------------ steps
-const ROWS = (path, title) => find(TREE, path).attrs.map((_, i) => ({ title, draw: g => node(g, path, i + 1) }));
+// ------------------------------------------------------------ steps; a step with `phases` keeps its numbers hidden until revealed, one press at a time
+const ROWS = (path, title) => find(TREE, path).attrs.map((_, i) => ({ title, phases: 2, draw: (g, r) => node(g, path, i + 1, r) }));
 const mixed = depth => { const out = []; (function f(n) { if (depthOf(n) === depth && !isLeaf(n)) out.push(n); (n.kids || []).forEach(k => f(k.node)); })(TREE); return out; };
 const STEPS = [
-  { title: 'How mixed are the 16 patients?', draw(g) {
-      el(g, 'rect', { x: 300, y: 120, width: 1000, height: 220, rx: 10, fill: '#fafafa', stroke: '#dcdcdc', 'stroke-width': 1.5 });
-      chips(g, ALL, 330, 160, 940, 1.8);
-      el(g, 'text', { x: 800, y: 420, 'text-anchor': 'middle', 'font-size': 30, fill: '#222' }, tally(ALL));
-      el(g, 'text', { x: 800, y: 500, 'text-anchor': 'middle', 'font-size': 34, 'font-style': 'italic', fill: '#222' }, `H = ${working(ALL)} = ${f3(H(ALL))}`);
+  { title: 'How mixed are the 16 patients?', phases: 1, draw(g, r) {
+      table(g, ALL, 0, 0, 780, 42);
+      el(g, 'text', { x: 1210, y: 300, 'text-anchor': 'middle', 'font-size': 32, 'font-weight': 700, fill: '#222' }, tally(ALL));
+      if (r < 1) el(g, 'text', { x: 1210, y: 400, 'text-anchor': 'middle', 'font-size': 40, 'font-style': 'italic', fill: '#222' }, `H = ${Q}`);
+      else { el(g, 'text', { x: 1210, y: 390, 'text-anchor': 'middle', 'font-size': 29, 'font-style': 'italic', fill: '#222' }, `H = ${working(ALL)}`);
+             el(g, 'text', { x: 1210, y: 450, 'text-anchor': 'middle', 'font-size': 36, 'font-weight': 700, 'font-style': 'italic', fill: '#222' }, `= ${f3(H(ALL))}`); }
     } },
   ...ROWS('', 'Which question gives the most information gain at the root?'),
   { title: 'What does the tree look like after the first question?', draw: g => drawTree(g, treeTo(1), 300, 60, 1000, 640, 1.2, null) },
   ...TREE.kids.flatMap(k => ROWS(k.node.path, `Which question next, for patients ${describe(k.node.path)}?`)),
   { title: 'What does the tree look like after the second level?', draw: g => drawTree(g, treeTo(2), 100, 50, 1400, 680, 1.15, null) },
   // groups still mixed below the second level have one question left; its gain is worked out the same way
-  { title: 'What about the groups that are still mixed?', draw(g) {
+  { title: 'What about the groups that are still mixed?', phases: 2, draw(g, r) {
       const ns = mixed(2), h = 760 / ns.length;
+      mini(g, treeTo(2), ns.map(n => n.path));
       ns.forEach((n, i) => {
         const y = i * h;
-        el(g, 'text', { x: 0, y: y + 28, 'font-size': 24, 'font-weight': 700, fill: '#222' }, `Patients ${describe(n.path)}: ${tally(n.ids)}`);
-        el(g, 'text', { x: 1580, y: y + 28, 'text-anchor': 'end', 'font-size': 24, 'font-style': 'italic', fill: '#222' }, `H = ${working(n.ids)} = ${f3(H(n.ids))}`);
-        candidate(g, n.ids, n.attr, 0, y + 44, h - 50, { best: false });
-        if (i < ns.length - 1) el(g, 'line', { x1: 0, x2: 1580, y1: y + h, y2: y + h, stroke: '#ececec', 'stroke-width': 1.5 });
+        header(g, n.ids, n.path, y + 28, r >= 1, true);   // long group names: the entropy goes on the line below
+        candidate(g, n.ids, n.attr, y + 60, h - 66, { best: false, show: r });
+        if (i < ns.length - 1) el(g, 'line', { x1: X0, x2: 1590, y1: y + h, y2: y + h, stroke: '#ececec', 'stroke-width': 1.5 });
       });
     } },
   { title: 'What does the finished tree look like?', draw: g => drawTree(g, TREE, 0, 50, 1600, 690, 1.3, null) },
 ];
 
-let step = Math.max(0, Math.min(STEPS.length - 1, (parseInt(location.hash.slice(1), 10) || 1) - 1));
+let step = Math.max(0, Math.min(STEPS.length - 1, (parseInt(location.hash.slice(1), 10) || 1) - 1)), reveal = 0;
+const phases = () => STEPS[step].phases || 0;
 function draw() {
   const S = STEPS[step], svg = $('fig'); svg.innerHTML = '';
   $('title').textContent = S.title; $('stepno').textContent = `step ${step + 1} of ${STEPS.length}`;
-  $('prev').disabled = step === 0; $('next').disabled = step === STEPS.length - 1;
-  S.draw(el(svg, 'g', {}));
+  $('prev').disabled = step === 0 && reveal === 0; $('next').disabled = step === STEPS.length - 1 && reveal >= phases();
+  $('show').classList.toggle('hide', reveal >= phases());
+  $('show').textContent = reveal === 0 ? 'Show the entropy' : 'Show the gain';
+  S.draw(el(svg, 'g', {}), reveal);
 }
-function go(s) { step = Math.max(0, Math.min(STEPS.length - 1, s)); draw(); history.replaceState(null, '', '#' + (step + 1)); }
-$('prev').onclick = () => go(step - 1); $('next').onclick = () => go(step + 1);
-document.addEventListener('keydown', e => { if (e.key === 'ArrowRight') go(step + 1); else if (e.key === 'ArrowLeft') go(step - 1); });
+function go(s, r) { step = Math.max(0, Math.min(STEPS.length - 1, s)); reveal = r === 'all' ? phases() : 0; draw(); history.replaceState(null, '', '#' + (step + 1)); }
+// forward reveals the next hidden number first, then moves on; back returns to the previous step with everything shown
+const fwd = () => { if (reveal < phases()) { reveal++; draw(); } else if (step < STEPS.length - 1) go(step + 1); };
+const back = () => { if (reveal > 0) { reveal = 0; draw(); } else if (step > 0) go(step - 1, 'all'); };
+$('prev').onclick = back; $('next').onclick = fwd; $('show').onclick = fwd;
+document.addEventListener('keydown', e => { if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); fwd(); } else if (e.key === 'ArrowLeft') back(); });
 draw();
 })();
 </script>
