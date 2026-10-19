@@ -83,6 +83,7 @@
     <button id="prev" title="Previous (←)">◀</button>
     <button id="next" class="primary" title="Next (space or →)"></button>
     <span class="status" id="status"></span>
+    <button id="reset" title="Start the votes again from zero">Reset votes</button>
   </div>
 </div>
 
@@ -98,11 +99,12 @@
 <script>
 (() => {
 const $ = id => document.getElementById(id);
-// the same web app as ch4/spot-the-difference.html; this game uses its rounds 17 to 19. Add ?test or #test for a local test (this browser only).
+// the same web app as ch4/spot-the-difference.html; this game uses its rounds 17 to 20: 17 for the first question, then one round per group for the second (18, 19, 20). Add ?test or #test for a local test (this browser only).
 const TEST = /(^|[?&#])test\b/.test(location.search + location.hash);
 const API = TEST ? '' : 'https://script.google.com/macros/s/AKfycbwl9bZajvzRGBFQHL9rMPdHwL7kuF76KvjF3JYfCNU7UIzaei5437aBAuwjlYRwin8SLA/exec';
-const BUILD = '2026-10-19b';
-const ROUND = { guess: 17, root: 17, next: 19 };
+const BUILD = '2026-10-19c';
+const ROUND = { guess: 17, root: 17, next: 18 };   // the second-level group i votes in round 18 + i
+const isNext = r => r >= 18 && r <= 20;
 
 // ------------------------------------------------------------ the 16 patients: age (0 <40, 1 40–55, 2 >55), family history (0 no, 1 yes), exercise (0 rarely, 1 regularly), risk (0 low, 1 high)
 const PATIENTS = [[1,1,1,0,1],[2,0,0,0,0],[3,2,0,1,0],[4,1,1,1,0],[5,2,1,0,1],[6,0,1,1,0],[7,1,0,1,0],[8,2,0,0,1],
@@ -141,6 +143,9 @@ const groupsUnder = root => split(ALL, root).map((ids, v) => ({ key: root + v, r
 // ------------------------------------------------------------ backend: the Apps Script web app, or localStorage in test mode
 const LS = { round: 'bt-round', answers: 'bt-answers' };
 const today = () => new Date().toISOString().slice(0, 10);
+// the session the votes belong to: today's date, or after a reset a fresh id, so earlier votes no longer count (the sheet keeps them)
+const session = () => { try { const s = JSON.parse(localStorage.getItem('bt-session') || 'null'); if (s && s.day === today()) return s.id; } catch (_) {} return today(); };
+const newSession = () => { const id = 'r' + Date.now().toString(36); try { localStorage.setItem('bt-session', JSON.stringify({ day: today(), id })); } catch (_) {} return id; };
 // the web app can take several seconds to reply; give up after 15 s so a phone never waits forever
 const getJSON = async url => { const c = new AbortController(), t = setTimeout(() => c.abort(), 15000);
   try { return await (await fetch(url, { signal: c.signal })).json(); } catch (e) { throw e.name === 'AbortError' ? new Error('no reply in 15 s') : e; } finally { clearTimeout(t); } };
@@ -151,7 +156,7 @@ const api = {
   },
   async setRound(round, key) {
     if (!API) { localStorage.setItem(LS.round, JSON.stringify({ round, session: today() })); return { ok: true }; }
-    return getJSON(`${API}?action=setRound&round=${round}&session=${today()}&key=${encodeURIComponent(key)}`);
+    return getJSON(`${API}?action=setRound&round=${round}&session=${session()}&key=${encodeURIComponent(key)}`);
   },
   async submit(round, text) {
     if (!API) { const a = JSON.parse(localStorage.getItem(LS.answers) || '[]'); a.push({ t: Date.now(), round, text, session: today() }); localStorage.setItem(LS.answers, JSON.stringify(a)); return { ok: true }; }
@@ -277,18 +282,18 @@ function projector() {
   const key = (location.hash.match(/key=([^&]+)/) || [])[1] || '';
   let step = Math.max(0, parseInt((location.hash.match(/step=(\d+)/) || [])[1] || '1', 10) - 1);
   let shared = 0;
-  const ans = { 17: [], 19: [] }, page = location.origin + location.pathname;
+  const ans = { 17: [], 18: [], 19: [], 20: [] }, page = location.origin + location.pathname;
   // the class's first question: its latest votes, which it may change after seeing the splits (with no votes at all, the algorithm's, so the page still runs)
   const classRoot = () => top(tally(ans[17]).n[''], ORDER) || ALGO.attr;
   const classTree = withPicks => grow(ALL, ORDER, '', (n, attrs) => {
     const d = depthOf(n);
     if (d === 0) return classRoot();
-    if (d === 1) { if (!withPicks) return null; const g = n.path.replace('/', ''); return top(tally(ans[19]).n[g], attrs); }
+    if (d === 1) { if (!withPicks) return null; const g = n.path.replace('/', ''), i = groupsUnder(classRoot()).findIndex(x => x.key === g); return i < 0 ? null : top(tally(ans[ROUND.next + i]).n[g], attrs); }
     return attrs.length === 1 ? attrs[0] : null;                         // one question left: no choice to make
   });
   function steps() {
     const gs = groupsUnder(classRoot());
-    return [{ k: 'intro' }, { k: 'guess', round: 17 }, { k: 'root', round: 17 }, ...gs.map((g, i) => ({ k: 'next', round: 19, g, last: i === gs.length - 1 })), { k: 'compare' }];
+    return [{ k: 'intro' }, { k: 'guess', round: 17 }, { k: 'root', round: 17 }, ...gs.map((g, i) => ({ k: 'next', round: ROUND.next + i, g, last: i === gs.length - 1 })), { k: 'compare' }];
   }
   function qrFor(S) {
     const url = page + '?phone' + (TEST ? '&test' : '') + '&v=' + BUILD;   // one code for every step: the phone follows the round
@@ -339,16 +344,22 @@ function projector() {
     try { const s = await api.setRound(round, key); if (s && s.ok === false) $('status').textContent = 'round not shared: check the #key in the URL'; } catch (_) {}
     poll();
   }
-  // all three rounds, since later steps depend on earlier votes
+  // every round, since later steps depend on earlier votes
   async function poll() {
     try {
       let changed = false;
-      await Promise.all([17, 19].map(async r => { const a = ((await api.list(r)).answers || []).sort((p, o) => p.t - o.t); if (a.length !== ans[r].length) changed = true; ans[r] = a; }));
+      await Promise.all([17, 18, 19, 20].map(async r => { const a = ((await api.list(r)).answers || []).sort((p, o) => p.t - o.t); if (a.length !== ans[r].length) changed = true; ans[r] = a; }));
       if (changed) show();
       $('status').textContent = API ? 'live' : 'test mode (this browser only)';
     }
     catch (e) { $('status').textContent = 'cannot reach the answer sheet'; }
   }
+  $('reset').onclick = async () => {
+    if (!confirm('Clear all the votes and start again?')) return;
+    if (API) { newSession(); if (shared) { try { const r = await api.setRound(shared, key); if (r && r.ok === false) { $('status').textContent = 'not reset: check the #key in the URL'; return; } } catch (_) {} } }
+    else localStorage.removeItem(LS.answers);
+    Object.keys(ans).forEach(r => ans[r] = []); show(); poll();
+  };
   const go = d => { const n = steps().length, s = Math.min(step, n - 1) + d; if (s >= 0 && s < n) { step = s; show(); } };
   $('prev').onclick = () => go(-1); $('next').onclick = () => go(1);
   document.addEventListener('keydown', e => { if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(1); } else if (e.key === 'ArrowLeft') go(-1); });
@@ -360,8 +371,8 @@ function projector() {
 function phone() {
   $('phone').classList.remove('hidden');
   if (!API) $('vmsg').textContent = 'Test mode: votes stay on this device.';
-  // one QR code for the whole game: the phone follows the round the projector has shared, unless ?q= fixes the question
-  const sp = new URLSearchParams(location.search), fixed = sp.has('q') ? Math.max(1, Math.min(3, parseInt(sp.get('q'), 10) || 1)) : 0;
+  // one QR code for the whole game: the phone follows the round the projector has shared
+  const sp = new URLSearchParams(location.search);
   let round = 0, root = '', groups = [], picked = {};
   let busy = false, dev = '';
   try { dev = localStorage.getItem('sd-dev') || ''; if (!dev) { dev = Math.random().toString(36).slice(2, 10); localStorage.setItem('sd-dev', dev); } } catch (_) { dev = Math.random().toString(36).slice(2, 10); }
@@ -369,8 +380,8 @@ function phone() {
   function setQuestion(r, rt) {
     if (r === round && rt === root) return;
     round = r; root = rt; picked = {};
-    groups = round === 19 ? groupsUnder(root) : round === 17 ? [{ key: '', opts: ORDER }] : [];
-    $('ftitle').textContent = round === 19 ? 'Which question would you ask next?' : round === 17 ? 'Which question would you ask first?' : 'Waiting for the next question…';
+    groups = isNext(round) ? groupsUnder(root).slice(round - ROUND.next, round - ROUND.next + 1) : round === 17 ? [{ key: '', opts: ORDER }] : [];   // the one group on the projector
+    $('ftitle').textContent = isNext(round) && groups.length ? 'Which question would you ask next?' : round === 17 ? 'Which question would you ask first?' : 'Waiting for the next question…';
     $('vsend').classList.toggle('hidden', !groups.length);
     if (groups.length && !busy) $('vmsg').textContent = API ? '' : 'Test mode: votes stay on this device.';
     draw();
@@ -378,10 +389,10 @@ function phone() {
   // the second level hangs under the class's first question, worked out from the first-question votes as on the projector
   async function follow() {
     try {
-      const r = fixed ? 16 + fixed : (await api.getRound()).round;
+      const r = (await api.getRound()).round;
       let rt = sp.get('root') || '';
-      if (r === 19 && !ATTR[rt] && round === 19) rt = root;          // already worked out for this round
-      if (r === 19 && !ATTR[rt]) rt = top(tally(((await api.list(17)).answers || []).sort((p, o) => p.t - o.t)).n[''], ORDER) || ALGO.attr;
+      if (isNext(r) && !ATTR[rt] && isNext(round)) rt = root;          // already worked out for an earlier group
+      if (isNext(r) && !ATTR[rt]) rt = top(tally(((await api.list(17)).answers || []).sort((p, o) => p.t - o.t)).n[''], ORDER) || ALGO.attr;
       setQuestion(r, ATTR[rt] ? rt : '');
     } catch (e) { if (!round) $('vmsg').textContent = 'Cannot reach the class page (' + (e && e.message || e) + '); still trying.'; }
   }
@@ -396,7 +407,7 @@ function phone() {
     });
   }
   // one request at a time: the next check starts 3 s after the last reply, and waits while a vote is being sent
-  (async function loop() { if (!busy) await follow(); if (!fixed) setTimeout(loop, 3000); })();
+  (async function loop() { if (!busy) await follow(); setTimeout(loop, 3000); })();
   $('vsend').onclick = async () => {
     const picks = groups.filter(g => picked[g.key]).map(g => (g.key ? g.key + '.' : '') + picked[g.key]);
     if (!groups.length) return;
