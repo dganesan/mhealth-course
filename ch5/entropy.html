@@ -39,7 +39,7 @@
   <div class="bar">
     <button id="prev" title="Previous step (←)">⏮ step</button>
     <button id="next" title="Next step (→)">step ⏭</button>
-    <span class="ctl" id="ctl"><span>plus signs</span><input type="range" id="k" min="0" max="20" step="1" value="12"><span id="kval"></span></span>
+    <span class="ctl" id="ctl"><span>low risk (+)</span><input type="range" id="k" min="0" max="20" step="1" value="12"><span id="kval"></span></span>
     <span class="step" id="stepno"></span>
   </div>
 </div>
@@ -50,7 +50,7 @@ const $ = id => document.getElementById(id);
 const svgNS = 'http://www.w3.org/2000/svg';
 const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
 const txt = (parent, x, y, s, attrs = {}) => { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; };
-const PLUS = '#2a78d6', DOT = '#d6453d';
+const PLUS = '#2a78d6', DOT = '#d6453d', MED = '#e0a100';
 
 // ------------------------------------------------------------ entropy of a group with a plus signs and b dots
 const H = (a, b) => { const n = a + b; return [a, b].reduce((s, c) => c ? s - c / n * Math.log2(c / n) : s, 0); };
@@ -69,18 +69,28 @@ function scatter(n, seed, minD) {
   return pts;
 }
 // a group: an ellipse with `a` plus signs and `b` dots, mixed by a fixed shuffle
-function group(svg, cx, cy, rx, ry, a, b, seed, sz) {
-  el('ellipse', { cx, cy, rx, ry, fill: 'none', stroke: '#444', 'stroke-width': 2.5 }, svg);
-  const n = a + b, pts = scatter(n, seed, Math.min(0.32, 1.25 / Math.sqrt(n))), r = rng(seed + 7);
-  const kind = Array.from({ length: n }, (_, i) => i < a);
-  for (let i = n - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [kind[i], kind[j]] = [kind[j], kind[i]]; }
-  pts.forEach(([u, v], i) => {
-    const x = cx + u * rx, y = cy + v * ry;
-    if (kind[i]) { el('line', { x1: x - sz, x2: x + sz, y1: y, y2: y, stroke: PLUS, 'stroke-width': sz * 0.42, 'stroke-linecap': 'round' }, svg); el('line', { x1: x, x2: x, y1: y - sz, y2: y + sz, stroke: PLUS, 'stroke-width': sz * 0.42, 'stroke-linecap': 'round' }, svg); }
-    else el('circle', { cx: x, cy: y, r: sz * 0.62, fill: DOT }, svg);
-  });
+// one symbol: 0 a plus sign (low risk), 1 a dot (high risk), 2 a triangle (medium risk)
+function sym(svg, k, x, y, sz) {
+  if (k === 0) { el('line', { x1: x - sz, x2: x + sz, y1: y, y2: y, stroke: PLUS, 'stroke-width': sz * 0.42, 'stroke-linecap': 'round' }, svg); el('line', { x1: x, x2: x, y1: y - sz, y2: y + sz, stroke: PLUS, 'stroke-width': sz * 0.42, 'stroke-linecap': 'round' }, svg); }
+  else if (k === 1) el('circle', { cx: x, cy: y, r: sz * 0.62, fill: DOT }, svg);
+  else el('path', { d: `M${x} ${y - sz * 0.8} L${x + sz * 0.8} ${y + sz * 0.6} L${x - sz * 0.8} ${y + sz * 0.6} Z`, fill: MED }, svg);
 }
-const counts = (a, b) => `${a} +,  ${b} •`;
+function legend(svg, three) {
+  const items = [[0, 'low risk'], [1, 'high risk']].concat(three ? [[2, 'medium risk']] : []);
+  items.forEach(([k, s], i) => { const x = 1590 - (items.length - i) * 175; sym(svg, k, x + 12, 22, 11); txt(svg, x + 32, 30, s, { 'font-size': 21, fill: '#444' }); });
+}
+// a group: an ellipse with `a` plus signs, `b` dots and `m` triangles, mixed by a fixed shuffle
+function group(svg, cx, cy, rx, ry, a, b, seed, sz, m = 0) {
+  el('ellipse', { cx, cy, rx, ry, fill: 'none', stroke: '#444', 'stroke-width': 2.5 }, svg);
+  const n = a + b + m, pts = scatter(n, seed, Math.min(0.32, 1.25 / Math.sqrt(n))), r = rng(seed + 7);
+  const kind = Array.from({ length: n }, (_, i) => i < a ? 0 : i < a + b ? 1 : 2);
+  for (let i = n - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [kind[i], kind[j]] = [kind[j], kind[i]]; }
+  pts.forEach(([u, v], i) => sym(svg, kind[i], cx + u * rx, cy + v * ry, sz));
+}
+const counts = (a, b, m) => `${a} +,  ${b} •` + (m != null ? `,  ${m} ▲` : '');
+// entropy and its working for any number of classes
+const Hn = cs => { const n = cs.reduce((s, c) => s + c, 0); return cs.reduce((s, c) => c ? s - c / n * Math.log2(c / n) : s, 0); };
+const termsN = cs => { const n = cs.reduce((s, c) => s + c, 0); return cs.filter(c => c).map((c, i) => `${i ? '− ' : '−'}(${c}/${n}) log₂(${c}/${n})`); };
 
 // ------------------------------------------------------------ the binary entropy curve: entropy against the share of plus signs
 function curve(svg, X, Y, W, Hh, marks) {
@@ -89,7 +99,7 @@ function curve(svg, X, Y, W, Hh, marks) {
   for (let i = 0; i <= 4; i++) { const v = i / 4; txt(svg, sx(v), Y + Hh + 30, v.toFixed(2).replace(/0$/, ''), { 'text-anchor': 'middle', 'font-size': 20, fill: '#666', 'font-family': 'Menlo, monospace' }); }
   el('line', { x1: X, x2: X + W, y1: Y + Hh, y2: Y + Hh, stroke: '#666', 'stroke-width': 1.5 }, svg);
   el('line', { x1: X, x2: X, y1: Y, y2: Y + Hh, stroke: '#666', 'stroke-width': 1.5 }, svg);
-  txt(svg, X + W / 2, Y + Hh + 64, 'share of plus signs in the group', { 'text-anchor': 'middle', 'font-size': 22, fill: '#444' });
+  txt(svg, X + W / 2, Y + Hh + 64, 'share of low risk (+) in the group', { 'text-anchor': 'middle', 'font-size': 22, fill: '#444' });
   txt(svg, X - 70, Y + Hh / 2, 'entropy', { 'text-anchor': 'middle', 'font-size': 22, fill: '#444', transform: `rotate(-90 ${X - 70} ${Y + Hh / 2})` });
   let d = ''; for (let i = 0; i <= 200; i++) { const p = i / 200; d += (i ? 'L' : 'M') + sx(p).toFixed(1) + ' ' + sy(H(p, 1 - p)).toFixed(1); }
   el('path', { d, fill: 'none', stroke: '#444', 'stroke-width': 3.5 }, svg);
@@ -145,16 +155,32 @@ const STEPS = [
       const col = ['#1baf7a', '#58a55c', '#e0a100', '#d6453d', '#e0a100'];
       EXAMPLES.forEach(([a, b], i) => {
         const cx = 160 + i * 320;
-        group(svg, cx, 150, 130, 115, a, b, 40 + i, 13);
-        txt(svg, cx, 300, counts(a, b), { 'text-anchor': 'middle', 'font-size': 24, fill: '#444' });
-        txt(svg, cx, 340, `H = ${f2(H(a, b))}`, { 'text-anchor': 'middle', 'font-size': 28, 'font-weight': 700, 'font-style': 'italic', fill: col[i] });
+        group(svg, cx, 175, 130, 115, a, b, 40 + i, 13);
+        txt(svg, cx, 322, counts(a, b), { 'text-anchor': 'middle', 'font-size': 24, fill: '#444' });
+        txt(svg, cx, 360, `H = ${f2(H(a, b))}`, { 'text-anchor': 'middle', 'font-size': 28, 'font-weight': 700, 'font-style': 'italic', fill: col[i] });
       });
-      curve(svg, 520, 390, 640, 270, EXAMPLES.map(([a, b], i) => ({ p: a / 10, col: col[i], label: counts(a, b).replace(/ +/g, ' '), dy: i === 4 ? 34 : -22, dx: i === 0 ? -40 : 0 })));
+      curve(svg, 520, 410, 640, 250, EXAMPLES.map(([a, b], i) => ({ p: a / 10, col: col[i], label: counts(a, b).replace(/ +/g, ' '), dy: i === 4 ? 34 : -22, dx: i === 0 ? -40 : 0 })));
     } },
   { title: 'What is the entropy of this group?', draw: svg => example(svg, 0) },
   { title: 'What is the entropy of each group after the split?', draw: svg => example(svg, 1) },
   { title: 'How much does the split reduce entropy?', draw: svg => example(svg, 2) },
+  // the same formula with a third class: one more term, and the most mixed group now reaches log₂ 3
+  { title: 'What if there are three classes?', three: true, draw(svg) {
+      txt(svg, 0, 30, 'H(S) = − Σ pᵢ log₂ pᵢ', { 'font-size': 30, 'font-style': 'italic', fill: '#222' });
+      THREE.forEach((cs, i) => {
+        const cx = 160 + i * 320, h = Hn(cs), t = termsN(cs);
+        group(svg, cx, 200, 130, 115, cs[0], cs[1], 70 + i, 13, cs[2]);
+        txt(svg, cx, 352, counts(...cs), { 'text-anchor': 'middle', 'font-size': 24, fill: '#444' });
+        t.forEach((s, j) => txt(svg, cx, 400 + j * 32, (j ? '' : 'H = ') + s, { 'text-anchor': 'middle', 'font-size': 19, 'font-style': 'italic', fill: '#222' }));
+        txt(svg, cx, 400 + t.length * 32 + 6, `= ${f3(h)}`, { 'text-anchor': 'middle', 'font-size': 26, 'font-weight': 700, 'font-style': 'italic', fill: '#222' });
+        // the entropy as a bar on a shared scale up to log₂ 3
+        const bx = cx - 120, by = 560, bw = 240;
+        el('rect', { x: bx, y: by, width: bw, height: 30, rx: 4, fill: '#f1f3f6' }, svg);
+        el('rect', { x: bx, y: by, width: bw * h / Math.log2(3), height: 30, rx: 4, fill: '#2a78d6' }, svg);
+      });
+    } },
 ];
+const THREE = [[12, 0, 0], [10, 1, 1], [6, 6, 0], [6, 3, 3], [4, 4, 4]];
 
 let step = Math.max(0, Math.min(STEPS.length - 1, (parseInt(location.hash.slice(1), 10) || 1) - 1));
 function draw() {
@@ -163,7 +189,7 @@ function draw() {
   $('title').textContent = S.title; $('stepno').textContent = `step ${step + 1} of ${STEPS.length}`;
   $('ctl').classList.toggle('hide', !S.ctl); $('kval').textContent = `${$('k').value} of 20`;
   $('prev').disabled = step === 0; $('next').disabled = step === STEPS.length - 1;
-  S.draw(svg);
+  S.draw(svg); legend(svg, !!S.three);
 }
 function go(s) { step = Math.max(0, Math.min(STEPS.length - 1, s)); draw(); history.replaceState(null, '', '#' + (step + 1)); }
 $('prev').onclick = () => go(step - 1); $('next').onclick = () => go(step + 1);
