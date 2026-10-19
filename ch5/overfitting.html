@@ -194,22 +194,7 @@ function polyPanel(g, X0, deg, name) {
 // ------------------------------------------------------------ steps
 const NONE = growTree(TRAIN), D4 = growTree(TRAIN, { maxDepth: 4 }), D3 = growTree(TRAIN, { maxDepth: 3 });
 const CURVE = Array.from({ length: 15 }, (_, i) => { const t = growTree(TRAIN, { maxDepth: i + 1 }); return { d: i + 1, tr: acc(t, TRAIN), te: acc(t, TEST) }; });
-const code = [
-  ['from sklearn.tree import DecisionTreeClassifier', 0], ['', 0],
-  ['dt = DecisionTreeClassifier(', 0], ["    criterion='gini',", 0], ['    max_depth=5,', 1], ['    min_samples_split=20,', 2], ['    min_samples_leaf=10', 3], [')', 0],
-  ['dt.fit(X_train, y_train)', 0], ['predictions = dt.predict(X_test)', 0]];
-const PARAMS = [
-  ['max_depth', 'the most levels of questions from the root to a leaf'],
-  ['min_samples_split', 'the fewest windows a node must hold before it may be split'],
-  ['min_samples_leaf', 'the fewest windows that every leaf must hold']];
 const STEPS = [
-  { title: 'What does training a decision tree look like in code?', draw(g) {
-      el(g, 'rect', { x: 20, y: 40, width: 880, height: 560, rx: 10, fill: '#f6f7f9', stroke: '#dcdcdc' });
-      code.forEach(([s, k], i) => el(g, 'text', { x: 50, y: 100 + i * 50, 'xml:space': 'preserve', style: 'white-space: pre', 'font-size': 27, 'font-family': 'Menlo, monospace', fill: k ? '#1d5fae' : '#222', 'font-weight': k ? 700 : 400 }, s));
-      PARAMS.forEach(([n, s], i) => { const y = 120 + i * 170;
-        el(g, 'text', { x: 950, y, 'font-size': 28, 'font-family': 'Menlo, monospace', 'font-weight': 700, fill: '#1d5fae' }, n);
-        el(g, 'text', { x: 950, y: y + 44, 'font-size': 25, fill: '#222' }, s); });
-    } },
   { title: 'What does overfitting look like?', draw(g) {
       polyPanel(g, 40, 1, 'Underfitting'); polyPanel(g, 565, 3, 'About right'); polyPanel(g, 1090, 9, 'Overfitting');
     } },
