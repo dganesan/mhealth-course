@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dynamic Time Warping</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff; --ink: #222222; --ink-2: #666666; --ink-3: #9a9a9a; --rule: #dcdcdc; --grid: #ececec; --ma: #2a78d6;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+  .grid line { stroke: var(--grid); stroke-width: 1.3; }
+  .axis line, .axis path { stroke: var(--ink-2); stroke-width: 1.3; fill: none; }
+  .axis text { font-family: var(--mono); fill: var(--ink-2); }
+  #app { height: 100vh; padding: 10px 14px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 10px; }
+  .head { padding: 4px 16px 0; }
+  h1 { margin: 0; font-size: clamp(24px, 2.4vw, 36px); font-weight: 700; letter-spacing: -0.01em; }
+  .main { user-select: none; -webkit-user-select: none; min-height: 0; border: 1px solid var(--rule); border-radius: 6px; padding: 10px 16px; }
+  .main svg { width: 100%; height: 100%; display: block; }
+  .bar { display: flex; gap: 10px; align-items: center; padding: 10px 18px; border: 1px solid var(--rule); border-radius: 6px; background: #f6f7f9; }
+  button { font: inherit; font-size: 18px; color: var(--ink); background: #fff; border: 1px solid #9a9a9a; border-radius: 6px; padding: 9px 16px; cursor: pointer; }
+  button:hover { border-color: var(--ink); }
+  button.primary { background: var(--ma); color: #fff; border-color: var(--ma); font-weight: 700; min-width: 120px; }
+  button.on { background: #e8f1fd; border-color: var(--ma); font-weight: 700; }
+  .seg { display: inline-flex; }
+  .seg button { border-radius: 0; margin-left: -1px; }
+  .seg button:first-child { border-radius: 6px 0 0 6px; margin-left: 0; }
+  .seg button:last-child { border-radius: 0 6px 6px 0; }
+  .step { font-family: var(--mono); font-size: 17px; color: var(--ink-2); margin-left: auto; }
+  .hide { display: none !important; }
+</style>
+
+<div id="app">
+  <div class="head"><h1 id="title"></h1></div>
+  <div class="main"><svg id="fig" viewBox="0 0 1600 760"></svg></div>
+  <div class="bar">
+    <button id="prev" title="Previous step (←)">⏮ step</button>
+    <button id="next" title="Next step (→)">step ⏭</button>
+    <button id="play" class="primary" title="Play (space)">▶ Play</button>
+    <span class="seg" id="match"><button data-m="same">sample by sample</button><button data-m="dtw">DTW</button></span>
+    <span class="step" id="stepno"></span>
+  </div>
+</div>
+
+<script>
+(() => {
+// Built by tools/dtw-data.py from this template: the chapter's two rowing recordings (UCI Daily and Sports Activities,
+// right-arm gyroscope magnitude, 25 Hz, three strokes each, subject p4 fast and p6 slow), one recording each of four other
+// activities by p4, and a new rowing recording by p1.
+const DATA = {"fs":25,"rowA":[1.222,1.638,1.663,1.634,1.64,1.797,1.566,1.83,1.695,1.699,1.442,1.192,1.135,0.971,1.021,0.979,1.199,1.356,1.572,1.717,1.838,1.994,2.016,1.956,1.693,1.369,1.176,1.051,0.89,0.674,0.465,0.335,0.245,0.228,0.363,0.414,0.382,0.336,0.323,0.318,0.341,0.318,0.463,0.632,0.956,1.315,1.297,1.433,1.34,1.458,1.306,1.299,1.45,1.536,1.679,1.61,1.761,1.682,1.737,1.718,1.704,1.758,1.69,1.572,1.509,1.432,1.353,1.057,0.876,0.877,0.954,0.928,0.933,0.91,0.918,1.008,1.056,1.321,1.529,1.855,1.964,1.339],"rowB":[1.21,1.789,1.526,1.284,0.855,0.712,0.571,0.591,0.639,0.573,0.498,0.321,0.222,0.145,0.113,0.106,0.186,0.249,0.296,0.306,0.302,0.272,0.379,0.447,0.53,0.375,0.302,0.227,0.221,0.203,0.152,0.197,0.226,0.286,0.325,0.398,0.493,0.535,0.577,0.669,0.954,1.283,1.582,1.687,1.652,1.608,1.648,1.812,1.986,2.029,1.905,1.605,1.341,1.085,0.98,0.743,0.605,0.395,0.321,0.28,0.335,0.312,0.241,0.157,0.201,0.314,0.373,0.39,0.384,0.346,0.3,0.25,0.306,0.366,0.475,0.592,0.667,0.737,0.892,1.176,1.33,1.265,1.103,0.975,0.91,0.839,0.82,0.773,0.788,0.787,0.838,0.866,0.89,0.909,0.885,0.864,0.858,0.845,0.866,0.723,0.656,0.65,1.015,0.818],"templates":{"cross trainer":[1.076,1.593,1.493,1.22,0.924,0.593,0.519,0.604,0.958,1.259,1.421,1.342,0.987,0.649,0.785,1.407,2.176,2.499,2.322,1.708,1.114,0.97,1.431,2.185,2.775,2.915,2.548,1.721,1.095,0.956,1.308,1.613,1.73,1.678,1.485,1.127,0.74,0.631,0.738,1.037,1.319,1.762,2.085,2.164,1.535,1.052,1.01,1.758,2.206,2.198,1.642,1.207,1.084,1.467,2.095,2.611,2.63,2.196,1.393,0.923,0.941,1.314,1.57,1.746,1.833,1.866,1.767,1.491,1.311,0.972,1.194,1.273,1.633,1.567,1.419,1.0,0.753,1.021,1.528,2.031,2.117,1.878],"cycling":[0.045,0.069,0.065,0.07,0.08,0.092,0.105,0.109,0.095,0.08,0.065,0.067,0.109,1.367,1.437,2.213,0.988,0.924,0.126,0.087,0.115,0.128,0.149,0.117,0.074,0.06,0.059,0.093,0.11,0.106,0.107,0.087,0.095,0.088,0.151,0.207,0.253,0.274,0.235,0.21,0.164,0.143,0.103,0.08,0.103,0.145,0.173,0.153,0.107,0.064,0.061,0.094,0.131,0.133,0.109,0.074,0.076,0.087,0.089,0.084,0.131,0.49,0.501,0.692,0.366,0.355,0.112,0.071,0.091,0.133,0.172,0.156,0.099,0.051,0.058,0.093,0.122,0.119,0.128,0.119,0.095,0.045],"jumping":[1.337,1.875,1.577,1.069,0.806,0.827,0.936,1.809,2.684,2.499,2.169,2.008,2.054,1.648,0.988,0.971,0.814,1.29,2.334,2.959,2.805,2.381,1.825,1.523,0.714,0.45,0.509,1.182,2.183,2.477,1.995,1.767,1.894,1.683,0.987,0.622,0.678,0.714,0.97,1.675,2.046,1.754,1.438,1.053,1.037,0.484,0.402,0.276,0.736,1.191,1.926,1.986,2.034,1.905,1.828,1.443,0.937,0.736,0.72,0.827,1.654,2.329,2.284,1.724,1.483,1.32,0.837,0.392,0.42,0.751,1.165,1.6,1.411,1.461,1.629,2.432,2.045,1.553,0.795,0.755,0.829,1.392],"running on a treadmill":[1.314,1.626,1.058,1.103,1.715,2.629,3.314,4.149,4.593,4.469,3.514,2.335,1.403,1.429,2.152,3.42,4.636,4.602,3.875,2.268,1.494,1.057,1.098,1.585,2.622,3.436,4.326,4.394,4.044,3.033,2.011,1.359,1.384,2.201,3.902,5.17,5.151,3.855,2.452,1.779,1.492,1.493,1.99,2.842,3.838,4.495,4.698,4.218,3.272,2.189,1.239,1.406,2.236,3.961,4.99,4.936,3.759,2.344,1.573,1.252,1.363,1.876,2.857,3.672,4.193,4.397,3.977,3.017,1.577,1.052,1.607,2.805,4.667,5.415,5.182,3.498,2.213,1.502,1.144,1.254,1.78,2.886]},"newRow":[0.171,0.418,0.661,0.838,0.82,0.767,0.77,0.902,1.094,1.277,1.477,1.635,1.866,2.053,2.301,2.435,2.535,2.508,2.482,2.286,1.87,1.197,0.822,0.573,0.759,0.898,1.246,1.548,1.67,1.809,1.823,1.824,1.797,1.694,1.772,1.797,1.863,1.91,1.9,1.881,1.869,1.925,2.0,1.773,1.348,0.831,0.513,0.414,0.498,0.638,0.698,0.74,0.732,0.707,0.607,0.531,0.476,0.422,0.329,0.295,0.244,0.214,0.182,0.192,0.23,0.276,0.329,0.366,0.384,0.397,0.389,0.371,0.383,0.375,0.381,0.346,0.393,0.43,0.477,0.528,0.531,0.642,0.657,0.727,0.713,0.882,1.036,1.236,1.307,1.426,1.436,1.511,1.561,1.767,1.966,2.215,2.443,2.641,2.541,2.04]};
+
+const $ = id => document.getElementById(id);
+const svgNS = 'http://www.w3.org/2000/svg';
+const el = (tag, attrs = {}, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+const txt = (parent, x, y, s, attrs = {}) => { const t = el('text', Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; };
+const COL = { A: '#2a78d6', B: '#eb6834', path: '#7a3fb0', same: '#666' };
+
+// ------------------------------------------------------------ the two distances
+// DTW: the cheapest in-order pairing of the samples of a and b; its total cost is the DTW distance
+function dtw(a, b) {
+  const n = a.length, m = b.length, D = Array.from({ length: n }, () => new Array(m).fill(Infinity));
+  for (let i = 0; i < n; i++) for (let j = 0; j < m; j++) {
+    const c = Math.abs(a[i] - b[j]);
+    D[i][j] = c + (i || j ? Math.min(i ? D[i - 1][j] : Infinity, j ? D[i][j - 1] : Infinity, i && j ? D[i - 1][j - 1] : Infinity) : 0);
+  }
+  const path = []; let i = n - 1, j = m - 1;
+  while (i > 0 || j > 0) { path.push([i, j]); const opts = [i && j ? [D[i - 1][j - 1], i - 1, j - 1] : null, i ? [D[i - 1][j], i - 1, j] : null, j ? [D[i][j - 1], i, j - 1] : null].filter(Boolean); const b = opts.reduce((p, q) => q[0] < p[0] ? q : p); i = b[1]; j = b[2]; }
+  path.push([0, 0]); path.reverse();
+  return { dist: D[n - 1][m - 1], path };
+}
+// sample by sample: sample i against sample i, up to the end of the shorter signal
+const sameIdx = (a, b) => { const n = Math.min(a.length, b.length), path = []; let d = 0; for (let i = 0; i < n; i++) { path.push([i, i]); d += Math.abs(a[i] - b[i]); } return { dist: d, path }; };
+let mode = 'same';
+const match = (a, b) => mode === 'dtw' ? dtw(a, b) : sameIdx(a, b);
+const mName = () => mode === 'dtw' ? 'DTW distance' : 'sample-by-sample distance', mCol = () => mode === 'dtw' ? COL.path : COL.same;
+function score(svg, x, y, v, d = 1, label = mName()) {
+  txt(svg, x, y, label, { style: 'font-size:22px;fill:var(--ink-2)' });
+  txt(svg, x, y + 54, v.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d }), { style: `font-family:var(--mono);font-size:52px;font-weight:700;fill:${mCol()}` });
+}
+
+// ------------------------------------------------------------ one arm raise: the arm angle rises, holds at the top, comes back down
+// The same gesture at two speeds. The slow one also lingers longer at the top, so a simple stretch of the time axis would not line them up.
+const FS = 25, LEN = 3.2;
+const ease = u => u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u);
+const gesture = (t, T) => { const [r0, r1, f0, f1] = T; return 10 + 140 * (t < r1 ? ease((t - r0) / (r1 - r0)) : t < f0 ? 1 : 1 - ease((t - f0) / (f1 - f0))); };
+const SLOW = { name: 'slow', col: COL.A, T: [0.15, 1.05, 1.95, 2.85], end: 3.0 };
+const FAST = { name: 'fast', col: COL.B, T: [0.10, 0.55, 0.75, 1.30], end: 1.4 };
+[SLOW, FAST].forEach(G => { G.n = Math.round(G.end * FS) + 1; G.v = Array.from({ length: G.n }, (_, i) => gesture(i / FS, G.T)); });
+
+// stick figure (front view), right arm raised to the given angle, as in chapter 2
+function figure(svg, cx, footY, s, arm, col) {
+  const hipY = footY - 0.48 * s, shY = footY - 0.82 * s, L = 0.36 * s, a = arm * Math.PI / 180;
+  const line = (p, q, c, w = 6) => el('line', { x1: p[0], y1: p[1], x2: q[0], y2: q[1], stroke: c, 'stroke-width': w, 'stroke-linecap': 'round' }, svg);
+  const lSh = [cx - 0.09 * s, shY], rSh = [cx + 0.09 * s, shY], ink = '#9a9a9a';
+  line([cx - 0.04 * s, hipY], [cx - 0.08 * s, footY], ink); line([cx + 0.04 * s, hipY], [cx + 0.08 * s, footY], ink);
+  line([cx, shY], [cx, hipY], ink); line(lSh, rSh, ink);
+  line(lSh, [lSh[0] - 0.02 * s, lSh[1] + L], ink);
+  const hand = [rSh[0] + L * Math.sin(a), rSh[1] + L * Math.cos(a)];
+  line(rSh, hand, col, 7);
+  el('circle', { cx: (rSh[0] + hand[0]) / 2, cy: (rSh[1] + hand[1]) / 2, r: 9, fill: '#fff', stroke: col, 'stroke-width': 3 }, svg);
+  el('circle', { cx, cy: footY - 0.94 * s, r: 0.075 * s, fill: '#fff', stroke: ink, 'stroke-width': 5 }, svg);
+}
+// the arm angle on a shared time axis; part 'frame' draws the axes, 'line' the trace and its name, both by default
+const X0 = 420, X1 = 1560, xs = t => X0 + t / LEN * (X1 - X0);
+const ROWS = { slow: { y0: 70, y1: 300 }, fast: { y0: 450, y1: 680 } };
+function trace(svg, G, upto, dot, part) {
+  const R = ROWS[G.name], ys = v => R.y1 - v / 160 * (R.y1 - R.y0);
+  if (part !== 'line') {
+    const grid = el('g', { class: 'grid' }, svg), axis = el('g', { class: 'axis' }, svg);
+    [0, 90, 150].forEach(v => { el('line', { x1: X0, x2: X1, y1: ys(v), y2: ys(v) }, grid); txt(axis, X0 - 10, ys(v) + 7, v + '°', { 'text-anchor': 'end', style: 'font-size:20px' }); });
+    for (let t = 0; t <= 3; t++) txt(axis, xs(t), R.y1 + 28, t === 3 ? '3 s' : t, { 'text-anchor': 'middle', style: 'font-size:20px' });
+    el('path', { d: `M${X0},${R.y0}V${R.y1}H${X1}` }, axis);
+  }
+  if (part === 'frame') return;
+  const n = upto == null ? G.n : Math.min(G.n, Math.floor(upto * FS) + 1);
+  el('path', { d: G.v.slice(0, n).map((v, i) => (i ? 'L' : 'M') + xs(i / FS).toFixed(1) + ',' + ys(v).toFixed(1)).join(''), fill: 'none', stroke: G.col, 'stroke-width': 3.5 }, svg);
+  if (dot && n > 0) el('circle', { cx: xs((n - 1) / FS), cy: ys(G.v[n - 1]), r: 8, fill: G.col }, svg);
+  txt(svg, X0, R.y0 - 18, `${G.name}: arm angle`, { style: `font-size:24px;font-weight:700;fill:${G.col};stroke:#fff;stroke-width:7px;paint-order:stroke` });
+}
+const pt = (G, i) => [xs(i / FS), ROWS[G.name].y1 - G.v[i] / 160 * (ROWS[G.name].y1 - ROWS[G.name].y0)];
+
+// ------------------------------------------------------------ two signals, one above the other, with lines between the samples that are paired
+function pairPlot(svg, A, B, names, pairing, box, o = {}) {
+  const { x0, x1, y0, y1 } = box, gap = 70, h = (y1 - y0 - gap) / 2, n = Math.max(A.length, B.length) - 1;
+  const lo = Math.min(...A, ...B), hi = Math.max(...A, ...B), pad = (hi - lo) * 0.08 || 1;
+  const xs = i => x0 + i / n * (x1 - x0), ysA = v => y0 + h - (v - lo + pad) / (hi - lo + 2 * pad) * h, ysB = v => y0 + h + gap + h - (v - lo + pad) / (hi - lo + 2 * pad) * h;
+  const axis = el('g', { class: 'axis' }, svg);
+  el('path', { d: `M${x0},${y0}V${y0 + h}H${x1}` }, axis); el('path', { d: `M${x0},${y0 + h + gap}V${y1}H${x1}` }, axis);
+  if (o.seconds) for (let s = 0; s <= n / DATA.fs + 1e-9; s++) { txt(axis, xs(s * DATA.fs), y0 + h + 24, s, { 'text-anchor': 'middle', style: 'font-size:18px' }); txt(axis, xs(s * DATA.fs), y1 + 24, s === Math.floor(n / DATA.fs) ? s + ' s' : s, { 'text-anchor': 'middle', style: 'font-size:18px' }); }
+  const every = o.every || 1;
+  pairing.forEach(([i, j], k) => { if (k % every) return; el('line', { x1: xs(i), y1: ysA(A[i]), x2: xs(j), y2: ysB(B[j]), stroke: mCol(), 'stroke-width': o.lw || 1.6, 'stroke-opacity': .6 }, svg); });
+  el('path', { d: A.map((v, i) => (i ? 'L' : 'M') + xs(i).toFixed(1) + ',' + ysA(v).toFixed(1)).join(''), fill: 'none', stroke: COL.A, 'stroke-width': 3.5 }, svg);
+  el('path', { d: B.map((v, i) => (i ? 'L' : 'M') + xs(i).toFixed(1) + ',' + ysB(v).toFixed(1)).join(''), fill: 'none', stroke: COL.B, 'stroke-width': 3.5 }, svg);
+  if (o.dots) {
+    A.forEach((v, i) => { el('circle', { cx: xs(i), cy: ysA(v), r: 9, fill: COL.A }, svg); txt(svg, xs(i), ysA(v) - 18, v, { 'text-anchor': 'middle', style: `font-family:var(--mono);font-size:22px;font-weight:700;fill:${COL.A}` }); });
+    B.forEach((v, i) => { el('rect', { x: xs(i) - 9, y: ysB(v) - 9, width: 18, height: 18, fill: COL.B }, svg); txt(svg, xs(i), ysB(v) + 36, v, { 'text-anchor': 'middle', style: `font-family:var(--mono);font-size:22px;font-weight:700;fill:${COL.B}` }); });
+  }
+  const lab = (s, y, c) => txt(svg, x0 + 6, y, s, { style: `font-size:24px;font-weight:700;fill:${c};stroke:#fff;stroke-width:7px;paint-order:stroke` });
+  lab(names[0], y0 - 14, COL.A); lab(names[1], y0 + h + gap - 14, COL.B);
+}
+// the pairing on the grid of (sample of A, sample of B); the dotted line is equal speed
+function pathGrid(svg, nA, nB, path, box, o = {}) {
+  const { x0, y0, s } = box, cw = s / Math.max(nA, nB), W = nB * cw, H = nA * cw, X = j => x0 + (j + 0.5) * cw, Y = i => y0 + H - (i + 0.5) * cw;
+  el('rect', { x: x0, y: y0, width: W, height: H, fill: '#f6f7f9', stroke: 'var(--ink-3)' }, svg);
+  if (o.cells) for (let i = 0; i < nA; i++) for (let j = 0; j < nB; j++) el('rect', { x: x0 + j * cw, y: y0 + H - (i + 1) * cw, width: cw, height: cw, fill: 'none', stroke: '#dde1e7' }, svg);
+  el('line', { x1: X(0), y1: Y(0), x2: X(nB - 1), y2: Y(nA - 1), stroke: 'var(--ink-3)', 'stroke-width': 2, 'stroke-dasharray': '4 6' }, svg);
+  el('path', { d: path.map(([i, j], k) => (k ? 'L' : 'M') + X(j).toFixed(1) + ',' + Y(i).toFixed(1)).join(''), fill: 'none', stroke: mCol(), 'stroke-width': o.cells ? 4 : 3 }, svg);
+  if (o.cells) path.forEach(([i, j]) => el('circle', { cx: X(j), cy: Y(i), r: 7, fill: mCol() }, svg));
+  txt(svg, x0 + W / 2, y0 + H + 34, o.bName, { 'text-anchor': 'middle', style: `font-size:20px;fill:${COL.B}` });
+  txt(svg, x0 - 14, y0 + H / 2, o.aName, { 'text-anchor': 'middle', transform: `rotate(-90 ${x0 - 14} ${y0 + H / 2})`, style: `font-size:20px;fill:${COL.A}` });
+}
+
+// ------------------------------------------------------------ the rowing comparisons
+const R2 = DATA.rowB, R1 = DATA.rowA, CYC = DATA.templates.cycling;
+function rowing(svg, B, bName) {
+  const R = match(R2, B);
+  pairPlot(svg, R2, B, ['rower 2: three strokes, slow', bName], R.path, { x0: 80, x1: 1060, y0: 70, y1: 650 }, { seconds: true, every: 2 });
+  pathGrid(svg, R2.length, B.length, R.path, { x0: 1180, y0: 70, s: 340 }, { aName: 'rower 2', bName: bName.split(':')[0] });
+  return R;
+}
+// the new recording against a template of each activity; the template at the smallest distance is the match
+const TEMPLATES = Object.assign({ rowing: DATA.rowA }, DATA.templates);
+const mini = (svg, v, x0, x1, y0, y1, col) => { const lo = Math.min(...v), hi = Math.max(...v); el('path', { d: v.map((u, i) => (i ? 'L' : 'M') + (x0 + i / (v.length - 1) * (x1 - x0)).toFixed(1) + ',' + (y1 - (u - lo) / (hi - lo || 1) * (y1 - y0)).toFixed(1)).join(''), fill: 'none', stroke: col, 'stroke-width': 2.6 }, svg); };
+
+// ------------------------------------------------------------ steps
+const toyA = [0, 2, 4, 2, 0], toyB = [0, 1, 3, 4, 4, 2, 0];
+let step = 0, t = 0, timer = null;
+const STEPS = [
+  { title: 'Same gesture, two speeds: is it the same movement?', anim: true,
+    draw(svg) { [SLOW, FAST].forEach(G => { const R = ROWS[G.name]; figure(svg, 190, R.y1 + 20, 250, gesture(Math.min(t, G.end), G.T), G.col); trace(svg, G, t, true); }); } },
+  { title: 'Can we compare them sample by sample?', modes: true,
+    draw(svg) {
+      const R = match(SLOW.v, FAST.v);
+      trace(svg, SLOW, null, false, 'frame'); trace(svg, FAST, null, false, 'frame');
+      R.path.forEach(([i, j], k) => { if (k % 2) return; const a = pt(SLOW, i), b = pt(FAST, j); el('line', { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: mCol(), 'stroke-width': 1.6, 'stroke-opacity': .55 }, svg); });
+      trace(svg, SLOW, null, false, 'line'); trace(svg, FAST, null, false, 'line');
+      txt(svg, 30, 390, mName(), { style: 'font-size:22px;fill:var(--ink-2)' });
+      txt(svg, 30, 440, `${Math.round(R.dist).toLocaleString()}°`, { style: `font-family:var(--mono);font-size:44px;font-weight:700;fill:${mCol()}` });
+    } },
+  { title: 'How do we calculate each distance?', modes: true,
+    draw(svg) {
+      const R = match(toyA, toyB), terms = R.path.map(([i, j]) => `|${toyA[i]}−${toyB[j]}|`);
+      pairPlot(svg, toyA, toyB, ['A', 'B'], R.path, { x0: 80, x1: 900, y0: 90, y1: 560 }, { dots: true, lw: 2.5 });
+      pathGrid(svg, toyA.length, toyB.length, R.path, { x0: 1100, y0: 70, s: 400 }, { cells: true, aName: 'sample of A', bName: 'sample of B' });
+      const rule = mode === 'dtw' ? 'pair the samples in order, allowing repeats, so that the sum is as small as possible'
+                                  : 'pair sample 1 with sample 1, sample 2 with sample 2, up to the end of the shorter signal';
+      txt(svg, 80, 640, rule, { style: 'font-size:22px;fill:var(--ink-2)' });
+      txt(svg, 80, 700, `${mName()} = ${terms.join(' + ')} = ${R.dist}`, { style: `font-family:var(--mono);font-size:24px;font-weight:700;fill:${mCol()}` });
+    } },
+  { title: 'How far apart are two people rowing?', modes: true,
+    draw(svg) { const R = rowing(svg, R1, 'rower 1: three strokes, fast'); score(svg, 1180, 530, R.dist); } },
+  { title: 'Is rower 2 closer to rower 1 or to cycling?', modes: true,
+    draw(svg) {
+      const R = rowing(svg, CYC, 'cycling'), rows = [['rower 2 vs rower 1', match(R2, R1).dist], ['rower 2 vs cycling', R.dist]];
+      const best = rows[0][1] < rows[1][1] ? 0 : 1;
+      txt(svg, 1180, 530, mName(), { style: 'font-size:22px;fill:var(--ink-2)' });
+      rows.forEach(([n, d], k) => { const y = 580 + k * 56;
+        txt(svg, 1180, y, n, { style: `font-size:23px;font-weight:${k === best ? 700 : 400};fill:var(--ink)` });
+        txt(svg, 1560, y, d.toFixed(1), { 'text-anchor': 'end', style: `font-family:var(--mono);font-size:30px;font-weight:700;fill:${k === best ? mCol() : 'var(--ink-3)'}` }); });
+      txt(svg, 1180, 700, `closer: ${best ? 'cycling' : 'rower 1'}`, { style: `font-size:23px;font-weight:700;fill:${mCol()}` });
+    } },
+  { title: 'Which activity is the new recording?', modes: true,
+    draw(svg) {
+      const Q = DATA.newRow, rows = Object.entries(TEMPLATES).map(([n, v]) => ({ n, v, d: match(Q, v).dist })), dmax = Math.max(...rows.map(r => r.d)), best = rows.reduce((p, q) => q.d < p.d ? q : p);
+      txt(svg, 80, 60, 'a new recording', { style: 'font-size:24px;font-weight:700;fill:' + COL.A });
+      el('rect', { x: 70, y: 80, width: 420, height: 200, fill: '#f6f7f9', rx: 6 }, svg); mini(svg, Q, 90, 470, 100, 260, COL.A);
+      txt(svg, 600, 60, 'template', { style: 'font-size:22px;font-weight:700;fill:var(--ink-2)' });
+      txt(svg, 1080, 60, mName(), { style: 'font-size:22px;font-weight:700;fill:var(--ink-2)' });
+      rows.forEach((r, k) => {
+        const y = 90 + k * 128, on = r === best, w = Math.max(4, r.d / dmax * 360);
+        el('rect', { x: 590, y, width: 460, height: 104, fill: on ? '#f1f1f1' : '#f6f7f9', rx: 6, stroke: on ? mCol() : 'none', 'stroke-width': 3 }, svg);
+        mini(svg, r.v, 610, 1030, y + 34, y + 96, on ? mCol() : 'var(--ink-3)');
+        txt(svg, 606, y + 26, r.n, { style: `font-size:21px;font-weight:700;fill:${on ? mCol() : 'var(--ink)'}` });
+        el('rect', { x: 1080, y: y + 30, width: w, height: 44, rx: 4, fill: on ? mCol() : '#b9c3d0' }, svg);
+        txt(svg, 1080 + w + 12, y + 62, r.d.toFixed(1), { style: `font-family:var(--mono);font-size:24px;font-weight:700;fill:${on ? mCol() : 'var(--ink)'}` });
+      });
+      txt(svg, 80, 400, 'closest template:', { style: 'font-size:22px;fill:var(--ink-2)' });
+      txt(svg, 80, 446, best.n, { style: `font-size:40px;font-weight:700;fill:${mCol()}` });
+    } },
+];
+function draw() {
+  const S = STEPS[step];
+  $('title').textContent = S.title; $('stepno').textContent = `step ${step + 1} of ${STEPS.length}`;
+  $('play').classList.toggle('hide', !S.anim); $('play').textContent = timer ? '❚❚ Pause' : '▶ Play';
+  $('match').classList.toggle('hide', !S.modes);
+  [...$('match').children].forEach(b => b.classList.toggle('on', b.dataset.m === mode));
+  $('fig').innerHTML = ''; S.draw($('fig'));
+}
+function stop() { clearInterval(timer); timer = null; }
+function play() {
+  if (timer) { stop(); draw(); return; }
+  if (t >= LEN - 0.05) t = 0;
+  timer = setInterval(() => { t = Math.min(LEN, t + 0.04); if (t >= LEN) stop(); draw(); }, 40);
+  draw();
+}
+// each step opens on sample by sample, so the class sees what goes wrong before switching to DTW
+function go(s) { stop(); step = Math.max(0, Math.min(STEPS.length - 1, s)); mode = 'same'; t = STEPS[step].anim ? 0 : LEN; draw(); history.replaceState(null, '', '#' + (step + 1)); }
+$('prev').onclick = () => go(step - 1); $('next').onclick = () => go(step + 1); $('play').onclick = play;
+[...$('match').children].forEach(b => b.onclick = () => { mode = b.dataset.m; draw(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') go(step + 1); else if (e.key === 'ArrowLeft') go(step - 1);
+  else if (e.key === ' ') { e.preventDefault(); if (STEPS[step].anim) play(); else if (STEPS[step].modes) { mode = mode === 'dtw' ? 'same' : 'dtw'; draw(); } }
+});
+go((parseInt(location.hash.slice(1), 10) || 1) - 1);
+if (step === 0) { t = LEN; draw(); }
+})();
+</script>
+</body>
+</html>
