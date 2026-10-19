@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Building the Tree with Entropy</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff; --ink: #222222; --ink-2: #666666; --ink-3: #9a9a9a; --rule: #dcdcdc; --grid: #ececec; --ma: #2a78d6;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+  #app { height: 100vh; padding: 10px 14px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 10px; }
+  .head { padding: 4px 16px 0; }
+  h1 { margin: 0; font-size: clamp(24px, 2.4vw, 36px); font-weight: 700; letter-spacing: -0.01em; }
+  .main { user-select: none; -webkit-user-select: none; min-height: 0; border: 1px solid var(--rule); border-radius: 6px; padding: 10px 16px; }
+  .main svg { width: 100%; height: 100%; display: block; }
+  svg text { font-family: var(--sans); }
+  .bar { display: flex; gap: 10px; align-items: center; padding: 10px 18px; border: 1px solid var(--rule); border-radius: 6px; background: #f6f7f9; }
+  button { font: inherit; font-size: 18px; color: var(--ink); background: #fff; border: 1px solid #9a9a9a; border-radius: 6px; padding: 9px 16px; cursor: pointer; }
+  button:hover { border-color: var(--ink); }
+  button:disabled { opacity: .45; cursor: default; }
+  .step { font-family: var(--mono); font-size: 17px; color: var(--ink-2); margin-left: auto; }
+</style>
+
+<div id="app">
+  <div class="head"><h1 id="title"></h1></div>
+  <div class="main"><svg id="fig" viewBox="0 0 1600 760"></svg></div>
+  <div class="bar">
+    <button id="prev" title="Previous step (←)">⏮ step</button>
+    <button id="next" title="Next step (→)">step ⏭</button>
+    <span class="step" id="stepno"></span>
+  </div>
+</div>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const NS = 'http://www.w3.org/2000/svg';
+function el(parent, tag, attrs, text) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (text != null) e.textContent = text;
+  parent.appendChild(e); return e;
+}
+
+// ------------------------------------------------------------ the 16 patients of the Build the Tree game (ch5/build-a-tree.html)
+// age (0 <40, 1 40–55, 2 >55), family history (0 no, 1 yes), exercise (0 rarely, 1 regularly), risk (0 low, 1 high)
+const PATIENTS = [[1,1,1,0,1],[2,0,0,0,0],[3,2,0,1,0],[4,1,1,1,0],[5,2,1,0,1],[6,0,1,1,0],[7,1,0,1,0],[8,2,0,0,1],
+                  [9,1,1,1,1],[10,0,1,0,1],[11,2,1,1,1],[12,1,0,1,0],[13,1,1,0,1],[14,2,0,0,1],[15,1,1,1,0],[16,2,1,0,1]]
+  .map(([id, age, fh, ex, risk]) => ({ id, age, fh, ex, risk }));
+const pt = id => PATIENTS[id - 1];
+const ALL = PATIENTS.map(p => p.id);
+const ATTR = {
+  fh:  { name: 'Family history', q: 'Family history?', vals: ['No', 'Yes'], group: ['with no family history', 'with a family history'] },
+  age: { name: 'Age', q: 'Age?', vals: ['<40', '40–55', '>55'], group: ['under 40', 'aged 40 to 55', 'over 55'] },
+  ex:  { name: 'Exercise', q: 'Exercise?', vals: ['Rarely', 'Regularly'], group: ['who exercise rarely', 'who exercise regularly'] },
+};
+const ORDER = ['fh', 'age', 'ex'];
+const COL = { 0: '#1baf7a', 1: '#d6453d' };
+
+// ------------------------------------------------------------ entropy and information gain, rounded to three places at each stage so the written arithmetic adds up
+const r3 = v => Math.round(v * 1000) / 1000, f3 = v => v.toFixed(3);
+const hi = ids => ids.filter(i => pt(i).risk).length;
+const H = ids => { const n = ids.length, a = hi(ids); return r3([a, n - a].reduce((s, c) => c ? s - c / n * Math.log2(c / n) : s, 0)); };
+const split = (ids, a) => ATTR[a].vals.map((_, v) => ids.filter(i => pt(i)[a] === v));
+const weighted = (ids, a) => r3(split(ids, a).filter(g => g.length).reduce((s, g) => s + g.length / ids.length * H(g), 0));
+const gain = (ids, a) => r3(H(ids) - weighted(ids, a));
+const pure = ids => new Set(ids.map(i => pt(i).risk)).size < 2;
+const isLeaf = n => n.leaf !== undefined;
+const depthOf = n => n.path.split('/').length - 1;
+function grow(ids, attrs, path, choose) {
+  const node = { ids, path };
+  if (pure(ids) || !attrs.length) { node.leaf = pure(ids) ? pt(ids[0]).risk : 'mixed'; return node; }
+  const a = choose(node, attrs); if (!a) return node;
+  node.attr = a; node.attrs = attrs;
+  node.kids = split(ids, a).map((g, v) => ({ v, node: g.length ? grow(g, attrs.filter(x => x !== a), path + a + v + '/', choose) : null })).filter(k => k.node);
+  return node;
+}
+const best = (ids, attrs) => attrs.reduce((b, a) => (gain(ids, a) > gain(ids, b) ? a : b));
+const treeTo = depth => grow(ALL, ORDER, '', (n, attrs) => depthOf(n) < depth ? best(n.ids, attrs) : null);
+const TREE = treeTo(9);
+const find = (n, path) => n.path === path ? n : (n.kids || []).map(k => find(k.node, path)).find(Boolean);
+// how a group is described: the answers on the way down to it
+const describe = path => { const seg = path.split('/').filter(Boolean).map(s => [s.replace(/\d$/, ''), +s.slice(-1)]);
+  return ['age', 'ex', 'fh'].map(a => seg.find(q => q[0] === a)).filter(Boolean).map(([a, v]) => ATTR[a].group[v]).join(' '); };   // age first reads naturally: under 40 who exercise rarely
+const tally = ids => `${hi(ids)} High, ${ids.length - hi(ids)} Low`;
+const working = ids => { const n = ids.length, a = hi(ids); return [a, n - a].filter(c => c).map((c, i) => `${i ? ' − ' : '−'}(${c}/${n}) log₂(${c}/${n})`).join(''); };
+
+function chips(g, ids, x, y, w, s) {
+  const cw = 44 * s, ch = 34 * s, gap = 6 * s, per = Math.max(1, Math.floor((w + gap) / (cw + gap)));
+  const n = Math.min(per, ids.length), x0 = x + (w - (n * cw + (n - 1) * gap)) / 2;
+  ids.forEach((id, i) => {
+    const cx = x0 + (i % per) * (cw + gap), cy = y + Math.floor(i / per) * (ch + gap);
+    el(g, 'rect', { x: cx, y: cy, width: cw, height: ch, rx: 6 * s, fill: COL[pt(id).risk] });
+    el(g, 'text', { x: cx + cw / 2, y: cy + ch / 2 + 7.5 * s, 'text-anchor': 'middle', 'font-size': 21 * s, 'font-weight': 700, fill: '#fff' }, id);
+  });
+}
+function drawTree(g, tree, x, y, w, h, s, cur) {
+  const kids = n => n.kids || [];
+  const leaves = n => kids(n).length ? kids(n).reduce((t, k) => t + leaves(k.node), 0) : 1;
+  const depth = n => kids(n).length ? 1 + Math.max(...kids(n).map(k => depth(k.node))) : 0;
+  const nL = leaves(tree), D = depth(tree), slot = w / nL, lvl = D ? Math.min((h - 120 * s) / D, 170 * s) : 0;
+  const edges = el(g, 'g', {}), labels = el(g, 'g', {}), nodes = el(g, 'g', {});
+  function place(n, d, first) {
+    const ks = kids(n); let cx;
+    if (!ks.length) cx = x + (first + 0.5) * slot;
+    else { let f = first; const xs = ks.map(k => { const r = place(k.node, d + 1, f); f += leaves(k.node); return r; }); cx = (xs[0] + xs[xs.length - 1]) / 2;
+      ks.forEach((k, i) => { const cy = y + d * lvl, ky = y + (d + 1) * lvl;
+        el(edges, 'line', { x1: cx, y1: cy + 24 * s, x2: xs[i], y2: ky - 4 * s, stroke: '#9a9a9a', 'stroke-width': 2 * s });
+        // the answer beside its edge: left of a left edge, right of a right edge, so neighbouring labels do not collide
+        const lab = ATTR[n.attr].vals[k.v], dx = xs[i] - cx, lx = cx + 0.4 * dx, ly = cy + 0.4 * (ky - cy), side = Math.abs(dx) < 40 * s ? 0 : Math.sign(dx);
+        if (!side) { const lw = lab.length * 11 * s + 10 * s; el(labels, 'rect', { x: lx - lw / 2, y: ly - 10 * s, width: lw, height: 26 * s, fill: '#fff' }); }
+        el(labels, 'text', { x: lx + side * 6 * s, y: ly + 8 * s, 'text-anchor': side < 0 ? 'end' : side > 0 ? 'start' : 'middle', 'font-size': 19 * s, fill: '#444' }, lab); }); }
+    const cy = y + d * lvl;
+    if (ks.length) {                                                     // a question
+      const bw = 186 * s;
+      el(nodes, 'rect', { x: cx - bw / 2, y: cy - 24 * s, width: bw, height: 48 * s, rx: 24 * s, fill: '#e8f1fd', stroke: '#2a78d6', 'stroke-width': 2 * s });
+      el(nodes, 'text', { x: cx, y: cy + 8 * s, 'text-anchor': 'middle', 'font-size': 23 * s, 'font-weight': 700, fill: '#1d5fae' }, ATTR[n.attr].q);
+    } else {                                                             // a leaf, or a group still waiting for its question
+      const open = !isLeaf(n), here = open && n.path === cur, bw = Math.min(slot - 10 * s, 160 * s);
+      const cs = 0.9 * s, per = Math.max(1, Math.floor((bw - 10 * s + 6 * cs) / (50 * cs))), rows = Math.ceil(n.ids.length / per);
+      const bh = 52 * s + rows * 40 * cs, tp = cy - 4 * s;
+      const fill = open ? '#fff' : n.leaf === 'mixed' ? '#fdf3cf' : n.leaf ? '#fbe3e1' : '#ddf3ea';
+      const stroke = open ? (here ? '#2a78d6' : '#9a9a9a') : n.leaf === 'mixed' ? '#f2c230' : COL[n.leaf];
+      el(nodes, 'rect', { x: cx - bw / 2, y: tp, width: bw, height: bh, rx: 8 * s, fill, stroke, 'stroke-width': (here ? 5 : 2) * s, 'stroke-dasharray': open && !here ? 8 * s + ' ' + 6 * s : 'none' });
+      el(nodes, 'text', { x: cx, y: tp + 30 * s, 'text-anchor': 'middle', 'font-size': 23 * s, 'font-weight': 700, fill: open ? '#666' : n.leaf === 'mixed' ? '#8a6d00' : COL[n.leaf] },
+        open || n.leaf === 'mixed' ? '?' : n.leaf ? 'High' : 'Low');
+      chips(nodes, n.ids, cx - bw / 2 + 5 * s, tp + 42 * s, bw - 10 * s, cs);
+    }
+    return cx;
+  }
+  place(tree, 0, 0);
+}
+
+
+// ------------------------------------------------------------ one candidate question at a group: its branches, each branch's entropy, the weighted average and the gain
+function candidate(g, ids, a, x, y, h, opts) {
+  const lw = 210, W = 1000, parts = split(ids, a), n = parts.length, gap = 14, bw = (W - lw - gap * (n - 1)) / n, bh = Math.min(h - 86, 170);
+  y += (h - 86 - bh) / 2; h = bh + 86;   // short boxes, centred in the row, when a row has room to spare
+  el(g, 'text', { x, y: y + h / 2 + 4, 'font-size': 27, 'font-weight': opts.best ? 700 : 400, fill: '#222' }, ATTR[a].q);
+  parts.forEach((p, v) => {
+    const bx = x + lw + v * (bw + gap);
+    el(g, 'text', { x: bx + bw / 2, y: y + 24, 'text-anchor': 'middle', 'font-size': 22, fill: '#666', 'font-weight': 700 }, ATTR[a].vals[v]);
+    el(g, 'rect', { x: bx, y: y + 34, width: bw, height: bh, rx: 8, fill: '#fafafa', stroke: '#dcdcdc', 'stroke-width': 1.5 });
+    chips(g, p, bx + 10, y + 44, bw - 20, 1.05);
+    el(g, 'text', { x: bx + bw / 2, y: y + 34 + bh + 30, 'text-anchor': 'middle', 'font-size': 23, 'font-style': 'italic', fill: '#222' }, p.length ? `H = ${f3(H(p))}` : 'empty');
+  });
+  // the arithmetic, to the right
+  const N = ids.length, terms = parts.filter(p => p.length).map(p => `(${p.length}/${N})(${f3(H(p))})`).join(' + ');
+  const cx = 1250, top = y + h / 2 - 46;
+  el(g, 'text', { x: cx, y: top, 'text-anchor': 'middle', 'font-size': 21, fill: '#444' }, terms);
+  el(g, 'text', { x: cx, y: top + 34, 'text-anchor': 'middle', 'font-size': 23, fill: '#222' }, `weighted entropy = ${f3(weighted(ids, a))}`);
+  el(g, 'text', { x: cx, y: top + 74, 'text-anchor': 'middle', 'font-size': 27, 'font-weight': 700, fill: opts.best ? '#c0392b' : '#222' }, `gain = ${f3(H(ids))} − ${f3(weighted(ids, a))} = ${f3(gain(ids, a))}`);
+  if (opts.best) { el(g, 'rect', { x: cx - 38, y: top + 92, width: 76, height: 28, rx: 5, fill: '#222' }); el(g, 'text', { x: cx, y: top + 113, 'text-anchor': 'middle', 'font-size': 17, 'font-weight': 700, fill: '#fff' }, 'BEST'); }
+}
+// the group being split, with its own entropy, as one line across the top
+function header(g, ids, path) {
+  const who = path ? 'Patients ' + describe(path) : 'All 16 patients';
+  el(g, 'text', { x: 0, y: 30, 'font-size': 25, 'font-weight': 700, fill: '#222' }, `${who}: ${tally(ids)}`);
+  el(g, 'text', { x: 1580, y: 30, 'text-anchor': 'end', 'font-size': 25, 'font-style': 'italic', fill: '#222' }, `H = ${working(ids)} = ${f3(H(ids))}`);
+}
+// a node's candidates, shown up to `upto`, with BEST marked once all are shown
+function node(g, path, upto) {
+  const N = find(TREE, path), cands = N.attrs, h = (760 - 56) / cands.length, done = upto >= cands.length;
+  header(g, N.ids, path);
+  cands.slice(0, upto).forEach((a, i) => { candidate(g, N.ids, a, 0, 56 + i * h, h, { best: done && a === N.attr }); el(g, 'line', { x1: 0, x2: 1580, y1: 56 + (i + 1) * h, y2: 56 + (i + 1) * h, stroke: '#ececec', 'stroke-width': 1.5 }); });
+}
+
+// ------------------------------------------------------------ steps
+const ROWS = (path, title) => find(TREE, path).attrs.map((_, i) => ({ title, draw: g => node(g, path, i + 1) }));
+const mixed = depth => { const out = []; (function f(n) { if (depthOf(n) === depth && !isLeaf(n)) out.push(n); (n.kids || []).forEach(k => f(k.node)); })(TREE); return out; };
+const STEPS = [
+  { title: 'How mixed are the 16 patients?', draw(g) {
+      el(g, 'rect', { x: 300, y: 120, width: 1000, height: 220, rx: 10, fill: '#fafafa', stroke: '#dcdcdc', 'stroke-width': 1.5 });
+      chips(g, ALL, 330, 160, 940, 1.8);
+      el(g, 'text', { x: 800, y: 420, 'text-anchor': 'middle', 'font-size': 30, fill: '#222' }, tally(ALL));
+      el(g, 'text', { x: 800, y: 500, 'text-anchor': 'middle', 'font-size': 34, 'font-style': 'italic', fill: '#222' }, `H = ${working(ALL)} = ${f3(H(ALL))}`);
+    } },
+  ...ROWS('', 'Which question gives the most information gain at the root?'),
+  { title: 'What does the tree look like after the first question?', draw: g => drawTree(g, treeTo(1), 300, 60, 1000, 640, 1.2, null) },
+  ...TREE.kids.flatMap(k => ROWS(k.node.path, `Which question next, for patients ${describe(k.node.path)}?`)),
+  { title: 'What does the tree look like after the second level?', draw: g => drawTree(g, treeTo(2), 100, 50, 1400, 680, 1.15, null) },
+  // groups still mixed below the second level have one question left; its gain is worked out the same way
+  { title: 'What about the groups that are still mixed?', draw(g) {
+      const ns = mixed(2), h = 760 / ns.length;
+      ns.forEach((n, i) => {
+        const y = i * h;
+        el(g, 'text', { x: 0, y: y + 28, 'font-size': 24, 'font-weight': 700, fill: '#222' }, `Patients ${describe(n.path)}: ${tally(n.ids)}`);
+        el(g, 'text', { x: 1580, y: y + 28, 'text-anchor': 'end', 'font-size': 24, 'font-style': 'italic', fill: '#222' }, `H = ${f3(H(n.ids))}`);
+        candidate(g, n.ids, n.attr, 0, y + 44, h - 50, { best: false });
+        if (i < ns.length - 1) el(g, 'line', { x1: 0, x2: 1580, y1: y + h, y2: y + h, stroke: '#ececec', 'stroke-width': 1.5 });
+      });
+    } },
+  { title: 'What does the finished tree look like?', draw: g => drawTree(g, TREE, 0, 50, 1600, 690, 1.3, null) },
+];
+
+let step = Math.max(0, Math.min(STEPS.length - 1, (parseInt(location.hash.slice(1), 10) || 1) - 1));
+function draw() {
+  const S = STEPS[step], svg = $('fig'); svg.innerHTML = '';
+  $('title').textContent = S.title; $('stepno').textContent = `step ${step + 1} of ${STEPS.length}`;
+  $('prev').disabled = step === 0; $('next').disabled = step === STEPS.length - 1;
+  S.draw(el(svg, 'g', {}));
+}
+function go(s) { step = Math.max(0, Math.min(STEPS.length - 1, s)); draw(); history.replaceState(null, '', '#' + (step + 1)); }
+$('prev').onclick = () => go(step - 1); $('next').onclick = () => go(step + 1);
+document.addEventListener('keydown', e => { if (e.key === 'ArrowRight') go(step + 1); else if (e.key === 'ArrowLeft') go(step - 1); });
+draw();
+})();
+</script>
+</body>
+</html>
