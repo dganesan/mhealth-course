@@ -61,14 +61,14 @@ function el(parent, tag, attrs, text) {
   parent.appendChild(e); return e;
 }
 
-// ------------------------------------------------------------ the book's twelve windows (chapter 5): mean and std dev of accel magnitude (m/s²)
-const W = [[9.8,2.0,0],[10.0,1.9,0],[9.9,2.2,0],[10.1,2.1,0],[9.7,3.5,1],[9.8,3.0,1],[9.9,3.2,1],[10.0,2.8,1],[13.5,6.4,2],[13.8,6.7,2],[14.0,6.5,2],[13.4,6.3,2]]
+// ------------------------------------------------------------ eighteen windows: mean and std dev of accel magnitude (m/s²)
+// windows 1 to 12 are the book's example (chapter 5); 13 to 18 overlap them, so that no cut separates the activities cleanly:
+// a Walking window with a high std dev, two Upstairs windows with a low one, a slow Running window close to Upstairs,
+// a Running window at moderate values, and an Upstairs window with a high std dev
+const W = [[9.8,2.0,0],[10.0,1.9,0],[9.9,2.2,0],[10.1,2.1,0],[9.7,3.5,1],[9.8,3.0,1],[9.9,3.2,1],[10.0,2.8,1],[13.5,6.4,2],[13.8,6.7,2],[14.0,6.5,2],[13.4,6.3,2],
+           [9.9,2.6,0],[9.8,2.3,1],[10.3,2.4,1],[10.6,3.4,2],[11.9,4.6,2],[10.8,5.1,1]]
   .map(([mean, std, c], i) => ({ id: i + 1, mean, std, c }));
-// six more windows that overlap the others, for the last step: a Walking window with a high std dev, two Upstairs windows with a low one,
-// a slow Running window close to Upstairs, a Running window at moderate values, and an Upstairs window with a high std dev
-const EXTRA = [[9.9,2.6,0],[9.8,2.3,1],[10.3,2.4,1],[10.6,3.4,2],[11.9,4.6,2],[10.8,5.1,1]].map(([mean, std, c], i) => ({ id: 13 + i, mean, std, c }));
-const WALL = W.concat(EXTRA);
-const ALL = W.map(w => w.id), ALL18 = WALL.map(w => w.id), win = id => WALL[id - 1];
+const ALL = W.map(w => w.id), win = id => W[id - 1];
 const CLS = [{ name: 'Walking', col: '#2a78d6' }, { name: 'Upstairs', col: '#eb6834' }, { name: 'Running', col: '#7b4fc9' }];
 const FEAT = { mean: { name: 'mean of accel magnitude', short: 'mean', lo: 9.4, hi: 14.3 }, std: { name: 'std dev of accel magnitude', short: 'std dev', lo: 1.6, hi: 7.0 } };
 
@@ -120,10 +120,9 @@ function plane(g, X, Y, w, h, opts = {}) {
 }
 
 // ------------------------------------------------------------ one candidate question: the windows on each side of the cut, each side's entropy, and the gain
-// the cut on each feature; a tie for the best cut goes to the book's choice
+// the cut on each feature
 let cut = { std: 2.5, mean: 9.85 }, shown = false, CAND = ALL;   // CAND: the windows whose midpoints are the candidate cuts
-const PREFER = { std: 2.5, mean: 11.75 };
-const bestCut = (ids, f) => { const cs = cuts(CAND, f), top = Math.max(...cs.map(c => gain(ids, f, c))), tied = cs.filter(c => gain(ids, f, c) === top); return tied.includes(PREFER[f]) ? PREFER[f] : tied[0]; };
+const bestCut = (ids, f) => { const cs = cuts(CAND, f), top = Math.max(...cs.map(c => gain(ids, f, c))); return cs.find(c => gain(ids, f, c) === top); };   // a tie goes to the lower cut
 function panel(g, ids, f, y, best, strip) {
   const t = cut[f], [L, R] = sides(ids, f, t), N = ids.length, bw = 262, bh = 112, x0 = 760;
   el(g, 'text', { x: x0, y: y + 30, 'font-size': 28, 'font-weight': 700, fill: '#222' }, `${FEAT[f].short} ≤ ${fmt(t)} ?`);
@@ -161,39 +160,69 @@ function split2(g, ids, header, extra) {
   if (shown && gs.std === gs.mean) el(g, 'text', { x: 1175, y: 740, 'text-anchor': 'middle', 'font-size': 22, fill: '#444' }, 'A tie: either question gives the same gain.');
 }
 
-// ------------------------------------------------------------ the finished tree, as in the book's figure
+// ------------------------------------------------------------ the finished tree: the best cut at every node, grown until each leaf holds one activity
+// (a tie goes to the first candidate, the mean before the std dev, the lower cut first)
+const pure = ids => new Set(ids.map(i => win(i).c)).size < 2;
+function grow(ids, box) {
+  if (pure(ids)) return { ids, box, c: win(ids[0]).c };
+  let best = null;
+  ['mean', 'std'].forEach(f => cuts(ALL, f).forEach(t => { const v = gain(ids, f, t); if (!best || v > best.v) best = { f, t, v }; }));
+  const [L, R] = sides(ids, best.f, best.t), bl = { ...box }, br = { ...box };
+  if (best.f === 'mean') { bl.x1 = best.t; br.x0 = best.t; } else { bl.y1 = best.t; br.y0 = best.t; }
+  return { ids, box, f: best.f, t: best.t, v: best.v, kids: [grow(L, bl), grow(R, br)] };
+}
+const TREE = grow(ALL, { x0: FEAT.mean.lo, x1: FEAT.mean.hi, y0: FEAT.std.lo, y1: FEAT.std.hi });
+const leaves = n => n.kids ? n.kids.flatMap(leaves) : [n];
+const inner = n => n.kids ? [n, ...n.kids.flatMap(inner)] : [];
 function tree(g) {
-  const box = (x, y, w, h, fill, stroke) => el(g, 'rect', { x: x - w / 2, y, width: w, height: h, rx: h > 60 ? 10 : h / 2, fill, stroke, 'stroke-width': 2.5 });
-  const edge = (x1, y1, x2, y2, lab, side) => { el(g, 'line', { x1, y1, x2, y2, stroke: '#9a9a9a', 'stroke-width': 2.5 }); el(g, 'text', { x: x1 + 0.4 * (x2 - x1) + side * 10, y: y1 + 0.4 * (y2 - y1) + 6, 'text-anchor': side < 0 ? 'end' : 'start', 'font-size': 22, fill: '#444' }, lab); };
-  const q = (x, y, s) => { box(x, y, 300, 56, '#e8f1fd', '#2a78d6'); el(g, 'text', { x, y: y + 37, 'text-anchor': 'middle', 'font-size': 25, 'font-weight': 700, fill: '#1d5fae' }, s); };
-  const leaf = (x, y, c) => { box(x, y, 200, 110, CLS[c].col + '22', CLS[c].col); el(g, 'text', { x, y: y + 36, 'text-anchor': 'middle', 'font-size': 25, 'font-weight': 700, fill: CLS[c].col }, CLS[c].name); chips(g, ALL.filter(i => win(i).c === c), x - 95, y + 52, 190, 0.85); };
-  edge(330, 116, 160, 300, 'Yes', -1); edge(330, 116, 480, 300, 'No', 1); q(330, 60, 'std dev ≤ 2.5?'); leaf(160, 300, 0);
-  edge(480, 356, 340, 540, 'Yes', -1); edge(480, 356, 620, 540, 'No', 1); q(480, 300, 'mean ≤ 11.75?'); leaf(340, 540, 1); leaf(620, 540, 2);
-  plane(g, 900, 40, 640, 560, { lines: [{ f: 'std', t: 2.5 }, { f: 'mean', t: 11.75, lo: 2.5 }],
-    regions: [{ x0: FEAT.mean.lo, x1: FEAT.mean.hi, y0: FEAT.std.lo, y1: 2.5, c: 0 }, { x0: FEAT.mean.lo, x1: 11.75, y0: 2.5, y1: FEAT.std.hi, c: 1 }, { x0: 11.75, x1: FEAT.mean.hi, y0: 2.5, y1: FEAT.std.hi, c: 2 }] });
+  const LV = leaves(TREE), slot = 820 / LV.length, lvl = 130, X = 20, Y = 50;
+  const edges = el(g, 'g', {}), nodes = el(g, 'g', {});
+  (function place(n, d, first) {
+    let cx;
+    if (!n.kids) cx = X + (first + 0.5) * slot;
+    else { const a = place(n.kids[0], d + 1, first), b = place(n.kids[1], d + 1, first + leaves(n.kids[0]).length); cx = (a + b) / 2;
+      [[a, 'yes', -1], [b, 'no', 1]].forEach(([k, lab, side]) => { el(edges, 'line', { x1: cx, y1: Y + d * lvl + 24, x2: k, y2: Y + (d + 1) * lvl - 4, stroke: '#9a9a9a', 'stroke-width': 2.5 });
+        el(edges, 'text', { x: cx + 0.4 * (k - cx) + side * 8, y: Y + d * lvl + 0.4 * lvl + 18, 'text-anchor': side < 0 ? 'end' : 'start', 'font-size': 18, fill: '#444' }, lab); }); }
+    const y = Y + d * lvl;
+    if (n.kids) {
+      el(nodes, 'rect', { x: cx - 92, y: y - 24, width: 184, height: 48, rx: 24, fill: '#e8f1fd', stroke: '#2a78d6', 'stroke-width': 2 });
+      el(nodes, 'text', { x: cx, y: y + 7, 'text-anchor': 'middle', 'font-size': 20, 'font-weight': 700, fill: '#1d5fae' }, `${FEAT[n.f].short} ≤ ${fmt(n.t)}?`);
+    } else {
+      const one = n.ids.length === 1, bw = Math.min(slot - 8, 120), bh = 54 + Math.ceil(n.ids.length / 3) * 30;
+      el(nodes, 'rect', { x: cx - bw / 2, y: y - 4, width: bw, height: bh, rx: 8, fill: '#fff' });
+      el(nodes, 'rect', { x: cx - bw / 2, y: y - 4, width: bw, height: bh, rx: 8, fill: CLS[n.c].col + '22', stroke: one ? '#222' : CLS[n.c].col, 'stroke-width': one ? 4 : 2.5, 'stroke-dasharray': one ? '9 6' : 'none' });
+      el(nodes, 'text', { x: cx, y: y + 22, 'text-anchor': 'middle', 'font-size': 18, 'font-weight': 700, fill: CLS[n.c].col }, CLS[n.c].name);
+      chips(nodes, n.ids, cx - bw / 2 + 6, y + 34, bw - 12, 0.62);
+    }
+    return cx;
+  })(TREE, 0, 0);
+  // the leaves as regions of the feature plane, with every cut drawn
+  const regions = leaves(TREE).map(l => ({ ...l.box, c: l.c }));
+  const lines = inner(TREE).map(n => n.f === 'mean' ? { f: 'mean', t: n.t, lo: n.box.y0, hi: n.box.y1 } : { f: 'std', t: n.t, lo: n.box.x0, hi: n.box.x1 });
+  plane(g, 950, 40, 600, 560, { regions, lines, ring: leaves(TREE).filter(l => l.ids.length === 1).map(l => l.ids[0]) });
 }
 
 // ------------------------------------------------------------ steps
-const RIGHT = ALL.filter(i => win(i).std > 2.5);
+const LEFT = ALL.filter(i => win(i).mean <= TREE.t), RIGHT = ALL.filter(i => win(i).mean > TREE.t);
 const STEPS = [
-  { title: 'How mixed are the twelve windows?', draw(g) {
-      const cols = [['window', 60], ['mean', 210], ['std dev', 350], ['activity', 500]];
-      cols.forEach(([h, x]) => el(g, 'text', { x, y: 34, 'text-anchor': 'middle', 'font-size': 22, 'font-weight': 700, fill: '#666' }, h));
-      el(g, 'line', { x1: 0, x2: 600, y1: 48, y2: 48, stroke: '#9a9a9a', 'stroke-width': 1.5 });
-      W.forEach((p, i) => { const y = 48 + (i + 1) * 46;
-        if (i % 2) el(g, 'rect', { x: 0, y: y - 46, width: 600, height: 46, fill: '#f6f7f9' });
-        [[p.id, 60], [p.mean.toFixed(1), 210], [p.std.toFixed(1), 350]].forEach(([v, x], k) => el(g, 'text', { x, y: y - 14, 'text-anchor': 'middle', 'font-size': 23, 'font-weight': k ? 400 : 700, fill: '#222' }, v));
-        el(g, 'text', { x: 500, y: y - 14, 'text-anchor': 'middle', 'font-size': 23, 'font-weight': 700, fill: CLS[p.c].col }, CLS[p.c].name); });
-      el(g, 'text', { x: 300, y: 690, 'text-anchor': 'middle', 'font-size': 23, 'font-style': 'italic', fill: '#222' }, `H = ${terms(ALL).join(' ')}`);
-      el(g, 'text', { x: 300, y: 724, 'text-anchor': 'middle', 'font-size': 23, 'font-style': 'italic', fill: '#222' }, `= ${f3(H(ALL))}`);
-      plane(g, 820, 20, 720, 580);
+  { title: 'How mixed are the eighteen windows?', draw(g) {
+      const cols = [['window', 60], ['mean', 210], ['std dev', 350], ['activity', 500]], rh = 35;
+      cols.forEach(([h, x]) => el(g, 'text', { x, y: 26, 'text-anchor': 'middle', 'font-size': 21, 'font-weight': 700, fill: '#666' }, h));
+      el(g, 'line', { x1: 0, x2: 600, y1: 38, y2: 38, stroke: '#9a9a9a', 'stroke-width': 1.5 });
+      W.forEach((p, i) => { const y = 38 + (i + 1) * rh;
+        if (i % 2) el(g, 'rect', { x: 0, y: y - rh, width: 600, height: rh, fill: '#f6f7f9' });
+        [[p.id, 60], [p.mean.toFixed(1), 210], [p.std.toFixed(1), 350]].forEach(([v, x], k) => el(g, 'text', { x, y: y - 10, 'text-anchor': 'middle', 'font-size': 21, 'font-weight': k ? 400 : 700, fill: '#222' }, v));
+        el(g, 'text', { x: 500, y: y - 10, 'text-anchor': 'middle', 'font-size': 21, 'font-weight': 700, fill: CLS[p.c].col }, CLS[p.c].name); });
+      el(g, 'text', { x: 1180, y: 680, 'text-anchor': 'middle', 'font-size': 23, 'font-style': 'italic', fill: '#222' }, `H = ${terms(ALL).join(' ')} = ${f3(H(ALL))}`);
+      plane(g, 820, 20, 720, 560);
     } },
-  { title: 'Which feature, and where should we cut it?', sliders: true, ids: ALL, start: { std: 2.05, mean: 9.85 }, draw: g => split2(g, ALL, 'All 12 windows') },
-  { title: 'Which question next, for the windows with std dev above 2.5?', sliders: true, ids: RIGHT, start: { std: 4.9, mean: 10.05 },
-    draw: g => split2(g, RIGHT, 'Windows with std dev > 2.5', { lines: [{ f: 'std', t: 2.5 }], regions: [{ x0: FEAT.mean.lo, x1: FEAT.mean.hi, y0: FEAT.std.lo, y1: 2.5, c: 0 }] }) },
+  { title: 'Which feature, and where should we cut it?', sliders: true, ids: ALL, start: { std: 2.05, mean: 9.85 },
+    draw: g => split2(g, ALL, 'All 18 windows', { lines: [], strip: true }) },
+  { title: `Which question next, for the windows with mean ≤ ${fmt(TREE.t)}?`, sliders: true, ids: LEFT, start: { std: 3.3, mean: 9.85 },
+    draw: g => split2(g, LEFT, `Windows with mean ≤ ${fmt(TREE.t)}`, { lines: [{ f: 'mean', t: TREE.t }], strip: true }) },
+  { title: `Which question next, for the windows with mean above ${fmt(TREE.t)}?`, sliders: true, ids: RIGHT, start: { std: 3.3, mean: 12.65 },
+    draw: g => split2(g, RIGHT, `Windows with mean > ${fmt(TREE.t)}`, { lines: [{ f: 'mean', t: TREE.t }], strip: true }) },
   { title: 'What does the finished tree look like?', draw: tree },
-  { title: 'What if the activities overlap?', sliders: true, ids: ALL18, cand: ALL18, start: { std: 2.5, mean: 11.75 },
-    draw: g => split2(g, ALL18, 'All 18 windows', { lines: [], set: WALL, ring: EXTRA.map(w => w.id), strip: true }) },
 ];
 
 // the sliders step through the candidate cuts: every midpoint between neighbouring values over the windows in CAND
