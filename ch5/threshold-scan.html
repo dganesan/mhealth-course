@@ -64,7 +64,11 @@ function el(parent, tag, attrs, text) {
 // ------------------------------------------------------------ the book's twelve windows (chapter 5): mean and std dev of accel magnitude (m/s²)
 const W = [[9.8,2.0,0],[10.0,1.9,0],[9.9,2.2,0],[10.1,2.1,0],[9.7,3.5,1],[9.8,3.0,1],[9.9,3.2,1],[10.0,2.8,1],[13.5,6.4,2],[13.8,6.7,2],[14.0,6.5,2],[13.4,6.3,2]]
   .map(([mean, std, c], i) => ({ id: i + 1, mean, std, c }));
-const ALL = W.map(w => w.id), win = id => W[id - 1];
+// six more windows that overlap the others, for the last step: a Walking window with a high std dev, two Upstairs windows with a low one,
+// a slow Running window close to Upstairs, a Running window at moderate values, and an Upstairs window with a high std dev
+const EXTRA = [[9.9,2.6,0],[9.8,2.3,1],[10.3,2.4,1],[10.6,3.4,2],[11.9,4.6,2],[10.8,5.1,1]].map(([mean, std, c], i) => ({ id: 13 + i, mean, std, c }));
+const WALL = W.concat(EXTRA);
+const ALL = W.map(w => w.id), ALL18 = WALL.map(w => w.id), win = id => WALL[id - 1];
 const CLS = [{ name: 'Walking', col: '#2a78d6' }, { name: 'Upstairs', col: '#eb6834' }, { name: 'Running', col: '#7b4fc9' }];
 const FEAT = { mean: { name: 'mean of accel magnitude', short: 'mean', lo: 9.4, hi: 14.3 }, std: { name: 'std dev of accel magnitude', short: 'std dev', lo: 1.6, hi: 7.0 } };
 
@@ -110,16 +114,17 @@ function plane(g, X, Y, w, h, opts = {}) {
     el(g, 'line', { ...p, stroke: '#222', 'stroke-width': 3, 'stroke-dasharray': '10 7' });
     if (L.label) el(g, 'text', L.f === 'mean' ? { x: p.x1 + 8, y: p.y2 + 24, 'font-size': 20, 'font-weight': 700, fill: '#222', stroke: '#fff', 'stroke-width': 6, 'paint-order': 'stroke' } : { x: p.x2 - 8, y: p.y1 - 10, 'text-anchor': 'end', 'font-size': 20, 'font-weight': 700, fill: '#222', stroke: '#fff', 'stroke-width': 6, 'paint-order': 'stroke' }, L.label);
   });
-  W.forEach(p => { const o = opts.only && !opts.only.includes(p.id) ? 0.25 : 1;
+  (opts.set || W).forEach(p => { const o = opts.only && !opts.only.includes(p.id) ? 0.25 : 1;
+    if (opts.ring && opts.ring.includes(p.id)) el(g, 'circle', { cx: sx(p.mean), cy: sy(p.std), r: 21, fill: 'none', stroke: '#222', 'stroke-width': 2.5 });
     el(g, 'circle', { cx: sx(p.mean), cy: sy(p.std), r: 15, fill: CLS[p.c].col, stroke: '#fff', 'stroke-width': 2.5, opacity: o }); el(g, 'text', { x: sx(p.mean) + 20, y: sy(p.std) + 7, 'font-size': 18, fill: '#444', opacity: o }, p.id); });
 }
 
 // ------------------------------------------------------------ one candidate question: the windows on each side of the cut, each side's entropy, and the gain
 // the cut on each feature; a tie for the best cut goes to the book's choice
-let cut = { std: 2.5, mean: 9.85 }, shown = false;
+let cut = { std: 2.5, mean: 9.85 }, shown = false, CAND = ALL;   // CAND: the windows whose midpoints are the candidate cuts
 const PREFER = { std: 2.5, mean: 11.75 };
-const bestCut = (ids, f) => { const cs = cuts(ALL, f), top = Math.max(...cs.map(c => gain(ids, f, c))), tied = cs.filter(c => gain(ids, f, c) === top); return tied.includes(PREFER[f]) ? PREFER[f] : tied[0]; };
-function panel(g, ids, f, y, best) {
+const bestCut = (ids, f) => { const cs = cuts(CAND, f), top = Math.max(...cs.map(c => gain(ids, f, c))), tied = cs.filter(c => gain(ids, f, c) === top); return tied.includes(PREFER[f]) ? PREFER[f] : tied[0]; };
+function panel(g, ids, f, y, best, strip) {
   const t = cut[f], [L, R] = sides(ids, f, t), N = ids.length, bw = 262, bh = 112, x0 = 760;
   el(g, 'text', { x: x0, y: y + 30, 'font-size': 28, 'font-weight': 700, fill: '#222' }, `${FEAT[f].short} ≤ ${fmt(t)} ?`);
   [[L, 'yes'], [R, 'no']].forEach(([p, lab], k) => {
@@ -133,17 +138,26 @@ function panel(g, ids, f, y, best) {
   el(g, 'text', { x: cx, y: y + 100, 'text-anchor': 'middle', 'font-size': 20, fill: '#444' }, `(${L.length}/${N})(${f3(H(L))}) + (${R.length}/${N})(${f3(H(R))})`);
   el(g, 'text', { x: cx, y: y + 134, 'text-anchor': 'middle', 'font-size': 22, fill: '#222' }, `weighted = ${f3(weighted(ids, f, t))}`);
   el(g, 'text', { x: cx, y: y + 176, 'text-anchor': 'middle', 'font-size': 28, 'font-weight': 700, fill: best ? '#c0392b' : '#222' }, `gain = ${f3(gv)}`);
+  // the gain of every candidate cut on this feature, the current one in black
+  if (strip) {
+    const cs = cuts(CAND, f), lo = cs[0], hi = cs[cs.length - 1], X0 = 770, X1 = 1290, by = y + 312, hh = 70, top = Math.max(...['std', 'mean'].flatMap(q => cuts(CAND, q).map(c => gain(ids, q, c))));   // one scale for both strips
+    const sx = c => X0 + (c - lo) / (hi - lo) * (X1 - X0);
+    el(g, 'line', { x1: X0 - 10, x2: X1 + 10, y1: by, y2: by, stroke: '#9a9a9a', 'stroke-width': 1.5 });
+    cs.forEach(c => { const v = gain(ids, f, c), h = hh * v / top; el(g, 'rect', { x: sx(c) - 5, y: by - h, width: 10, height: h, rx: 2, fill: c === t ? '#222' : '#b9c3cf' }); });
+    el(g, 'text', { x: X1 + 24, y: by - 4, 'font-size': 18, fill: '#666' }, 'gain at each cut');
+  }
   if (best) { el(g, 'rect', { x: cx - 38, y: y + 192, width: 76, height: 28, rx: 5, fill: '#222' }); el(g, 'text', { x: cx, y: y + 213, 'text-anchor': 'middle', 'font-size': 17, 'font-weight': 700, fill: '#fff' }, 'BEST'); }
 }
 // a group to split: the feature plane on the left with both cuts drawn, one panel per feature on the right
 function split2(g, ids, header, extra) {
   el(g, 'text', { x: 760, y: 28, 'font-size': 23, 'font-weight': 700, fill: '#222' }, `${header}: ${tally(ids)}`);
   el(g, 'text', { x: 1590, y: 28, 'text-anchor': 'end', 'font-size': 23, 'font-style': 'italic', fill: '#222' }, `H = ${f3(H(ids))}`);
-  plane(g, 90, 20, 580, 600, { only: ids, regions: extra && extra.regions, lines: [...(extra ? extra.lines : []), { f: 'std', t: cut.std, label: `std dev ≤ ${fmt(cut.std)}` }, { f: 'mean', t: cut.mean, label: `mean ≤ ${fmt(cut.mean)}` }] });
+  plane(g, 90, 20, 580, 600, { only: ids, set: extra && extra.set, ring: extra && extra.ring, regions: extra && extra.regions, lines: [...(extra ? extra.lines : []), { f: 'std', t: cut.std, label: `std dev ≤ ${fmt(cut.std)}` }, { f: 'mean', t: cut.mean, label: `mean ≤ ${fmt(cut.mean)}` }] });
   const gs = { std: gain(ids, 'std', cut.std), mean: gain(ids, 'mean', cut.mean) }, top = Math.max(gs.std, gs.mean);
-  panel(g, ids, 'std', 60, shown && gs.std === top);
+  const st = extra && extra.strip;
+  panel(g, ids, 'std', 60, shown && gs.std === top, st);
   el(g, 'line', { x1: 760, x2: 1590, y1: 405, y2: 405, stroke: '#ececec', 'stroke-width': 1.5 });
-  panel(g, ids, 'mean', 420, shown && gs.mean === top);
+  panel(g, ids, 'mean', 420, shown && gs.mean === top, st);
   if (shown && gs.std === gs.mean) el(g, 'text', { x: 1175, y: 740, 'text-anchor': 'middle', 'font-size': 22, fill: '#444' }, 'A tie: either question gives the same gain.');
 }
 
@@ -178,20 +192,26 @@ const STEPS = [
   { title: 'Which question next, for the windows with std dev above 2.5?', sliders: true, ids: RIGHT, start: { std: 4.9, mean: 10.05 },
     draw: g => split2(g, RIGHT, 'Windows with std dev > 2.5', { lines: [{ f: 'std', t: 2.5 }], regions: [{ x0: FEAT.mean.lo, x1: FEAT.mean.hi, y0: FEAT.std.lo, y1: 2.5, c: 0 }] }) },
   { title: 'What does the finished tree look like?', draw: tree },
+  { title: 'What if the activities overlap?', sliders: true, ids: ALL18, cand: ALL18, start: { std: 2.5, mean: 11.75 },
+    draw: g => split2(g, ALL18, 'All 18 windows', { lines: [], set: WALL, ring: EXTRA.map(w => w.id), strip: true }) },
 ];
 
-// the sliders step through the candidate cuts: every midpoint between neighbouring values over the twelve windows
-['std', 'mean'].forEach(f => { const s = $('s-' + f); s.max = cuts(ALL, f).length - 1; s.addEventListener('input', () => { cut[f] = cuts(ALL, f)[+s.value]; shown = false; draw(); }); });
+// the sliders step through the candidate cuts: every midpoint between neighbouring values over the windows in CAND
+['std', 'mean'].forEach(f => { const s = $('s-' + f); s.addEventListener('input', () => { cut[f] = cuts(CAND, f)[+s.value]; shown = false; draw(); }); });
 let step = Math.max(0, Math.min(STEPS.length - 1, (parseInt(location.hash.slice(1), 10) || 1) - 1));
 function draw() {
   const S = STEPS[step], svg = $('fig'); svg.innerHTML = '';
   $('title').textContent = S.title; $('stepno').textContent = `step ${step + 1} of ${STEPS.length}`;
   $('prev').disabled = step === 0; $('next').disabled = step === STEPS.length - 1;
   $('ctl').classList.toggle('hide', !S.sliders);
-  ['std', 'mean'].forEach(f => { $('s-' + f).value = cuts(ALL, f).indexOf(cut[f]); $('v-' + f).textContent = fmt(cut[f]); });
+  ['std', 'mean'].forEach(f => { const s = $('s-' + f); s.max = cuts(CAND, f).length - 1; s.value = cuts(CAND, f).indexOf(cut[f]); $('v-' + f).textContent = fmt(cut[f]); });
   S.draw(el(svg, 'g', {}));
 }
-function go(s) { step = Math.max(0, Math.min(STEPS.length - 1, s)); const S = STEPS[step]; if (S.start) { cut = { ...S.start }; shown = false; } draw(); history.replaceState(null, '', '#' + (step + 1)); }
+function go(s) {
+  step = Math.max(0, Math.min(STEPS.length - 1, s)); const S = STEPS[step]; CAND = S.cand || ALL;
+  // each step opens on its own cuts, moved to the nearest candidate when the windows change
+  if (S.start) { cut = {}; ['std', 'mean'].forEach(f => cut[f] = cuts(CAND, f).reduce((b, c) => Math.abs(c - S.start[f]) < Math.abs(b - S.start[f]) ? c : b)); shown = false; }
+  draw(); history.replaceState(null, '', '#' + (step + 1)); }
 $('best').onclick = () => { const ids = STEPS[step].ids; cut = { std: bestCut(ids, 'std'), mean: bestCut(ids, 'mean') }; shown = true; draw(); };
 $('prev').onclick = () => go(step - 1); $('next').onclick = () => go(step + 1);
 document.addEventListener('keydown', e => { if (e.target.tagName === 'INPUT') return; if (e.key === 'ArrowRight') go(step + 1); else if (e.key === 'ArrowLeft') go(step - 1); });
