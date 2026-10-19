@@ -101,8 +101,8 @@ const $ = id => document.getElementById(id);
 // the same web app as ch4/spot-the-difference.html; this game uses its rounds 17 to 19. Add ?test or #test for a local test (this browser only).
 const TEST = /(^|[?&#])test\b/.test(location.search + location.hash);
 const API = TEST ? '' : 'https://script.google.com/macros/s/AKfycbwl9bZajvzRGBFQHL9rMPdHwL7kuF76KvjF3JYfCNU7UIzaei5437aBAuwjlYRwin8SLA/exec';
-const BUILD = '2026-10-18a';
-const ROUND = { guess: 17, root: 18, next: 19 };
+const BUILD = '2026-10-19a';
+const ROUND = { guess: 17, root: 17, next: 19 };
 
 // ------------------------------------------------------------ the 16 patients: age (0 <40, 1 40–55, 2 >55), family history (0 no, 1 yes), exercise (0 rarely, 1 regularly), risk (0 low, 1 high)
 const PATIENTS = [[1,1,1,0,1],[2,0,0,0,0],[3,2,0,1,0],[4,1,1,1,0],[5,2,1,0,1],[6,0,1,1,0],[7,1,0,1,0],[8,2,0,0,1],
@@ -159,10 +159,10 @@ const api = {
     return (await fetch(`${API}?action=list&round=${round}&t=${Date.now()}`)).json();
   },
 };
-// votes are answers of the form "vote:<group>.<choice>,...;d=<device>" (the group is empty for the first question); each device's latest vote counts
-function tally(answers) {
+// votes are answers of the form "vote:<group>.<choice>,...;d=<device>" (the group is empty for the first question); each device's latest vote counts, or its earliest with `first`
+function tally(answers, first) {
   const byDev = {};
-  answers.forEach(a => { const m = a.text.match(/^vote:([\w.,]*)(?:;d=(\w+))?/); if (m) byDev[m[2] || a.t] = m[1].split(',').filter(Boolean); });
+  answers.forEach(a => { const m = a.text.match(/^vote:([\w.,]*)(?:;d=(\w+))?/); if (m && !(first && byDev[m[2] || a.t])) byDev[m[2] || a.t] = m[1].split(',').filter(Boolean); });
   const n = {};
   Object.values(byDev).forEach(picks => picks.forEach(p => { const [g, c] = p.includes('.') ? p.split('.') : ['', p]; (n[g] = n[g] || {})[c] = (n[g][c] || 0) + 1; }));
   return { n, voters: Object.keys(byDev).length };
@@ -274,9 +274,9 @@ function projector() {
   const key = (location.hash.match(/key=([^&]+)/) || [])[1] || '';
   let step = Math.max(0, parseInt((location.hash.match(/step=(\d+)/) || [])[1] || '1', 10) - 1);
   let shared = 0;
-  const ans = { 17: [], 18: [], 19: [] }, page = location.origin + location.pathname;
-  // the class's first question: its vote after seeing the splits (else its guess; with no votes at all, the algorithm's, so the page still runs)
-  const classRoot = () => top(tally(ans[18]).n[''], ORDER) || top(tally(ans[17]).n[''], ORDER) || ALGO.attr;
+  const ans = { 17: [], 19: [] }, page = location.origin + location.pathname;
+  // the class's first question: its latest votes, which it may change after seeing the splits (with no votes at all, the algorithm's, so the page still runs)
+  const classRoot = () => top(tally(ans[17]).n[''], ORDER) || ALGO.attr;
   const classTree = withPicks => grow(ALL, ORDER, '', (n, attrs) => {
     const d = depthOf(n);
     if (d === 0) return classRoot();
@@ -285,7 +285,7 @@ function projector() {
   });
   function steps() {
     const gs = groupsUnder(classRoot());
-    return [{ k: 'intro' }, { k: 'guess', round: 17 }, { k: 'root', round: 18 }, ...gs.map((g, i) => ({ k: 'next', round: 19, g, last: i === gs.length - 1 })), { k: 'compare' }];
+    return [{ k: 'intro' }, { k: 'guess', round: 17 }, { k: 'root', round: 17 }, ...gs.map((g, i) => ({ k: 'next', round: 19, g, last: i === gs.length - 1 })), { k: 'compare' }];
   }
   function qrFor(S) {
     const qs = '?phone&q=' + (S.round - 16) + (S.k === 'next' ? '&root=' + S.g.root : '');
@@ -296,12 +296,12 @@ function projector() {
   function drawSide(S) {
     if (S.k === 'compare' || S.k === 'intro') return;
     const opts = S.k === 'next' ? S.g.opts : ORDER, T = tally(ans[S.round]), counts = T.n[S.k === 'next' ? S.g.key : ''] || {};
-    const before = S.k === 'root' ? tally(ans[17]).n[''] || {} : null, mx = Math.max(1, ...opts.map(o => counts[o] || 0));
+    const before = S.k === 'root' ? tally(ans[17], true).n[''] || {} : null, mx = Math.max(1, ...opts.map(o => counts[o] || 0));
     $('wall').innerHTML = '<div class="votes">' + opts.map(o => `<div class="vrow"><span class="vlab">${ATTR[o].name}${before ? `<small>first guess ${before[o] || 0}</small>` : ''}</span>
       <span class="vtrack"><span class="vbar" style="width:${100 * (counts[o] || 0) / mx}%"></span></span><span class="vn">${counts[o] || 0}</span></div>`).join('') + '</div>';
     $('pcount').textContent = `${T.voters} vote${T.voters === 1 ? '' : 's'}`;
     $('ask').innerHTML = S.k === 'guess' ? 'Which question would you ask first?<br>Vote on your phone.'
-      : S.k === 'root' ? 'Which question would you ask first?<br>Vote again on your phone.'
+      : S.k === 'root' ? 'Which question would you ask first?<br>Change your vote on your phone if you wish.'
       : 'Which question would you ask next?<br>Vote for each group on your phone.';
   }
   function drawLeft(S) {
@@ -341,7 +341,7 @@ function projector() {
   async function poll() {
     try {
       let changed = false;
-      await Promise.all([17, 18, 19].map(async r => { const a = ((await api.list(r)).answers || []).sort((p, o) => p.t - o.t); if (a.length !== ans[r].length) changed = true; ans[r] = a; }));
+      await Promise.all([17, 19].map(async r => { const a = ((await api.list(r)).answers || []).sort((p, o) => p.t - o.t); if (a.length !== ans[r].length) changed = true; ans[r] = a; }));
       if (changed) show();
       $('status').textContent = API ? 'live' : 'test mode (this browser only)';
     }
