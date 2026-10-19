@@ -90,6 +90,7 @@ const find = (n, path) => n.path === path ? n : (n.kids || []).map(k => find(k.n
 const describe = path => { const seg = path.split('/').filter(Boolean).map(s => [s.replace(/\d$/, ''), +s.slice(-1)]);
   return ['age', 'ex', 'fh'].map(a => seg.find(q => q[0] === a)).filter(Boolean).map(([a, v]) => ATTR[a].group[v]).join(' '); };   // age first reads naturally: under 40 who exercise rarely
 const tally = ids => `${hi(ids)} High, ${ids.length - hi(ids)} Low`;
+const terms = ids => { const n = ids.length, a = hi(ids); return [a, n - a].filter(c => c).map((c, i) => `${i ? '− ' : '−'}(${c}/${n}) log₂(${c}/${n})`); };
 const working = ids => { const n = ids.length, a = hi(ids); return [a, n - a].filter(c => c).map((c, i) => `${i ? ' − ' : '−'}(${c}/${n}) log₂(${c}/${n})`).join(''); };
 
 function chips(g, ids, x, y, w, s) {
@@ -141,20 +142,23 @@ function drawTree(g, tree, x, y, w, h, s, cur) {
 
 // ------------------------------------------------------------ one candidate question at a group: its branches, each branch's entropy, the weighted average and the gain
 function candidate(g, ids, a, x, y, h, opts) {
-  const lw = 210, W = 1000, parts = split(ids, a), n = parts.length, gap = 14, bw = (W - lw - gap * (n - 1)) / n, bh = Math.min(h - 86, 170);
-  y += (h - 86 - bh) / 2; h = bh + 86;   // short boxes, centred in the row, when a row has room to spare
+  const lw = 210, W = 1000, parts = split(ids, a), n = parts.length, gap = 14, bw = (W - lw - gap * (n - 1)) / n, bh = Math.min(h - 112, 170);
+  y += (h - 112 - bh) / 2; h = bh + 112;   // short boxes, centred in the row, when a row has room to spare
   el(g, 'text', { x, y: y + h / 2 + 4, 'font-size': 27, 'font-weight': opts.best ? 700 : 400, fill: '#222' }, ATTR[a].q);
   parts.forEach((p, v) => {
     const bx = x + lw + v * (bw + gap);
     el(g, 'text', { x: bx + bw / 2, y: y + 24, 'text-anchor': 'middle', 'font-size': 22, fill: '#666', 'font-weight': 700 }, ATTR[a].vals[v]);
     el(g, 'rect', { x: bx, y: y + 34, width: bw, height: bh, rx: 8, fill: '#fafafa', stroke: '#dcdcdc', 'stroke-width': 1.5 });
     chips(g, p, bx + 10, y + 44, bw - 20, 1.05);
-    el(g, 'text', { x: bx + bw / 2, y: y + 34 + bh + 30, 'text-anchor': 'middle', 'font-size': 23, 'font-style': 'italic', fill: '#222' }, p.length ? `H = ${f3(H(p))}` : 'empty');
+    // the branch's entropy worked out, one term per line
+    const t = terms(p), last = t.length - 1;
+    if (!p.length) el(g, 'text', { x: bx + bw / 2, y: y + 34 + bh + 28, 'text-anchor': 'middle', 'font-size': 19, fill: '#666' }, 'empty');
+    else t.forEach((s, j) => el(g, 'text', { x: bx + bw / 2, y: y + 34 + bh + 26 + j * 26, 'text-anchor': 'middle', 'font-size': 18, 'font-style': 'italic', fill: '#222' }, (j ? '' : 'H = ') + s + (j === last ? ` = ${f3(H(p))}` : '')));
   });
   // the arithmetic, to the right
-  const N = ids.length, terms = parts.filter(p => p.length).map(p => `(${p.length}/${N})(${f3(H(p))})`).join(' + ');
+  const N = ids.length, sum = parts.filter(p => p.length).map(p => `(${p.length}/${N})(${f3(H(p))})`).join(' + ');
   const cx = 1250, top = y + h / 2 - 46;
-  el(g, 'text', { x: cx, y: top, 'text-anchor': 'middle', 'font-size': 21, fill: '#444' }, terms);
+  el(g, 'text', { x: cx, y: top, 'text-anchor': 'middle', 'font-size': 21, fill: '#444' }, sum);
   el(g, 'text', { x: cx, y: top + 34, 'text-anchor': 'middle', 'font-size': 23, fill: '#222' }, `weighted entropy = ${f3(weighted(ids, a))}`);
   el(g, 'text', { x: cx, y: top + 74, 'text-anchor': 'middle', 'font-size': 27, 'font-weight': 700, fill: opts.best ? '#c0392b' : '#222' }, `gain = ${f3(H(ids))} − ${f3(weighted(ids, a))} = ${f3(gain(ids, a))}`);
   if (opts.best) { el(g, 'rect', { x: cx - 38, y: top + 92, width: 76, height: 28, rx: 5, fill: '#222' }); el(g, 'text', { x: cx, y: top + 113, 'text-anchor': 'middle', 'font-size': 17, 'font-weight': 700, fill: '#fff' }, 'BEST'); }
@@ -192,7 +196,7 @@ const STEPS = [
       ns.forEach((n, i) => {
         const y = i * h;
         el(g, 'text', { x: 0, y: y + 28, 'font-size': 24, 'font-weight': 700, fill: '#222' }, `Patients ${describe(n.path)}: ${tally(n.ids)}`);
-        el(g, 'text', { x: 1580, y: y + 28, 'text-anchor': 'end', 'font-size': 24, 'font-style': 'italic', fill: '#222' }, `H = ${f3(H(n.ids))}`);
+        el(g, 'text', { x: 1580, y: y + 28, 'text-anchor': 'end', 'font-size': 24, 'font-style': 'italic', fill: '#222' }, `H = ${working(n.ids)} = ${f3(H(n.ids))}`);
         candidate(g, n.ids, n.attr, 0, y + 44, h - 50, { best: false });
         if (i < ns.length - 1) el(g, 'line', { x1: 0, x2: 1580, y1: y + h, y2: y + h, stroke: '#ececec', 'stroke-width': 1.5 });
       });
