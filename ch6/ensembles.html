@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ensemble Learners</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff; --ink: #222222; --ink-2: #666666; --ink-3: #9a9a9a; --rule: #dcdcdc; --grid: #ececec; --ma: #2a78d6;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+  #app { height: 100vh; padding: 10px 14px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 10px; }
+  .head { padding: 4px 16px 0; }
+  h1 { margin: 0; font-size: clamp(24px, 2.4vw, 36px); font-weight: 700; letter-spacing: -0.01em; }
+  .main { user-select: none; -webkit-user-select: none; min-height: 0; border: 1px solid var(--rule); border-radius: 6px; padding: 10px 16px; }
+  .main svg { width: 100%; height: 100%; display: block; }
+  svg text { font-family: var(--sans); }
+  .bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px 18px; border: 1px solid var(--rule); border-radius: 6px; background: #f6f7f9; }
+  button { font: inherit; font-size: 18px; color: var(--ink); background: #fff; border: 1px solid #9a9a9a; border-radius: 6px; padding: 9px 16px; cursor: pointer; }
+  button:hover { border-color: var(--ink); }
+  button:disabled { opacity: .45; cursor: default; }
+  button.primary { background: var(--ma); color: #fff; border-color: var(--ma); font-weight: 700; min-width: 120px; }
+  .ctl { display: inline-flex; align-items: center; gap: 10px; margin-left: 10px; flex: 1; max-width: 640px; }
+  .ctl .lbl { font-family: var(--mono); font-size: 17px; color: var(--ink-2); white-space: nowrap; }
+  .ctl b { font-family: var(--mono); font-size: 18px; color: var(--ma); min-width: 3ch; }
+  input[type=range] { flex: 1; accent-color: var(--ma); height: 26px; }
+  .step { font-family: var(--mono); font-size: 17px; color: var(--ink-2); margin-left: auto; }
+  .hide { display: none !important; }
+</style>
+
+<div id="app">
+  <div class="head"><h1 id="title"></h1></div>
+  <div class="main"><svg id="fig" viewBox="0 0 1600 760"></svg></div>
+  <div class="bar">
+    <button id="prev" title="Previous step (←)">⏮ step</button>
+    <button id="next" title="Next step (→)">step ⏭</button>
+    <button id="play" class="primary" title="Play again (space)">▶ Play</button>
+
+    <span class="step" id="stepno"></span>
+  </div>
+</div>
+
+<script>
+(() => {
+// ------------------------------------------------------------ shared by the chapter 6 pages (built by tools/ch6-pages/build.py)
+const $ = id => document.getElementById(id);
+const NS = 'http://www.w3.org/2000/svg';
+const el = (parent, tag, attrs, text) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; parent.appendChild(e); return e; };
+const BLUE = '#2a78d6', DEEP = '#1d5fae', TINT = '#e8f1fd', GREY = '#9a9a9a', OK = '#1baf7a', BAD = '#d6453d';
+const CLS = { W: { name: 'Walking', col: '#2a78d6' }, R: { name: 'Running', col: '#7a3fb0' } };
+const clamp01 = v => Math.max(0, Math.min(1, v));
+const ease = u => { u = clamp01(u); return u * u * (3 - 2 * u); };
+// a rounded box with centred lines of text; kind is 'data' (grey), 'model' (white, blue edge), 'agg' (blue tint) or 'out' (blue tint, bold)
+function box(g, cx, cy, w, h, lines, kind = 'model', o = {}) {
+  const st = { data: ['#f6f7f9', GREY, '#222', 400], model: ['#fff', BLUE, '#222', 400], agg: [TINT, BLUE, DEEP, 700], out: [TINT, BLUE, DEEP, 700] }[kind];
+  const b = el(g, 'g', { opacity: o.opacity == null ? 1 : o.opacity });
+  el(b, 'rect', { x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 12, fill: o.fill || st[0], stroke: o.stroke || st[1], 'stroke-width': kind === 'out' ? 3 : 2 });
+  const fs = o.fs || 23, n = lines.length;
+  lines.forEach((s, i) => el(b, 'text', { x: cx, y: cy + (o.dy || 0) + (i - (n - 1) / 2) * fs * 1.2 + fs * 0.36, 'text-anchor': 'middle', 'font-size': fs, 'font-weight': o.weight || st[3], fill: o.color || st[2] }, s));
+  return b;
+}
+// an arrow from (x1,y1) to (x2,y2), drawn up to fraction u of its length
+function arrow(g, x1, y1, x2, y2, u = 1, o = {}) {
+  if (u <= 0) return;
+  const x = x1 + (x2 - x1) * u, y = y1 + (y2 - y1) * u, a = Math.atan2(y2 - y1, x2 - x1), col = o.col || '#7a8ea8', w = o.w || 2.5;
+  el(g, 'line', { x1, y1, x2: x - Math.cos(a) * 8, y2: y - Math.sin(a) * 8, stroke: col, 'stroke-width': w, 'stroke-dasharray': o.dash || 'none' });
+  el(g, 'path', { d: `M${x},${y} L${x - Math.cos(a - 0.4) * 15},${y - Math.sin(a - 0.4) * 15} L${x - Math.cos(a + 0.4) * 15},${y - Math.sin(a + 0.4) * 15} Z`, fill: col });
+}
+// the small tree drawn in the book's figures: a root, two inner nodes, four leaves
+function miniTree(g, cx, cy, s, col = BLUE, opacity = 1) {
+  const t = el(g, 'g', { opacity });
+  const P = { r: [0, -1], a: [-0.7, -0.3], b: [0.7, -0.3], l: [[-1, 0.4], [-0.4, 0.4], [0.4, 0.4], [1, 0.4]] }, X = p => cx + p[0] * s, Y = p => cy + p[1] * s;
+  [[P.r, P.a], [P.r, P.b], [P.a, P.l[0]], [P.a, P.l[1]], [P.b, P.l[2]], [P.b, P.l[3]]].forEach(([p, q]) => el(t, 'line', { x1: X(p), y1: Y(p), x2: X(q), y2: Y(q), stroke: col, 'stroke-width': Math.max(1.5, s / 18) }));
+  el(t, 'circle', { cx: X(P.r), cy: Y(P.r), r: s * 0.13, fill: col });
+  [P.a, P.b].forEach(p => el(t, 'circle', { cx: X(p), cy: Y(p), r: s * 0.1, fill: col }));
+  P.l.forEach(p => el(t, 'circle', { cx: X(p), cy: Y(p), r: s * 0.085, fill: col, 'fill-opacity': 0.75 }));
+  return t;
+}
+// a numbered chip for one training window, coloured by its activity
+function chip(g, x, y, id, c, o = {}) {
+  const s = o.s || 1, w = 40 * s, h = 32 * s;
+  const k = el(g, 'g', { opacity: o.opacity == null ? 1 : o.opacity });
+  el(k, 'rect', { x: x - w / 2, y: y - h / 2, width: w, height: h, rx: 6 * s, fill: CLS[c].col, stroke: o.ring || 'none', 'stroke-width': o.ring ? 4 : 0 });
+  el(k, 'text', { x, y: y + 7 * s, 'text-anchor': 'middle', 'font-size': 20 * s, 'font-weight': 700, fill: '#fff' }, id);
+  return k;
+}
+// a seeded random generator, so a page shows the same draw every time it loads
+function rng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+// ------------------------------------------------------------ steps: each has a title, draw(g, t) and T, the length of its animation in seconds
+// `ctl` lists the ids of the bar controls the step shows; Play runs the animation
+let step = 0, t = 0, timer = null, STEPS = [];
+function draw() {
+  const S = STEPS[step], svg = $('fig'); svg.innerHTML = '';
+  $('title').textContent = S.title; $('stepno').textContent = `step ${step + 1} of ${STEPS.length}`;
+  $('prev').disabled = step === 0; $('next').disabled = step === STEPS.length - 1;
+  $('play').classList.toggle('hide', !S.T); $('play').textContent = S.playLabel || '▶ Play';
+  document.querySelectorAll('.ctl').forEach(c => c.classList.toggle('hide', !(S.ctl || []).includes(c.id)));
+  S.draw(el(svg, 'g', {}), t);
+}
+function play() {
+  const S = STEPS[step]; clearInterval(timer); t = 0; if (S.reset) S.reset();
+  if (!S.T) { draw(); return; }
+  const t0 = performance.now();
+  timer = setInterval(() => { t = Math.min(S.T, (performance.now() - t0) / 1000); if (t >= S.T) clearInterval(timer); draw(); }, 30);
+  draw();
+}
+// a step opens at the start of its animation and waits for Play; Back shows it finished
+function go(s, back = false) {
+  clearInterval(timer); step = Math.max(0, Math.min(STEPS.length - 1, s)); history.replaceState(null, '', '#' + (step + 1));
+  if (STEPS[step].enter) STEPS[step].enter();
+  t = back ? STEPS[step].T || 0 : 0; draw();
+}
+function start() {
+  $('prev').onclick = () => go(step - 1, true); $('next').onclick = () => go(step + 1); $('play').onclick = () => play();
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT') return;
+    if (e.key === 'ArrowRight') go(step + 1); else if (e.key === 'ArrowLeft') go(step - 1, true);
+    else if (e.key === ' ' && STEPS[step].T) { e.preventDefault(); play(); }
+  });
+  go((parseInt(location.hash.slice(1), 10) || 1) - 1);
+}
+
+// ------------------------------------------------------------ one page for the book's section on ensembles: the mechanism, the four strategies,
+// then each strategy in turn, introduced by the overview with its box picked out
+const DATA = 'WWRWRRWWRW'.split('').map((c, i) => ({ id: i + 1, c }));
+
+// ------------------------------------------------------------ Figure 6.1: the same input to three models, their votes, the majority
+const VOTES = [['W', true], ['R', false], ['W', true]];   // the three models' predictions for an input that is truly Walking
+function mechanism(g, t) {
+  const IN = [200, 380], MX = 600, MY = [235, 380, 525], VX = 1230, OX = 1480;
+  box(g, IN[0], IN[1], 220, 110, ['New input'], 'data', { fs: 26 });
+  el(g, 'text', { x: IN[0], y: IN[1] + 90, 'text-anchor': 'middle', 'font-size': 21, fill: '#666' }, 'truly Walking');
+  MY.forEach((y, i) => {
+    arrow(g, IN[0] + 110, IN[1], MX - 110, y, ease(t / 1));
+    box(g, MX, y, 220, 90, [`Model ${i + 1}`], 'model', { fs: 26, opacity: clamp01(t / 0.6) });
+    const [c, ok] = VOTES[i], show = clamp01((t - 1.2 - 0.25 * i) / 0.4);
+    el(el(g, 'g', { opacity: show }), 'text', { x: MX + 135, y: y + 10, 'font-size': 28, 'font-weight': 700, fill: ok ? OK : BAD }, `${CLS[c].name} ${ok ? '✓' : '✗'}`);
+    // each vote into the side of the vote box, at its own height, so the arrows stay shallow
+    arrow(g, MX + 310, y, VX - 122, IN[1] + (i - 1) * 55, ease((t - 2.2) / 0.8));
+  });
+  const tally = clamp01((t - 3.0) / 0.5);
+  box(g, VX, IN[1], 240, 190, ['Majority vote'], 'agg', { fs: 26, dy: -36 * tally });
+  const tl = el(g, 'g', { opacity: tally });
+  [['W', 2], ['R', 1]].forEach(([c, n], k) => el(tl, 'text', { x: VX, y: IN[1] + 30 + k * 34, 'text-anchor': 'middle', 'font-size': 23, fill: CLS[c].col, 'font-weight': 700 }, `${CLS[c].name}: ${n}`));
+  arrow(g, VX + 120, IN[1], OX - 90, IN[1], ease((t - 3.6) / 0.6));
+  box(g, OX, IN[1], 170, 90, ['Walking'], 'out', { fs: 28, opacity: clamp01((t - 4.1) / 0.4) });
+}
+
+// ------------------------------------------------------------ Figure 6.2: four ways to make the models different; `pick` picks one out
+const KINDS = [
+  ['Bagging', 'different data:', ['bootstrap each', 'model’s training set']],
+  ['Boosting', 'different focus:', ['each model emphasizes', 'previous errors']],
+  ['Stacking', 'different types:', ['a meta-learner combines', 'diverse base models']],
+  ['Mixture of Experts', 'different regions:', ['a gate routes each', 'input to specialists']]];
+function overview(g, t, pick = -1) {
+  box(g, 800, 170, 440, 120, ['Ensembles', 'combine many models'], 'agg', { fs: 28 });
+  KINDS.forEach(([name, how, rest], i) => {
+    const x = 230 + i * 380, u = pick >= 0 ? 1 : clamp01((t - 0.3 - 0.5 * i) / 0.5), on = pick === i, dim = pick >= 0 && !on;
+    arrow(g, 800, 230, x, 400, ease(u), on ? { col: BLUE, w: 4 } : {});
+    const k = el(g, 'g', { opacity: dim ? 0.3 * u : u });
+    box(k, x, 450, 320, 100, name === 'Mixture of Experts' ? ['Mixture of', 'Experts'] : [name], 'model', { fs: 28, weight: 700, color: DEEP, fill: on ? TINT : null });
+    if (on) el(k, 'rect', { x: x - 166, y: 394, width: 332, height: 112, rx: 16, fill: 'none', stroke: BLUE, 'stroke-width': 5 });
+    el(k, 'text', { x, y: 550, 'text-anchor': 'middle', 'font-size': 24, 'font-weight': 700, fill: '#222' }, how);
+    rest.forEach((s, j) => el(k, 'text', { x, y: 588 + j * 32, 'text-anchor': 'middle', 'font-size': 22, fill: '#444' }, s));
+  });
+}
+
+// ------------------------------------------------------------ bagging: the bootstrap sample, then Figure 6.3
+const draws = (seed, n = DATA.length) => { const r = rng(seed); return Array.from({ length: n }, () => Math.floor(r() * DATA.length)); };
+let seed = 3, played = false;
+// ten draws from the ten windows; every window stays in the training data, so it can be drawn again
+function bootstrap(g, t) {
+  const pick = draws(seed), X = i => 330 + i * 120, Y0 = 250, Y1 = 540, dt = 0.6;
+  el(g, 'text', { x: 800, y: 70, 'text-anchor': 'middle', 'font-size': 28, 'font-weight': 700, fill: '#222' }, 'Draw 10 windows at random, putting each one back after it is drawn');
+  el(g, 'text', { x: 40, y: Y0 + 9, 'font-size': 26, 'font-weight': 700, fill: '#222' }, 'Training data');
+  el(g, 'text', { x: 40, y: Y1 + 9, 'font-size': 26, 'font-weight': 700, fill: '#222' }, 'Bootstrap sample');
+  const n = Math.min(pick.length, Math.floor(t / dt + 1e-9)), cur = t > 0 && t < pick.length * dt ? Math.floor(t / dt) : -1, count = DATA.map(() => 0);
+  pick.slice(0, n).forEach(i => count[i]++);
+  const done = t >= pick.length * dt;
+  DATA.forEach((d, i) => {
+    chip(g, X(i), Y0, d.id, d.c, { s: 1.4, ring: i === pick[cur] ? '#222' : null, opacity: done && !count[i] ? 0.3 : 1 });
+    if (n) el(g, 'text', { x: X(i), y: Y0 + 62, 'text-anchor': 'middle', 'font-size': 23, 'font-weight': count[i] > 1 ? 700 : 400, fill: count[i] ? '#222' : '#9a9a9a' }, `×${count[i]}`);
+    el(g, 'rect', { x: X(i) - 30, y: Y1 - 24, width: 60, height: 48, rx: 8, fill: 'none', stroke: '#c9c9c9', 'stroke-width': 2, 'stroke-dasharray': '6 5' });   // the empty slots of the sample
+  });
+  pick.forEach((i, k) => {
+    const u = ease((t - k * dt) / (dt * 0.75)); if (u <= 0) return;
+    chip(g, X(i) + (X(k) - X(i)) * u, Y0 + (Y1 - Y0) * u, DATA[i].id, DATA[i].c, { s: 1.4 });
+  });
+}
+function bagging(g, t) {
+  const DX = 170, BX = 560, TX = 950, AX = 1235, OX = 1480, YS = [150, 380, 610], CY = 380;
+  box(g, DX, CY, 200, 120, ['Training', 'data'], 'data', { fs: 26 });
+  YS.forEach((y, k) => {
+    arrow(g, DX + 100, CY, BX - 190, y, ease(t / 0.8));
+    const b = el(g, 'g', { opacity: clamp01((t - 0.6) / 0.4) });
+    box(b, BX, y, 370, 120, [`Bootstrap ${k + 1}`], 'data', { fs: 24, dy: -28 });
+    draws(11 + k).sort((p, q) => p - q).forEach((i, j) => chip(b, BX - 162 + j * 36, y + 24, DATA[i].id, DATA[i].c, { s: 0.78 }));
+    arrow(g, BX + 185, y, TX - 85, y, ease((t - 1.2) / 0.6));
+    const tr = el(g, 'g', { opacity: clamp01((t - 1.6) / 0.4) });
+    box(tr, TX, y, 170, 120, [`Tree ${k + 1}`], 'model', { fs: 23, dy: 32 });
+    miniTree(tr, TX, y - 10, 30);
+    arrow(g, TX + 85, y, AX - 125, CY + (k - 1) * 40, ease((t - 2.2) / 0.6));
+  });
+  box(g, AX, CY, 250, 130, ['Aggregate', '(vote or average)'], 'agg', { fs: 24, opacity: clamp01((t - 2.6) / 0.4) });
+  arrow(g, AX + 125, CY, OX - 95, CY, ease((t - 3.0) / 0.5));
+  box(g, OX, CY, 180, 110, ['Final', 'prediction'], 'out', { fs: 25, opacity: clamp01((t - 3.4) / 0.4) });
+}
+
+// ------------------------------------------------------------ boosting: Figure 6.4, a sequence of models, each trained with the previous mistakes weighted up
+const WRONG = [[3, 7, 9], [2, 9], [5]];
+const WEIGHTS = [DATA.map(() => 1)];
+WRONG.slice(0, 2).forEach((w, k) => WEIGHTS.push(WEIGHTS[k].map((v, i) => w.includes(i + 1) ? v * 2 : v)));
+const BDX = 110, MX = [370, 680, 990], SX = 1245, BOX_ = 1475, CY = 230;
+// the windows a model is trained on, in a panel of their own under it, sized by their weight; its mistakes ringed in red once u reaches 1
+function windows(g, k, grow, u) {
+  el(g, 'rect', { x: MX[k] - 140, y: 345, width: 280, height: 210, rx: 12, fill: '#f6f7f9', stroke: '#d4d8de', 'stroke-width': 2 });
+  el(g, 'line', { x1: MX[k], y1: CY + 65, x2: MX[k], y2: 345, stroke: '#d4d8de', 'stroke-width': 2, 'stroke-dasharray': '5 5' });
+  DATA.forEach((d, i) => {
+    const w = 1 + (WEIGHTS[k][i] - 1) * grow, x = MX[k] - 108 + (i % 5) * 54, y = 395 + Math.floor(i / 5) * 66, bad = u >= 1 && WRONG[k].includes(d.id);
+    chip(g, x, y, d.id, d.c, { s: 0.72 * Math.pow(w, 0.3), ring: bad ? BAD : null });
+  });
+  if (u >= 1) el(g, 'text', { x: MX[k], y: 590, 'text-anchor': 'middle', 'font-size': 22, 'font-weight': 700, fill: BAD }, `wrong: ${WRONG[k].join(', ')}`);
+}
+function model(g, k, u) {
+  const b = el(g, 'g', { opacity: clamp01(u) });
+  box(b, MX[k], CY, 200, 130, [`Model ${k + 1}`], 'model', { fs: 24, dy: 36 });
+  miniTree(b, MX[k], CY - 12, 32);
+}
+// stage 1: the first model; stage 2: reweighting and the next two models; stage 3: the weighted sum
+function sequence(stage) {
+  return (g, t) => {
+    box(g, BDX, CY, 180, 120, ['Training', 'data'], 'data', { fs: 25 });
+    const at = (s, t0) => stage > s ? 99 : stage === s ? t - t0 : -1;   // time into a stage already shown, current, or still to come
+    const t1 = at(1, 0);
+    arrow(g, BDX + 90, CY, MX[0] - 100, CY, ease(t1 / 0.6)); model(g, 0, (t1 - 0.4) / 0.4);
+    if (t1 > 0.8) windows(g, 0, 0, (t1 - 1.6) / 0.01);
+    [1, 2].forEach(k => {
+      const tk = at(2, (k - 1) * 2.6); if (tk < 0) return;
+      const mid = (MX[k - 1] + MX[k]) / 2;
+      arrow(g, MX[k - 1] + 100, CY, MX[k] - 100, CY, ease(tk / 0.6), { col: BAD });
+      el(g, 'text', { x: mid, y: CY - 46, 'text-anchor': 'middle', 'font-size': 21, 'font-weight': 700, fill: BAD, opacity: clamp01(tk / 0.4) }, 'reweight');
+      el(g, 'text', { x: mid, y: CY - 20, 'text-anchor': 'middle', 'font-size': 21, 'font-weight': 700, fill: BAD, opacity: clamp01(tk / 0.4) }, 'errors');
+      model(g, k, (tk - 0.4) / 0.4);
+      if (tk > 0.6) windows(g, k, ease((tk - 0.6) / 1.0), (tk - 2.0) / 0.01);
+    });
+    const t3 = at(3, 0); if (t3 < 0) return;
+    arrow(g, MX[2] + 100, CY, SX - 90, CY, ease(t3 / 0.5));
+    // the earlier models feed the sum as well (dashed, as in the book)
+    [0, 1].forEach(k => { const u = clamp01((t3 - 0.3) / 0.6); if (u <= 0) return;
+      // down from under the model's windows, along below every panel, then up into the sum
+      const yb = 690 - k * 40, f = el(g, 'g', { opacity: u }), xs = SX - 20 + k * 40;
+      el(f, 'path', { d: `M${MX[k]},606 V${yb} H${xs} V${CY + 82}`, fill: 'none', stroke: '#7a8ea8', 'stroke-width': 2.5, 'stroke-dasharray': '9 7', 'stroke-linejoin': 'round' });
+      arrow(f, xs, CY + 100, xs, CY + 66, 1); });
+    box(g, SX, CY, 180, 130, ['Weighted', 'sum'], 'agg', { fs: 25, opacity: clamp01((t3 - 0.4) / 0.4) });
+    arrow(g, SX + 90, CY, BOX_ - 80, CY, ease((t3 - 1.2) / 0.5));
+    box(g, BOX_, CY, 160, 120, ['Final', 'prediction'], 'out', { fs: 23, opacity: clamp01((t3 - 1.6) / 0.4) });
+  };
+}
+
+// ------------------------------------------------------------ stacking (the book's text; no figure there): three kinds of model, their predictions, a meta-classifier
+// small pictures of each model family: a tree, a network, a logistic curve
+function netIcon(g, cx, cy, s) {
+  const L = [[-1, [-0.6, 0, 0.6]], [0, [-0.9, -0.3, 0.3, 0.9]], [1, [0]]];
+  L.slice(0, 2).forEach(([x, ys], li) => ys.forEach(y => L[li + 1][1].forEach(y2 => el(g, 'line', { x1: cx + x * s, y1: cy + y * s, x2: cx + L[li + 1][0] * s, y2: cy + y2 * s, stroke: BLUE, 'stroke-width': 1.3, 'stroke-opacity': 0.6 }))));
+  L.forEach(([x, ys]) => ys.forEach(y => el(g, 'circle', { cx: cx + x * s, cy: cy + y * s, r: s * 0.16, fill: BLUE })));
+}
+function curveIcon(g, cx, cy, s) {
+  let d = ''; for (let i = 0; i <= 40; i++) { const x = -1.2 + 2.4 * i / 40, y = 1 / (1 + Math.exp(-5 * x)); d += (i ? 'L' : 'M') + (cx + x * s).toFixed(1) + ',' + (cy + (0.5 - y) * 1.6 * s).toFixed(1); }
+  el(g, 'line', { x1: cx - 1.3 * s, x2: cx + 1.3 * s, y1: cy + 0.85 * s, y2: cy + 0.85 * s, stroke: '#9a9a9a', 'stroke-width': 1.5 });
+  el(g, 'path', { d, fill: 'none', stroke: BLUE, 'stroke-width': 3 });
+}
+const BASE = [['Decision tree', miniTree, ['W', true]], ['Neural network', netIcon, ['W', true]], ['Logistic regression', curveIcon, ['R', false]]];
+function stacking(g, t) {
+  const DX = 170, MX = 560, PX = 860, KX = 1180, OX = 1470, YS = [170, 380, 590], CY = 380;
+  box(g, DX, CY, 200, 120, ['Training', 'data'], 'data', { fs: 26 });
+  YS.forEach((y, k) => {
+    const [name, icon, [c, ok]] = BASE[k];
+    arrow(g, DX + 100, CY, MX - 130, y, ease(t / 0.8));
+    const b = el(g, 'g', { opacity: clamp01((t - 0.5) / 0.4) });
+    box(b, MX, y, 260, 130, [name], 'model', { fs: 23, dy: 36 });
+    icon(b, MX, y - 14, 30);
+    const p = el(g, 'g', { opacity: clamp01((t - 1.2 - 0.25 * k) / 0.4) });
+    el(p, 'text', { x: PX, y: y + 10, 'text-anchor': 'middle', 'font-size': 27, 'font-weight': 700, fill: CLS[c].col }, CLS[c].name);
+    arrow(g, MX + 130, y, PX - 75, y, ease((t - 1.0) / 0.5));
+    arrow(g, PX + 75, y, KX - 130, CY + (k - 1) * 45, ease((t - 2.2) / 0.7));
+  });
+  // the meta-classifier takes the three predictions as its input features
+  box(g, KX, CY, 260, 150, ['Meta-classifier'], 'agg', { fs: 26, dy: -24, opacity: clamp01((t - 2.8) / 0.4) });
+  el(el(g, 'g', { opacity: clamp01((t - 2.8) / 0.4) }), 'text', { x: KX, y: CY + 36, 'text-anchor': 'middle', 'font-size': 20, fill: DEEP }, 'learns whom to trust');
+  arrow(g, KX + 130, CY, OX - 85, CY, ease((t - 3.4) / 0.5));
+  box(g, OX, CY, 170, 110, ['Final', 'prediction'], 'out', { fs: 25, opacity: clamp01((t - 3.8) / 0.4) });
+}
+
+// ------------------------------------------------------------ mixture of experts (the book's text; no figure there): a gate weighs the experts for each input
+// two inputs in turn; the gate sends most of each one to a different expert, shown by the width of its arrow
+const ROUTE = [{ name: 'Input A', w: [0.8, 0.15, 0.05] }, { name: 'Input B', w: [0.05, 0.15, 0.8] }];
+let which = 0, moePlayed = false;
+function experts(g, t) {
+  const IX = 160, GX = 470, EX = 870, CX = 1210, OX = 1470, YS = [170, 380, 590], CY = 380, R = ROUTE[which];
+  box(g, IX, CY, 190, 110, [R.name], 'data', { fs: 27 });
+  arrow(g, IX + 95, CY, GX - 110, CY, ease(t / 0.5));
+  box(g, GX, CY, 220, 120, ['Gating', 'network'], 'agg', { fs: 25, opacity: clamp01((t - 0.3) / 0.4) });
+  YS.forEach((y, k) => {
+    const w = R.w[k], u = ease((t - 0.9) / 0.7), on = w >= 0.5;
+    arrow(g, GX + 110, CY, EX - 120, y, u, { col: on ? BLUE : '#9fb0c4', w: 1.5 + 12 * w });
+    // the weight beside its arrow, just before the expert
+    el(el(g, 'g', { opacity: u }), 'text', { x: EX - 175, y: y + (y < CY ? 52 : y > CY ? -40 : -14), 'text-anchor': 'end', 'font-size': 23, 'font-weight': 700, fill: on ? DEEP : '#7a8ea8' }, w.toFixed(2));
+    box(g, EX, y, 240, 110, [`Expert ${k + 1}`], 'model', { fs: 25, fill: on && t > 1.6 ? TINT : null, stroke: on ? BLUE : null });
+    arrow(g, EX + 120, y, CX - 115, CY + (k - 1) * 45, ease((t - 1.8) / 0.6), { col: on ? BLUE : '#9fb0c4', w: 1.5 + 12 * w });
+  });
+  box(g, CX, CY, 230, 130, ['Weighted', 'combination'], 'agg', { fs: 24, opacity: clamp01((t - 2.4) / 0.4) });
+  arrow(g, CX + 115, CY, OX - 85, CY, ease((t - 2.9) / 0.5));
+  box(g, OX, CY, 170, 110, ['Final', 'prediction'], 'out', { fs: 25, opacity: clamp01((t - 3.3) / 0.4) });
+}
+
+STEPS = [
+  { title: 'How does an ensemble combine several models?', T: 4.6, draw: mechanism },
+  { title: 'How can we make the models different from each other?', T: 2.4, draw: overview },
+  { title: 'How does bagging make the models different?', draw: (g, t) => overview(g, t, 0) },
+  { title: 'What is a bootstrap sample?', T: 6.6, draw: bootstrap, playLabel: '▶ Draw',
+    enter() { seed = 3; played = false; }, reset() { if (played) seed++; played = true; } },
+  { title: 'How does bagging combine trees trained on different bootstrap samples?', T: 3.9, draw: bagging },
+  { title: 'How does boosting make the models different?', draw: (g, t) => overview(g, t, 1) },
+  { title: 'What does the first model get wrong?', T: 1.8, draw: sequence(1) },
+  { title: 'How does the next model focus on those mistakes?', T: 5.0, draw: sequence(2) },
+  { title: 'How does boosting combine the models?', T: 2.1, draw: sequence(3) },
+  { title: 'How does stacking make the models different?', draw: (g, t) => overview(g, t, 2) },
+  { title: 'How does stacking combine different types of models?', T: 4.2, draw: stacking },
+  { title: 'How does a mixture of experts make the models different?', draw: (g, t) => overview(g, t, 3) },
+  { title: 'How does the gating network route each input?', T: 3.7, draw: experts, playLabel: '▶ Input A',
+    enter() { which = 0; moePlayed = false; this.playLabel = '▶ Input A'; },
+    reset() { if (moePlayed) which = 1 - which; moePlayed = true; this.playLabel = `▶ ${ROUTE[1 - which].name}`; } },   // each Play sends the other input
+];
+start();
+
+})();
+</script>
+</body>
+</html>
