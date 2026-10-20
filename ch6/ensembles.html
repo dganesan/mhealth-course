@@ -99,7 +99,7 @@ let step = 0, t = 0, timer = null, STEPS = [];
 function draw() {
   const S = STEPS[step], svg = $('fig'); svg.innerHTML = '';
   $('title').textContent = S.title; $('stepno').textContent = `step ${step + 1} of ${STEPS.length}`;
-  $('prev').disabled = step === 0; $('next').disabled = step === STEPS.length - 1;
+  $('prev').disabled = step === 0; $('next').disabled = step === STEPS.length - 1 && (!S.T || t >= S.T);
   $('play').classList.toggle('hide', !S.T); $('play').textContent = S.playLabel || '▶ Play';
   document.querySelectorAll('.ctl').forEach(c => c.classList.toggle('hide', !(S.ctl || []).includes(c.id)));
   S.draw(el(svg, 'g', {}), t);
@@ -118,10 +118,12 @@ function go(s, back = false) {
   t = back ? STEPS[step].T || 0 : 0; draw();
 }
 function start() {
-  $('prev').onclick = () => go(step - 1, true); $('next').onclick = () => go(step + 1); $('play').onclick = () => play();
+  // stepping forward first shows the end of the current step's animation, then moves on
+  const fwd = () => { const S = STEPS[step]; if (S.T && t < S.T) { clearInterval(timer); t = S.T; draw(); } else go(step + 1); };
+  $('prev').onclick = () => go(step - 1, true); $('next').onclick = fwd; $('play').onclick = () => play();
   document.addEventListener('keydown', e => {
     if (e.target.tagName === 'INPUT') return;
-    if (e.key === 'ArrowRight') go(step + 1); else if (e.key === 'ArrowLeft') go(step - 1, true);
+    if (e.key === 'ArrowRight') fwd(); else if (e.key === 'ArrowLeft') go(step - 1, true);
     else if (e.key === ' ' && STEPS[step].T) { e.preventDefault(); play(); }
   });
   go((parseInt(location.hash.slice(1), 10) || 1) - 1);
@@ -146,7 +148,7 @@ function mechanism(g, t) {
     arrow(g, MX + 310, y, VX - 122, IN[1] + (i - 1) * 55, ease((t - 2.2) / 0.8));
   });
   const tally = clamp01((t - 3.0) / 0.5);
-  box(g, VX, IN[1], 240, 190, ['Majority vote'], 'agg', { fs: 26, dy: -36 * tally });
+  box(g, VX, IN[1], 240, 190, ['Majority vote'], 'agg', { fs: 26, dy: -36 * tally, opacity: clamp01((t - 2.4) / 0.4) });   // appears as the votes arrive
   const tl = el(g, 'g', { opacity: tally });
   [['W', 2], ['R', 1]].forEach(([c, n], k) => el(tl, 'text', { x: VX, y: IN[1] + 30 + k * 34, 'text-anchor': 'middle', 'font-size': 23, fill: CLS[c].col, 'font-weight': 700 }, `${CLS[c].name}: ${n}`));
   arrow(g, VX + 120, IN[1], OX - 90, IN[1], ease((t - 3.6) / 0.6));
