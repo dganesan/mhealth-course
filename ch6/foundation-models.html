@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Foundation Models for Wearable Sensors</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff; --ink: #222222; --ink-2: #666666; --ink-3: #9a9a9a; --rule: #dcdcdc; --grid: #ececec; --ma: #2a78d6;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+  #app { height: 100vh; padding: 10px 14px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 10px; }
+  .head { padding: 4px 16px 0; }
+  h1 { margin: 0; font-size: clamp(24px, 2.4vw, 36px); font-weight: 700; letter-spacing: -0.01em; }
+  .main { user-select: none; -webkit-user-select: none; min-height: 0; border: 1px solid var(--rule); border-radius: 6px; padding: 10px 16px; }
+  .main svg { width: 100%; height: 100%; display: block; }
+  svg text { font-family: var(--sans); }
+  .bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px 18px; border: 1px solid var(--rule); border-radius: 6px; background: #f6f7f9; }
+  button { font: inherit; font-size: 18px; color: var(--ink); background: #fff; border: 1px solid #9a9a9a; border-radius: 6px; padding: 9px 16px; cursor: pointer; }
+  button:hover { border-color: var(--ink); }
+  button:disabled { opacity: .45; cursor: default; }
+  button.primary { background: var(--ma); color: #fff; border-color: var(--ma); font-weight: 700; min-width: 120px; }
+  .ctl { display: inline-flex; align-items: center; gap: 10px; margin-left: 10px; flex: 1; max-width: 640px; }
+  .ctl .lbl { font-family: var(--mono); font-size: 17px; color: var(--ink-2); white-space: nowrap; }
+  .ctl b { font-family: var(--mono); font-size: 18px; color: var(--ma); min-width: 3ch; }
+  input[type=range] { flex: 1; accent-color: var(--ma); height: 26px; }
+  .step { font-family: var(--mono); font-size: 17px; color: var(--ink-2); margin-left: auto; }
+  .hide { display: none !important; }
+</style>
+
+<div id="app">
+  <div class="head"><h1 id="title"></h1></div>
+  <div class="main"><svg id="fig" viewBox="0 0 1600 760"></svg></div>
+  <div class="bar">
+    <button id="prev" title="Previous step (←)">⏮ step</button>
+    <button id="next" title="Next step (→)">step ⏭</button>
+    <button id="play" class="primary" title="Play again (space)">▶ Play</button>
+
+    <span class="step" id="stepno"></span>
+  </div>
+</div>
+
+<script>
+(() => {
+// ------------------------------------------------------------ shared by the chapter 6 pages (built by tools/ch6-pages/build.py)
+const $ = id => document.getElementById(id);
+const NS = 'http://www.w3.org/2000/svg';
+const el = (parent, tag, attrs, text) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; parent.appendChild(e); return e; };
+const BLUE = '#2a78d6', DEEP = '#1d5fae', TINT = '#e8f1fd', GREY = '#9a9a9a', OK = '#1baf7a', BAD = '#d6453d';
+const CLS = { W: { name: 'Walking', col: '#2a78d6' }, R: { name: 'Running', col: '#7a3fb0' } };
+const clamp01 = v => Math.max(0, Math.min(1, v));
+const ease = u => { u = clamp01(u); return u * u * (3 - 2 * u); };
+// a rounded box with centred lines of text; kind is 'data' (grey), 'model' (white, blue edge), 'agg' (blue tint) or 'out' (blue tint, bold)
+function box(g, cx, cy, w, h, lines, kind = 'model', o = {}) {
+  const st = { data: ['#f6f7f9', GREY, '#222', 400], model: ['#fff', BLUE, '#222', 400], agg: [TINT, BLUE, DEEP, 700], out: [TINT, BLUE, DEEP, 700] }[kind];
+  const b = el(g, 'g', { opacity: o.opacity == null ? 1 : o.opacity });
+  el(b, 'rect', { x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 12, fill: o.fill || st[0], stroke: o.stroke || st[1], 'stroke-width': kind === 'out' ? 3 : 2 });
+  const fs = o.fs || 23, n = lines.length;
+  lines.forEach((s, i) => el(b, 'text', { x: cx, y: cy + (o.dy || 0) + (i - (n - 1) / 2) * fs * 1.2 + fs * 0.36, 'text-anchor': 'middle', 'font-size': fs, 'font-weight': o.weight || st[3], fill: o.color || st[2] }, s));
+  return b;
+}
+// an arrow from (x1,y1) to (x2,y2), drawn up to fraction u of its length
+function arrow(g, x1, y1, x2, y2, u = 1, o = {}) {
+  if (u <= 0) return;
+  const x = x1 + (x2 - x1) * u, y = y1 + (y2 - y1) * u, a = Math.atan2(y2 - y1, x2 - x1), col = o.col || '#7a8ea8', w = o.w || 2.5;
+  el(g, 'line', { x1, y1, x2: x - Math.cos(a) * 8, y2: y - Math.sin(a) * 8, stroke: col, 'stroke-width': w, 'stroke-dasharray': o.dash || 'none' });
+  el(g, 'path', { d: `M${x},${y} L${x - Math.cos(a - 0.4) * 15},${y - Math.sin(a - 0.4) * 15} L${x - Math.cos(a + 0.4) * 15},${y - Math.sin(a + 0.4) * 15} Z`, fill: col });
+}
+// the small tree drawn in the book's figures: a root, two inner nodes, four leaves
+function miniTree(g, cx, cy, s, col = BLUE, opacity = 1) {
+  const t = el(g, 'g', { opacity });
+  const P = { r: [0, -1], a: [-0.7, -0.3], b: [0.7, -0.3], l: [[-1, 0.4], [-0.4, 0.4], [0.4, 0.4], [1, 0.4]] }, X = p => cx + p[0] * s, Y = p => cy + p[1] * s;
+  [[P.r, P.a], [P.r, P.b], [P.a, P.l[0]], [P.a, P.l[1]], [P.b, P.l[2]], [P.b, P.l[3]]].forEach(([p, q]) => el(t, 'line', { x1: X(p), y1: Y(p), x2: X(q), y2: Y(q), stroke: col, 'stroke-width': Math.max(1.5, s / 18) }));
+  el(t, 'circle', { cx: X(P.r), cy: Y(P.r), r: s * 0.13, fill: col });
+  [P.a, P.b].forEach(p => el(t, 'circle', { cx: X(p), cy: Y(p), r: s * 0.1, fill: col }));
+  P.l.forEach(p => el(t, 'circle', { cx: X(p), cy: Y(p), r: s * 0.085, fill: col, 'fill-opacity': 0.75 }));
+  return t;
+}
+// a numbered chip for one training window, coloured by its activity
+function chip(g, x, y, id, c, o = {}) {
+  const s = o.s || 1, w = 40 * s, h = 32 * s;
+  const k = el(g, 'g', { opacity: o.opacity == null ? 1 : o.opacity });
+  el(k, 'rect', { x: x - w / 2, y: y - h / 2, width: w, height: h, rx: 6 * s, fill: CLS[c].col, stroke: o.ring || 'none', 'stroke-width': o.ring ? 4 : 0 });
+  el(k, 'text', { x, y: y + 7 * s, 'text-anchor': 'middle', 'font-size': 20 * s, 'font-weight': 700, fill: '#fff' }, id);
+  return k;
+}
+// a seeded random generator, so a page shows the same draw every time it loads
+function rng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+// ------------------------------------------------------------ steps: each has a title, draw(g, t) and T, the length of its animation in seconds
+// `ctl` lists the ids of the bar controls the step shows; Play runs the animation
+let step = 0, t = 0, timer = null, STEPS = [];
+function draw() {
+  const S = STEPS[step], svg = $('fig'); svg.innerHTML = '';
+  $('title').textContent = S.title; $('stepno').textContent = `step ${step + 1} of ${STEPS.length}`;
+  $('prev').disabled = step === 0; $('next').disabled = step === STEPS.length - 1;
+  $('play').classList.toggle('hide', !S.T); $('play').textContent = S.playLabel || '▶ Play';
+  document.querySelectorAll('.ctl').forEach(c => c.classList.toggle('hide', !(S.ctl || []).includes(c.id)));
+  S.draw(el(svg, 'g', {}), t);
+}
+function play() {
+  const S = STEPS[step]; clearInterval(timer); t = 0; if (S.reset) S.reset();
+  if (!S.T) { draw(); return; }
+  const t0 = performance.now();
+  timer = setInterval(() => { t = Math.min(S.T, (performance.now() - t0) / 1000); if (t >= S.T) clearInterval(timer); draw(); }, 30);
+  draw();
+}
+// a step opens at the start of its animation and waits for Play; Back shows it finished
+function go(s, back = false) {
+  clearInterval(timer); step = Math.max(0, Math.min(STEPS.length - 1, s)); history.replaceState(null, '', '#' + (step + 1));
+  if (STEPS[step].enter) STEPS[step].enter();
+  t = back ? STEPS[step].T || 0 : 0; draw();
+}
+function start() {
+  $('prev').onclick = () => go(step - 1, true); $('next').onclick = () => go(step + 1); $('play').onclick = () => play();
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT') return;
+    if (e.key === 'ArrowRight') go(step + 1); else if (e.key === 'ArrowLeft') go(step - 1, true);
+    else if (e.key === ' ' && STEPS[step].T) { e.preventDefault(); play(); }
+  });
+  go((parseInt(location.hash.slice(1), 10) || 1) - 1);
+}
+
+// ------------------------------------------------------------ the book's section on foundation models for wearable sensors: masked pretraining (Figure 6.10),
+// the embedding feeding prediction heads, the embedding as features for a small study, the language-model head search (Figure 6.11), the whole pipeline
+const ORANGE = '#eb6834', OTINT = '#fdebe1';
+// six wearable streams, drawn as made-up but plausible traces over one stretch of time; u runs from 0 to 1
+const STREAMS = [
+  ['accelerometer', u => 0.5 + 0.38 * Math.sin(u * 60) * Math.exp(-((u - 0.3) ** 2) / 0.01) + 0.3 * Math.sin(u * 47) * Math.exp(-((u - 0.75) ** 2) / 0.006) + 0.04 * Math.sin(u * 230)],
+  ['heart rate', u => 0.35 + 0.35 * Math.exp(-((u - 0.32) ** 2) / 0.012) + 0.28 * Math.exp(-((u - 0.77) ** 2) / 0.008) + 0.03 * Math.sin(u * 90)],
+  ['SpO₂', u => 0.62 + 0.05 * Math.sin(u * 40) - 0.12 * Math.exp(-((u - 0.33) ** 2) / 0.01)],
+  ['EDA', u => 0.25 + 0.4 * Math.max(0, Math.min(1, (u - 0.25) * 4)) * Math.exp(-Math.max(0, u - 0.5) * 5) + 0.3 * Math.exp(-((u - 0.8) ** 2) / 0.004)],
+  ['temperature', u => 0.45 + 0.3 * Math.sin(u * Math.PI * 1.6 - 0.6)],
+  ['sleep', u => (u < 0.12 || u > 0.92 ? 0.8 : 0.2)]];
+// the spans blanked out of each stream for pretraining
+const MASK = [[[0.18, 0.34]], [[0.62, 0.8]], [[0.3, 0.46]], [[0.72, 0.88]], [[0.08, 0.24], [0.55, 0.66]], [[0.84, 0.97]]];
+const inMask = (k, u) => MASK[k].some(([a, b]) => u >= a && u <= b);
+// the streams in a panel; mode 'masked' greys out the spans, 'recon' fills them back in, in orange; m fades the change in
+function streams(g, x0, x1, y0, mode, m = 1, labels = true) {
+  const rh = 72, w = x1 - x0;
+  el(g, 'rect', { x: x0 - 14, y: y0 - 16, width: w + 28, height: STREAMS.length * rh + 18, rx: 12, fill: TINT, stroke: BLUE, 'stroke-width': 2 });
+  STREAMS.forEach(([name, f], k) => {
+    const top = y0 + k * rh, Y = u => top + 50 - f(u) * 44;
+    if (labels) el(g, 'text', { x: x0 - 24, y: top + 36, 'text-anchor': 'end', 'font-size': 19, fill: '#555' }, name);   // outside the panel, clear of the masks
+    let d = '', dr = '';
+    for (let i = 0; i <= 200; i++) { const u = i / 200, pt = `${(x0 + u * w).toFixed(1)},${Y(u).toFixed(1)}`;
+      const hid = mode !== 'plain' && inMask(k, u);
+      d += (i && !(hid && mode === 'masked' && m >= 1) ? 'L' : 'M') + pt;
+      if (hid) dr += (inMask(k, (i - 1) / 200) ? 'L' : 'M') + pt; }
+    el(g, 'path', { d, fill: 'none', stroke: '#2a4f7a', 'stroke-width': 2.2 });
+    MASK[k].forEach(([a, b]) => {
+      if (mode === 'masked') el(g, 'rect', { x: x0 + a * w, y: top + 2, width: (b - a) * w, height: 54, rx: 4, fill: '#c3c9d2', opacity: m });
+      if (mode === 'recon') el(g, 'rect', { x: x0 + a * w, y: top + 2, width: (b - a) * w, height: 54, rx: 4, fill: OTINT, opacity: m });
+    });
+    if (mode === 'recon') el(g, 'path', { d: dr, fill: 'none', stroke: ORANGE, 'stroke-width': 3.2, opacity: m });
+  });
+}
+// encoder (narrowing) and decoder (widening), as in the book's figure
+function trap(g, x0, x1, wide, narrow, cy, grows, label, fill, edge, u = 1) {
+  const a = grows ? narrow : wide, b = grows ? wide : narrow;
+  const t = el(g, 'g', { opacity: u });
+  el(t, 'path', { d: `M${x0},${cy - a / 2} L${x1},${cy - b / 2} L${x1},${cy + b / 2} L${x0},${cy + a / 2} Z`, fill, stroke: edge, 'stroke-width': 2.5 });
+  el(t, 'text', { x: (x0 + x1) / 2, y: cy + 9, 'text-anchor': 'middle', 'font-size': 26, 'font-weight': 700, fill: edge, transform: `rotate(-90 ${(x0 + x1) / 2} ${cy})` }, label);
+}
+const EMB = [0.9, 0.35, 0.7, 0.15, 0.55, 0.8, 0.25, 0.6];   // the embedding's shading, cell by cell
+function embedding(g, x, cy, u, vertical = true) {
+  if (u <= 0) return;
+  EMB.forEach((v, i) => { const on = clamp01(u * EMB.length - i);
+    el(g, 'rect', vertical ? { x, y: cy - 140 + i * 35, width: 54, height: 33, fill: BLUE, 'fill-opacity': (0.12 + 0.75 * v) * on } : { x: x + i * 30, y: cy - 15, width: 28, height: 30, fill: BLUE, 'fill-opacity': (0.12 + 0.75 * v) * on }); });
+  el(g, 'rect', vertical ? { x, y: cy - 140, width: 54, height: 280, fill: 'none', stroke: DEEP, 'stroke-width': 2 } : { x, y: cy - 15, width: EMB.length * 30 - 2, height: 30, fill: 'none', stroke: DEEP, 'stroke-width': 2 });
+}
+
+// ------------------------------------------------------------ masked pretraining; with heads, the embedding also feeds the prediction heads
+const L0 = 210, L1 = 560, E0 = 625, E1 = 745, M0 = 785, D0 = 880, D1 = 1000, R0 = 1070, R1 = 1420, CY = 300, SY = 100;
+function pretrain(heads) {
+  return (g, t) => {
+    if (heads) t = 99;
+    el(g, 'text', { x: (L0 + L1) / 2, y: 60, 'text-anchor': 'middle', 'font-size': 26, 'font-weight': 700, fill: DEEP }, 'Wearable signals');
+    streams(g, L0, L1, SY, 'masked', clamp01((t - 0.6) / 0.8));
+    el(g, 'text', { x: (L0 + L1) / 2, y: 580, 'text-anchor': 'middle', 'font-size': 22, 'font-style': 'italic', fill: '#555', opacity: clamp01((t - 0.6) / 0.8) }, 'random spans masked out');
+    arrow(g, L1 + 14, CY, E0, CY, ease((t - 1.6) / 0.4));
+    trap(g, E0, E1, 360, 200, CY, false, 'Encoder', '#dbe6f7', DEEP, clamp01((t - 1.8) / 0.4));
+    arrow(g, E1, CY, M0, CY, ease((t - 2.3) / 0.3));
+    el(g, 'text', { x: M0 + 27, y: CY - 156, 'text-anchor': 'middle', 'font-size': 21, 'font-style': 'italic', fill: DEEP, opacity: clamp01((t - 2.5) / 0.3) }, 'embedding');
+    embedding(g, M0, CY, clamp01((t - 2.5) / 0.8));
+    arrow(g, M0 + 54, CY, D0, CY, ease((t - 3.4) / 0.3));
+    trap(g, D0, D1, 360, 200, CY, true, 'Decoder', OTINT, '#b4521f', clamp01((t - 3.6) / 0.4));
+    arrow(g, D1, CY, R0 - 14, CY, ease((t - 4.1) / 0.3));
+    const r = el(g, 'g', { opacity: clamp01((t - 4.3) / 0.4) });
+    el(r, 'text', { x: (R0 + R1) / 2, y: 60, 'text-anchor': 'middle', 'font-size': 26, 'font-weight': 700, fill: DEEP }, 'Reconstructed');
+    streams(r, R0, R1, SY, 'recon', clamp01((t - 4.7) / 0.8), false);
+    el(r, 'text', { x: (R0 + R1) / 2, y: 580, 'text-anchor': 'middle', 'font-size': 22, 'font-style': 'italic', fill: '#555' }, 'the masked spans are filled back in');
+    if (!heads) return;
+    const h = el(g, 'g', { opacity: clamp01(HT / 0.5) });
+    arrow(h, M0 + 27, CY + 145, M0 + 27, 640, ease(HT / 0.6));
+    box(h, M0 + 27, 690, 640, 90, ['Downstream prediction heads', 'age · cardiovascular risk · hypertension · …'], 'agg', { fs: 23, opacity: clamp01((HT - 0.4) / 0.4) });
+  };
+}
+let HT = 0;   // time into the heads animation
+
+// ------------------------------------------------------------ the embedding as features for a study of two hundred participants
+const COLS = [['embedding', 240], ['age', 90], ['BMI', 90], ['clinical history', 170], ['label', 90]];
+function study(g, t) {
+  // one participant's raw signals through the frozen encoder
+  el(g, 'text', { x: 200, y: 92, 'text-anchor': 'middle', 'font-size': 23, 'font-weight': 700, fill: DEEP }, 'One participant');
+  const s = el(g, 'g', { transform: 'translate(70 120) scale(0.62)' }); streams(s, 0, 420, 0, 'plain', 1, false);
+  arrow(g, 350, 260, 420, 260, ease(t / 0.4));
+  trap(g, 420, 520, 230, 120, 260, false, 'Encoder', '#e7ebf0', '#566', clamp01(t / 0.4));
+  el(g, 'text', { x: 470, y: 410, 'text-anchor': 'middle', 'font-size': 20, 'font-style': 'italic', fill: '#566', opacity: clamp01(t / 0.4) }, 'frozen, pretrained');
+  arrow(g, 520, 260, 600, 260, ease((t - 0.5) / 0.4));
+  embedding(g, 610, 260, clamp01((t - 0.8) / 0.6), false);
+  // the table: one row per participant, the embedding next to the study's own variables
+  const TX = 560, TY = 470, RH = 40, ROWS = ['P1', 'P2', 'P3', 'P4', '…', 'P200'];
+  let x = TX + 70; const cx = COLS.map(([n, w]) => { const c = x; x += w + 10; return c; });
+  const ht = clamp01((t - 1.4) / 0.4);
+  COLS.forEach(([n, w], j) => el(g, 'text', { x: cx[j] + w / 2, y: TY - 14, 'text-anchor': 'middle', 'font-size': 20, 'font-weight': 700, fill: j ? '#444' : DEEP, opacity: ht }, n));
+  arrow(g, 730, 280, cx[0] + 120, TY - 40, ease((t - 1.4) / 0.5));
+  ROWS.forEach((p, r) => {
+    const y = TY + r * RH, u = r === 0 ? clamp01((t - 1.8) / 0.4) : clamp01((t - 2.4 - 0.15 * r) / 0.3), dots = p === '…';
+    const row = el(g, 'g', { opacity: u });
+    el(row, 'text', { x: TX + 40, y: y + 26, 'text-anchor': 'end', 'font-size': 19, fill: '#666', style: 'font-family: var(--mono)' }, p);
+    if (dots) return;
+    const v = rng(7 + r);
+    EMB.forEach((_, i) => el(row, 'rect', { x: cx[0] + i * 30, y: y + 6, width: 28, height: RH - 10, fill: BLUE, 'fill-opacity': 0.12 + 0.75 * (r ? v() : EMB[i]) }));
+    COLS.slice(1).forEach(([n, w], j) => el(row, 'rect', { x: cx[j + 1], y: y + 6, width: w, height: RH - 10, rx: 4, fill: j === 3 ? '#f3e3c8' : '#e3e6ea' }));
+  });
+  const cap = clamp01((t - 3.4) / 0.4);
+  el(g, 'text', { x: cx[1], y: TY + ROWS.length * RH + 34, 'font-size': 20, fill: '#444', opacity: cap }, 'the study’s own data');
+  el(g, 'line', { x1: cx[1], x2: cx[4] + 90, y1: TY + ROWS.length * RH + 8, y2: TY + ROWS.length * RH + 8, stroke: '#9a9a9a', 'stroke-width': 2, opacity: cap });
+}
+
+// ------------------------------------------------------------ the language-model agent searching for a prediction head (Figure 6.11)
+const PROMPT = ['“You are an expert ML engineer. The health dataset gives, for each participant, a foundation-model embedding of their',
+  'wearable signals together with demographic features (age, BMI) and a target label. Write fit_and_predict(X_train, y_train, X_val)',
+  'that trains a model to predict the label from these features and maximizes validation accuracy.”'];
+function glyph(g, kind, cx, cy) {
+  if (kind === 'prompt') [0, 1, 2].forEach(i => el(g, 'rect', { x: cx - 26, y: cy - 16 + i * 12, width: i === 2 ? 34 : 52, height: 6, rx: 3, fill: BLUE }));
+  if (kind === 'agent') { el(g, 'rect', { x: cx - 28, y: cy - 20, width: 56, height: 34, rx: 8, fill: 'none', stroke: BLUE, 'stroke-width': 3 }); el(g, 'text', { x: cx, y: cy + 4, 'text-anchor': 'middle', 'font-size': 18, 'font-weight': 700, fill: BLUE, style: 'font-family: var(--mono)' }, '</>'); }
+  if (kind === 'val') [14, 26, 20, 34].forEach((h, i) => el(g, 'rect', { x: cx - 26 + i * 14, y: cy + 14 - h, width: 10, height: h, fill: BLUE }));
+  if (kind === 'rf') [-26, 0, 26].forEach(dx => miniTree(g, cx + dx, cy, 12));
+}
+function search(g, t) {
+  const Y = 200, XS = [200, 590, 980, 1370], W = 250, H = 120;
+  [['prompt', 'Task prompt'], ['agent', 'LM coding agent'], ['val', 'Run & validate'], ['rf', 'Random forest']].forEach(([k, name], i) => {
+    const u = i === 3 ? clamp01((t - 6.2) / 0.4) : i === 2 ? clamp01((t - 1.6) / 0.3) : clamp01((t - 0.4 * i) / 0.3);
+    const b = el(g, 'g', { opacity: u }); box(b, XS[i], Y, W, H, [name], 'agg', { fs: 24, dy: 30 }); glyph(b, k, XS[i], Y - 22);
+  });
+  arrow(g, XS[0] + W / 2, Y, XS[1] - W / 2, Y, ease((t - 0.4) / 0.4));
+  // the health dataset comes in from below
+  const du = clamp01((t - 0.8) / 0.4);
+  box(g, XS[1], 440, 220, 80, ['Health dataset'], 'data', { fs: 22, opacity: du });
+  arrow(g, XS[1], 400, XS[1], Y + H / 2 + 4, ease((t - 1.0) / 0.4));
+  // writes code, validates, feeds back: three rounds, then the best model goes on
+  const loop = Math.max(0, t - 1.4), round = Math.min(2, Math.floor(loop / 1.5)), ph = (loop - round * 1.5) / 1.5, done = loop >= 4.5;
+  const fwd = done ? 1 : clamp01(ph / 0.45), back = done ? 1 : clamp01((ph - 0.5) / 0.45);
+  arrow(g, XS[1] + W / 2, Y, XS[2] - W / 2, Y, loop > 0 ? fwd : 0);
+  el(g, 'text', { x: (XS[1] + XS[2]) / 2, y: Y - 22, 'text-anchor': 'middle', 'font-size': 20, 'font-style': 'italic', fill: '#555', opacity: clamp01(loop / 0.3) }, 'writes code');
+  if (loop > 0) {
+    const x1 = XS[2] - 40, x2 = XS[1] + 40, yb = Y + H / 2, live = !done && back > 0 && back < 1;
+    el(g, 'path', { d: `M${x1},${yb} C${x1},${yb + 110} ${x2},${yb + 110} ${x2},${yb + 8}`, fill: 'none', stroke: ORANGE, 'stroke-width': live ? 4.5 : 3, 'stroke-dasharray': '9 7', opacity: back > 0 ? 1 : 0.35 });
+    el(g, 'path', { d: `M${x2},${yb + 2} l-9,16 l18,0 Z`, fill: ORANGE, opacity: back > 0 ? 1 : 0.35 });
+    el(g, 'text', { x: (XS[1] + XS[2]) / 2, y: yb + 112, 'text-anchor': 'middle', 'font-size': 20, 'font-style': 'italic', fill: '#b4521f' }, 'validation feedback');
+  }
+  arrow(g, XS[2] + W / 2, Y, XS[3] - W / 2, Y, ease((t - 5.9) / 0.4));
+  el(g, 'text', { x: (XS[2] + XS[3]) / 2, y: Y - 22, 'text-anchor': 'middle', 'font-size': 20, 'font-style': 'italic', fill: '#555', opacity: clamp01((t - 5.9) / 0.3) }, 'best model');
+  // the prompt itself
+  const pu = clamp01(t / 0.4);
+  el(g, 'rect', { x: 60, y: 560, width: 1480, height: 150, rx: 12, fill: '#f6f7f9', stroke: '#dcdcdc', opacity: pu });
+  arrow(g, XS[0], 556, XS[0], Y + H / 2 + 4, pu, { dash: '3 5' });
+  PROMPT.forEach((s, i) => el(g, 'text', { x: 90, y: 610 + i * 36, 'font-size': 21, 'font-style': 'italic', fill: '#333', opacity: pu }, s));
+}
+
+// ------------------------------------------------------------ the complete pipeline, steps a) to d) of the book
+const STAGES = [
+  ['a', 'Representation', 'extraction', ['raw sensor streams go through', 'a frozen, pretrained encoder', 'to give an embedding']],
+  ['b', 'Data', 'combination', ['the embedding joins age, BMI', 'and clinical variables in', 'one row per participant']],
+  ['c', 'Automated', 'model search', ['a language-model assistant', 'writes, validates and', 'refines the code']],
+  ['d', 'Downstream', 'classification head', ['a random forest on the', 'combined features gives', 'the prediction']]];
+function pipeline(g, t) {
+  STAGES.forEach(([k, l1, l2, rest], i) => {
+    const x = 220 + i * 385, u = clamp01((t - 0.9 * i) / 0.5), b = el(g, 'g', { opacity: u });
+    if (i) arrow(g, x - 385 + 160, 300, x - 160, 300, ease((t - 0.9 * i + 0.3) / 0.4));
+    box(b, x, 300, 310, 150, [`${k})  ${l1}`, l2], 'agg', { fs: 26 });
+    rest.forEach((s, j) => el(b, 'text', { x, y: 440 + j * 34, 'text-anchor': 'middle', 'font-size': 22, fill: '#333' }, s));
+  });
+}
+
+STEPS = [
+  { title: 'How is a sensor foundation model pretrained?', T: 5.6, draw: pretrain(false) },
+  { title: 'How is the embedding used once the model is pretrained?', T: 1.0, draw: (g, t) => { HT = t; pretrain(true)(g, t); } },
+  { title: 'How can a small study use the embedding as features?', T: 3.9, draw: study },
+  { title: 'How does a language model choose the classifier?', T: 6.7, draw: search },
+  { title: 'What is the complete pipeline?', T: 3.3, draw: pipeline },
+];
+start();
+
+})();
+</script>
+</body>
+</html>

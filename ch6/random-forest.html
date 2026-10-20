@@ -94,7 +94,7 @@ function chip(g, x, y, id, c, o = {}) {
 function rng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 
 // ------------------------------------------------------------ steps: each has a title, draw(g, t) and T, the length of its animation in seconds
-// `ctl` lists the ids of the bar controls the step shows; Play replays the animation; Back shows a step finished
+// `ctl` lists the ids of the bar controls the step shows; Play runs the animation
 let step = 0, t = 0, timer = null, STEPS = [];
 function draw() {
   const S = STEPS[step], svg = $('fig'); svg.innerHTML = '';
@@ -111,24 +111,33 @@ function play() {
   timer = setInterval(() => { t = Math.min(S.T, (performance.now() - t0) / 1000); if (t >= S.T) clearInterval(timer); draw(); }, 30);
   draw();
 }
-function go(s, animate = true) {
+// a step opens at the start of its animation and waits for Play; Back shows it finished
+function go(s, back = false) {
   clearInterval(timer); step = Math.max(0, Math.min(STEPS.length - 1, s)); history.replaceState(null, '', '#' + (step + 1));
   if (STEPS[step].enter) STEPS[step].enter();
-  if (animate) play(); else { t = STEPS[step].T || 0; draw(); }
+  t = back ? STEPS[step].T || 0 : 0; draw();
 }
 function start() {
-  $('prev').onclick = () => go(step - 1, false); $('next').onclick = () => go(step + 1); $('play').onclick = () => play();
+  $('prev').onclick = () => go(step - 1, true); $('next').onclick = () => go(step + 1); $('play').onclick = () => play();
   document.addEventListener('keydown', e => {
     if (e.target.tagName === 'INPUT') return;
-    if (e.key === 'ArrowRight') go(step + 1); else if (e.key === 'ArrowLeft') go(step - 1, false);
+    if (e.key === 'ArrowRight') go(step + 1); else if (e.key === 'ArrowLeft') go(step - 1, true);
     else if (e.key === ' ' && STEPS[step].T) { e.preventDefault(); play(); }
   });
   go((parseInt(location.hash.slice(1), 10) || 1) - 1);
 }
 
-// ------------------------------------------------------------ the book's Figures 6.5 (one tree and a forest), 6.6 (random feature subsets) and 6.7 (majority voting)
+// ------------------------------------------------------------ the book's section on random forests: the high-level idea (Figure 6.5), the three key ideas
+// (bagging, random feature subsets as in Figure 6.6, majority voting as in Figure 6.7), then the three together
 const DATA = 'WWRWRRWWRW'.split('').map((c, i) => ({ id: i + 1, c }));
 const PANEL = '#f3f7fd';
+// the three key ideas as a row above the figure, the ones a step is about filled in
+const IDEAS = ['1  Bagging', '2  Random feature subsets', '3  Majority voting'];
+function ideas(g, on) {
+  IDEAS.forEach((s, k) => { const x = 330 + k * 330, lit = on.includes(k);
+    el(g, 'rect', { x: x - 150, y: 6, width: 300, height: 40, rx: 20, fill: lit ? BLUE : '#fff', stroke: lit ? BLUE : '#c9d0da', 'stroke-width': 2 });
+    el(g, 'text', { x, y: 33, 'text-anchor': 'middle', 'font-size': 20, 'font-weight': 700, fill: lit ? '#fff' : '#9a9a9a' }, s); });
+}
 function forest(g, t) {
   el(g, 'rect', { x: 50, y: 80, width: 440, height: 580, rx: 14, fill: PANEL, stroke: '#c9d6e8' });
   el(g, 'text', { x: 270, y: 130, 'text-anchor': 'middle', 'font-size': 28, 'font-weight': 700, fill: DEEP }, 'Single decision tree');
@@ -144,7 +153,7 @@ function samples(g, t) {
   el(g, 'rect', { x: 50, y: 315, width: 250, height: 130, rx: 12, fill: '#f6f7f9', stroke: GREY, 'stroke-width': 2 });
   DATA.forEach((d, i) => chip(g, 80 + (i % 5) * 48, 350 + Math.floor(i / 5) * 58, d.id, d.c, { s: 0.95 }));
   for (let k = 0; k < 5; k++) {
-    const y = 110 + k * 132, u = clamp01((t - 0.4 * k) / 0.5), r = rng(seed * 7 + k);
+    const y = 128 + k * 128, u = clamp01((t - 0.4 * k) / 0.5), r = rng(seed * 7 + k);
     arrow(g, 300, 380, 470, y, ease(u));
     const row = el(g, 'g', { opacity: u });
     el(row, 'text', { x: 490, y: y - 32, 'font-size': 21, fill: '#666' }, `Bootstrap ${k + 1}`);
@@ -183,7 +192,7 @@ function features(g, t) {
 // Key idea 3: every tree votes, and the class with the most votes wins
 const TV = ['W', 'W', 'R', 'W', 'R'];
 function voting(g, t) {
-  const IX = 150, TX = 520, VX = 800, AX = 1170, OX = 1460, CY = 380, Y = k => 130 + k * 125;
+  const IX = 150, TX = 520, VX = 800, AX = 1170, OX = 1460, CY = 400, Y = k => 150 + k * 125;
   box(g, IX, CY, 220, 110, ['New', 'example'], 'data', { fs: 26 });
   const tally = { W: 0, R: 0 };
   TV.forEach((c, k) => {
@@ -203,13 +212,42 @@ function voting(g, t) {
   arrow(g, AX + 140, CY, OX - 100, CY, ease((t - 3.8) / 0.5));
   box(g, OX, CY, 200, 100, ['Walking'], 'out', { fs: 30, opacity: clamp01((t - 4.2) / 0.4) });
 }
+// all three together: each tree gets its own bootstrap sample (1), is grown with a random feature subset at every split (2), and votes (3)
+const FLOW = [{ split: ['f3 f7 f8', 'f1 f5 f9', 'f2 f4 f6'], vote: 'W' }, { split: ['f2 f6 f9', 'f3 f4 f10', 'f1 f7 f8'], vote: 'R' }, { split: ['f1 f4 f5', 'f2 f8 f9', 'f3 f6 f10'], vote: 'W' }];
+function flow(g, t) {
+  const DX = 140, BX = 480, TX = 870, VX = 1160, AX = 1330, OX = 1500, YS = [190, 410, 630], CY = 410;
+  ideas(g, [0, 1, 2].filter(k => t >= 0.01 + 1.4 * k));
+  box(g, DX, CY, 190, 120, ['Training', 'data'], 'data', { fs: 25 });
+  YS.forEach((y, k) => {
+    arrow(g, DX + 95, CY, BX - 175, y, ease(t / 0.8));
+    const b = el(g, 'g', { opacity: clamp01((t - 0.5) / 0.4) }), r = rng(31 + k);
+    box(b, BX, y, 340, 110, [`Bootstrap ${k + 1}`], 'data', { fs: 22, dy: -26 });
+    Array.from({ length: 10 }, () => Math.floor(r() * 10)).sort((p, q) => p - q).forEach((i, j) => chip(b, BX - 148 + j * 33, y + 22, DATA[i].id, DATA[i].c, { s: 0.72 }));
+    arrow(g, BX + 170, y, TX - 160, y, ease((t - 1.2) / 0.5));
+    // the tree, its three splits labelled with the features each one may use
+    const tr = el(g, 'g', { opacity: clamp01((t - 1.5) / 0.4) }), N = [[TX, y - 58], [TX - 80, y], [TX + 80, y]];
+    [[0, 1], [0, 2]].forEach(([a, c]) => el(tr, 'line', { x1: N[a][0], y1: N[a][1], x2: N[c][0], y2: N[c][1], stroke: BLUE, 'stroke-width': 3 }));
+    [[1, -110], [1, -50], [2, 50], [2, 110]].forEach(([a, dx]) => { el(tr, 'line', { x1: N[a][0], y1: N[a][1], x2: TX + dx, y2: y + 52, stroke: BLUE, 'stroke-width': 3 }); el(tr, 'circle', { cx: TX + dx, cy: y + 52, r: 8, fill: BLUE, 'fill-opacity': 0.75 }); });
+    N.forEach(([x, yy], j) => { el(tr, 'rect', { x: x - 54, y: yy - 15, width: 108, height: 30, rx: 15, fill: TINT, stroke: BLUE, 'stroke-width': 2 });
+      el(tr, 'text', { x, y: yy + 7, 'text-anchor': 'middle', 'font-size': 16, 'font-weight': 700, fill: DEEP }, FLOW[k].split[j]); });
+    el(tr, 'text', { x: TX, y: y + 90, 'text-anchor': 'middle', 'font-size': 21, 'font-weight': 700, fill: '#222' }, `Tree ${k + 1}`);
+    const u = clamp01((t - 2.9 - 0.3 * k) / 0.4), c = FLOW[k].vote;
+    arrow(g, TX + 150, y, VX - 75, y, ease(u));
+    el(el(g, 'g', { opacity: u }), 'text', { x: VX, y: y + 9, 'text-anchor': 'middle', 'font-size': 25, 'font-weight': 700, fill: CLS[c].col }, CLS[c].name);
+    arrow(g, VX + 70, y, AX - 80, y, ease((t - 3.9) / 0.5));   // straight into the tall vote box
+  });
+  box(g, AX, CY, 160, 540, ['Majority', 'vote'], 'agg', { fs: 24, opacity: clamp01((t - 4.3) / 0.4) });
+  arrow(g, AX + 80, CY, OX - 75, CY, ease((t - 4.7) / 0.4));
+  box(g, OX, CY, 140, 90, ['Walking'], 'out', { fs: 25, opacity: clamp01((t - 5.0) / 0.4) });
+}
 STEPS = [
   { title: 'What is a random forest?', T: 2.4, draw: forest },
-  { title: 'How does each tree get different training data?', T: 2.4, draw: samples, playLabel: '▶ Draw',
+  { title: 'How does each tree get different training data?', T: 2.4, draw: (g, t) => { ideas(g, [0]); samples(g, t); }, playLabel: '▶ Draw',
     enter() { seed = 21; played = false; }, reset() { if (played) seed++; played = true; } },
-  { title: 'Which features can each split consider?', T: 1.6, draw: features, ctl: ['c-mf'], playLabel: '▶ Draw',
+  { title: 'Which features can each split consider?', T: 1.6, draw: (g, t) => { ideas(g, [1]); features(g, t); }, ctl: ['c-mf'], playLabel: '▶ Draw',
     enter() { fseed = 0; mf = 3; $('mf').value = 3; $('v-mf').textContent = 3; played = false; }, reset() { if (played) fseed++; played = true; } },
-  { title: 'How does the forest make a prediction?', T: 4.7, draw: voting },
+  { title: 'How does the forest make a prediction?', T: 4.7, draw: (g, t) => { ideas(g, [2]); voting(g, t); } },
+  { title: 'How do the three ideas work together?', T: 5.4, draw: flow },
 ];
 $('mf').addEventListener('input', () => { mf = +$('mf').value; $('v-mf').textContent = mf; t = STEPS[step].T; draw(); });
 start();
