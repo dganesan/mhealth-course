@@ -123,8 +123,9 @@ function plane(g, X, Y, w, h, opts = {}) {
 // the cut on each feature
 let cut = { std: 2.5, mean: 9.85 }, shown = false, CAND = ALL;   // CAND: the windows whose midpoints are the candidate cuts
 const bestCut = (ids, f) => { const cs = cuts(CAND, f), top = Math.max(...cs.map(c => gain(ids, f, c))); return cs.find(c => gain(ids, f, c) === top); };   // a tie goes to the lower cut
-function panel(g, ids, f, y, best, strip) {
-  const t = cut[f], [L, R] = sides(ids, f, t), N = ids.length, bw = 262, bh = 112, x0 = 760;
+function panel(g, ids, f, y, best) {
+  // the boxes grow with the larger side, five windows to a row
+  const t = cut[f], [L, R] = sides(ids, f, t), N = ids.length, bw = 262, x0 = 760, bh = 20 + Math.max(3, Math.ceil(Math.max(L.length, R.length) / 5)) * 36;
   el(g, 'text', { x: x0, y: y + 30, 'font-size': 28, 'font-weight': 700, fill: '#222' }, `${FEAT[f].short} ≤ ${fmt(t)} ?`);
   [[L, 'yes'], [R, 'no']].forEach(([p, lab], k) => {
     const bx = x0 + k * (bw + 16), by = y + 64;
@@ -137,14 +138,6 @@ function panel(g, ids, f, y, best, strip) {
   el(g, 'text', { x: cx, y: y + 100, 'text-anchor': 'middle', 'font-size': 20, fill: '#444' }, `(${L.length}/${N})(${f3(H(L))}) + (${R.length}/${N})(${f3(H(R))})`);
   el(g, 'text', { x: cx, y: y + 134, 'text-anchor': 'middle', 'font-size': 22, fill: '#222' }, `weighted = ${f3(weighted(ids, f, t))}`);
   el(g, 'text', { x: cx, y: y + 176, 'text-anchor': 'middle', 'font-size': 28, 'font-weight': 700, fill: best ? '#c0392b' : '#222' }, `gain = ${f3(gv)}`);
-  // the gain of every candidate cut on this feature, the current one in black
-  if (strip) {
-    const cs = cuts(CAND, f), lo = cs[0], hi = cs[cs.length - 1], X0 = 770, X1 = 1290, by = y + 312, hh = 70, top = Math.max(...['std', 'mean'].flatMap(q => cuts(CAND, q).map(c => gain(ids, q, c))));   // one scale for both strips
-    const sx = c => X0 + (c - lo) / (hi - lo) * (X1 - X0);
-    el(g, 'line', { x1: X0 - 10, x2: X1 + 10, y1: by, y2: by, stroke: '#9a9a9a', 'stroke-width': 1.5 });
-    cs.forEach(c => { const v = gain(ids, f, c), h = hh * v / top; el(g, 'rect', { x: sx(c) - 5, y: by - h, width: 10, height: h, rx: 2, fill: c === t ? '#222' : '#b9c3cf' }); });
-    el(g, 'text', { x: X1 + 24, y: by - 4, 'font-size': 18, fill: '#666' }, 'gain at each cut');
-  }
   if (best) { el(g, 'rect', { x: cx - 38, y: y + 192, width: 76, height: 28, rx: 5, fill: '#222' }); el(g, 'text', { x: cx, y: y + 213, 'text-anchor': 'middle', 'font-size': 17, 'font-weight': 700, fill: '#fff' }, 'BEST'); }
 }
 // a group to split: the feature plane on the left with both cuts drawn, one panel per feature on the right
@@ -153,10 +146,9 @@ function split2(g, ids, header, extra) {
   el(g, 'text', { x: 1590, y: 28, 'text-anchor': 'end', 'font-size': 23, 'font-style': 'italic', fill: '#222' }, `H = ${f3(H(ids))}`);
   plane(g, 90, 20, 580, 600, { only: ids, set: extra && extra.set, ring: extra && extra.ring, regions: extra && extra.regions, lines: [...(extra ? extra.lines : []), { f: 'std', t: cut.std, label: `std dev ≤ ${fmt(cut.std)}` }, { f: 'mean', t: cut.mean, label: `mean ≤ ${fmt(cut.mean)}` }] });
   const gs = { std: gain(ids, 'std', cut.std), mean: gain(ids, 'mean', cut.mean) }, top = Math.max(gs.std, gs.mean);
-  const st = extra && extra.strip;
-  panel(g, ids, 'std', 60, shown && gs.std === top, st);
+  panel(g, ids, 'std', 60, shown && gs.std === top);
   el(g, 'line', { x1: 760, x2: 1590, y1: 405, y2: 405, stroke: '#ececec', 'stroke-width': 1.5 });
-  panel(g, ids, 'mean', 420, shown && gs.mean === top, st);
+  panel(g, ids, 'mean', 420, shown && gs.mean === top);
   if (shown && gs.std === gs.mean) el(g, 'text', { x: 1175, y: 740, 'text-anchor': 'middle', 'font-size': 22, fill: '#444' }, 'A tie: either question gives the same gain.');
 }
 
@@ -217,11 +209,11 @@ const STEPS = [
       plane(g, 820, 20, 720, 560);
     } },
   { title: 'Which feature, and where should we cut it?', sliders: true, ids: ALL, start: { std: 2.05, mean: 9.85 },
-    draw: g => split2(g, ALL, 'All 18 windows', { lines: [], strip: true }) },
+    draw: g => split2(g, ALL, 'All 18 windows', { lines: [] }) },
   { title: `Which question next, for the windows with mean ≤ ${fmt(TREE.t)}?`, sliders: true, ids: LEFT, start: { std: 3.3, mean: 9.85 },
-    draw: g => split2(g, LEFT, `Windows with mean ≤ ${fmt(TREE.t)}`, { lines: [{ f: 'mean', t: TREE.t }], strip: true }) },
+    draw: g => split2(g, LEFT, `Windows with mean ≤ ${fmt(TREE.t)}`, { lines: [{ f: 'mean', t: TREE.t }] }) },
   { title: `Which question next, for the windows with mean above ${fmt(TREE.t)}?`, sliders: true, ids: RIGHT, start: { std: 3.3, mean: 12.65 },
-    draw: g => split2(g, RIGHT, `Windows with mean > ${fmt(TREE.t)}`, { lines: [{ f: 'mean', t: TREE.t }], strip: true }) },
+    draw: g => split2(g, RIGHT, `Windows with mean > ${fmt(TREE.t)}`, { lines: [{ f: 'mean', t: TREE.t }] }) },
   { title: 'What does the finished tree look like?', draw: tree },
 ];
 
