@@ -41,6 +41,7 @@
   <div class="bar">
     <button id="prev" title="Previous step (←)">⏮ step</button>
     <button id="next" title="Next step (→)">step ⏭</button>
+    <button id="show" class="primary" title="Show the next part (space)"></button>
     <span class="step" id="stepno"></span>
   </div>
 </div>
@@ -191,51 +192,60 @@ function polyPanel(g, X0, deg, name) {
   el(g, 'text', { x: X0 + W / 2, y: Y0 - 12, 'text-anchor': 'middle', 'font-size': 21, fill: '#666' }, `polynomial of degree ${deg}`);
 }
 
-// ------------------------------------------------------------ steps
-const NONE = growTree(TRAIN), D4 = growTree(TRAIN, { maxDepth: 4 }), D3 = growTree(TRAIN, { maxDepth: 3 });
+// ------------------------------------------------------------ steps; a step with `parts` reveals them one at a time with the button
+const D1 = growTree(TRAIN, { maxDepth: 1 }), D4 = growTree(TRAIN, { maxDepth: 4 }), NONE = growTree(TRAIN);
 const CURVE = Array.from({ length: 15 }, (_, i) => { const t = growTree(TRAIN, { maxDepth: i + 1 }); return { d: i + 1, tr: acc(t, TRAIN), te: acc(t, TEST) }; });
+function curves(g, part) {
+  const X0 = 140, X1 = 1500, Y0 = 70, Y1 = 640, sx = d => X0 + (d - 1) / 14 * (X1 - X0), sy = a => Y1 - (a - 0.5) / 0.5 * (Y1 - Y0);
+  for (let a = 0.5; a <= 1.0001; a += 0.1) { el(g, 'line', { x1: X0, x2: X1, y1: sy(a), y2: sy(a), stroke: '#ececec', 'stroke-width': 1.5 }); el(g, 'text', { x: X0 - 14, y: sy(a) + 7, 'text-anchor': 'end', 'font-size': 20, ...mono }, a.toFixed(1)); }
+  CURVE.forEach(c => el(g, 'text', { x: sx(c.d), y: Y1 + 30, 'text-anchor': 'middle', 'font-size': 20, ...mono }, c.d));
+  el(g, 'text', { x: (X0 + X1) / 2, y: Y1 + 66, 'text-anchor': 'middle', 'font-size': 22, fill: '#444', 'font-family': 'Menlo, monospace' }, 'max_depth');
+  el(g, 'text', { x: X0 - 80, y: (Y0 + Y1) / 2, 'text-anchor': 'middle', 'font-size': 22, fill: '#444', transform: `rotate(-90 ${X0 - 80} ${(Y0 + Y1) / 2})` }, 'accuracy');
+  el(g, 'rect', { x: X0, y: Y0, width: X1 - X0, height: Y1 - Y0, fill: 'none', stroke: '#666', 'stroke-width': 1.5 });
+  // first the training windows alone, then the test windows, then the depth that does best on them
+  [['tr', '#222', 'training windows'], ['te', '#c0392b', 'test windows']].slice(0, part >= 1 ? 2 : 1).forEach(([k, col, name], j) => {
+    el(g, 'path', { d: CURVE.map((c, i) => (i ? 'L' : 'M') + sx(c.d) + ' ' + sy(c[k])).join(''), fill: 'none', stroke: col, 'stroke-width': 4 });
+    CURVE.forEach(c => el(g, 'circle', { cx: sx(c.d), cy: sy(c[k]), r: 7, fill: col, stroke: '#fff', 'stroke-width': 2 }));
+    el(g, 'line', { x1: X1 - 330, x2: X1 - 290, y1: Y0 + 40 + j * 40, y2: Y0 + 40 + j * 40, stroke: col, 'stroke-width': 4 });
+    el(g, 'text', { x: X1 - 280, y: Y0 + 47 + j * 40, 'font-size': 22, fill: '#222' }, name);
+  });
+  if (part < 2) return;
+  const best = CURVE.reduce((b, c) => c.te > b.te ? c : b);
+  el(g, 'line', { x1: sx(best.d), x2: sx(best.d), y1: Y0, y2: Y1, stroke: '#c0392b', 'stroke-width': 2, 'stroke-dasharray': '7 6' });
+  el(g, 'text', { x: sx(best.d) + 12, y: Y0 + 30, 'font-size': 22, 'font-weight': 700, fill: '#c0392b' }, `best on test: max_depth = ${best.d}, ${best.te.toFixed(2)}`);
+}
 const STEPS = [
   { title: 'What does overfitting look like?', draw(g) {
       polyPanel(g, 40, 1, 'Underfitting'); polyPanel(g, 565, 3, 'About right'); polyPanel(g, 1090, 9, 'Overfitting');
     } },
-  { title: 'How does a decision tree overfit?', draw(g) {
-      legend(g, 300, 30);
-      [[NONE, 'No limit'], [D4, 'max_depth = 4'], [D3, 'max_depth = 3']].forEach(([t, name], i) => {
+  { title: 'What does the training data look like?', draw(g) {
+      legend(g, 560, 30, false);
+      plane(g, null, 560, 70, 1140, 640);
+    } },
+  { title: 'What does overfitting look like for a decision tree?', draw(g) {
+      legend(g, 300, 30, false);
+      [[D1, 'Underfitting'], [D4, 'About right'], [NONE, 'Overfitting']].forEach(([t, name], i) => {
         const X0 = 90 + i * 515, X1 = X0 + 420;
-        el(g, 'text', { x: (X0 + X1) / 2, y: 92, 'text-anchor': 'middle', 'font-size': 26, 'font-weight': 700, fill: '#222', 'font-family': i ? 'Menlo, monospace' : 'inherit' }, name);
-        el(g, 'text', { x: (X0 + X1) / 2, y: 122, 'text-anchor': 'middle', 'font-size': 19, fill: '#666' }, `${leavesOf(t).length} leaves · depth ${depthOf(t)}`);
+        el(g, 'text', { x: (X0 + X1) / 2, y: 100, 'text-anchor': 'middle', 'font-size': 28, 'font-weight': 700, fill: '#222' }, name);
         plane(g, t, X0, 140, X1, 640, { s: 0.85, r: 5 });
       });
     } },
-  { title: 'How do training and test accuracy change as the tree grows?', draw(g) {
-      const X0 = 140, X1 = 1500, Y0 = 70, Y1 = 640, sx = d => X0 + (d - 1) / 14 * (X1 - X0), sy = a => Y1 - (a - 0.5) / 0.5 * (Y1 - Y0);
-      for (let a = 0.5; a <= 1.0001; a += 0.1) { el(g, 'line', { x1: X0, x2: X1, y1: sy(a), y2: sy(a), stroke: '#ececec', 'stroke-width': 1.5 }); el(g, 'text', { x: X0 - 14, y: sy(a) + 7, 'text-anchor': 'end', 'font-size': 20, ...mono }, a.toFixed(1)); }
-      CURVE.forEach(c => el(g, 'text', { x: sx(c.d), y: Y1 + 30, 'text-anchor': 'middle', 'font-size': 20, ...mono }, c.d));
-      el(g, 'text', { x: (X0 + X1) / 2, y: Y1 + 66, 'text-anchor': 'middle', 'font-size': 22, fill: '#444', 'font-family': 'Menlo, monospace' }, 'max_depth');
-      el(g, 'text', { x: X0 - 80, y: (Y0 + Y1) / 2, 'text-anchor': 'middle', 'font-size': 22, fill: '#444', transform: `rotate(-90 ${X0 - 80} ${(Y0 + Y1) / 2})` }, 'accuracy');
-      el(g, 'rect', { x: X0, y: Y0, width: X1 - X0, height: Y1 - Y0, fill: 'none', stroke: '#666', 'stroke-width': 1.5 });
-      [['tr', '#222', 'training windows'], ['te', '#c0392b', 'test windows']].forEach(([k, col, name], j) => {
-        el(g, 'path', { d: CURVE.map((c, i) => (i ? 'L' : 'M') + sx(c.d) + ' ' + sy(c[k])).join(''), fill: 'none', stroke: col, 'stroke-width': 4 });
-        CURVE.forEach(c => el(g, 'circle', { cx: sx(c.d), cy: sy(c[k]), r: 7, fill: col, stroke: '#fff', 'stroke-width': 2 }));
-        el(g, 'line', { x1: X1 - 330, x2: X1 - 290, y1: Y0 + 40 + j * 40, y2: Y0 + 40 + j * 40, stroke: col, 'stroke-width': 4 });
-        el(g, 'text', { x: X1 - 280, y: Y0 + 47 + j * 40, 'font-size': 22, fill: '#222' }, name);
-      });
-      const best = CURVE.reduce((b, c) => c.te > b.te ? c : b);
-      el(g, 'line', { x1: sx(best.d), x2: sx(best.d), y1: Y0, y2: Y1, stroke: '#c0392b', 'stroke-width': 2, 'stroke-dasharray': '7 6' });
-      el(g, 'text', { x: sx(best.d) + 12, y: Y0 + 30, 'font-size': 22, 'font-weight': 700, fill: '#c0392b' }, `best on test: max_depth = ${best.d}, ${best.te.toFixed(2)}`);
-    } },
+  { title: 'How does accuracy change as the tree grows?', parts: ['Show test accuracy', 'Show the best depth'], draw: curves },
 ];
-
 let step = Math.max(0, Math.min(STEPS.length - 1, (parseInt(location.hash.slice(1), 10) || 1) - 1));
+let part = 0;
 function draw() {
   const S = STEPS[step], svg = $('fig'); svg.innerHTML = '';
+  $('show').classList.toggle('hide', !S.parts || part >= S.parts.length); if (S.parts) $('show').textContent = S.parts[part] || '';
   $('title').textContent = S.title; $('stepno').textContent = `step ${step + 1} of ${STEPS.length}`;
   $('prev').disabled = step === 0; $('next').disabled = step === STEPS.length - 1;
-  S.draw(el(svg, 'g', {}));
+  S.draw(el(svg, 'g', {}), part);
 }
-function go(s) { step = Math.max(0, Math.min(STEPS.length - 1, s)); draw(); history.replaceState(null, '', '#' + (step + 1)); }
-$('prev').onclick = () => go(step - 1); $('next').onclick = () => go(step + 1);
-document.addEventListener('keydown', e => { if (e.key === 'ArrowRight') go(step + 1); else if (e.key === 'ArrowLeft') go(step - 1); });
+function go(s) { step = Math.max(0, Math.min(STEPS.length - 1, s)); part = 0; draw(); history.replaceState(null, '', '#' + (step + 1)); }
+const reveal = () => { const S = STEPS[step]; if (S.parts && part < S.parts.length) { part++; draw(); return true; } return false; };
+$('prev').onclick = () => go(step - 1); $('next').onclick = () => go(step + 1); $('show').onclick = reveal;
+// space reveals the next part; the right arrow does too, before it moves on
+document.addEventListener('keydown', e => { if (e.key === 'ArrowRight') { if (!reveal()) go(step + 1); } else if (e.key === 'ArrowLeft') go(step - 1); else if (e.key === ' ') { e.preventDefault(); reveal(); } });
 draw();
 })();
 </script>

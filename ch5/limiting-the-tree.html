@@ -254,10 +254,60 @@ const PARAMS = [
   ['min_samples_split', 'the fewest windows a node must hold before it may be split'],
   ['min_samples_leaf', 'the fewest windows that every leaf must hold']];
 
+// ------------------------------------------------------------ grid search: every combination of the three values, each scored by 5-fold cross-validation on the training windows
+const GRID = { depth: [1, 2, 3, 4, 5, 6, 7, 8, 15], split: [2, 10, 20, 40], leaf: [1, 2, 5, 10] };
+const FOLD = (() => { let s = 11; const r = () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296, idx = TRAIN.map((_, i) => i);
+  for (let i = idx.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]]; }
+  const f = new Array(TRAIN.length); idx.forEach((i, k) => f[i] = k % 5); return f; })();
+const cvScore = p => { let s = 0; for (let k = 0; k < 5; k++) { const tr = TRAIN.filter((_, i) => FOLD[i] !== k), va = TRAIN.filter((_, i) => FOLD[i] === k); s += acc(growTree(tr, params(p)), va); } return s / 5; };
+let CV = null;
+const cvAll = () => CV || (CV = GRID.split.flatMap(split => GRID.depth.flatMap(depth => GRID.leaf.map(leaf => ({ depth, split, leaf, cv: cvScore({ depth, split, leaf }) })))));
+const gridCodeLines = [
+  ['from sklearn.model_selection import GridSearchCV', 0], ['', 0],
+  ['param_grid = {', 0], ["    'max_depth': [1, 2, 3, 4, 5, 6, 7, 8, None],", 1], ["    'min_samples_split': [2, 10, 20, 40],", 1], ["    'min_samples_leaf': [1, 2, 5, 10],", 1], ['}', 0],
+  ['grid = GridSearchCV(DecisionTreeClassifier(), param_grid,', 0], ["                    cv=5, scoring='accuracy')", 0],
+  ['grid.fit(X_train, y_train)', 0], ['best_clf = grid.best_estimator_', 0]];
+function gridCode(g) {
+  el(g, 'rect', { x: 20, y: 40, width: 1000, height: 600, rx: 10, fill: '#f6f7f9', stroke: '#dcdcdc' });
+  gridCodeLines.forEach(([t, k], i) => el(g, 'text', { x: 50, y: 100 + i * 50, 'xml:space': 'preserve', style: 'white-space: pre', 'font-size': 25, 'font-family': 'Menlo, monospace', fill: k ? '#1d5fae' : '#222', 'font-weight': k ? 700 : 400 }, t));
+  // cv=5: the training windows in five folds; each round holds one fold out to score the tree trained on the other four
+  const X = 1100, Y = 110, W = 440, h = 52;
+  el(g, 'text', { x: X, y: Y - 30, 'font-size': 24, 'font-weight': 700, fill: '#222', 'font-family': 'Menlo, monospace' }, 'cv=5');
+  for (let r = 0; r < 5; r++) for (let k = 0; k < 5; k++) el(g, 'rect', { x: X + k * W / 5 + 3, y: Y + r * (h + 14), width: W / 5 - 6, height: h, rx: 6, fill: k === r ? '#eb6834' : '#2a78d6', opacity: k === r ? 0.9 : 0.35 });
+  [['#2a78d6', 0.35, 'train'], ['#eb6834', 0.9, 'validate']].forEach(([c, o, t], j) => { const x = X + j * 200; el(g, 'rect', { x, y: Y + 5 * (h + 14) + 20, width: 30, height: 24, rx: 4, fill: c, opacity: o }); el(g, 'text', { x: x + 42, y: Y + 5 * (h + 14) + 39, 'font-size': 22, fill: '#444' }, t); });
+}
+// one slice of the grid at a time: max_depth down, min_samples_leaf across, for the min_samples_split on the slider
+const cvMemo = new Map(), cvAt = p => { const k = `${p.depth},${p.split},${p.leaf}`; if (!cvMemo.has(k)) cvMemo.set(k, cvScore(p)); return cvMemo.get(k); };
+function gridResult(g) {
+  const all = cvAll(), best = all.reduce((b, c) => c.cv > b.cv + 1e-12 ? c : b);
+  const cells = GRID.depth.flatMap(depth => GRID.leaf.map(leaf => ({ depth, leaf, cv: cvAt({ depth, split: P.split, leaf }) })));
+  const lo = Math.min(...all.map(c => c.cv)), hi = best.cv, top = Math.max(...cells.map(c => c.cv));
+  const cw = 112, ch = 60, X0 = 190, Y0 = 70;
+  GRID.leaf.forEach((leaf, c) => el(g, 'text', { x: X0 + c * cw + cw / 2, y: Y0 - 14, 'text-anchor': 'middle', 'font-size': 21, ...mono }, leaf));
+  GRID.depth.forEach((depth, r) => {
+    el(g, 'text', { x: X0 - 16, y: Y0 + r * ch + ch / 2 + 8, 'text-anchor': 'end', 'font-size': 21, ...mono }, depth >= 15 ? 'None' : depth);
+    GRID.leaf.forEach((leaf, c) => {
+      const v = cells.find(x => x.depth === depth && x.leaf === leaf).cv, f = (v - lo) / (hi - lo || 1), on = v === top;
+      el(g, 'rect', { x: X0 + c * cw, y: Y0 + r * ch, width: cw - 4, height: ch - 4, rx: 5, fill: `rgba(42,120,214,${(0.06 + 0.8 * f * f).toFixed(3)})`, stroke: on ? '#c0392b' : 'none', 'stroke-width': 4 });
+      el(g, 'text', { x: X0 + c * cw + cw / 2 - 2, y: Y0 + r * ch + ch / 2 + 7, 'text-anchor': 'middle', 'font-size': 21, fill: f > 0.6 ? '#fff' : '#222', 'font-weight': on ? 700 : 400 }, v.toFixed(3));
+    });
+  });
+  el(g, 'text', { x: X0 - 92, y: Y0 + GRID.depth.length * ch / 2, 'text-anchor': 'middle', 'font-size': 22, fill: '#444', 'font-family': 'Menlo, monospace', transform: `rotate(-90 ${X0 - 92} ${Y0 + GRID.depth.length * ch / 2})` }, 'max_depth');
+  el(g, 'text', { x: X0 + GRID.leaf.length * cw / 2, y: Y0 + GRID.depth.length * ch + 36, 'text-anchor': 'middle', 'font-size': 22, fill: '#444', 'font-family': 'Menlo, monospace' }, 'min_samples_leaf');
+  // the best of all the combinations, refit on every training window and scored once on the test windows
+  const t = growTree(TRAIN, params(best)), sh = k => k === 'depth' && best.depth >= 15 ? 'None' : best[k], X = 1000;
+  el(g, 'text', { x: X, y: 110, 'font-size': 24, 'font-weight': 700, fill: '#222' }, `Best of all ${all.length} combinations`);
+  [`max_depth=${sh('depth')}`, `min_samples_split=${sh('split')}`, `min_samples_leaf=${sh('leaf')}`].forEach((s, k) => el(g, 'text', { x: X, y: 160 + k * 42, 'font-size': 25, 'font-weight': 700, fill: '#1d5fae', 'font-family': 'Menlo, monospace' }, s));
+  [['cross-validation accuracy', best.cv], ['test accuracy, refit tree', acc(t, TEST)]].forEach(([n, v], k) => {
+    el(g, 'text', { x: X, y: 330 + k * 90, 'font-size': 22, fill: '#666' }, n);
+    el(g, 'text', { x: X, y: 368 + k * 90, 'font-size': 34, 'font-weight': 700, fill: '#222', 'font-family': 'Menlo, monospace' }, v.toFixed(3));
+  });
+}
+
 // ------------------------------------------------------------ steps; `on` lists the parameters the step is about, `ctl` the sliders shown, `start` the settings a step opens with
 const NOLIMIT = { depth: 15, split: 2, leaf: 1 };
 const STEPS = [
-  { title: 'What does training a decision tree look like in code?', on: [], draw(g) {
+  { title: 'How can we build a tree that does not overfit?', on: [], draw(g) {
       el(g, 'rect', { x: 20, y: 40, width: 880, height: 560, rx: 10, fill: '#f6f7f9', stroke: '#dcdcdc' });
       code.forEach(([s, k], i) => el(g, 'text', { x: 50, y: 100 + i * 50, 'xml:space': 'preserve', style: 'white-space: pre', 'font-size': 27, 'font-family': 'Menlo, monospace', fill: k ? '#1d5fae' : '#222', 'font-weight': k ? 700 : 400 }, s));
       PARAMS.forEach(([n, s], i) => { const y = 120 + i * 170;
@@ -266,11 +316,14 @@ const STEPS = [
     } },
   { title: 'How does max_depth limit the tree?', on: ['depth'], draw: depthDiagram },
   { title: 'What does max_depth do to the decision regions?', on: ['depth'], ctl: ['depth'], start: { ...NOLIMIT, depth: 3 }, draw: viz },
-  { title: 'How does min_samples_split limit the tree?', on: ['split'], ctl: ['split'], start: { ...NOLIMIT, split: 20 }, draw: splitDiagram },
+  // min_samples_split and min_samples_leaf: the whole tree first, then one branch of it close up
   { title: 'What does min_samples_split do to the decision regions?', on: ['split'], ctl: ['split'], start: { ...NOLIMIT, split: 20 }, draw: viz },
-  { title: 'How does min_samples_leaf limit the tree?', on: ['leaf'], ctl: ['leaf'], start: { ...NOLIMIT, leaf: 5 }, draw: leafDiagram },
-  { title: 'What does min_samples_leaf do to the decision regions?', on: ['leaf'], ctl: ['leaf'], start: { ...NOLIMIT, leaf: 10 }, draw: viz },
+  { title: 'What does min_samples_split do inside one branch?', on: ['split'], ctl: ['split'], start: { ...NOLIMIT, split: 20 }, draw: splitDiagram },
+  { title: 'What does min_samples_leaf do to the decision regions?', on: ['leaf'], ctl: ['leaf'], start: { ...NOLIMIT, leaf: 5 }, draw: viz },
+  { title: 'What does min_samples_leaf do inside one branch?', on: ['leaf'], ctl: ['leaf'], start: { ...NOLIMIT, leaf: 5 }, draw: leafDiagram },
   { title: 'What happens when we use all three together?', on: ['depth', 'split', 'leaf'], ctl: ['depth', 'split', 'leaf'], start: { depth: 5, split: 20, leaf: 10 }, draw: viz },
+  { title: 'How do we choose the three values?', on: [], draw: gridCode },
+  { title: 'Which values does the grid search pick?', on: [], ctl: ['split'], start: 'best', draw: gridResult },
 ];
 const show = k => k === 'depth' && P.depth >= 15 ? 'None' : P[k];
 // the classifier call from the Overfitting page, with the parameters this step is about highlighted and the others at their defaults
@@ -291,7 +344,7 @@ function draw() {
   ['depth', 'split', 'leaf'].forEach(k => { $('c-' + k).classList.toggle('hide', !(S.ctl || []).includes(k)); $(k).value = P[k]; $('v-' + k).textContent = show(k); });
   codeLine(S); S.draw(el(svg, 'g', {}));
 }
-function go(s) { step = Math.max(0, Math.min(STEPS.length - 1, s)); P = { ...(STEPS[step].start || NOLIMIT) }; draw(); history.replaceState(null, '', '#' + (step + 1)); }
+function go(s) { step = Math.max(0, Math.min(STEPS.length - 1, s)); P = STEPS[step].start === 'best' ? (b => ({ depth: b.depth, split: b.split, leaf: b.leaf }))(cvAll().reduce((b, c) => c.cv > b.cv + 1e-12 ? c : b)) : { ...(STEPS[step].start || NOLIMIT) }; draw(); history.replaceState(null, '', '#' + (step + 1)); }
 $('prev').onclick = () => go(step - 1); $('next').onclick = () => go(step + 1);
 document.addEventListener('keydown', e => { if (e.target.tagName === 'INPUT') return; if (e.key === 'ArrowRight') go(step + 1); else if (e.key === 'ArrowLeft') go(step - 1); });
 go(step);
