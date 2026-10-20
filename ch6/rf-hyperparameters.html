@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Random Forest Hyperparameters</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff; --ink: #222222; --ink-2: #666666; --ink-3: #9a9a9a; --rule: #dcdcdc; --grid: #ececec; --ma: #2a78d6;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+  #app { height: 100vh; padding: 10px 14px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 10px; }
+  .head { padding: 4px 16px 0; }
+  h1 { margin: 0; font-size: clamp(24px, 2.4vw, 36px); font-weight: 700; letter-spacing: -0.01em; }
+  .main { user-select: none; -webkit-user-select: none; min-height: 0; border: 1px solid var(--rule); border-radius: 6px; padding: 10px 16px; }
+  .main svg { width: 100%; height: 100%; display: block; }
+  svg text { font-family: var(--sans); }
+  .bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px 18px; border: 1px solid var(--rule); border-radius: 6px; background: #f6f7f9; }
+  button { font: inherit; font-size: 18px; color: var(--ink); background: #fff; border: 1px solid #9a9a9a; border-radius: 6px; padding: 9px 16px; cursor: pointer; }
+  button:hover { border-color: var(--ink); }
+  button:disabled { opacity: .45; cursor: default; }
+  button.primary { background: var(--ma); color: #fff; border-color: var(--ma); font-weight: 700; min-width: 120px; }
+  .ctl { display: inline-flex; align-items: center; gap: 10px; margin-left: 10px; flex: 1; max-width: 640px; }
+  .ctl .lbl { font-family: var(--mono); font-size: 17px; color: var(--ink-2); white-space: nowrap; }
+  .ctl b { font-family: var(--mono); font-size: 18px; color: var(--ma); min-width: 3ch; }
+  input[type=range] { flex: 1; accent-color: var(--ma); height: 26px; }
+  .step { font-family: var(--mono); font-size: 17px; color: var(--ink-2); margin-left: auto; }
+  .hide { display: none !important; }
+</style>
+
+<div id="app">
+  <div class="head"><h1 id="title"></h1></div>
+  <div class="main"><svg id="fig" viewBox="0 0 1600 760"></svg></div>
+  <div class="bar">
+    <button id="prev" title="Previous step (←)">⏮ step</button>
+    <button id="next" title="Next step (→)">step ⏭</button>
+    <button id="play" class="primary" title="Play again (space)">▶ Play</button>
+    <span class="ctl" id="c-nest"><span class="lbl">n_estimators</span><input type="range" id="nest" min="0" max="13" step="1"><b id="v-nest"></b></span>
+    <span class="ctl" id="c-mfeat"><span class="lbl">max_features</span><input type="range" id="mfeat" min="1" max="48" step="1"><b id="v-mfeat"></b></span>
+    <span class="step" id="stepno"></span>
+  </div>
+</div>
+
+<script>
+(() => {
+// ------------------------------------------------------------ shared by the chapter 6 pages (built by tools/ch6-pages/build.py)
+const $ = id => document.getElementById(id);
+const NS = 'http://www.w3.org/2000/svg';
+const el = (parent, tag, attrs, text) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; parent.appendChild(e); return e; };
+const BLUE = '#2a78d6', DEEP = '#1d5fae', TINT = '#e8f1fd', GREY = '#9a9a9a', OK = '#1baf7a', BAD = '#d6453d';
+const CLS = { W: { name: 'Walking', col: '#2a78d6' }, R: { name: 'Running', col: '#7a3fb0' } };
+const clamp01 = v => Math.max(0, Math.min(1, v));
+const ease = u => { u = clamp01(u); return u * u * (3 - 2 * u); };
+// a rounded box with centred lines of text; kind is 'data' (grey), 'model' (white, blue edge), 'agg' (blue tint) or 'out' (blue tint, bold)
+function box(g, cx, cy, w, h, lines, kind = 'model', o = {}) {
+  const st = { data: ['#f6f7f9', GREY, '#222', 400], model: ['#fff', BLUE, '#222', 400], agg: [TINT, BLUE, DEEP, 700], out: [TINT, BLUE, DEEP, 700] }[kind];
+  const b = el(g, 'g', { opacity: o.opacity == null ? 1 : o.opacity });
+  el(b, 'rect', { x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 12, fill: o.fill || st[0], stroke: o.stroke || st[1], 'stroke-width': kind === 'out' ? 3 : 2 });
+  const fs = o.fs || 23, n = lines.length;
+  lines.forEach((s, i) => el(b, 'text', { x: cx, y: cy + (o.dy || 0) + (i - (n - 1) / 2) * fs * 1.2 + fs * 0.36, 'text-anchor': 'middle', 'font-size': fs, 'font-weight': o.weight || st[3], fill: o.color || st[2] }, s));
+  return b;
+}
+// an arrow from (x1,y1) to (x2,y2), drawn up to fraction u of its length
+function arrow(g, x1, y1, x2, y2, u = 1, o = {}) {
+  if (u <= 0) return;
+  const x = x1 + (x2 - x1) * u, y = y1 + (y2 - y1) * u, a = Math.atan2(y2 - y1, x2 - x1), col = o.col || '#7a8ea8', w = o.w || 2.5;
+  el(g, 'line', { x1, y1, x2: x - Math.cos(a) * 8, y2: y - Math.sin(a) * 8, stroke: col, 'stroke-width': w, 'stroke-dasharray': o.dash || 'none' });
+  el(g, 'path', { d: `M${x},${y} L${x - Math.cos(a - 0.4) * 15},${y - Math.sin(a - 0.4) * 15} L${x - Math.cos(a + 0.4) * 15},${y - Math.sin(a + 0.4) * 15} Z`, fill: col });
+}
+// the small tree drawn in the book's figures: a root, two inner nodes, four leaves
+function miniTree(g, cx, cy, s, col = BLUE, opacity = 1) {
+  const t = el(g, 'g', { opacity });
+  const P = { r: [0, -1], a: [-0.7, -0.3], b: [0.7, -0.3], l: [[-1, 0.4], [-0.4, 0.4], [0.4, 0.4], [1, 0.4]] }, X = p => cx + p[0] * s, Y = p => cy + p[1] * s;
+  [[P.r, P.a], [P.r, P.b], [P.a, P.l[0]], [P.a, P.l[1]], [P.b, P.l[2]], [P.b, P.l[3]]].forEach(([p, q]) => el(t, 'line', { x1: X(p), y1: Y(p), x2: X(q), y2: Y(q), stroke: col, 'stroke-width': Math.max(1.5, s / 18) }));
+  el(t, 'circle', { cx: X(P.r), cy: Y(P.r), r: s * 0.13, fill: col });
+  [P.a, P.b].forEach(p => el(t, 'circle', { cx: X(p), cy: Y(p), r: s * 0.1, fill: col }));
+  P.l.forEach(p => el(t, 'circle', { cx: X(p), cy: Y(p), r: s * 0.085, fill: col, 'fill-opacity': 0.75 }));
+  return t;
+}
+// a numbered chip for one training window, coloured by its activity
+function chip(g, x, y, id, c, o = {}) {
+  const s = o.s || 1, w = 40 * s, h = 32 * s;
+  const k = el(g, 'g', { opacity: o.opacity == null ? 1 : o.opacity });
+  el(k, 'rect', { x: x - w / 2, y: y - h / 2, width: w, height: h, rx: 6 * s, fill: CLS[c].col, stroke: o.ring || 'none', 'stroke-width': o.ring ? 4 : 0 });
+  el(k, 'text', { x, y: y + 7 * s, 'text-anchor': 'middle', 'font-size': 20 * s, 'font-weight': 700, fill: '#fff' }, id);
+  return k;
+}
+// a seeded random generator, so a page shows the same draw every time it loads
+function rng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+// ------------------------------------------------------------ steps: each has a title, draw(g, t) and T, the length of its animation in seconds
+// `ctl` lists the ids of the bar controls the step shows; Play replays the animation; Back shows a step finished
+let step = 0, t = 0, timer = null, STEPS = [];
+function draw() {
+  const S = STEPS[step], svg = $('fig'); svg.innerHTML = '';
+  $('title').textContent = S.title; $('stepno').textContent = `step ${step + 1} of ${STEPS.length}`;
+  $('prev').disabled = step === 0; $('next').disabled = step === STEPS.length - 1;
+  $('play').classList.toggle('hide', !S.T); $('play').textContent = S.playLabel || '▶ Play';
+  document.querySelectorAll('.ctl').forEach(c => c.classList.toggle('hide', !(S.ctl || []).includes(c.id)));
+  S.draw(el(svg, 'g', {}), t);
+}
+function play() {
+  const S = STEPS[step]; clearInterval(timer); t = 0; if (S.reset) S.reset();
+  if (!S.T) { draw(); return; }
+  const t0 = performance.now();
+  timer = setInterval(() => { t = Math.min(S.T, (performance.now() - t0) / 1000); if (t >= S.T) clearInterval(timer); draw(); }, 30);
+  draw();
+}
+function go(s, animate = true) {
+  clearInterval(timer); step = Math.max(0, Math.min(STEPS.length - 1, s)); history.replaceState(null, '', '#' + (step + 1));
+  if (STEPS[step].enter) STEPS[step].enter();
+  if (animate) play(); else { t = STEPS[step].T || 0; draw(); }
+}
+function start() {
+  $('prev').onclick = () => go(step - 1, false); $('next').onclick = () => go(step + 1); $('play').onclick = () => play();
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT') return;
+    if (e.key === 'ArrowRight') go(step + 1); else if (e.key === 'ArrowLeft') go(step - 1, false);
+    else if (e.key === ' ' && STEPS[step].T) { e.preventDefault(); play(); }
+  });
+  go((parseInt(location.hash.slice(1), 10) || 1) - 1);
+}
+
+// ------------------------------------------------------------ the book's Figures 6.8 (accuracy against n_estimators) and 6.9 (against max_features), and the code that tunes both
+// Built by tools/ch6-rf-data.py with the book's script: HAR windows with 48 features, a 60/40 split, five random seeds.
+const RF = {"n_features":48,"n_estimators":{"x":[1,2,3,5,7,10,15,20,30,50,75,100,150,200],"train":[[0.9678,0.9626,0.9886,0.9958,0.999,0.999,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],[0.9761,0.9626,0.9958,0.9969,0.9969,1.0,0.999,0.999,1.0,1.0,1.0,1.0,1.0,1.0],[0.9751,0.9688,0.9907,0.999,0.9979,0.9979,0.999,0.999,0.999,0.999,1.0,1.0,1.0,1.0],[0.972,0.9699,0.9958,0.9969,0.9979,0.999,1.0,1.0,0.999,1.0,1.0,1.0,1.0,1.0],[0.973,0.9699,0.9917,0.9917,0.999,0.9979,1.0,0.999,1.0,1.0,1.0,1.0,1.0,1.0]],"test":[[0.9097,0.9174,0.9408,0.947,0.9548,0.9595,0.9688,0.9704,0.972,0.9751,0.9751,0.9735,0.9735,0.9735],[0.9346,0.9065,0.933,0.947,0.9579,0.9626,0.9595,0.9657,0.9688,0.9704,0.9704,0.9735,0.972,0.9735],[0.891,0.9003,0.9377,0.9673,0.9735,0.972,0.9751,0.9704,0.9751,0.9766,0.9766,0.9798,0.9782,0.9782],[0.933,0.9408,0.947,0.9642,0.9766,0.9782,0.9766,0.9751,0.9735,0.972,0.9751,0.9751,0.9766,0.9735],[0.9003,0.9003,0.9361,0.9657,0.9642,0.972,0.9704,0.9751,0.972,0.9798,0.9766,0.9782,0.9735,0.9782]]},"max_features":{"x":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48],"train":[[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0],[1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0]],"test":[[0.9704,0.9735,0.9704,0.9735,0.9735,0.9735,0.9782,0.9766,0.972,0.9735,0.9751,0.9751,0.9782,0.9844,0.9735,0.9751,0.9782,0.9798,0.9766,0.9813,0.9798,0.9829,0.9829,0.9798,0.9813,0.9782,0.9782,0.9813,0.9782,0.9798,0.9813,0.9782,0.9766,0.9782,0.9798,0.9782,0.9766,0.9782,0.9798,0.9782,0.9766,0.9782,0.9766,0.9782,0.9751,0.9766,0.9751,0.9766],[0.9704,0.9704,0.9688,0.9704,0.9751,0.9735,0.972,0.9798,0.9751,0.9735,0.9798,0.9735,0.9766,0.9766,0.9782,0.9829,0.9798,0.9829,0.9829,0.9751,0.9844,0.9813,0.9782,0.9798,0.9766,0.9766,0.9829,0.9766,0.9782,0.9782,0.9798,0.9766,0.9704,0.9766,0.9766,0.9735,0.9735,0.9735,0.9751,0.9751,0.972,0.972,0.9735,0.972,0.972,0.972,0.972,0.972],[0.972,0.9735,0.9704,0.9751,0.972,0.9798,0.9766,0.9766,0.9735,0.9751,0.9735,0.9813,0.9751,0.972,0.9798,0.9782,0.9751,0.9782,0.9798,0.9782,0.9782,0.9829,0.9813,0.9813,0.9782,0.9813,0.9798,0.9766,0.9798,0.9782,0.9798,0.9782,0.9782,0.9798,0.9782,0.9751,0.9782,0.9782,0.9766,0.9751,0.9766,0.9798,0.9735,0.9766,0.9766,0.9751,0.9751,0.9751],[0.9751,0.9735,0.9782,0.9704,0.9766,0.9751,0.9782,0.9751,0.972,0.9766,0.9782,0.9751,0.9844,0.9751,0.9766,0.9751,0.9735,0.9782,0.9813,0.9844,0.9829,0.9782,0.9829,0.9829,0.9813,0.9766,0.9813,0.9798,0.9798,0.9813,0.9766,0.9813,0.9782,0.9782,0.9782,0.9766,0.9766,0.9751,0.9798,0.9766,0.9766,0.9751,0.9782,0.9798,0.9766,0.9782,0.9782,0.9751],[0.9688,0.9704,0.972,0.9735,0.9798,0.9782,0.9751,0.9735,0.9766,0.9766,0.9735,0.9735,0.9829,0.9844,0.9813,0.9798,0.9813,0.9798,0.9829,0.9829,0.9813,0.9829,0.9798,0.9798,0.9813,0.9829,0.9813,0.9813,0.9782,0.9782,0.9798,0.9798,0.9813,0.9798,0.9798,0.9751,0.9766,0.9766,0.9766,0.9766,0.9766,0.9766,0.9766,0.9766,0.9735,0.9782,0.9798,0.9766]]}};
+const TRC = '#222', TEC = '#c0392b';
+const stats = rows => rows[0].map((_, j) => { const v = rows.map(r => r[j]), m = v.reduce((a, b) => a + b, 0) / v.length; return { m, s: Math.sqrt(v.reduce((a, b) => a + (b - m) ** 2, 0) / v.length) }; });
+const X0 = 150, X1 = 1130, Y0 = 70, Y1 = 610;
+// training and test accuracy (mean over seeds, with a band of one standard deviation) and the value the slider picks
+function curves(g, D, sx, xticks, xlab, ylo, yhi, ystep, cur, marks, readout) {
+  const sy = v => Y1 - (v - ylo) / (yhi - ylo) * (Y1 - Y0), tr = stats(D.train), te = stats(D.test);
+  for (let v = Math.ceil(ylo / ystep - 1e-9) * ystep; v <= yhi + 1e-9; v += ystep) { el(g, 'line', { x1: X0, x2: X1, y1: sy(v), y2: sy(v), stroke: '#ececec', 'stroke-width': 1.5 }); el(g, 'text', { x: X0 - 14, y: sy(v) + 7, 'text-anchor': 'end', 'font-size': 20, style: 'font-family: var(--mono)', fill: '#666' }, v.toFixed(2)); }
+  xticks.forEach(v => el(g, 'text', { x: sx(v), y: Y1 + 30, 'text-anchor': 'middle', 'font-size': 20, style: 'font-family: var(--mono)', fill: '#666' }, v));
+  el(g, 'path', { d: `M${X0},${Y0}V${Y1}H${X1}`, fill: 'none', stroke: '#666', 'stroke-width': 1.5 });
+  el(g, 'text', { x: (X0 + X1) / 2, y: Y1 + 68, 'text-anchor': 'middle', 'font-size': 22, style: 'font-family: var(--mono)', fill: '#444' }, xlab);
+  el(g, 'text', { x: X0 - 92, y: (Y0 + Y1) / 2, 'text-anchor': 'middle', 'font-size': 22, fill: '#444', transform: `rotate(-90 ${X0 - 92} ${(Y0 + Y1) / 2})` }, 'accuracy');
+  marks.forEach(([v, lab], k) => { el(g, 'line', { x1: sx(v), x2: sx(v), y1: Y0, y2: Y1, stroke: '#9a9a9a', 'stroke-width': 1.5, 'stroke-dasharray': '3 5' }); el(g, 'text', { x: sx(v) + (marks.length > 1 ? (k ? -8 : 8) : 0), y: Y0 - 14, 'text-anchor': marks.length > 1 ? (k ? 'end' : 'start') : 'middle', 'font-size': 19, fill: '#666' }, lab); });
+  [[tr, TRC, 'training'], [te, TEC, 'test']].forEach(([S, col, name]) => {
+    const up = S.map((p, j) => `${sx(D.x[j])},${sy(p.m + p.s)}`), dn = S.map((p, j) => `${sx(D.x[j])},${sy(p.m - p.s)}`).reverse();
+    el(g, 'path', { d: `M${up.join('L')}L${dn.join('L')}Z`, fill: col, 'fill-opacity': 0.13 });
+    el(g, 'path', { d: 'M' + S.map((p, j) => `${sx(D.x[j])},${sy(p.m)}`).join('L'), fill: 'none', stroke: col, 'stroke-width': 3.5, 'stroke-dasharray': name === 'training' ? '10 6' : 'none' });
+    el(g, 'text', { x: X1 + 12, y: sy(S[S.length - 1].m) + 7, 'font-size': 22, 'font-weight': 700, fill: col }, name);
+  });
+  const x = sx(D.x[cur]);
+  el(g, 'line', { x1: x, x2: x, y1: Y0, y2: Y1, stroke: BLUE, 'stroke-width': 2.5 });
+  [[tr, TRC], [te, TEC]].forEach(([S, col]) => el(g, 'circle', { cx: x, cy: sy(S[cur].m), r: 9, fill: col, stroke: '#fff', 'stroke-width': 2.5 }));
+  const RX = 1290;
+  el(g, 'text', { x: RX, y: 150, 'font-size': 24, style: 'font-family: var(--mono)', fill: '#444' }, readout[0]);
+  el(g, 'text', { x: RX, y: 196, 'font-size': 40, 'font-weight': 700, style: 'font-family: var(--mono)', fill: BLUE }, readout[1](D.x[cur]));
+  [['training accuracy', tr, TRC], ['test accuracy', te, TEC]].forEach(([n, S, col], k) => {
+    el(g, 'text', { x: RX, y: 290 + k * 110, 'font-size': 22, fill: '#666' }, n);
+    el(g, 'text', { x: RX, y: 336 + k * 110, 'font-size': 36, 'font-weight': 700, style: 'font-family: var(--mono)', fill: col }, S[cur].m.toFixed(3));
+    el(g, 'text', { x: RX + 132, y: 336 + k * 110, 'font-size': 22, style: 'font-family: var(--mono)', fill: '#666' }, `± ${S[cur].s.toFixed(3)}`);
+  });
+}
+let ni = RF.n_estimators.x.indexOf(100), mfv = 6;
+const lx = v => X0 + (Math.log10(v) - Math.log10(0.8)) / (Math.log10(250) - Math.log10(0.8)) * (X1 - X0);
+const fx = v => X0 + v / (RF.n_features + 1) * (X1 - X0);
+const nest = g => curves(g, RF.n_estimators, lx, [1, 10, 100], 'n_estimators (number of trees)', 0.88, 1.02, 0.02, ni, [[100, 'default 100']], ['n_estimators', v => v]);
+const mfeat = g => curves(g, RF.max_features, fx, [1, 10, 20, 30, 40, 48], `max_features (out of ${RF.n_features} total)`, 0.955, 1.005, 0.01, mfv - 1,
+  [[6, "'sqrt' = 6"], [5, "'log2' = 5"]], ['max_features', v => v]);
+// the book's listing
+const CODE = [
+  ['from sklearn.ensemble import RandomForestClassifier', 0], ['from sklearn.model_selection import GridSearchCV, train_test_split', 0], ['', 0],
+  ['# Note: For real wearable data, split by subject ID (covered in Chapter 7)', 2], ['X_train, X_test, y_train, y_test = train_test_split(', 0], ['    X, y, test_size=0.3, random_state=42)', 0], ['', 0],
+  ['param_grid = {', 0], ["    'n_estimators': [50, 100, 200],", 1], ["    'max_depth': [5, 10, None],         # None = no limit", 0], ["    'max_features': ['sqrt', 'log2'],", 1], ["    'min_samples_split': [2, 5, 10]", 0], ['}', 0], ['', 0],
+  ['grid = GridSearchCV(', 0], ['    RandomForestClassifier(random_state=42),', 0], ["    param_grid, cv=5, scoring='accuracy')", 0], ['grid.fit(X_train, y_train)', 0], ['', 0],
+  ['print(f"Best params: {grid.best_params_}")', 0], ['print(f"Test accuracy: {grid.score(X_test, y_test):.3f}")', 0]];
+function code(g) {
+  el(g, 'rect', { x: 20, y: 14, width: 1560, height: 724, rx: 10, fill: '#f6f7f9', stroke: '#dcdcdc' });
+  CODE.forEach(([s, k], i) => el(g, 'text', { x: 50, y: 50 + i * 32.5, 'xml:space': 'preserve', 'font-size': 23, style: 'white-space: pre; font-family: var(--mono)', fill: k === 1 ? DEEP : k === 2 ? '#888' : '#222', 'font-weight': k === 1 ? 700 : 400 }, s));
+}
+STEPS = [
+  { title: 'How many trees does the forest need?', draw: nest, ctl: ['c-nest'] },
+  { title: 'How many features should each split consider?', draw: mfeat, ctl: ['c-mfeat'] },
+  { title: 'How do we train and tune a random forest in Python?', draw: code },
+];
+const sync = () => { $('nest').value = ni; $('v-nest').textContent = RF.n_estimators.x[ni]; $('mfeat').value = mfv; $('v-mfeat').textContent = mfv; };
+$('nest').addEventListener('input', () => { ni = +$('nest').value; sync(); draw(); });
+$('mfeat').addEventListener('input', () => { mfv = +$('mfeat').value; sync(); draw(); });
+sync(); start();
+
+})();
+</script>
+</body>
+</html>
