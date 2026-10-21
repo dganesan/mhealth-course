@@ -227,7 +227,7 @@ function table(g, ids, x, y, w, rh) {
 // the same web app as ch4/spot-the-difference.html; this game uses its rounds 17 to 19, with its answers tagged "ent:". Add ?test or #test for a local test (this browser only).
 const TEST = /(^|[?&#])test\b/.test(location.search + location.hash);
 const API = TEST ? '' : 'https://script.google.com/macros/s/AKfycbwl9bZajvzRGBFQHL9rMPdHwL7kuF76KvjF3JYfCNU7UIzaei5437aBAuwjlYRwin8SLA/exec';
-const BUILD = '2026-10-21a';
+const BUILD = '2026-10-21b';
 
 // ------------------------------------------------------------ backend: the Apps Script web app, or localStorage in test mode
 const LS = { round: 'el-round', answers: 'el-answers' };   // test mode keeps its own answers
@@ -236,8 +236,9 @@ const today = () => new Date().toISOString().slice(0, 10);
 const session = () => { try { const s = JSON.parse(localStorage.getItem('bt-session') || 'null'); if (s && s.day === today()) return s.id; } catch (_) {} return today(); };
 const newSession = () => { const id = 'r' + Date.now().toString(36); try { localStorage.setItem('bt-session', JSON.stringify({ day: today(), id })); } catch (_) {} return id; };
 // the web app can take several seconds to reply; give up after 15 s so a phone never waits forever
-const getJSON = async url => { const c = new AbortController(), t = setTimeout(() => c.abort(), 15000);
-  try { return await (await fetch(url, { signal: c.signal })).json(); } catch (e) { throw e.name === 'AbortError' ? new Error('no reply in 15 s') : e; } finally { clearTimeout(t); } };
+// a list of answers can take half a minute when the sheet is long, so the projector waits up to 45 s for one
+const getJSON = async (url, ms = 15000) => { const c = new AbortController(), t = setTimeout(() => c.abort(), ms);
+  try { return await (await fetch(url, { signal: c.signal })).json(); } catch (e) { throw e.name === 'AbortError' ? new Error(`no reply in ${ms / 1000} s`) : e; } finally { clearTimeout(t); } };
 const api = {
   async getRound() {
     if (!API) return JSON.parse(localStorage.getItem(LS.round) || '{"round":17}');
@@ -253,7 +254,7 @@ const api = {
   },
   async list(round) {
     if (!API) return { answers: JSON.parse(localStorage.getItem(LS.answers) || '[]').filter(a => a.round === round && a.session === today()) };
-    return getJSON(`${API}?action=list&round=${round}&t=${Date.now()}`);
+    return getJSON(`${API}?action=list&round=${round}&t=${Date.now()}`, 45000);
   },
 };
 
@@ -306,7 +307,7 @@ function projector() {
         else { el(g, 'text', { x: 1150, y: 390, 'text-anchor': 'middle', 'font-size': 29, 'font-style': 'italic', fill: '#222' }, `H = ${working(ALL)}`);
                el(g, 'text', { x: 1150, y: 450, 'text-anchor': 'middle', 'font-size': 36, 'font-weight': 700, 'font-style': 'italic', fill: '#222' }, `= ${f3(H(ALL))}`); }
       } },
-    { title: 'What is the entropy of your group?', round: R.h, task: 'h', reveal: true, ask: 'Work out the entropy of the group on your phone.', draw: (g, r) => branches(g, r) },
+    { title: 'What is the entropy of each branch?', round: R.h, task: 'h', reveal: true, ask: 'Work out the entropy of the group on your phone.', draw: (g, r) => branches(g, r) },
     { title: 'Which weighted sum is right for each question?', round: R.w, task: 'w', reveal: true, ask: 'Pick the right weighted sum for each question.', draw: (g, r) => weightedVote(g, r) },
     { title: 'Which question gives the most information gain?', round: R.g, task: 'g', reveal: true, ask: 'Which question would you ask first?', draw: (g, r) => gainVote(g, r) },
     { title: 'What does the tree look like after the first question?', draw: g => drawTree(g, treeTo(1), 150, 60, 1000, 640, 1.2, null) },
@@ -391,15 +392,17 @@ function projector() {
     const svg = $('left'); svg.innerHTML = ''; S.draw(el(svg, 'g', {}), shown);
     history.replaceState(null, '', '#step=' + (step + 1) + (TEST ? '&test' : ''));
   }
+  // only the round on screen is fetched, one request at a time; a slow or failed reply keeps the answers already shown
   async function poll() {
+    const r = STEPS[step].round; if (!r) return;
     try {
-      let changed = false;
-      await Promise.all([17, 18, 19].map(async r => { const a = ((await api.list(r)).answers || []).filter(x => x.t > since()).sort((p, o) => p.t - o.t); if (a.length !== ans[r].length) changed = true; ans[r] = a; }));
-      if (changed) show();
+      const a = ((await api.list(r)).answers || []).filter(x => x.t > since()).sort((p, o) => p.t - o.t);
+      const changed = a.length !== ans[r].length; ans[r] = a;
+      if (changed && STEPS[step].round === r) show();
       $('status').textContent = API ? 'live' : 'test mode (this browser only)';
-    } catch (e) { $('status').textContent = 'cannot reach the answer sheet'; }
+    } catch (e) { $('status').textContent = 'answer sheet slow to reply, still trying'; }
   }
-  const fwd = () => { const S = STEPS[step]; if (S.reveal && !shown) { shown = 1; show(); } else if (step < STEPS.length - 1) { step++; shown = 0; show(); } };
+  const fwd = () => { const S = STEPS[step]; if (S.reveal && !shown) { shown = 1; show(); } else if (step < STEPS.length - 1) { step++; shown = 0; show(); poll(); } };
   const back = () => { if (shown) { shown = 0; show(); } else if (step > 0) { step--; shown = STEPS[step].reveal ? 1 : 0; show(); } };
   $('next').onclick = fwd; $('prev').onclick = back;
   $('reset').onclick = async () => {
