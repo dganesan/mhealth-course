@@ -358,13 +358,17 @@ function projector() {
   }
   // the three questions with their weighted sums written out, the class's votes, then the gains and the best
   function gainVote(g, r) {
-    const { out } = gAns(), mx = Math.max(1, ...Object.values(out)), rowH = 245, X = 20, bestA = best(ALL, ORDER);
+    const { out } = gAns(), mx = Math.max(1, ...Object.values(out)), rowH = 228, X = 20, bestA = best(ALL, ORDER);
+    // the parent's entropy and each question's weighted entropy are given; the class works out the gains
+    el(g, 'text', { x: X, y: 36, 'font-size': 27, 'font-weight': 700, fill: '#222' }, `All 16 patients: ${tally(ALL)}`);
+    el(g, 'text', { x: 1260, y: 36, 'text-anchor': 'end', 'font-size': 27, 'font-style': 'italic', 'font-weight': 700, fill: '#222' }, `H = ${f3(H(ALL))}`);
+    el(g, 'line', { x1: X, x2: 1260, y1: 56, y2: 56, stroke: '#dcdcdc', 'stroke-width': 2 });
     ORDER.forEach((a, row) => {
-      const y = 10 + row * rowH, cy = y + 110, on = r && a === bestA;
+      const y = 60 + row * rowH, cy = y + 100, on = r && a === bestA;
       el(g, 'text', { x: X, y: cy - 40, 'font-size': 27, 'font-weight': 700, fill: '#222' }, ATTR[a].q);
       el(g, 'text', { x: X, y: cy, 'font-size': 21, 'font-family': 'Menlo, monospace', fill: '#444' }, sums(a)[0]);
-      el(g, 'text', { x: X, y: cy + 38, 'font-size': 23, fill: '#222' }, `weighted entropy = ${r ? f3(weighted(ALL, a)) : Q}`);
-      el(g, 'text', { x: X, y: cy + 78, 'font-size': 26, 'font-weight': 700, fill: on ? '#c0392b' : '#222' }, r ? `gain = ${f3(H(ALL))} − ${f3(weighted(ALL, a))} = ${f3(gain(ALL, a))}` : `gain = ${Q}`);
+      el(g, 'text', { x: X, y: cy + 38, 'font-size': 25, 'font-weight': 700, fill: '#222' }, `weighted entropy = ${f3(weighted(ALL, a))}`);
+      el(g, 'text', { x: X, y: cy + 78, 'font-size': 26, 'font-weight': 700, fill: on ? '#c0392b' : '#222' }, r ? `gain = ${f3(H(ALL))} − ${f3(weighted(ALL, a))} = ${f3(gain(ALL, a))}` : `gain = ${f3(H(ALL))} − ${f3(weighted(ALL, a))} = ${Q}`);
       el(g, 'rect', { x: 860, y: cy - 22, width: 340, height: 44, rx: 5, fill: '#f1f3f6', stroke: on ? '#222' : 'none', 'stroke-width': 3 });
       el(g, 'rect', { x: 860, y: cy - 22, width: 340 * out[a] / mx, height: 44, rx: 5, fill: '#2a78d6' });
       el(g, 'text', { x: 1215, y: cy + 9, 'font-size': 24, 'font-weight': 700, 'font-family': 'Menlo, monospace', fill: '#222' }, out[a]);
@@ -442,7 +446,8 @@ function phone() {
       });
     } else if (round === R.g) {
       $('ftitle').textContent = 'Which question gives the most information gain?';
-      ORDER.forEach(a => { const b = document.createElement('button'); b.type = 'button'; b.className = 'vbtn' + (picked.g === a ? ' on' : ''); b.textContent = ATTR[a].name; b.onclick = () => { picked.g = a; draw(); }; G.appendChild(b); });
+      G.innerHTML = `<p class="big">All 16 patients: H = ${f3(H(ALL))}</p>`;
+      ORDER.forEach(a => { const b = document.createElement('button'); b.type = 'button'; b.className = 'vbtn' + (picked.g === a ? ' on' : ''); b.textContent = `${ATTR[a].name}: weighted entropy ${f3(weighted(ALL, a))}`; b.onclick = () => { picked.g = a; draw(); }; G.appendChild(b); });
     } else $('ftitle').textContent = 'Waiting for the next question…';
   }
   const task = new URLSearchParams(location.search).get('task');
