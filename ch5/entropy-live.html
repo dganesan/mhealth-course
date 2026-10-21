@@ -260,7 +260,7 @@ const api = {
 
 // ------------------------------------------------------------ the live game: three rounds at the root, all answers tagged "ent:" so they never mix with other games
 // round 17: every phone works out the entropy of one branch, "ent:h.<attr><value>=<number>"
-// round 18: the right weighted sum for each question, "ent:w.fh=<k>,age=<k>,ex=<k>" (k: 0 right, 1 plain average, 2 weights swapped, 3 counts as weights)
+// round 18: the right weighted sum for each question, "ent:w.fh=<k>,age=<k>,ex=<k>" (k: 0 right, 1 plain average, 2 weights swapped or plain sum, 3 counts as weights)
 // round 19: the question with the most information gain, "ent:g=<attr>"
 const R = { h: 17, w: 18, g: 19 };
 // each task has its own QR code (?phone&task=h, w or g): the phone goes straight to that task, with no key and no following the projector
@@ -277,7 +277,8 @@ function sums(a) {
   return [
     parts.map((_, i) => `(${n[i]}/${N})(${h[i]})`).join(' + '),
     parts.map((_, i) => `${frac(parts.length)}(${h[i]})`).join(' + '),
-    parts.map((_, i) => `(${n[n.length - 1 - i]}/${N})(${h[i]})`).join(' + '),
+    // swapped weights; when every branch is the same size swapping changes nothing, so the entropies are just added up instead
+    n.every(c => c === n[0]) ? parts.map((_, i) => `(${h[i]})`).join(' + ') : parts.map((_, i) => `(${n[n.length - 1 - i]}/${N})(${h[i]})`).join(' + '),
     parts.map((_, i) => `${n[i]}(${h[i]})`).join(' + ')];
 }
 // each device's latest answer in a round, among the answers of this game
@@ -342,9 +343,10 @@ function projector() {
     ORDER.forEach((a, row) => {
       const y = 10 + row * rowH, S = sums(a), cnt = out[a], mx = Math.max(1, ...cnt);
       el(g, 'text', { x: X, y: y + 30, 'font-size': 27, 'font-weight': 700, fill: '#222' }, ATTR[a].q);
-      el(g, 'text', { x: X, y: y + 62, 'font-size': 19, fill: '#666' }, split(ALL, a).map((p, v) => `${ATTR[a].vals[v]}: ${p.length} patients, H = ${f3(H(p))}`).join('   ·   '));
+      // each branch's size and entropy, beside the question, in a size the back of the room can read
+      el(g, 'text', { x: X + 230, y: y + 30, 'font-size': 25, fill: '#333' }, split(ALL, a).map((p, v) => `${ATTR[a].vals[v]}: ${p.length} patients, H = ${f3(H(p))}`).join('   ·   '));
       ORDER_OPT[a].forEach((k, j) => {
-        const yy = y + 80 + j * 40, ok = r && k === 0;
+        const yy = y + 50 + j * 46, ok = r && k === 0;
         el(g, 'text', { x: X + 10, y: yy + 26, 'font-size': 22, 'font-weight': 700, fill: ok ? '#c0392b' : '#222' }, LETTER[j]);
         el(g, 'text', { x: X + 46, y: yy + 26, 'font-size': 22, 'font-family': 'Menlo, monospace', fill: ok ? '#c0392b' : '#222', 'font-weight': ok ? 700 : 400 }, S[k]);
         el(g, 'rect', { x: 900, y: yy + 6, width: 300, height: 28, rx: 4, fill: '#f1f3f6' });
