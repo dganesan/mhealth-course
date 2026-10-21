@@ -368,7 +368,7 @@ function projector() {
       el(g, 'text', { x: X, y: cy - 40, 'font-size': 27, 'font-weight': 700, fill: '#222' }, ATTR[a].q);
       el(g, 'text', { x: X, y: cy, 'font-size': 21, 'font-family': 'Menlo, monospace', fill: '#444' }, sums(a)[0]);
       el(g, 'text', { x: X, y: cy + 38, 'font-size': 25, 'font-weight': 700, fill: '#222' }, `weighted entropy = ${f3(weighted(ALL, a))}`);
-      el(g, 'text', { x: X, y: cy + 78, 'font-size': 26, 'font-weight': 700, fill: on ? '#c0392b' : '#222' }, r ? `gain = ${f3(H(ALL))} − ${f3(weighted(ALL, a))} = ${f3(gain(ALL, a))}` : `gain = ${f3(H(ALL))} − ${f3(weighted(ALL, a))} = ${Q}`);
+      el(g, 'text', { x: X, y: cy + 78, 'font-size': 26, 'font-weight': 700, fill: on ? '#c0392b' : '#222' }, r ? `gain = ${f3(H(ALL))} − ${f3(weighted(ALL, a))} = ${f3(gain(ALL, a))}` : `gain = ${Q}`);
       el(g, 'rect', { x: 860, y: cy - 22, width: 340, height: 44, rx: 5, fill: '#f1f3f6', stroke: on ? '#222' : 'none', 'stroke-width': 3 });
       el(g, 'rect', { x: 860, y: cy - 22, width: 340 * out[a] / mx, height: 44, rx: 5, fill: '#2a78d6' });
       el(g, 'text', { x: 1215, y: cy + 9, 'font-size': 24, 'font-weight': 700, 'font-family': 'Menlo, monospace', fill: '#222' }, out[a]);
