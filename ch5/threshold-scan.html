@@ -197,7 +197,7 @@ function tree(g) {
 // ------------------------------------------------------------ steps
 const LEFT = ALL.filter(i => win(i).mean <= TREE.t), RIGHT = ALL.filter(i => win(i).mean > TREE.t);
 const STEPS = [
-  { title: 'How mixed are the eighteen windows?', draw(g) {
+  { title: 'How can we deal with numerical features?', draw(g) {
       const cols = [['window', 60], ['mean', 210], ['std dev', 350], ['activity', 500]], rh = 35;
       cols.forEach(([h, x]) => el(g, 'text', { x, y: 26, 'text-anchor': 'middle', 'font-size': 21, 'font-weight': 700, fill: '#666' }, h));
       el(g, 'line', { x1: 0, x2: 600, y1: 38, y2: 38, stroke: '#9a9a9a', 'stroke-width': 1.5 });
