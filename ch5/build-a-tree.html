@@ -147,8 +147,9 @@ const today = () => new Date().toISOString().slice(0, 10);
 const session = () => { try { const s = JSON.parse(localStorage.getItem('bt-session') || 'null'); if (s && s.day === today()) return s.id; } catch (_) {} return today(); };
 const newSession = () => { const id = 'r' + Date.now().toString(36); try { localStorage.setItem('bt-session', JSON.stringify({ day: today(), id })); } catch (_) {} return id; };
 // the web app can take several seconds to reply; give up after 15 s so a phone never waits forever
-const getJSON = async url => { const c = new AbortController(), t = setTimeout(() => c.abort(), 15000);
-  try { return await (await fetch(url, { signal: c.signal })).json(); } catch (e) { throw e.name === 'AbortError' ? new Error('no reply in 15 s') : e; } finally { clearTimeout(t); } };
+// a list of answers can take half a minute when the sheet is long, so the projector waits up to 45 s for one
+const getJSON = async (url, ms = 15000) => { const c = new AbortController(), t = setTimeout(() => c.abort(), ms);
+  try { return await (await fetch(url, { signal: c.signal })).json(); } catch (e) { throw e.name === 'AbortError' ? new Error(`no reply in ${ms / 1000} s`) : e; } finally { clearTimeout(t); } };
 const api = {
   async getRound() {
     if (!API) return JSON.parse(localStorage.getItem(LS.round) || '{"round":17}');
@@ -164,7 +165,7 @@ const api = {
   },
   async list(round) {
     if (!API) return { answers: JSON.parse(localStorage.getItem(LS.answers) || '[]').filter(a => a.round === round && a.session === today()) };
-    return getJSON(`${API}?action=list&round=${round}&t=${Date.now()}`);
+    return getJSON(`${API}?action=list&round=${round}&t=${Date.now()}`, 45000);
   },
 };
 // votes are answers of the form "vote:<group>.<choice>,...;d=<device>" (the group is empty for the first question); each device's latest vote counts, or its earliest with `first`
@@ -345,14 +346,18 @@ function projector() {
     poll();
   }
   // every round, since later steps depend on earlier votes
+  // one request at a time: the round on screen, plus any earlier round not yet loaded (a later step needs the class's earlier votes)
+  const loaded = {};
   async function poll() {
+    const ST = steps(), i = Math.min(step, ST.length - 1), cur = ST[i].round;
+    const want = [...new Set(ST.slice(0, i + 1).map(S => S.round).filter(r => r && (r === cur || !loaded[r])))];
     try {
       let changed = false;
-      await Promise.all([17, 18, 19, 20].map(async r => { const a = ((await api.list(r)).answers || []).sort((p, o) => p.t - o.t); if (a.length !== ans[r].length) changed = true; ans[r] = a; }));
+      for (const r of want) { const a = ((await api.list(r)).answers || []).sort((p, o) => p.t - o.t); if (a.length !== ans[r].length) changed = true; ans[r] = a; loaded[r] = true; }
       if (changed) show();
       $('status').textContent = API ? 'live' : 'test mode (this browser only)';
     }
-    catch (e) { $('status').textContent = 'cannot reach the answer sheet'; }
+    catch (e) { $('status').textContent = 'answer sheet slow to reply, still trying'; }
   }
   $('reset').onclick = async () => {
     if (!confirm('Clear all the votes and start again?')) return;
