@@ -258,6 +258,56 @@ const api = {
   },
 };
 
+// ------------------------------------------------------------ the rest of the tree, as in Building the Tree with Entropy (no voting)
+function mini(g, tree, cur) {
+  drawTree(g, tree, 0, 40, 340, 680, 0.5, cur);
+  el(g, 'line', { x1: 350, x2: 350, y1: 0, y2: 760, stroke: '#dcdcdc', 'stroke-width': 2 });
+}
+
+// one candidate question at a group: its branches, each branch's entropy, the weighted average and the gain.
+// show: 0 nothing worked out yet (every number a ?, the weights too), 1 everything: branch entropies, weights, weighted entropy, gain
+function candidate(g, ids, a, y, h, opts) {
+  const show = opts.show, parts = split(ids, a), n = parts.length, gap = 14, bw = (XB - X0 - gap * (n - 1)) / n, bh = Math.min(h - 112, 170);
+  y += (h - 112 - bh) / 2; h = bh + 112;   // short boxes, centred in the row, when a row has room to spare
+  parts.forEach((p, v) => {
+    const bx = X0 + v * (bw + gap);
+    el(g, 'text', { x: bx + bw / 2, y: y + 24, 'text-anchor': 'middle', 'font-size': 22, fill: '#666', 'font-weight': 700 }, ATTR[a].vals[v]);
+    el(g, 'rect', { x: bx, y: y + 34, width: bw, height: bh, rx: 8, fill: '#fafafa', stroke: '#dcdcdc', 'stroke-width': 1.5 });
+    chips(g, p, bx + 10, y + 44, bw - 20, 1.05);
+    // the branch's entropy worked out, one term per line
+    const t = terms(p), last = t.length - 1, at = j => ({ x: bx + bw / 2, y: y + 34 + bh + 26 + j * 26, 'text-anchor': 'middle', 'font-size': 17, 'font-style': 'italic', fill: '#222' });
+    if (!p.length) el(g, 'text', { ...at(0), fill: '#666', 'font-style': 'normal' }, 'empty');
+    else if (show < 1) el(g, 'text', { ...at(0), 'font-size': 22 }, `H = ${Q}`);
+    else t.forEach((s, j) => el(g, 'text', at(j), (j ? '' : 'H = ') + s + (j === last ? ` = ${f3(H(p))}` : '')));
+  });
+  // the question and its arithmetic, to the right
+  const N = ids.length, hv = p => show >= 1 ? f3(H(p)) : Q, sum = parts.filter(p => p.length).map(p => show >= 1 ? `(${p.length}/${N})(${hv(p)})` : `(${Q})(${Q})`).join(' + ');
+  const top = y + h / 2 - 56;
+  el(g, 'text', { x: XC, y: top - 6, 'text-anchor': 'middle', 'font-size': 27, 'font-weight': 700, fill: '#222' }, ATTR[a].q);
+  el(g, 'text', { x: XC, y: top + 32, 'text-anchor': 'middle', 'font-size': 20, fill: '#444' }, sum);
+  el(g, 'text', { x: XC, y: top + 66, 'text-anchor': 'middle', 'font-size': 23, fill: '#222' }, `weighted entropy = ${show >= 1 ? f3(weighted(ids, a)) : Q}`);
+  el(g, 'text', { x: XC, y: top + 106, 'text-anchor': 'middle', 'font-size': 27, 'font-weight': 700, fill: opts.best ? '#c0392b' : '#222' }, show >= 1 ? `gain = ${f3(H(ids))} − ${f3(weighted(ids, a))} = ${f3(gain(ids, a))}` : `gain = ${Q}`);
+  if (opts.best && show >= 1) { el(g, 'rect', { x: XC - 38, y: top + 122, width: 76, height: 28, rx: 5, fill: '#222' }); el(g, 'text', { x: XC, y: top + 143, 'text-anchor': 'middle', 'font-size': 17, 'font-weight': 700, fill: '#fff' }, 'BEST'); }
+}
+// the group being split, with its own entropy, as one line across the top
+function header(g, ids, path, y, showH, below) {
+  const who = path ? 'Patients ' + describe(path) : 'All 16 patients';
+  el(g, 'text', { x: X0, y, 'font-size': 24, 'font-weight': 700, fill: '#222' }, `${who}: ${tally(ids)}`);
+  el(g, 'text', { x: 1590, y: below ? y + 34 : y, 'text-anchor': 'end', 'font-size': 23, 'font-style': 'italic', fill: '#222' }, showH ? `H = ${working(ids)} = ${f3(H(ids))}` : `H = ${Q}`);
+}
+// a node's candidates up to row `upto`; that row is worked out to level `r`, the rows before it in full
+function node(g, path, upto, r) {
+  const N = find(TREE, path), cands = N.attrs, h = (760 - 56) / cands.length, done = upto >= cands.length && r >= 1;
+  mini(g, treeTo(depthOf(N)), path);
+  header(g, N.ids, path, 30, path === '' || upto > 1 || r >= 1);   // the root's entropy was worked out on the first step
+  cands.slice(0, upto).forEach((a, i) => {
+    candidate(g, N.ids, a, 56 + i * h, h, { best: done && a === N.attr, show: i < upto - 1 ? 1 : r });
+    if (i < upto - 1) el(g, 'line', { x1: X0, x2: 1590, y1: 56 + (i + 1) * h, y2: 56 + (i + 1) * h, stroke: '#ececec', 'stroke-width': 1.5 });
+  });
+}
+
+const mixed = depth => { const out = []; (function f(n) { if (depthOf(n) === depth && !isLeaf(n)) out.push(n); (n.kids || []).forEach(k => f(k.node)); })(TREE); return out; };
+
 // ------------------------------------------------------------ the live game: three rounds at the root, all answers tagged "ent:" so they never mix with other games
 // round 17: every phone works out the entropy of one branch, "ent:h.<attr><value>=<number>"
 // round 18: the right weighted sum for each question, "ent:w.fh=<k>,age=<k>,ex=<k>" (k: 0 right, 1 plain average, 2 weights swapped or plain sum, 3 counts as weights)
@@ -312,6 +362,20 @@ function projector() {
     { title: 'Which weighted sum is right for each question?', round: R.w, task: 'w', reveal: true, ask: 'Pick the right weighted sum for each question.', draw: (g, r) => weightedVote(g, r) },
     { title: 'Which question gives the most information gain?', round: R.g, task: 'g', reveal: true, ask: 'Which question would you ask first?', draw: (g, r) => gainVote(g, r) },
     { title: 'What does the tree look like after the first question?', draw: g => drawTree(g, treeTo(1), 150, 60, 1000, 640, 1.2, null) },
+    // from here on nothing is live: the second level, worked out one question at a time, then the finished tree
+    ...TREE.kids.flatMap(k => find(TREE, k.node.path).attrs.map((_, i) => ({ title: `Which question next, for patients ${describe(k.node.path)}?`, vb: 1600, reveal: true, draw: (g, r) => node(g, k.node.path, i + 1, r) }))),
+    { title: 'What does the tree look like after the second level?', vb: 1600, draw: g => drawTree(g, treeTo(2), 100, 50, 1400, 680, 1.15, null) },
+    { title: 'What about the groups that are still mixed?', vb: 1600, reveal: true, draw(g, r) {
+        const ns = mixed(2), h = 760 / ns.length;
+        mini(g, treeTo(2), ns.map(n => n.path));
+        ns.forEach((n, i) => {
+          const y = i * h;
+          header(g, n.ids, n.path, y + 28, r >= 1, true);
+          candidate(g, n.ids, n.attr, y + 60, h - 66, { best: false, show: r });
+          if (i < ns.length - 1) el(g, 'line', { x1: X0, x2: 1590, y1: y + h, y2: y + h, stroke: '#ececec', 'stroke-width': 1.5 });
+        });
+      } },
+    { title: 'What does the finished tree look like?', vb: 1600, draw: g => drawTree(g, TREE, 0, 50, 1600, 690, 1.3, null) },
   ];
 
   // every branch of every question, with the class's answers under it: their spread, their median, then the true value
@@ -387,7 +451,7 @@ function projector() {
     $('side').classList.toggle('hidden', !S.round);
     $('prev').disabled = step === 0 && shown === 0;
     const last = step === STEPS.length - 1;
-    $('next').textContent = S.reveal && !shown ? (S.round ? 'Show the answers' : 'Show H') : last ? '' : 'Next';
+    $('next').textContent = S.reveal && !shown ? (S.round ? 'Show the answers' : step ? 'Show the numbers' : 'Show H') : last ? '' : 'Next';
     $('next').classList.toggle('hidden', last && (!S.reveal || shown));
     if (S.round) {
       $('ask').textContent = S.ask;
@@ -395,7 +459,7 @@ function projector() {
       $('pcount').textContent = `${n} answer${n === 1 ? '' : 's'}`;
       qr(S.task);
     }
-    const svg = $('left'); svg.innerHTML = ''; S.draw(el(svg, 'g', {}), shown);
+    const svg = $('left'); svg.setAttribute('viewBox', `0 0 ${S.vb || 1280} 760`); svg.innerHTML = ''; S.draw(el(svg, 'g', {}), shown);
     history.replaceState(null, '', '#step=' + (step + 1) + (TEST ? '&test' : ''));
   }
   // only the round on screen is fetched, one request at a time; a slow or failed reply keeps the answers already shown
