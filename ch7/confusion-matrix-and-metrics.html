@@ -162,17 +162,45 @@ function accuracy(g, t) {
   el(k, 'text', { x: 960, y: 300, 'font-size': 26, fill: '#666' }, 'accuracy = diagonal / total');
   el(k, 'text', { x: 960, y: 370, 'font-size': 40, 'font-weight': 700, fill: HL }, `${diag(HAR)} / ${total(HAR)} = ${pct(diag(HAR) / total(HAR))}`);
 }
+// the four kinds of cell for one class: right and wrong, in the model's words and in the world's
+const TPC = '#1baf7a', FPC = '#eb6834', FNC = '#7a3fb0';
+function tint(g, L, i, j, col) {
+  el(g, 'rect', { x: L.X0 + j * L.cs + 2, y: L.Y0 + i * L.cs + 2, width: L.cs - 4, height: L.cs - 4, rx: 6, fill: col, 'fill-opacity': 0.22, stroke: col, 'stroke-width': 5 });
+}
+const others = (c, f) => [0, 1, 2, 3, 4].filter(k => k !== c).map(f);
+function kinds(g, t) {
+  const c = 3, L = matrix(g, HAR, HN), fp = colSum(HAR, c) - HAR[c][c], fn = rowSum(HAR, c) - HAR[c][c];
+  const E = [[TPC, `true positives: ${HAR[c][c]}`, `it is ${HN[c]}, and the model says ${HN[c]}`, () => tint(g, L, c, c, TPC)],
+    [FPC, `false positives: ${fp}`, `the model says ${HN[c]}, but it is not (a false alarm)`, () => others(c, i => tint(g, L, i, c, FPC))],
+    [FNC, `false negatives: ${fn}`, `it is ${HN[c]}, but the model says something else (a miss)`, () => others(c, j => tint(g, L, c, j, FNC))],
+    ['#9a9a9a', 'true negatives: the rest', `it is not ${HN[c]}, and the model does not say ${HN[c]}`, null]];
+  el(g, 'text', { x: 900, y: 110, 'font-size': 27, 'font-weight': 700, fill: '#222' }, `for the class ${HN[c]}`);
+  E.forEach(([col, name, say, draw], r) => {
+    if (t < 0.3 + 0.7 * r) return;
+    if (draw) draw();
+    const y = 190 + r * 135, k = el(g, 'g', { opacity: clamp01((t - 0.3 - 0.7 * r) / 0.4) });
+    el(k, 'rect', { x: 900, y: y - 24, width: 28, height: 28, rx: 5, fill: col, 'fill-opacity': 0.35, stroke: col, 'stroke-width': 3 });
+    el(k, 'text', { x: 944, y, 'font-size': 27, 'font-weight': 700, fill: col === '#9a9a9a' ? '#666' : col }, name);
+    el(k, 'text', { x: 944, y: y + 42, 'font-size': 24, fill: '#333' }, say);
+  });
+}
+
 // precision reads down a column, recall across a row; Play moves on to the next class
 let cls = 4;
 function perClass(kind) {
   return (g, t) => {
-    const c = cls, num = HAR[c][c], den = kind === 'p' ? colSum(HAR, c) : rowSum(HAR, c), u = clamp01(t / 0.6);
-    matrix(g, HAR, HN, { mark: (i, j) => u < 1 || (kind === 'p' ? j === c : i === c), ring: (i, j) => u >= 1 && i === c && j === c });
+    const c = cls, num = HAR[c][c], den = kind === 'p' ? colSum(HAR, c) : rowSum(HAR, c), u = clamp01(t / 0.6), P = kind === 'p';
+    const L = matrix(g, HAR, HN, { mark: (i, j) => u < 1 || (P ? j === c : i === c) });
+    if (u >= 1) { tint(g, L, c, c, TPC); others(c, k => P ? tint(g, L, k, c, FPC) : tint(g, L, c, k, FNC)); }
     const k = el(g, 'g', { opacity: clamp01((t - 0.5) / 0.5) });
-    el(k, 'text', { x: 960, y: 230, 'font-size': 28, 'font-weight': 700, fill: '#222' }, `${kind === 'p' ? 'precision' : 'recall'} for ${HN[c]}`);
-    el(k, 'text', { x: 960, y: 290, 'font-size': 23, fill: '#666' }, kind === 'p' ? `of everything predicted ${HN[c]}, how much was ${HN[c]}?` : `of every actual ${HN[c]}, how much did the model find?`);
-    el(k, 'text', { x: 960, y: 380, 'font-size': 26, fill: '#444' }, kind === 'p' ? 'diagonal cell / column total' : 'diagonal cell / row total');
-    el(k, 'text', { x: 960, y: 450, 'font-size': 40, 'font-weight': 700, fill: HL }, `${num} / ${den} = ${(num / den).toFixed(2)}`);
+    el(k, 'text', { x: 900, y: 170, 'font-size': 30, 'font-weight': 700, fill: '#222' }, `${P ? 'precision' : 'recall'} for ${HN[c]}`);
+    (P ? [`of everything predicted ${HN[c]},`, `how much was ${HN[c]}?`] : [`of every actual ${HN[c]},`, 'how much did the model find?'])
+      .forEach((s, r) => el(k, 'text', { x: 900, y: 240 + r * 42, 'font-size': 30, fill: '#333' }, s));
+    // the formula in words, each term in the colour of its cells
+    const f = el(k, 'text', { x: 900, y: 380, 'font-size': 26, 'font-weight': 700 }), span = (s, col) => { const e = document.createElementNS(NS, 'tspan'); e.textContent = s; e.setAttribute('fill', col); f.appendChild(e); };
+    span('TP', TPC); span(' / (', '#444'); span('TP', TPC); span(' + ', '#444'); span(P ? 'FP' : 'FN', P ? FPC : FNC); span(')', '#444');
+    el(k, 'text', { x: 900, y: 425, 'font-size': 23, fill: '#666' }, P ? `= diagonal cell / column total` : `= diagonal cell / row total`);
+    el(k, 'text', { x: 900, y: 520, 'font-size': 40, 'font-weight': 700, fill: '#222' }, `${num} / (${num} + ${den - num}) = ${(num / den).toFixed(2)}`);
   };
 }
 const nextClass = { reset() { cls = (cls + 1) % 5; }, enter() { cls = 4; } };
@@ -225,6 +253,7 @@ function sleep(g, t) {
 STEPS = [
   { title: 'How do we know how well a classifier is doing?', T: 25 * 0.12 + 0.2, draw: build },
   { title: 'How do we read accuracy off the matrix?', T: 1.2, draw: accuracy },
+  { title: 'What are true and false positives and negatives?', T: 3, draw: kinds },
   { title: 'What is precision?', T: 1.1, draw: perClass('p'), playLabel: '▶ Next class', ...nextClass },
   { title: 'What is recall?', T: 1.1, draw: perClass('r'), playLabel: '▶ Next class', ...nextClass },
   { title: 'What does F1 add?', draw: f1, ctl: ['c-p', 'c-r'], enter() { P = 1; Rc = 0.01; syncF(); } },
