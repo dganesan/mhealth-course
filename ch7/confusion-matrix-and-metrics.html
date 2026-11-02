@@ -245,25 +245,24 @@ function noneClass(g, t) {
   el(c, 'text', { x: X, y: 594, 'font-size': 24, fill: '#444' }, 'so it dominates plain accuracy');
 }
 
-// Figure 7.5: the sleep-stage classifier; Play works through each class, then the two summary numbers
+// Figure 7.5: the sleep-stage classifier. It opens on the whole matrix with every metric as "?", for the class to work out;
+// Play then works through each class (its row and column picked out) and finally the two summary numbers
 const SL = [[630, 56, 9], [84, 228, 6], [12, 2, 48]], SN = ['Wakefulness', 'REM', 'NREM'];
 function sleep(g, t) {
-  const k = Math.min(3, Math.floor(t / 1.2)), c = t < 3.6 ? k : -1, done = t >= 3.6;
-  matrix(g, SL, SN, { x: 330, y: 160, cs: 140, vs: 30, fs: 20, mark: (i, j) => c < 0 || i === c || j === c, ring: (i, j) => c >= 0 && i === c && j === c });
-  const X = 950, rec = SL.map((r, i) => r[i] / rowSum(SL, i));
+  const t0 = 0.6, k = t < t0 ? -1 : Math.min(3, Math.floor((t - t0) / 1.2)), done = t >= t0 + 3.6, c = done ? -1 : k;
+  matrix(g, SL, SN, { x: 330, y: 160, cs: 140, vs: 30, fs: 20, plain: true, mark: (i, j) => c < 0 || i === c || j === c, ring: (i, j) => c >= 0 && i === c && j === c });
+  const X = 950, rec = SL.map((r, i) => r[i] / rowSum(SL, i)), q = (s, show) => show ? s : '?';
   el(g, 'text', { x: X + 210, y: 120, 'text-anchor': 'middle', 'font-size': 22, fill: '#444' }, 'precision'); el(g, 'text', { x: X + 400, y: 120, 'text-anchor': 'middle', 'font-size': 22, fill: '#444' }, 'recall');
   SN.forEach((n, i) => {
-    if (i > k || (i === k && !done && t < i * 1.2 + 0.3)) return;
-    const y = 200 + i * 90;
+    const y = 200 + i * 90, shown = done || i < k || (i === k && t >= t0 + i * 1.2 + 0.3), col = shown ? '#222' : '#aaa';
     el(g, 'text', { x: X, y, 'font-size': 24, 'font-weight': 700, fill: '#222' }, n);
-    label(g, X + 210, y, (SL[i][i] / colSum(SL, i)).toFixed(2), { 'font-size': 28, 'font-weight': 700, style: 'font-family: var(--mono)' });
-    label(g, X + 400, y, rec[i].toFixed(2), { 'font-size': 28, 'font-weight': 700, style: 'font-family: var(--mono)' });
+    label(g, X + 210, y, q((SL[i][i] / colSum(SL, i)).toFixed(2), shown), { 'font-size': 28, 'font-weight': 700, fill: col, style: 'font-family: var(--mono)' });
+    label(g, X + 400, y, q(rec[i].toFixed(2), shown), { 'font-size': 28, 'font-weight': 700, fill: col, style: 'font-family: var(--mono)' });
   });
-  if (!done) return;
   const ac = diag(SL) / total(SL), ba = rec.reduce((a, b) => a + b, 0) / 3;
   el(g, 'line', { x1: X, x2: X + 470, y1: 470, y2: 470, stroke: '#9a9a9a', 'stroke-width': 1.5 });
-  el(g, 'text', { x: X, y: 530, 'font-size': 24, fill: '#666' }, 'accuracy'); el(g, 'text', { x: X + 470, y: 530, 'text-anchor': 'end', 'font-size': 32, 'font-weight': 700, fill: '#222' }, pct(ac));
-  el(g, 'text', { x: X, y: 600, 'font-size': 24, fill: '#666' }, 'balanced accuracy'); el(g, 'text', { x: X + 470, y: 600, 'text-anchor': 'end', 'font-size': 32, 'font-weight': 700, fill: HL }, pct(ba));
+  el(g, 'text', { x: X, y: 530, 'font-size': 24, fill: '#666' }, 'accuracy'); el(g, 'text', { x: X + 470, y: 530, 'text-anchor': 'end', 'font-size': 32, 'font-weight': 700, fill: done ? '#222' : '#aaa' }, q(pct(ac), done));
+  el(g, 'text', { x: X, y: 600, 'font-size': 24, fill: '#666' }, 'balanced accuracy'); el(g, 'text', { x: X + 470, y: 600, 'text-anchor': 'end', 'font-size': 32, 'font-weight': 700, fill: done ? HL : '#aaa' }, q(pct(ba), done));
 }
 
 STEPS = [
@@ -275,7 +274,7 @@ STEPS = [
   { title: 'What does F1 add?', draw: f1, ctl: ['c-p', 'c-r'], enter() { P = 1; Rc = 0.01; syncF(); } },
   { title: 'What is balanced accuracy?', T: 2.2, draw: balanced },
   { title: 'What if a None class dominates the data?', T: 3, draw: noneClass },
-  { title: 'How well does the sleep-stage classifier do?', T: 3.8, draw: sleep },
+  { title: 'How well does the sleep-stage classifier do?', T: 4.4, draw: sleep },
 ];
 $('sp').addEventListener('input', () => { P = +$('sp').value / 100; syncF(); draw(); });
 $('sr').addEventListener('input', () => { Rc = +$('sr').value / 100; syncF(); draw(); });
