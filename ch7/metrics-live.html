@@ -118,13 +118,13 @@ function el(parent, tag, attrs, text) {
 }
 
 // ------------------------------------------------------------ chapter 7, "Beyond Accuracy": three questions for the class to answer on their phones
-// (1) which kind of outcome each fall-detector event is; (2) precision or recall for two applications (the book's examples);
+// (1) which kind of outcome each fall-detector event is; (2) whether each of four systems should be optimized for precision or recall;
 // (3) the recall and precision of REM from the sleep-stage confusion matrix (Figure 7.5)
 // the same web app as ch4/spot-the-difference.html; this game uses its rounds 14 to 16, with its answers tagged "met:" so they
 // never mix with another game's. Add ?test or #test for a local test (this browser only).
 const TEST = /(^|[?&#])test\b/.test(location.search + location.hash);
 const API = TEST ? '' : 'https://script.google.com/macros/s/AKfycbwl9bZajvzRGBFQHL9rMPdHwL7kuF76KvjF3JYfCNU7UIzaei5437aBAuwjlYRwin8SLA/exec';
-const BUILD = '2026-11-02a';
+const BUILD = '2026-11-02b';
 
 // ------------------------------------------------------------ backend: the Apps Script web app, or localStorage in test mode
 const LS = { answers: 'ml-answers' };
@@ -152,10 +152,13 @@ const TASKS = {
                ['c', 'Someone falls, and the detector raises an alarm.', 0],
                ['d', 'Someone walks to the kitchen, and the detector stays quiet.', 3]],
        options: ['TP', 'FP', 'FN', 'TN'] },
-  p: { round: 15, title: 'Precision or recall?', ask: 'Which matters more in each application?',
-       parts: [['a', 'COVID screening: a person with COVID who is missed goes on to infect others.', 1],
-               ['b', 'Spam filtering: an important email sent to the spam folder is never read.', 0]],
-       options: ['precision', 'recall'] },
+  p: { round: 15, title: 'Precision or recall?', ask: 'Should each system be optimized for precision or recall?',
+       parts: [['a', 'A COVID screener', 1, 'a miss spreads the disease; a false alarm means a second test → recall'],
+               ['b', 'A spam filter', 0, 'a real email lost in spam is worse than one spam getting through → precision'],
+               ['c', 'A fall detector that alerts family', 1, 'a missed fall can leave someone on the floor for hours → recall'],
+               ['d', 'An insulin pump that doses when it detects a meal', 0, 'a dose without a meal is dangerous → precision']],
+       options: ['precision', 'recall'],
+       long: ['precision: when it says yes, it is right', 'recall: it finds the cases that are really there'] },
   s: { round: 16, title: 'What are the recall and precision of REM?', ask: 'Use the sleep-stage matrix to answer both.',
        parts: [['r', 'recall of REM', 1], ['p', 'precision of REM', 2]],
        options: ['0.26', '0.72', '0.80', '0.84'] },
@@ -198,7 +201,9 @@ function projector() {
     if (T.note) el(g, 'text', { x: 20, y: 34, 'font-size': 24, fill: '#666' }, T.note);
     T.parts.forEach((P, i) => {
       const y = top + i * rowH;
-      wrap(P[1], 34).forEach((s, j) => el(g, 'text', { x: 20, y: y + 44 + j * 34, 'font-size': 27, fill: '#222' }, s));
+      const L = wrap(P[1], 34); L.forEach((s, j) => el(g, 'text', { x: 20, y: y + 44 + j * 34, 'font-size': 27, fill: '#222', 'font-weight': P[3] ? 700 : 400 }, s));
+      // once shown, why: which mistake is the costly one
+      if (r && P[3]) wrap(P[3], 46).forEach((s, j) => el(g, 'text', { x: 20, y: y + 52 + L.length * 34 + j * 28, 'font-size': 22, fill: '#c0392b' }, s));
       boxes(g, T, P, cnt[P[0]], r, 1260 - T.options.length * (bw + 14) + 14, y + 8, bw, rowH - 30);
       if (i < T.parts.length - 1) el(g, 'line', { x1: 20, x2: 1260, y1: y + rowH - 8, y2: y + rowH - 8, stroke: '#ececec', 'stroke-width': 1.5 });
     });
@@ -240,7 +245,7 @@ function projector() {
     qr(S.key);
     const svg = $('left'); svg.innerHTML = ''; const g = el(svg, 'g', {});
     if (S.key === 'k') rows(g, T, shown, 178, 50, 120);
-    else if (S.key === 'p') rows(g, T, shown, 330, 40, 200);
+    else if (S.key === 'p') rows(g, T, shown, 180, 10, 190);
     else sleepQ(g, T, shown);
     history.replaceState(null, '', '#step=' + (step + 1) + (TEST ? '&test' : ''));
   }
@@ -284,7 +289,7 @@ function phone() {
       p.innerHTML = 'rows actual, columns predicted (Wake, REM, NREM)<br>' + SL.map((r, i) => `${SN[i]}: ${r.join(', ')}`).join('<br>'); G.appendChild(p); }
     T.parts.forEach(([p, text]) => {
       const h = document.createElement('h2'); h.textContent = text; G.appendChild(h);
-      T.options.forEach((o, k) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'vbtn' + (picked[p] === k ? ' on' : ''); b.textContent = o; b.onclick = () => { picked[p] = k; draw(); }; G.appendChild(b); });
+      T.options.forEach((o, k) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'vbtn' + (picked[p] === k ? ' on' : ''); b.textContent = (T.long || T.options)[k]; b.onclick = () => { picked[p] = k; draw(); }; G.appendChild(b); });
     });
   }
   $('vsend').classList.remove('hidden');
