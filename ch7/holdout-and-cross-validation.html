@@ -409,13 +409,17 @@ function summary(g, t) {
     segs.forEach(([name, f, c]) => {
       const w = W * f;
       if (c === 'folds') { for (let q = 0; q < 5; q++) el(k, 'rect', { x: x + q * w / 5 + 2, y, width: w / 5 - 4, height: H, rx: 6, fill: q === 4 ? VA : TR, opacity: q === 4 ? 0.9 : 0.6 });
+        // arcs over the folds: the validation fold moves along, one fold at a time
+        for (let q = 0; q < 4; q++) { const a = x + (q + 0.5) * w / 5, b = x + (q + 1.5) * w / 5 - 8;
+          el(k, 'path', { d: `M${a},${y - 6} Q${(a + b) / 2},${y - 40} ${b},${y - 8}`, fill: 'none', stroke: VA, 'stroke-width': 2.5 });
+          el(k, 'path', { d: `M${b},${y - 4} l-12,-6 l4,-10 Z`, fill: VA }); }
         label(k, x + w / 2, y + H + 30, name, { 'font-size': 20, fill: '#444' }); }
       else { el(k, 'rect', { x: x + 2, y, width: w - 4, height: H, rx: 8, fill: c, opacity: 0.88 }); label(k, x + w / 2, y + 38, name, { 'font-size': 21, 'font-weight': 700, fill: '#fff' }); }
       x += w;
     });
     el(k, 'text', { x: 780, y: y + 22, 'font-size': 25, 'font-weight': 700, fill: '#222' }, fix);
     el(k, 'text', { x: 780, y: y + 60, 'font-size': 23, fill: col, 'font-weight': 700 }, (col === GOOD ? '' : 'still wrong: ') + still);
-    if (r < 3) arrow(k, X0 + W / 2, y + H + 52, X0 + W / 2, ys[r + 1] - 12, clamp01((t - 0.9 * r - 0.4) / 0.4));
+    if (r < 3) arrow(k, X0 + W / 2, y + H + 30, X0 + W / 2, ys[r + 1] - (r === 2 ? 52 : 12), clamp01((t - 0.9 * r - 0.4) / 0.4));
   });
 }
 
