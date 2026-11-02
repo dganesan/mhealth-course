@@ -188,12 +188,12 @@ function raw(g, t) {
   strip(g, 0);
   const W = 470, H = 200, xs = [60, 565, 1070], ys = [140, 400];
   D.names.forEach((n, i) => {
-    const x = xs[i % 3], y = ys[Math.floor(i / 3)], s = D.traces[n], u = clamp01((t - 0.25 * i) / 0.6), m = Math.max(2, Math.floor(s.length * u));
+    const x = xs[i % 3], y = ys[Math.floor(i / 3)], s = D.traces[n], u = clamp01((t - 0.25 * i) / 0.6), m = Math.floor(s.length * u);
     const sx = j => x + j / (s.length - 1) * W, sy = v => y + H - (v - 0.5) / 1.4 * H;
     el(g, 'rect', { x, y, width: W, height: H, fill: 'none', stroke: '#dcdcdc', 'stroke-width': 1.5 });
     el(g, 'line', { x1: x, x2: x + W, y1: sy(1), y2: sy(1), stroke: '#ececec', 'stroke-width': 1.5 });
     el(g, 'text', { x: x + 8, y: sy(1) - 6, 'font-size': 16, fill: '#999' }, '1 g');
-    el(g, 'path', { d: s.slice(0, m).map((v, j) => (j ? 'L' : 'M') + sx(j).toFixed(1) + ',' + sy(v).toFixed(1)).join(''), fill: 'none', stroke: i < 3 ? RED : TR, 'stroke-width': 2.5 });
+    if (m > 1) el(g, 'path', { d: s.slice(0, m).map((v, j) => (j ? 'L' : 'M') + sx(j).toFixed(1) + ',' + sy(v).toFixed(1)).join(''), fill: 'none', stroke: i < 3 ? RED : TR, 'stroke-width': 2.5 });
     label(g, x + W / 2, y - 12, n, { 'font-size': 23, 'font-weight': 700, fill: i < 3 ? RED : TR });
   });
   code(g, ['channels, y, subjects = load_split("train")   # 9 channels, 128 samples (2.56 s) per window']);
@@ -212,7 +212,7 @@ function features(g, t) {
   el(g, 'path', { d: s.map((v, j) => (j ? 'L' : 'M') + sx(j).toFixed(1) + ',' + sy(v).toFixed(1)).join(''), fill: 'none', stroke: RED, 'stroke-width': 2 });
   label(g, x + W / 2, y + H + 34, '× 9 channels', { 'font-size': 22, fill: '#444' });
   arrow(g, x + W + 20, y + H / 2, x + W + 100, y + H / 2, 1, { w: 3 });
-  const X0 = 600, Y0 = 150, cw = 140, rh = 44, n = Math.min(9, Math.floor(t / 0.25) + 1);
+  const X0 = 600, Y0 = 150, cw = 140, rh = 44, n = Math.min(9, Math.floor(t / 0.25));
   FN6.forEach((f, j) => label(g, X0 + j * cw + cw / 2, Y0, f, { 'font-size': 20, 'font-weight': 700, fill: '#444' }));
   CH.slice(0, n).forEach((c, r) => {
     const y2 = Y0 + 16 + r * rh;
@@ -234,8 +234,8 @@ function tune(g, t) {
   el(g, 'text', { x: X0 - 80, y: (Y0 + Y1) / 2, 'text-anchor': 'middle', 'font-size': 21, fill: '#444', transform: `rotate(-90 ${X0 - 80} ${(Y0 + Y1) / 2})` }, 'accuracy');
   const ln = (A, k, col) => { const I = [...Array(k).keys()]; el(g, 'path', { d: I.map(i => (i ? 'L' : 'M') + sx(i) + ',' + sy(A[i])).join(''), fill: 'none', stroke: col, 'stroke-width': 4 });
     I.forEach(i => el(g, 'circle', { cx: sx(i), cy: sy(A[i]), r: 7, fill: col, stroke: '#fff', 'stroke-width': 2 })); };
-  const k1 = Math.min(n, Math.floor(t / 0.15) + 1); ln(S.train, k1, '#a9c6ec');
-  el(g, 'text', { x: X1 + 20, y: sy(S.train[n - 1]) + 7, 'font-size': 21, fill: '#7aa3d8', 'font-weight': 700 }, 'training people');
+  const k1 = Math.min(n, Math.floor(t / 0.15)); if (k1) ln(S.train, k1, '#a9c6ec');
+  if (k1 === n) el(g, 'text', { x: X1 + 20, y: sy(S.train[n - 1]) + 7, 'font-size': 21, fill: '#7aa3d8', 'font-weight': 700 }, 'training people');
   if (t >= 1.5) { const k2 = Math.min(n, Math.floor((t - 1.5) / 0.15) + 1), I = [...Array(k2).keys()];
     el(g, 'path', { d: I.map(i => (i ? 'L' : 'M') + sx(i) + ',' + sy(S.cv[i] + S.cvStd[i])).join('') + I.slice().reverse().map(i => 'L' + sx(i) + ',' + sy(S.cv[i] - S.cvStd[i])).join('') + 'Z', fill: TR, opacity: 0.14 });
     ln(S.cv, k2, TR); if (k2 === n) el(g, 'text', { x: X1 + 20, y: sy(S.cv[n - 1]) + 7, 'font-size': 21, fill: TR, 'font-weight': 700 }, 'held-out people (CV)'); }
@@ -286,7 +286,7 @@ function confusion(g, t) {
 const FAM = [['body_acc', '#1f77b4', 'body acceleration'], ['total_acc', '#ff7f0e', 'total acceleration (with gravity)'], ['body_gyro', '#2ca02c', 'gyroscope']];
 function importance(g, t) {
   strip(g, 4);
-  const X0 = 520, W = 760, Y0 = 170, rh = 30, mx = D.imp[0][1], n = Math.min(15, Math.floor(t / 0.12) + 1);
+  const X0 = 520, W = 760, Y0 = 170, rh = 30, mx = D.imp[0][1], n = Math.min(15, Math.floor(t / 0.12));
   D.imp.slice(0, n).forEach(([nm, v], i) => {
     const f = FAM.find(([k]) => nm.startsWith(k)), y = Y0 + i * rh;
     el(g, 'text', { x: X0 - 12, y: y + 20, 'text-anchor': 'end', 'font-size': 18, style: 'font-family: var(--mono)', fill: '#333' }, nm.replace('.', ' · '));
