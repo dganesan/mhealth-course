@@ -140,20 +140,40 @@ const show = v => v === null ? 'None' : v;
 
 // ------------------------------------------------------------ the three sets, then what happens on each, in the order the data flows through them
 const WK = DATA.walk, OK7 = '#1baf7a', NO7 = '#d6453d';
+// the counts are illustrative and round: 1,000 windows, 300 set aside for test, 700 for training in 5 folds of 140.
+// The right/wrong squares keep the real scores (0.964 on the validation fold, 0.950 on the test set), scattered at random
+const NALL = 1000, NTEST = 300, NFIT = 700, NFOLD = 140;
+const marks = (n, wrong, seed) => { const r = rng(seed), A = Array(n).fill(1); let k = 0; while (k < wrong) { const i = Math.floor(r() * n); if (A[i]) { A[i] = 0; k++; } } return A; };
+const VAL = marks(NFOLD, Math.round(NFOLD * (1 - WK.val.reduce((a, v) => a + v, 0) / WK.val.length)), 3);
+const TEST = marks(NTEST, Math.round(NTEST * (1 - G.test)), 4);
 const set = (p, k) => `${k}=${show(p[k])}`;
 function roles(g, t) {
-  const C = [['Training set', TR, 'grows the tree', ['which feature and threshold', 'each node splits on']],
-    ['Validation set', VA, 'chooses the knobs', ['max_depth', 'min_samples_split']],
-    ['Test set', TE, 'reports accuracy once', ['at the very end;', 'it decides nothing']]];
-  C.forEach(([n, col, job, sub], i) => {
-    const x = 290 + i * 510, u = clamp01((t - 0.6 * i) / 0.5), k = el(g, 'g', { opacity: u });
-    el(k, 'rect', { x: x - 220, y: 90, width: 440, height: 110, rx: 12, fill: col, opacity: 0.88 });
-    label(k, x, 158, n, { 'font-size': 30, 'font-weight': 700, fill: '#fff' });
-    label(k, x, 290, job, { 'font-size': 30, 'font-weight': 700, fill: col });
-    if (i === 0) miniTree(k, x, 440, 70, TR);
-    if (i === 1) [0, 1].forEach(r => mono(k, x, 400 + r * 50, sub[r], { 'text-anchor': 'middle', 'font-size': 26, fill: DEEP, 'font-weight': 700 }));
-    if (i === 2) { el(k, 'rect', { x: x - 90, y: 380, width: 180, height: 110, rx: 12, fill: '#eef1f5', stroke: TE, 'stroke-width': 2.5 }); label(k, x, 450, `${(100 * G.test).toFixed(1)}%`, { 'font-size': 34, 'font-weight': 700, fill: '#444' }); }
-    sub.forEach((s, r) => i !== 1 && label(k, x, 590 + r * 38, s, { 'font-size': 23, fill: '#444' }));
+  const X0 = 80, W = 1440, sc = W / NALL, Y = 110, H = 110, fw = NFOLD * sc, xt = X0 + NFIT * sc + 20, u = s => clamp01((t - s) / 0.5);
+  label(g, X0 + W / 2, 70, `${NALL.toLocaleString()} windows`, { 'font-size': 26, 'font-weight': 700, fill: '#444' });
+  // four training folds, one validation fold, and the test set
+  el(g, 'rect', { x: X0 + 2, y: Y, width: 4 * fw - 4, height: H, rx: 8, fill: TR, opacity: 0.88 });
+  el(g, 'rect', { x: X0 + 4 * fw + 2, y: Y, width: fw - 4, height: H, rx: 8, fill: VA, opacity: 0.88 });
+  // the fold boundaries inside the training part, as ticks along its edges
+  for (let f = 1; f < 4; f++) [[Y, Y + 16], [Y + H - 16, Y + H]].forEach(([a, b]) => el(g, 'line', { x1: X0 + f * fw, x2: X0 + f * fw, y1: a, y2: b, stroke: '#fff', 'stroke-width': 3 }));
+  label(g, X0 + 2 * fw, Y + 50, `Training: ${4 * NFOLD} windows`, { 'font-size': 26, 'font-weight': 700, fill: '#fff' });
+  label(g, X0 + 2 * fw, Y + 86, '4 of the 5 folds', { 'font-size': 21, fill: '#fff' });
+  label(g, X0 + 4.5 * fw, Y + 50, 'Validation', { 'font-size': 24, 'font-weight': 700, fill: '#fff' });
+  label(g, X0 + 4.5 * fw, Y + 86, `${NFOLD} windows`, { 'font-size': 21, fill: '#fff' });
+  el(g, 'rect', { x: xt, y: Y, width: NTEST * sc - 20, height: H, rx: 8, fill: TE, opacity: 0.88 });
+  label(g, xt + (NTEST * sc - 20) / 2, Y + 50, 'Test', { 'font-size': 26, 'font-weight': 700, fill: '#fff' });
+  label(g, xt + (NTEST * sc - 20) / 2, Y + 86, `${NTEST} windows, set aside`, { 'font-size': 21, fill: '#fff' });
+  // what each part does
+  const C = [[X0 + 2 * fw, TR, 'grows the tree', ['which feature and threshold', 'each node splits on']],
+    [X0 + 4.5 * fw, VA, 'chooses the knobs', null],
+    [xt + (NTEST * sc - 20) / 2, TE, 'reports accuracy once', ['at the very end;', 'it decides nothing']]];
+  C.forEach(([x, col, job, sub], i) => {
+    const k = el(g, 'g', { opacity: u(0.3 + 0.6 * i) });
+    el(k, 'line', { x1: x, x2: x, y1: Y + H + 8, y2: 285, stroke: col, 'stroke-width': 2 });
+    label(k, x, 320, job, { 'font-size': 26, 'font-weight': 700, fill: col });
+    if (i === 0) miniTree(k, x, 460, 70, TR);
+    if (i === 1) ['max_depth', 'min_samples_split'].forEach((s, r) => mono(k, x, 430 + r * 46, s, { 'text-anchor': 'middle', 'font-size': 24, fill: DEEP, 'font-weight': 700 }));
+    if (i === 2) { el(k, 'rect', { x: x - 90, y: 400, width: 180, height: 100, rx: 12, fill: '#eef1f5', stroke: TE, 'stroke-width': 2.5 }); label(k, x, 464, `${(100 * G.test).toFixed(0)}%`, { 'font-size': 34, 'font-weight': 700, fill: '#444' }); }
+    if (sub) sub.forEach((s, r) => label(k, x, 590 + r * 36, s, { 'font-size': 22, fill: '#444' }));
   });
 }
 
@@ -177,7 +197,7 @@ function onTrain(g, t) {
   mono(g, 60, 60, `${set(WK.p, 'max_depth')}, ${set(WK.p, 'min_samples_split')}`, { 'font-size': 26, fill: DEEP, 'font-weight': 700 });
   el(g, 'rect', { x: 60, y: 260, width: 300, height: 130, rx: 12, fill: TR, opacity: 0.88 });
   label(g, 210, 318, 'Training set', { 'font-size': 27, 'font-weight': 700, fill: '#fff' });
-  label(g, 210, 356, `${WK.ntrain} windows`, { 'font-size': 22, fill: '#fff' });
+  label(g, 210, 356, `${4 * NFOLD} windows`, { 'font-size': 22, fill: '#fff' });
   arrow(g, 375, 325, 520, 325, ease(t / 0.4), { w: 3 }); label(g, 448, 305, 'grow', { 'font-size': 21, fill: '#444', opacity: clamp01(t / 0.4) });
   splits(g, WK.tree, 1050, 150, 1000, Math.max(0, t - 0.4) / 0.9 * 1.2, WK.p.max_depth);
 }
@@ -189,9 +209,9 @@ function onValidation(g, t) {
   mono(g, 60, 60, `${set(WK.p, 'max_depth')}, ${set(WK.p, 'min_samples_split')}`, { 'font-size': 26, fill: DEEP, 'font-weight': 700 });
   miniTree(g, 200, 330, 80, TR); label(g, 200, 430, 'the grown tree', { 'font-size': 22, fill: '#444' });
   arrow(g, 320, 330, 470, 330, 1, { w: 3 }); label(g, 395, 310, 'label', { 'font-size': 21, fill: '#444' });
-  const n = WK.val.length, k = Math.min(n, Math.floor(t / 1.6 * n)), right = WK.val.reduce((a, v) => a + v, 0);
-  label(g, 500 + 15 * 21, 130, `${n} validation windows`, { 'font-size': 25, 'font-weight': 700, fill: VA, 'text-anchor': 'middle' });
-  squares(g, WK.val, 500, 160, 15 * 2, 21, k);
+  const n = VAL.length, k = Math.min(n, Math.floor(t / 1.6 * n)), right = VAL.reduce((a, v) => a + v, 0);
+  label(g, 500 + 10 * 36, 130, `${n} validation windows`, { 'font-size': 25, 'font-weight': 700, fill: VA, 'text-anchor': 'middle' });
+  squares(g, VAL, 500, 160, 20, 36, k);
   if (t < 1.8) return;
   label(g, 1340, 300, `${right} of ${n} right`, { 'font-size': 26, fill: '#222' });
   label(g, 1340, 360, `score ${(right / n).toFixed(3)}`, { 'font-size': 34, 'font-weight': 700, fill: VA });
@@ -204,15 +224,15 @@ function onTest(g, t) {
   mono(g, 420, 60, `${set(B, 'max_depth')}, ${set(B, 'min_samples_split')}`, { 'font-size': 26, fill: DEEP, 'font-weight': 700 });
   el(g, 'rect', { x: 60, y: 230, width: 300, height: 130, rx: 12, fill: TR, opacity: 0.88 });
   label(g, 210, 288, 'Training set', { 'font-size': 27, 'font-weight': 700, fill: '#fff' });
-  label(g, 210, 326, `all ${WK.nfit.toLocaleString()} windows`, { 'font-size': 22, fill: '#fff' });
+  label(g, 210, 326, `all ${NFIT} windows`, { 'font-size': 22, fill: '#fff' });
   arrow(g, 375, 295, 480, 295, u(0), { w: 3 });
   miniTree(el(g, 'g', { opacity: u(0.2) }), 570, 300, 80, TR); label(g, 570, 400, 'grown again', { 'font-size': 22, fill: '#444', opacity: u(0.2) });
   arrow(g, 680, 295, 790, 295, u(0.5), { w: 3 });
-  const n = WK.test.length, k = Math.max(0, Math.min(n, Math.floor((t - 0.7) / 1.4 * n))), right = WK.test.reduce((a, v) => a + v, 0);
-  label(g, 820 + 15 * 23, 130, `${n} test windows, used once`, { 'font-size': 25, 'font-weight': 700, fill: TE, opacity: u(0.5) });
-  squares(g, WK.test, 820, 160, 30, 23, k);
+  const n = TEST.length, k = Math.max(0, Math.min(n, Math.floor((t - 0.7) / 1.4 * n))), right = TEST.reduce((a, v) => a + v, 0);
+  label(g, 810 + 12.5 * 30, 130, `${n} test windows, used once`, { 'font-size': 25, 'font-weight': 700, fill: TE, opacity: u(0.5) });
+  squares(g, TEST, 810, 160, 25, 30, k);
   if (t < 2.2) return;
-  label(g, 1165, 600, `${right} of ${n} right: test accuracy ${G.test.toFixed(3)}`, { 'font-size': 30, 'font-weight': 700, fill: '#444' });
+  label(g, 1185, 590, `${right} of ${n} right: test accuracy ${G.test.toFixed(3)}`, { 'font-size': 30, 'font-weight': 700, fill: '#444' });
 }
 
 // the book's listing, each part tied back to the steps before it
@@ -299,7 +319,7 @@ function table(g, t) {
 }
 
 STEPS = [
-  { title: 'What does each set do?', T: 1.8, draw: roles },
+  { title: 'What does each set do?', T: 2.2, draw: roles },
   { title: 'What happens on the training set?', T: 2.6, draw: onTrain },
   { title: 'What happens on the validation set?', T: 2.7, draw: onValidation },
   { title: 'How do we do this for every setting?', T: N * per + 0.3, draw: search },
