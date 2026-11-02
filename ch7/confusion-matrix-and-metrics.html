@@ -130,29 +130,11 @@ function start() {
   go((parseInt(location.hash.slice(1), 10) || 1) - 1);
 }
 
-// ------------------------------------------------------------ chapter 7, "Beyond Accuracy": the screening example, the confusion matrix (Figure 7.4), accuracy,
+// ------------------------------------------------------------ chapter 7, "Beyond Accuracy": the confusion matrix (Figure 7.4), accuracy,
 // precision and recall read off the matrix, F1, balanced accuracy, and the sleep-stage practice example (Figure 7.5)
 const HL = '#eb6834', SICK = '#d6453d', WELL = '#1baf7a';
 const label = (g, x, y, s, o = {}) => el(g, 'text', Object.assign({ x, y, 'text-anchor': 'middle', 'font-size': 24, fill: '#222' }, o), s);
 const pct = v => `${Math.round(100 * v)}%`;
-
-// a condition present in 10% of patients, and a model that labels everyone healthy
-function screening(g, t) {
-  const X0 = 180, Y0 = 90, s = 56;
-  for (let i = 0; i < 100; i++) {
-    const sick = i % 10 === 7, x = X0 + (i % 10) * s, y = Y0 + Math.floor(i / 10) * s, u = clamp01((t - 0.5) / 0.6);
-    el(g, 'circle', { cx: x, cy: y, r: 20, fill: sick ? SICK : WELL, opacity: 0.85 });
-    if (u > 0) el(g, 'text', { x, y: y + 7, 'text-anchor': 'middle', 'font-size': 18, 'font-weight': 700, fill: '#fff', opacity: u }, sick ? '✗' : '✓');
-  }
-  label(g, X0 + 4.5 * s, Y0 + 10 * s + 20, '90 healthy, 10 with the condition', { 'font-size': 23, fill: '#444' });
-  const PX = 920, k = el(g, 'g', { opacity: clamp01((t - 0.3) / 0.4) });
-  el(k, 'text', { x: PX, y: 150, 'font-size': 26, 'font-weight': 700, fill: '#222' }, 'Model: label everyone healthy');
-  const a = el(g, 'g', { opacity: clamp01((t - 1.3) / 0.4) }), b = el(g, 'g', { opacity: clamp01((t - 2.0) / 0.4) });
-  el(a, 'text', { x: PX, y: 290, 'font-size': 24, fill: '#666' }, 'accuracy');
-  el(a, 'text', { x: PX, y: 350, 'font-size': 56, 'font-weight': 700, fill: WELL }, '90%');
-  el(b, 'text', { x: PX, y: 460, 'font-size': 24, fill: '#666' }, 'patients with the condition it finds');
-  el(b, 'text', { x: PX, y: 520, 'font-size': 56, 'font-weight': 700, fill: SICK }, '0 of 10');
-}
 
 // a confusion matrix: rows are the true labels, columns the predicted labels; `mark` picks out cells
 function matrix(g, M, names, o = {}) {
@@ -240,8 +222,7 @@ function sleep(g, t) {
 }
 
 STEPS = [
-  { title: 'Why can a 90% accurate model still be poor?', T: 2.5, draw: screening },
-  { title: 'What is a confusion matrix?', T: 25 * 0.12 + 0.2, draw: build },
+  { title: 'How do we know how well a classifier is doing?', T: 25 * 0.12 + 0.2, draw: build },
   { title: 'How do we read accuracy off the matrix?', T: 1.2, draw: accuracy },
   { title: 'What is precision?', T: 1.1, draw: perClass('p'), playLabel: '▶ Next class', ...nextClass },
   { title: 'What is recall?', T: 1.1, draw: perClass('r'), playLabel: '▶ Next class', ...nextClass },
