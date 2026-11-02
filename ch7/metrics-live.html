@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Classifier Metrics (live)</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff; --ink: #222222; --ink-2: #666666; --ink-3: #9a9a9a; --rule: #dcdcdc; --ma: #2a78d6;
+    --low: #1baf7a; --high: #d6453d; --mixed: #f2c230;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+  .hidden { display: none !important; }
+
+  /* ---------- projector ---------- */
+  #proj { height: 100vh; padding: 10px 14px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 10px; }
+  #proj .head { padding: 4px 16px 0; }
+  #proj h1 { margin: 0; font-size: clamp(24px, 2.4vw, 36px); font-weight: 700; letter-spacing: -0.01em; }
+  #proj .main { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 18px; min-height: 0; border: 1px solid var(--rule); border-radius: 6px; padding: 14px 18px; user-select: none; -webkit-user-select: none; }
+  
+  #left { width: 100%; height: 100%; display: block; min-height: 0; }
+  .side { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 12px; min-height: 0; }
+  .join { display: flex; gap: 16px; align-items: center; background: #f6f8fb; border: 1px solid var(--rule); border-radius: 6px; padding: 10px 14px; }
+  .join .qr svg { width: 150px; height: 150px; display: block; }
+  .join .ask { font-size: 26px; font-weight: 700; line-height: 1.25; }
+  .join .url { font-family: var(--mono); font-size: 14px; color: var(--ink-2); margin-top: 8px; word-break: break-all; }
+  .join .count { font-family: var(--mono); font-size: 20px; color: var(--ma); font-weight: 700; margin-top: 8px; }
+  .wall { overflow-y: auto; min-height: 0; padding-right: 6px; }
+  .votes { margin: 4px 0 12px; }
+  .vrow { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr) 44px; align-items: center; gap: 12px; font-size: 24px; margin: 12px 0; }
+  .vtrack { position: relative; background: #f1f3f6; border-radius: 4px; height: 44px; overflow: hidden; }
+  .vbar { display: block; height: 100%; background: var(--ma); border-radius: 4px; transition: width .4s; }
+  .votes.res .vbar { opacity: .3; }
+  .vacc { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-family: var(--mono); font-weight: 700; font-size: 26px; white-space: nowrap; }
+  .vbest { font-family: var(--sans); font-size: 15px; font-weight: 700; color: #fff; background: var(--ink); border-radius: 4px; padding: 2px 8px; margin-left: 10px; vertical-align: 3px; }
+  .vn { font-family: var(--mono); font-weight: 700; text-align: right; }
+  .vlab small { display: block; font-size: 16px; color: var(--ink-2); margin-top: 2px; }
+  .vrow.best .vlab { font-weight: 700; }
+  .vrow.best .vtrack { box-shadow: 0 0 0 3px var(--ink); }
+  .vnote { font-size: 20px; margin: 10px 2px; }
+  .bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 10px 18px; border: 1px solid var(--rule); border-radius: 6px; background: #f6f7f9; }
+  button { font: inherit; font-size: 18px; color: var(--ink); background: #fff; border: 1px solid #9a9a9a; border-radius: 6px; padding: 9px 16px; cursor: pointer; }
+  button:hover { border-color: var(--ink); }
+  button:disabled { opacity: .45; cursor: default; }
+  button.primary { background: var(--ma); color: #fff; border-color: var(--ma); font-weight: 700; }
+  .bar .status { margin-left: auto; font-family: var(--mono); font-size: 15px; color: var(--ink-2); }
+  svg text { font-family: var(--sans); }
+  .halo { paint-order: stroke; stroke: #fff; stroke-width: 6px; stroke-linejoin: round; }
+
+  /* ---------- phone ---------- */
+  #phone { max-width: 560px; margin: 0 auto; padding: 16px; }
+  #phone h1 { font-size: 23px; margin: 6px 0 4px; }
+  #phone .sub { color: var(--ink-2); font-size: 15px; margin: 0 0 12px; }
+  #phone .vgrid { display: grid; gap: 10px; margin: 6px 0 14px; }
+  #phone .vgrid h2 { font-size: 17px; margin: 10px 0 0; color: var(--ink-2); }
+  #phone .vbtn { font-size: 20px; font-weight: 700; padding: 14px 14px; text-align: left; border: 1.5px solid #9a9a9a; border-radius: 8px; background: #fff; }
+  #phone .vbtn.on { background: #e8f1fd; border-color: var(--ma); box-shadow: 0 0 0 2px var(--ma); }
+  #phone button.primary { font-size: 19px; padding: 10px 22px; }
+  #phone .msg { margin-top: 10px; font-size: 16px; min-height: 22px; }
+  .side.hidden + * {}
+  #proj .main:has(.side.hidden) { grid-template-columns: minmax(0, 1fr); }
+  .join { flex-direction: column; align-items: flex-start; }
+  .join .qr svg { width: 260px; height: 260px; }
+  .join .ask { font-size: 24px; }
+  #phone .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+  #phone .chips span { color: #fff; font-weight: 700; font-size: 17px; padding: 5px 9px; border-radius: 6px; min-width: 34px; text-align: center; }
+  #phone .big { font-size: 20px; font-weight: 700; margin: 6px 0 12px; }
+  #phone .num { font-size: 24px; font-style: italic; display: flex; align-items: center; gap: 10px; }
+  #phone .num input { font: inherit; font-style: normal; font-size: 24px; width: 160px; padding: 8px 10px; border: 1.5px solid #9a9a9a; border-radius: 8px; }
+  #phone .vbtn.mono { font-family: var(--mono); font-size: 15px; font-weight: 400; }
+</style>
+
+<!-- projector view -->
+<div id="proj" class="hidden">
+  <div class="head"><h1 id="ptitle"></h1></div>
+  <div class="main" id="main">
+    <svg id="left" viewBox="0 0 1280 760" preserveAspectRatio="xMidYMid meet"></svg>
+    <div class="side" id="side">
+      <div class="join">
+        <div class="qr" id="qr"></div>
+        <div><div class="ask" id="ask"></div><div class="count" id="pcount"></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="bar">
+    <button id="prev" title="Previous (←)">◀</button>
+    <button id="next" class="primary" title="Next (space or →)"></button>
+    <span class="status" id="status"></span>
+    <button id="reset" title="Start the answers again from zero">Reset votes</button>
+  </div>
+</div>
+
+<!-- phone view -->
+<div id="phone" class="hidden">
+  <h1 id="ftitle"></h1>
+  <p class="sub">CS328 · Choose your answers, then send.</p>
+  <div class="vgrid" id="vgrid"></div>
+  <button class="primary hidden" id="vsend">Send</button>
+  <div class="msg" id="vmsg"></div>
+</div>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const NS = 'http://www.w3.org/2000/svg';
+function el(parent, tag, attrs, text) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (text != null) e.textContent = text;
+  parent.appendChild(e); return e;
+}
+
+// ------------------------------------------------------------ chapter 7, "Beyond Accuracy": three questions for the class to answer on their phones
+// (1) which kind of outcome each fall-detector event is; (2) precision or recall for two applications (the book's examples);
+// (3) the recall and precision of REM from the sleep-stage confusion matrix (Figure 7.5)
+// the same web app as ch4/spot-the-difference.html; this game uses its rounds 14 to 16, with its answers tagged "met:" so they
+// never mix with another game's. Add ?test or #test for a local test (this browser only).
+const TEST = /(^|[?&#])test\b/.test(location.search + location.hash);
+const API = TEST ? '' : 'https://script.google.com/macros/s/AKfycbwl9bZajvzRGBFQHL9rMPdHwL7kuF76KvjF3JYfCNU7UIzaei5437aBAuwjlYRwin8SLA/exec';
+const BUILD = '2026-11-02a';
+
+// ------------------------------------------------------------ backend: the Apps Script web app, or localStorage in test mode
+const LS = { answers: 'ml-answers' };
+const today = () => new Date().toISOString().slice(0, 10);
+const getJSON = async (url, ms = 15000) => { const c = new AbortController(), t = setTimeout(() => c.abort(), ms);
+  try { return await (await fetch(url, { signal: c.signal })).json(); } catch (e) { throw e.name === 'AbortError' ? new Error(`no reply in ${ms / 1000} s`) : e; } finally { clearTimeout(t); } };
+const api = {
+  async submit(round, text) {
+    if (!API) { const a = JSON.parse(localStorage.getItem(LS.answers) || '[]'); a.push({ t: Date.now(), round, text, session: today() }); localStorage.setItem(LS.answers, JSON.stringify(a)); return { ok: true }; }
+    return getJSON(`${API}?action=submit&round=${round}&text=${encodeURIComponent(text)}`);
+  },
+  async list(round) {
+    if (!API) return { answers: JSON.parse(localStorage.getItem(LS.answers) || '[]').filter(a => a.round === round && a.session === today()) };
+    return getJSON(`${API}?action=list&round=${round}&t=${Date.now()}`, 45000);
+  },
+};
+
+// ------------------------------------------------------------ the questions
+// each part of a task is one choice among options; an answer is "met:<task>.<part>=<option index>,...;d=<device>"
+const TASKS = {
+  k: { round: 14, title: 'Which kind of outcome is it?', ask: 'A fall detector: is each event a TP, FP, FN or TN?',
+       note: 'positive = the detector raises an alarm (it says "fall")',
+       parts: [['a', 'Someone sits down hard on a chair, and the detector raises an alarm.', 1],
+               ['b', 'Someone falls, and the detector stays quiet.', 2],
+               ['c', 'Someone falls, and the detector raises an alarm.', 0],
+               ['d', 'Someone walks to the kitchen, and the detector stays quiet.', 3]],
+       options: ['TP', 'FP', 'FN', 'TN'] },
+  p: { round: 15, title: 'Precision or recall?', ask: 'Which matters more in each application?',
+       parts: [['a', 'COVID screening: a person with COVID who is missed goes on to infect others.', 1],
+               ['b', 'Spam filtering: an important email sent to the spam folder is never read.', 0]],
+       options: ['precision', 'recall'] },
+  s: { round: 16, title: 'What are the recall and precision of REM?', ask: 'Use the sleep-stage matrix to answer both.',
+       parts: [['r', 'recall of REM', 1], ['p', 'precision of REM', 2]],
+       options: ['0.26', '0.72', '0.80', '0.84'] },
+};
+const KEYS = Object.keys(TASKS);
+// the sleep-stage confusion matrix of Figure 7.5: rows actual, columns predicted
+const SL = [[630, 56, 9], [84, 228, 6], [12, 2, 48]], SN = ['Wakefulness', 'REM', 'NREM'];
+const RESET = 'ml-reset';
+const since = () => { try { return +localStorage.getItem(RESET) || 0; } catch (_) { return 0; } };
+// each device's latest answer to a task, parsed into { part: option }
+function latest(task, answers) {
+  const by = {};
+  (answers || []).forEach(x => { const m = x.text.match(new RegExp(`^met:${task}\\.([^;]*);d=(\\w+)`)); if (m) by[m[2]] = m[1]; });
+  return Object.values(by).map(s => Object.fromEntries(s.split(',').map(p => p.split('=')).map(([a, k]) => [a, +k])));
+}
+const counts = (T, rows) => Object.fromEntries(T.parts.map(([p]) => [p, T.options.map((_, k) => rows.filter(r => r[p] === k).length)]));
+
+// ------------------------------------------------------------ projector
+function projector() {
+  $('proj').classList.remove('hidden');
+  let step = Math.max(0, parseInt((location.hash.match(/step=(\d+)/) || [])[1] || '1', 10) - 1), shown = 0;
+  const ans = { 14: [], 15: [], 16: [] }, page = location.origin + location.pathname;
+  const STEPS = KEYS.map(k => ({ key: k, T: TASKS[k] }));
+
+  // one row per part: its text, then a box per option holding the class's votes; once shown, the right option is marked
+  function boxes(g, T, P, cnt, r, x0, y, w, h) {
+    const mx = Math.max(1, ...cnt), right = P[2];
+    T.options.forEach((o, k) => {
+      const x = x0 + k * (w + 14), ok = r && k === right, fh = (h - 44) * cnt[k] / mx;
+      el(g, 'rect', { x, y, width: w, height: h, rx: 8, fill: '#f6f7f9', stroke: ok ? '#c0392b' : '#dcdcdc', 'stroke-width': ok ? 5 : 1.5 });
+      el(g, 'rect', { x: x + 6, y: y + h - 6 - fh, width: w - 12, height: fh, rx: 5, fill: ok ? '#c0392b' : '#2a78d6', opacity: r && !ok ? 0.3 : 0.75 });
+      el(g, 'text', { x: x + w / 2, y: y + 30, 'text-anchor': 'middle', 'font-size': 24, 'font-weight': 700, fill: ok ? '#c0392b' : '#222' }, o);
+      el(g, 'text', { x: x + w / 2, y: y + h - 14, 'text-anchor': 'middle', 'font-size': 24, 'font-weight': 700, 'font-family': 'Menlo, monospace', fill: '#222' }, cnt[k]);
+    });
+  }
+  // wrap a sentence into lines of about n characters
+  const wrap = (s, n) => s.split(' ').reduce((L, w) => { if ((L[L.length - 1] + ' ' + w).trim().length > n) L.push(w); else L[L.length - 1] = (L[L.length - 1] + ' ' + w).trim(); return L; }, ['']);
+  function rows(g, T, r, rowH, top, bw) {
+    const cnt = counts(T, latest(STEPS[step].key, ans[T.round]));
+    if (T.note) el(g, 'text', { x: 20, y: 34, 'font-size': 24, fill: '#666' }, T.note);
+    T.parts.forEach((P, i) => {
+      const y = top + i * rowH;
+      wrap(P[1], 34).forEach((s, j) => el(g, 'text', { x: 20, y: y + 44 + j * 34, 'font-size': 27, fill: '#222' }, s));
+      boxes(g, T, P, cnt[P[0]], r, 1260 - T.options.length * (bw + 14) + 14, y + 8, bw, rowH - 30);
+      if (i < T.parts.length - 1) el(g, 'line', { x1: 20, x2: 1260, y1: y + rowH - 8, y2: y + rowH - 8, stroke: '#ececec', 'stroke-width': 1.5 });
+    });
+  }
+  // the sleep-stage matrix, plain, with the REM row and column picked out once the answers are shown
+  function sleepQ(g, T, r) {
+    const X0 = 190, Y0 = 130, cs = 118, cnt = counts(T, latest('s', ans[T.round]));
+    el(g, 'text', { x: X0 + 1.5 * cs, y: Y0 - 62, 'text-anchor': 'middle', 'font-size': 21, fill: '#444' }, 'predicted');
+    el(g, 'text', { x: 30, y: Y0 + 1.5 * cs, 'text-anchor': 'middle', 'font-size': 21, fill: '#444', transform: `rotate(-90 30 ${Y0 + 1.5 * cs})` }, 'actual');
+    SN.forEach((n, j) => { el(g, 'text', { x: X0 + j * cs + cs / 2, y: Y0 - 16, 'text-anchor': 'middle', 'font-size': 19, fill: '#444' }, n);
+      el(g, 'text', { x: X0 - 12, y: Y0 + j * cs + cs / 2 + 7, 'text-anchor': 'end', 'font-size': 19, fill: '#444' }, n); });
+    SL.forEach((row, i) => row.forEach((v, j) => {
+      const on = !r || i === 1 || j === 1;
+      el(g, 'rect', { x: X0 + j * cs + 2, y: Y0 + i * cs + 2, width: cs - 4, height: cs - 4, rx: 6, fill: '#e8f0fb', opacity: on ? 1 : 0.3, stroke: r && i === 1 && j === 1 ? '#c0392b' : 'none', 'stroke-width': 5 });
+      el(g, 'text', { x: X0 + j * cs + cs / 2, y: Y0 + i * cs + cs / 2 + 10, 'text-anchor': 'middle', 'font-size': 28, 'font-weight': i === j ? 700 : 400, fill: '#222', opacity: on ? 1 : 0.35 }, v);
+    }));
+    const work = ['228 / (84 + 228 + 6) = 0.72', '228 / (56 + 228 + 2) = 0.80'];
+    T.parts.forEach((P, i) => {
+      const y = 70 + i * 330;
+      el(g, 'text', { x: 640, y, 'font-size': 28, 'font-weight': 700, fill: '#222' }, P[1]);
+      if (r) el(g, 'text', { x: 640, y: y + 38, 'font-size': 22, 'font-family': 'Menlo, monospace', fill: '#c0392b' }, work[i]);
+      boxes(g, T, P, cnt[P[0]], r, 640, y + 60, 140, 200);
+    });
+  }
+
+  function qr(task) {
+    const url = page + '?phone&task=' + task + (TEST ? '&test' : '') + '&v=' + BUILD;
+    try { const c = qrcode(0, 'M'); c.addData(url); c.make(); $('qr').innerHTML = c.createSvgTag({ cellSize: 5, margin: 2, scalable: true }); } catch (_) { $('qr').textContent = ''; }
+  }
+  function show() {
+    const S = STEPS[step], T = S.T, last = step === STEPS.length - 1;
+    $('ptitle').textContent = T.title;
+    $('prev').disabled = step === 0 && shown === 0;
+    $('next').textContent = !shown ? 'Show the answers' : 'Next';
+    $('next').classList.toggle('hidden', last && shown);
+    $('ask').textContent = T.ask;
+    const n = latest(S.key, ans[T.round]).length;
+    $('pcount').textContent = `${n} answer${n === 1 ? '' : 's'}`;
+    qr(S.key);
+    const svg = $('left'); svg.innerHTML = ''; const g = el(svg, 'g', {});
+    if (S.key === 'k') rows(g, T, shown, 178, 50, 120);
+    else if (S.key === 'p') rows(g, T, shown, 330, 40, 200);
+    else sleepQ(g, T, shown);
+    history.replaceState(null, '', '#step=' + (step + 1) + (TEST ? '&test' : ''));
+  }
+  // only the round on screen is fetched, one request at a time; a slow or failed reply keeps the answers already shown
+  async function poll() {
+    const r = STEPS[step].T.round;
+    try {
+      const a = ((await api.list(r)).answers || []).filter(x => x.t > since()).sort((p, o) => p.t - o.t);
+      const changed = a.length !== ans[r].length; ans[r] = a;
+      if (changed && STEPS[step].T.round === r) show();
+      $('status').textContent = API ? 'live' : 'test mode (this browser only)';
+    } catch (e) { $('status').textContent = 'answer sheet slow to reply, still trying'; }
+  }
+  const fwd = () => { if (!shown) { shown = 1; show(); } else if (step < STEPS.length - 1) { step++; shown = 0; show(); poll(); } };
+  const back = () => { if (shown) { shown = 0; show(); } else if (step > 0) { step--; shown = 1; show(); poll(); } };
+  $('next').onclick = fwd; $('prev').onclick = back;
+  $('reset').onclick = async () => {
+    if (!confirm('Clear all the answers and start again?')) return;
+    try { localStorage.setItem(RESET, String(Date.now())); } catch (_) {}
+    if (!API) localStorage.removeItem(LS.answers);
+    Object.keys(ans).forEach(r => ans[r] = []); show(); poll();
+  };
+  document.addEventListener('keydown', e => { if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); fwd(); } else if (e.key === 'ArrowLeft') back(); });
+  show();
+  (async function loop() { await poll(); setTimeout(loop, 3000); })();
+}
+
+// ------------------------------------------------------------ phone: the task its QR code names
+function phone() {
+  $('phone').classList.remove('hidden');
+  let busy = false, dev = '';
+  const picked = {};
+  try { dev = localStorage.getItem('sd-dev') || ''; if (!dev) { dev = Math.random().toString(36).slice(2, 10); localStorage.setItem('sd-dev', dev); } } catch (_) { dev = Math.random().toString(36).slice(2, 10); }
+  const key = new URLSearchParams(location.search).get('task'), T = TASKS[key];
+  if (!T) { $('ftitle').textContent = 'Scan the code on the screen to open the question.'; return; }
+  function draw() {
+    const G = $('vgrid'); G.innerHTML = '';
+    $('ftitle').textContent = T.title;
+    if (T.note) { const p = document.createElement('p'); p.className = 'sub'; p.textContent = T.note; G.appendChild(p); }
+    if (key === 's') { const p = document.createElement('p'); p.className = 'sub';
+      p.innerHTML = 'rows actual, columns predicted (Wake, REM, NREM)<br>' + SL.map((r, i) => `${SN[i]}: ${r.join(', ')}`).join('<br>'); G.appendChild(p); }
+    T.parts.forEach(([p, text]) => {
+      const h = document.createElement('h2'); h.textContent = text; G.appendChild(h);
+      T.options.forEach((o, k) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'vbtn' + (picked[p] === k ? ' on' : ''); b.textContent = o; b.onclick = () => { picked[p] = k; draw(); }; G.appendChild(b); });
+    });
+  }
+  $('vsend').classList.remove('hidden');
+  $('vmsg').textContent = API ? '' : 'Test mode: answers stay on this device.';
+  draw();
+  $('vsend').onclick = async () => {
+    if (T.parts.some(([p]) => picked[p] == null)) { $('vmsg').textContent = 'Answer every part first.'; return; }
+    if (busy) return;
+    busy = true; $('vsend').disabled = true; $('vmsg').textContent = 'Sending…';
+    const text = `met:${key}.` + T.parts.map(([p]) => `${p}=${picked[p]}`).join(',') + ';d=' + dev;
+    try { const r = await api.submit(T.round, text); $('vmsg').textContent = r.ok ? 'Sent. To change it, choose again and send.' : 'Not sent (' + (r.error || 'unknown') + '); try again.'; }
+    catch (e) { $('vmsg').textContent = 'Not sent (' + (e && e.message || e) + '); try again.'; }
+    busy = false; $('vsend').disabled = false;
+  };
+}
+
+if (new URLSearchParams(location.search).has('phone')) phone(); else projector();
+})();
+</script>
+</body>
+</html>
