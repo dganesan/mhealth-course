@@ -131,7 +131,7 @@ function start() {
 }
 
 // ------------------------------------------------------------ chapter 7, "The evaluation workflow: GridSearchCV" and "GridSearch": what each set does, what happens on
-// each, the grid it searches, and the book's listing; and the step counter it generalizes
+// each, the grid it searches, the book's listing, splitting by person, and the step counter it generalizes
 const DATA = {"depth":{"x":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],"folds":[[0.3863,0.3832,0.3832,0.3863,0.3863],[0.6885,0.7134,0.6947,0.7009,0.6947],[0.8037,0.8287,0.8318,0.8318,0.8193],[0.9065,0.9346,0.9346,0.919,0.9097],[0.9502,0.9564,0.9688,0.947,0.9533],[0.9626,0.9595,0.972,0.9502,0.9688],[0.9657,0.9751,0.972,0.9439,0.9688],[0.972,0.9533,0.972,0.9533,0.9688],[0.972,0.9533,0.9657,0.9533,0.9688],[0.972,0.9533,0.972,0.9533,0.9688],[0.972,0.9533,0.972,0.9533,0.9688],[0.972,0.9533,0.972,0.9533,0.9688],[0.972,0.9533,0.972,0.9533,0.9688],[0.972,0.9533,0.972,0.9533,0.9688],[0.972,0.9533,0.972,0.9533,0.9688]]},"grid":{"param_grid":{"max_depth":[3,5,7,10,null],"min_samples_split":[2,5,10,20]},"combos":[{"p":{"max_depth":3,"min_samples_split":2},"folds":[0.8,0.7911,0.8222,0.8304,0.808],"mean":0.8103},{"p":{"max_depth":3,"min_samples_split":5},"folds":[0.8,0.7911,0.8222,0.8304,0.808],"mean":0.8103},{"p":{"max_depth":3,"min_samples_split":10},"folds":[0.8,0.7911,0.8222,0.8304,0.808],"mean":0.8103},{"p":{"max_depth":3,"min_samples_split":20},"folds":[0.8,0.7911,0.8222,0.8304,0.808],"mean":0.8103},{"p":{"max_depth":5,"min_samples_split":2},"folds":[0.96,0.9511,0.9333,0.9643,0.9375],"mean":0.9492},{"p":{"max_depth":5,"min_samples_split":5},"folds":[0.96,0.9511,0.9333,0.9643,0.9375],"mean":0.9492},{"p":{"max_depth":5,"min_samples_split":10},"folds":[0.9644,0.9511,0.9289,0.9688,0.9375],"mean":0.9501},{"p":{"max_depth":5,"min_samples_split":20},"folds":[0.9644,0.9511,0.9289,0.9688,0.9375],"mean":0.9501},{"p":{"max_depth":7,"min_samples_split":2},"folds":[0.9422,0.9333,0.9378,0.9688,0.9554],"mean":0.9475},{"p":{"max_depth":7,"min_samples_split":5},"folds":[0.9511,0.9422,0.9422,0.9643,0.9509],"mean":0.9501},{"p":{"max_depth":7,"min_samples_split":10},"folds":[0.9689,0.9422,0.9333,0.9688,0.9554],"mean":0.9537},{"p":{"max_depth":7,"min_samples_split":20},"folds":[0.9644,0.9422,0.9378,0.9688,0.9464],"mean":0.9519},{"p":{"max_depth":10,"min_samples_split":2},"folds":[0.9511,0.9289,0.9378,0.9688,0.9509],"mean":0.9475},{"p":{"max_depth":10,"min_samples_split":5},"folds":[0.9556,0.9378,0.9422,0.9643,0.9509],"mean":0.9501},{"p":{"max_depth":10,"min_samples_split":10},"folds":[0.9733,0.9289,0.9333,0.9688,0.9554],"mean":0.9519},{"p":{"max_depth":10,"min_samples_split":20},"folds":[0.96,0.9378,0.9378,0.9643,0.9464],"mean":0.9493},{"p":{"max_depth":null,"min_samples_split":2},"folds":[0.9511,0.9289,0.9378,0.9688,0.9509],"mean":0.9475},{"p":{"max_depth":null,"min_samples_split":5},"folds":[0.9556,0.9378,0.9422,0.9643,0.9509],"mean":0.9501},{"p":{"max_depth":null,"min_samples_split":10},"folds":[0.9733,0.9289,0.9333,0.9688,0.9554],"mean":0.9519},{"p":{"max_depth":null,"min_samples_split":20},"folds":[0.96,0.9378,0.9378,0.9643,0.9464],"mean":0.9493}],"best":10,"test":0.9502},"walk":{"p":{"max_depth":5,"min_samples_split":10},"ntrain":898,"tree":{"rule":"Ay max <= 11.75","kids":[{"rule":"Az min <= 2.43","kids":[null,null]},{"rule":"Ax std <= 5.01","kids":[null,null]}]},"val":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],"bestTree":{"rule":"Ay max <= 11.75","kids":[{"rule":"Az min <= 2.37","kids":[null,null]},{"rule":"Ax std <= 5.01","kids":[null,null]}]},"test":[1,0,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1],"nfit":1123}}, G = DATA.grid;
 const TR = '#2a78d6', VA = '#d6453d', TE = '#7a8ea8';
 const label = (g, x, y, s, o = {}) => el(g, 'text', Object.assign({ x, y, 'text-anchor': 'middle', 'font-size': 24, fill: '#222' }, o), s);
@@ -310,6 +310,33 @@ function search(g, t) {
   el(g, 'text', { x: PX, y: BY + H + 76, 'font-size': 23, fill: '#222' }, `mean of the five folds: ${cur.mean.toFixed(3)}`);
 }
 
+// data from several people: a split by window scatters each person across the sets, a split by person keeps them whole;
+// in code, the split, the folds and the fit take the people as groups
+const SUBJ = ['#2a78d6', '#eb6834', '#1baf7a', '#7a3fb0', '#c9a400', '#8a5a44'];
+const STRIPES = (() => { const r = rng(9); return Array.from({ length: 96 }, () => Math.floor(r() * 6)); })();
+function people(g, t) {
+  const X0 = 320, W = 1200, H = 60, sets = [[0, 3, 'training', TR], [3, 4, 'validation', VA], [4, 6, 'test', TE]], u = s => clamp01((t - s) / 0.5);
+  sets.forEach(([a, b, name, col]) => label(g, X0 + (a + b) / 12 * W, 92, name, { 'font-size': 22, 'font-weight': 700, fill: col }));
+  [['split by window', 110], ['split by person', 230]].forEach(([name, y], r) => {
+    const k = el(g, 'g', { opacity: u(0.8 * r) });
+    el(k, 'text', { x: 60, y: y + 38, 'font-size': 24, 'font-weight': 700, fill: '#222' }, name);
+    if (r === 0) STRIPES.forEach((p, i) => el(k, 'rect', { x: X0 + i * W / 96, y, width: W / 96 + 0.5, height: H, fill: SUBJ[p] }));
+    else for (let p = 0; p < 6; p++) el(k, 'rect', { x: X0 + p * W / 6, y, width: W / 6, height: H, fill: SUBJ[p] });
+    // the boundaries between training, validation and test
+    [3, 4].forEach(q => el(k, 'line', { x1: X0 + q * W / 6, x2: X0 + q * W / 6, y1: y - 8, y2: y + H + 8, stroke: '#222', 'stroke-width': 4 }));
+  });
+  label(g, 920, 335, 'each colour is one person; two windows from the same person look alike,', { 'font-size': 23, fill: '#444', opacity: u(1.6) });
+  label(g, 920, 367, 'so a person on both sides of a split makes the score too optimistic', { 'font-size': 23, fill: '#444', opacity: u(1.6) });
+  const k = el(g, 'g', { opacity: u(2.2) });
+  el(k, 'rect', { x: 60, y: 410, width: 1480, height: 300, rx: 10, fill: '#f6f7f9', stroke: '#dcdcdc' });
+  const L = [[['splitter = '], ['GroupShuffleSplit', 1], ['(test_size=0.3)']],
+    [['train, test = next(splitter.split(X, y, '], ['groups=people', 1], ['))']],
+    [['grid = GridSearchCV(DecisionTreeClassifier(), param_grid, '], ['cv=GroupKFold(5)', 1], [')']],
+    [['grid.fit(X_train, y_train, '], ['groups=people_train', 1], [')']]];
+  L.forEach((parts, i) => { const tx = mono(k, 90, 475 + i * 62, '', { 'font-size': 25 });
+    parts.forEach(([s, hi]) => { const sp = document.createElementNS(NS, 'tspan'); sp.textContent = s; if (hi) { sp.setAttribute('fill', DEEP); sp.setAttribute('font-weight', 700); } tx.appendChild(sp); }); });
+}
+
 // Table 7.1: the step counter from Chapter 2 and the decision tree are tuned the same way
 const ROWS = [['Method', 'find_peaks()', 'DecisionTreeClassifier()'], ['Tunable params', 'height, distance, prominence', 'max_depth, min_samples_split, criterion'],
   ['Manual tuning', 'try a few combinations by hand', 'try a few combinations by hand'], ['Systematic search', 'grid search over parameter ranges', 'GridSearchCV'],
@@ -333,6 +360,7 @@ STEPS = [
   { title: 'How do we do this for every setting?', T: N * per + 0.3, draw: search },
   { title: 'What happens on the test set?', T: 2.6, draw: onTest },
   { title: 'What does this look like in code?', T: 3.2, draw: code },
+  { title: 'What if the data comes from several people?', T: 2.6, draw: people },
   { title: 'Where have we seen grid search before?', T: 2.4, draw: table },
 ];
 start();
