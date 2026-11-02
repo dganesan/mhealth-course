@@ -131,7 +131,7 @@ function start() {
 }
 
 // ------------------------------------------------------------ chapter 7, "The evaluation workflow: GridSearchCV" and "GridSearch": what each set does, what happens on
-// each, the grid it searches, the book's listing, splitting by subject, and the step counter it generalizes
+// each, the grid it searches, and the book's listing; and the step counter it generalizes
 const DATA = {"depth":{"x":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],"folds":[[0.3863,0.3832,0.3832,0.3863,0.3863],[0.6885,0.7134,0.6947,0.7009,0.6947],[0.8037,0.8287,0.8318,0.8318,0.8193],[0.9065,0.9346,0.9346,0.919,0.9097],[0.9502,0.9564,0.9688,0.947,0.9533],[0.9626,0.9595,0.972,0.9502,0.9688],[0.9657,0.9751,0.972,0.9439,0.9688],[0.972,0.9533,0.972,0.9533,0.9688],[0.972,0.9533,0.9657,0.9533,0.9688],[0.972,0.9533,0.972,0.9533,0.9688],[0.972,0.9533,0.972,0.9533,0.9688],[0.972,0.9533,0.972,0.9533,0.9688],[0.972,0.9533,0.972,0.9533,0.9688],[0.972,0.9533,0.972,0.9533,0.9688],[0.972,0.9533,0.972,0.9533,0.9688]]},"grid":{"param_grid":{"max_depth":[3,5,7,10,null],"min_samples_split":[2,5,10,20]},"combos":[{"p":{"max_depth":3,"min_samples_split":2},"folds":[0.8,0.7911,0.8222,0.8304,0.808],"mean":0.8103},{"p":{"max_depth":3,"min_samples_split":5},"folds":[0.8,0.7911,0.8222,0.8304,0.808],"mean":0.8103},{"p":{"max_depth":3,"min_samples_split":10},"folds":[0.8,0.7911,0.8222,0.8304,0.808],"mean":0.8103},{"p":{"max_depth":3,"min_samples_split":20},"folds":[0.8,0.7911,0.8222,0.8304,0.808],"mean":0.8103},{"p":{"max_depth":5,"min_samples_split":2},"folds":[0.96,0.9511,0.9333,0.9643,0.9375],"mean":0.9492},{"p":{"max_depth":5,"min_samples_split":5},"folds":[0.96,0.9511,0.9333,0.9643,0.9375],"mean":0.9492},{"p":{"max_depth":5,"min_samples_split":10},"folds":[0.9644,0.9511,0.9289,0.9688,0.9375],"mean":0.9501},{"p":{"max_depth":5,"min_samples_split":20},"folds":[0.9644,0.9511,0.9289,0.9688,0.9375],"mean":0.9501},{"p":{"max_depth":7,"min_samples_split":2},"folds":[0.9422,0.9333,0.9378,0.9688,0.9554],"mean":0.9475},{"p":{"max_depth":7,"min_samples_split":5},"folds":[0.9511,0.9422,0.9422,0.9643,0.9509],"mean":0.9501},{"p":{"max_depth":7,"min_samples_split":10},"folds":[0.9689,0.9422,0.9333,0.9688,0.9554],"mean":0.9537},{"p":{"max_depth":7,"min_samples_split":20},"folds":[0.9644,0.9422,0.9378,0.9688,0.9464],"mean":0.9519},{"p":{"max_depth":10,"min_samples_split":2},"folds":[0.9511,0.9289,0.9378,0.9688,0.9509],"mean":0.9475},{"p":{"max_depth":10,"min_samples_split":5},"folds":[0.9556,0.9378,0.9422,0.9643,0.9509],"mean":0.9501},{"p":{"max_depth":10,"min_samples_split":10},"folds":[0.9733,0.9289,0.9333,0.9688,0.9554],"mean":0.9519},{"p":{"max_depth":10,"min_samples_split":20},"folds":[0.96,0.9378,0.9378,0.9643,0.9464],"mean":0.9493},{"p":{"max_depth":null,"min_samples_split":2},"folds":[0.9511,0.9289,0.9378,0.9688,0.9509],"mean":0.9475},{"p":{"max_depth":null,"min_samples_split":5},"folds":[0.9556,0.9378,0.9422,0.9643,0.9509],"mean":0.9501},{"p":{"max_depth":null,"min_samples_split":10},"folds":[0.9733,0.9289,0.9333,0.9688,0.9554],"mean":0.9519},{"p":{"max_depth":null,"min_samples_split":20},"folds":[0.96,0.9378,0.9378,0.9643,0.9464],"mean":0.9493}],"best":10,"test":0.9502},"walk":{"p":{"max_depth":5,"min_samples_split":10},"ntrain":898,"tree":{"rule":"Ay max <= 11.75","kids":[{"rule":"Az min <= 2.43","kids":[null,null]},{"rule":"Ax std <= 5.01","kids":[null,null]}]},"val":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],"bestTree":{"rule":"Ay max <= 11.75","kids":[{"rule":"Az min <= 2.37","kids":[null,null]},{"rule":"Ax std <= 5.01","kids":[null,null]}]},"test":[1,0,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1],"nfit":1123}}, G = DATA.grid;
 const TR = '#2a78d6', VA = '#d6453d', TE = '#7a8ea8';
 const label = (g, x, y, s, o = {}) => el(g, 'text', Object.assign({ x, y, 'text-anchor': 'middle', 'font-size': 24, fill: '#222' }, o), s);
@@ -193,46 +193,72 @@ function splits(g, T, cx, y0, w, u, depth) {
   if (u >= 1.2) { [-3, -1, 1, 3].forEach(q => { const x = cx + q * w / 8; el(g, 'line', { x1: x, y1: y0 + 250, x2: x - 40, y2: y0 + 320, stroke: '#c9c9c9', 'stroke-width': 2 }); el(g, 'line', { x1: x, y1: y0 + 250, x2: x + 40, y2: y0 + 320, stroke: '#c9c9c9', 'stroke-width': 2 }); });
     label(g, cx, y0 + 380, `… and so on, down to depth ${depth}`, { 'font-size': 22, fill: '#666' }); }
 }
+// the data bar of step 1, small, across the top: `hi` picks the part in use ('train', 'val' or 'fit', the whole training part, with the test set)
+const BX = 200, BW = 1200, BY = 30, BH = 56, bs = BW / NALL;
+const part = { train: [BX, BX + 4 * NFOLD * bs], val: [BX + 4 * NFOLD * bs, BX + NFIT * bs], fit: [BX, BX + NFIT * bs], test: [BX + NFIT * bs + 20, BX + BW] };
+function dataBar(g, hi) {
+  const on = k => hi === k || (hi === 'fit' && k !== 'test') || (hi === 'fit' && k === 'test');
+  const seg = (k, col, name, a = part[k]) => { el(g, 'rect', { x: a[0] + 2, y: BY, width: a[1] - a[0] - 4, height: BH, rx: 8, fill: col, opacity: on(k) ? 0.9 : 0.2 });
+    label(g, (a[0] + a[1]) / 2, BY + 36, name, { 'font-size': 21, 'font-weight': 700, fill: on(k) ? '#fff' : '#888' }); };
+  if (hi === 'fit') seg('fit', TR, `training: all ${NFIT} windows`);
+  else { seg('train', TR, `training: ${4 * NFOLD} windows`); seg('val', VA, `validation: ${NFOLD}`); }
+  seg('test', TE, `test: ${NTEST} windows`);
+}
+// a zoom from a part of the bar down to what it becomes
+function zoom(g, a, x1, x2, y2, col, u = 1) {
+  if (u <= 0) return;
+  const k = el(g, 'g', { opacity: u });
+  el(k, 'path', { d: `M${a[0]},${BY + BH} L${a[1]},${BY + BH} L${x2},${y2} L${x1},${y2} Z`, fill: col, opacity: 0.08 });
+  el(k, 'line', { x1: a[0], y1: BY + BH, x2: x1, y2, stroke: col, 'stroke-width': 1.5, opacity: 0.6 });
+  el(k, 'line', { x1: a[1], y1: BY + BH, x2: x2, y2, stroke: col, 'stroke-width': 1.5, opacity: 0.6 });
+}
 function onTrain(g, t) {
-  mono(g, 60, 60, `${set(WK.p, 'max_depth')}, ${set(WK.p, 'min_samples_split')}`, { 'font-size': 26, fill: DEEP, 'font-weight': 700 });
-  el(g, 'rect', { x: 60, y: 260, width: 300, height: 130, rx: 12, fill: TR, opacity: 0.88 });
-  label(g, 210, 318, 'Training set', { 'font-size': 27, 'font-weight': 700, fill: '#fff' });
-  label(g, 210, 356, `${4 * NFOLD} windows`, { 'font-size': 22, fill: '#fff' });
-  arrow(g, 375, 325, 520, 325, ease(t / 0.4), { w: 3 }); label(g, 448, 305, 'grow', { 'font-size': 21, fill: '#444', opacity: clamp01(t / 0.4) });
-  splits(g, WK.tree, 1050, 150, 1000, Math.max(0, t - 0.4) / 0.9 * 1.2, WK.p.max_depth);
+  dataBar(g, 'train');
+  mono(g, 60, 730, `${set(WK.p, 'max_depth')}, ${set(WK.p, 'min_samples_split')}`, { 'font-size': 26, fill: DEEP, 'font-weight': 700 });
+  zoom(g, part.train, 900, 1200, 228, TR, clamp01(t / 0.4));
+  splits(g, WK.tree, 1050, 260, 1000, Math.max(0, t - 0.4) / 0.9 * 1.2, WK.p.max_depth);
 }
 // one window per square, green if the tree labels it right
 function squares(g, A, X0, Y0, cols, sz, k) {
   A.slice(0, k).forEach((v, i) => el(g, 'rect', { x: X0 + (i % cols) * sz, y: Y0 + Math.floor(i / cols) * sz, width: sz - 3, height: sz - 3, rx: 3, fill: v ? OK7 : NO7, opacity: v ? 0.75 : 1 }));
 }
+// a small copy of the training part in five folds, with fold f as the validation fold
+function folds5(g, x, y, f, w = 36) {
+  for (let q = 0; q < 5; q++) el(g, 'rect', { x: x + q * w, y, width: w - 3, height: 28, rx: 4, fill: q === f ? VA : TR, opacity: q === f ? 0.9 : 0.35 });
+}
 function onValidation(g, t) {
-  mono(g, 60, 60, `${set(WK.p, 'max_depth')}, ${set(WK.p, 'min_samples_split')}`, { 'font-size': 26, fill: DEEP, 'font-weight': 700 });
-  miniTree(g, 200, 330, 80, TR); label(g, 200, 430, 'the grown tree', { 'font-size': 22, fill: '#444' });
-  arrow(g, 320, 330, 470, 330, 1, { w: 3 }); label(g, 395, 310, 'label', { 'font-size': 21, fill: '#444' });
+  dataBar(g, 'val');
+  mono(g, 60, 735, `${set(WK.p, 'max_depth')}, ${set(WK.p, 'min_samples_split')}`, { 'font-size': 26, fill: DEEP, 'font-weight': 700 });
+  miniTree(g, 200, 330, 70, TR); label(g, 200, 420, 'the grown tree', { 'font-size': 22, fill: '#444' });
+  arrow(g, 300, 320, 420, 320, 1, { w: 3 }); label(g, 360, 300, 'label', { 'font-size': 21, fill: '#444' });
+  zoom(g, part.val, 440, 1157, 196, VA);
   const n = VAL.length, k = Math.min(n, Math.floor(t / 1.6 * n)), right = VAL.reduce((a, v) => a + v, 0);
-  label(g, 500 + 10 * 36, 130, `${n} validation windows`, { 'font-size': 25, 'font-weight': 700, fill: VA, 'text-anchor': 'middle' });
-  squares(g, VAL, 500, 160, 20, 36, k);
+  squares(g, VAL, 440, 200, 20, 36, k);
   if (t < 1.8) return;
-  label(g, 1340, 300, `${right} of ${n} right`, { 'font-size': 26, fill: '#222' });
-  label(g, 1340, 360, `score ${(right / n).toFixed(3)}`, { 'font-size': 34, 'font-weight': 700, fill: VA });
+  label(g, 1380, 300, `${right} of ${n} right`, { 'font-size': 26, fill: '#222' });
+  label(g, 1380, 360, `score ${(right / n).toFixed(3)}`, { 'font-size': 34, 'font-weight': 700, fill: VA });
+  // cross-validation: each fold takes a turn as the validation fold, and the five scores are averaged
   const c = G.combos.find(c => c.p.max_depth === WK.p.max_depth && c.p.min_samples_split === WK.p.min_samples_split);
-  label(g, 800, 640, `with cv=5 this is repeated with each of the 5 folds as the validation set: average ${c.mean.toFixed(3)}`, { 'font-size': 23, fill: '#444', opacity: clamp01((t - 2.2) / 0.4) });
+  if (t < 2.4) return;
+  label(g, 700, 530, 'with cv=5, each fold takes a turn as the validation fold', { 'font-size': 24, fill: '#444' });
+  c.folds.forEach((v, f) => { const x = 140 + f * 230, k2 = el(g, 'g', { opacity: clamp01((t - 2.5 - 0.3 * f) / 0.3) });
+    folds5(k2, x, 570, f); label(k2, x + 88, 640, v.toFixed(3), { 'font-size': 25, 'font-weight': f ? 400 : 700, fill: VA }); });
+  if (t >= 4.1) { label(g, 1380, 590, 'average', { 'font-size': 23, fill: '#444' }); label(g, 1380, 640, c.mean.toFixed(3), { 'font-size': 34, 'font-weight': 700, fill: '#222' }); }
 }
 function onTest(g, t) {
   const B = G.combos[G.best].p, u = s => clamp01((t - s) / 0.4);
-  el(g, 'text', { x: 60, y: 60, 'font-size': 25, 'font-weight': 700, fill: '#222' }, 'Best setting from the grid:');
-  mono(g, 420, 60, `${set(B, 'max_depth')}, ${set(B, 'min_samples_split')}`, { 'font-size': 26, fill: DEEP, 'font-weight': 700 });
-  el(g, 'rect', { x: 60, y: 230, width: 300, height: 130, rx: 12, fill: TR, opacity: 0.88 });
-  label(g, 210, 288, 'Training set', { 'font-size': 27, 'font-weight': 700, fill: '#fff' });
-  label(g, 210, 326, `all ${NFIT} windows`, { 'font-size': 22, fill: '#fff' });
-  arrow(g, 375, 295, 480, 295, u(0), { w: 3 });
-  miniTree(el(g, 'g', { opacity: u(0.2) }), 570, 300, 80, TR); label(g, 570, 400, 'grown again', { 'font-size': 22, fill: '#444', opacity: u(0.2) });
-  arrow(g, 680, 295, 790, 295, u(0.5), { w: 3 });
+  dataBar(g, 'fit');
+  el(g, 'text', { x: 60, y: 735, 'font-size': 25, 'font-weight': 700, fill: '#222' }, 'Best setting from the grid:');
+  mono(g, 420, 735, `${set(B, 'max_depth')}, ${set(B, 'min_samples_split')}`, { 'font-size': 26, fill: DEEP, 'font-weight': 700 });
+  zoom(g, part.fit, 400, 640, 300, TR, u(0));
+  miniTree(el(g, 'g', { opacity: u(0.2) }), 520, 380, 80, TR); label(g, 520, 480, 'grown again', { 'font-size': 22, fill: '#444', opacity: u(0.2) });
+  label(g, 520, 510, `on all ${NFIT} windows`, { 'font-size': 22, fill: '#444', opacity: u(0.2) });
+  arrow(g, 630, 380, 780, 380, u(0.5), { w: 3 });
+  zoom(g, part.test, 810, 1557, 216, TE, u(0.5));
   const n = TEST.length, k = Math.max(0, Math.min(n, Math.floor((t - 0.7) / 1.4 * n))), right = TEST.reduce((a, v) => a + v, 0);
-  label(g, 810 + 12.5 * 30, 130, `${n} test windows, used once`, { 'font-size': 25, 'font-weight': 700, fill: TE, opacity: u(0.5) });
-  squares(g, TEST, 810, 160, 25, 30, k);
+  squares(g, TEST, 810, 220, 25, 30, k);
   if (t < 2.2) return;
-  label(g, 1185, 590, `${right} of ${n} right: test accuracy ${G.test.toFixed(3)}`, { 'font-size': 30, 'font-weight': 700, fill: '#444' });
+  label(g, 1185, 650, `${right} of ${n} right: test accuracy ${G.test.toFixed(3)}`, { 'font-size': 30, 'font-weight': 700, fill: '#444' });
 }
 
 // the book's listing, each part tied back to the steps before it
@@ -284,24 +310,6 @@ function search(g, t) {
   el(g, 'text', { x: PX, y: BY + H + 76, 'font-size': 23, fill: '#222' }, `mean of the five folds: ${cur.mean.toFixed(3)}`);
 }
 
-// split by subject: all of a person's windows on one side
-const SUBJ = ['#2a78d6', '#eb6834', '#1baf7a', '#7a3fb0', '#c9a400', '#d6453d'];
-function subjects(g, t) {
-  const r = rng(9), W = Array.from({ length: 36 }, (_, i) => ({ s: Math.floor(i / 6), rnd: r() }));
-  [['Split by window', w => w.rnd < 0.3], ['Split by subject', w => w.s >= 4]].forEach(([name, isTest], row) => {
-    const Y = 120 + row * 320, u = clamp01((t - row * 1.2) / 0.8);
-    el(g, 'text', { x: 80, y: Y, 'font-size': 26, 'font-weight': 700, fill: '#222' }, name);
-    label(g, 520, Y + 50, 'training', { 'font-size': 22, fill: TR, 'font-weight': 700 }); label(g, 1240, Y + 50, 'test', { 'font-size': 22, fill: TE, 'font-weight': 700 });
-    el(g, 'line', { x1: 960, x2: 960, y1: Y + 30, y2: Y + 250, stroke: '#c9c9c9', 'stroke-width': 2, 'stroke-dasharray': '6 6' });
-    const tr = W.filter(w => !isTest(w)), te = W.filter(isTest);
-    [[tr, 160, 720], [te, 1020, 440]].forEach(([set, x0, w], side) => set.forEach((d, i) => {
-      const per = Math.floor(w / 56), hx = 160 + (W.indexOf(d) % 12) * 60, hy = Y + 80 + Math.floor(W.indexOf(d) / 12) * 56, tx = x0 + (i % per) * 56, ty = Y + 80 + Math.floor(i / per) * 56;
-      el(g, 'circle', { cx: hx + (tx - hx) * ease(u), cy: hy + (ty - hy) * ease(u), r: 19, fill: SUBJ[d.s], stroke: '#fff', 'stroke-width': 2 });
-    }));
-  });
-  el(g, 'text', { x: 80, y: 735, 'font-size': 22, fill: '#666' }, 'each colour is one person');
-}
-
 // Table 7.1: the step counter from Chapter 2 and the decision tree are tuned the same way
 const ROWS = [['Method', 'find_peaks()', 'DecisionTreeClassifier()'], ['Tunable params', 'height, distance, prominence', 'max_depth, min_samples_split, criterion'],
   ['Manual tuning', 'try a few combinations by hand', 'try a few combinations by hand'], ['Systematic search', 'grid search over parameter ranges', 'GridSearchCV'],
@@ -321,11 +329,10 @@ function table(g, t) {
 STEPS = [
   { title: 'What does each set do?', T: 2.2, draw: roles },
   { title: 'What happens on the training set?', T: 2.6, draw: onTrain },
-  { title: 'What happens on the validation set?', T: 2.7, draw: onValidation },
+  { title: 'What happens on the validation set?', T: 4.4, draw: onValidation },
   { title: 'How do we do this for every setting?', T: N * per + 0.3, draw: search },
   { title: 'What happens on the test set?', T: 2.6, draw: onTest },
   { title: 'What does this look like in code?', T: 3.2, draw: code },
-  { title: 'Why split by subject rather than by window?', T: 2.1, draw: subjects },
   { title: 'Where have we seen grid search before?', T: 2.4, draw: table },
 ];
 start();

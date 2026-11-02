@@ -130,7 +130,7 @@ function start() {
   go((parseInt(location.hash.slice(1), 10) || 1) - 1);
 }
 
-// ------------------------------------------------------------ chapter 7, "Introduction" and "Holding Out Data": the pipeline, the two naive approaches, the held-out set and its two jobs, the three sets, the train/validate loop, k-fold cross-validation, the CV depth curve
+// ------------------------------------------------------------ chapter 7, "Introduction" and "Holding Out Data": the pipeline, the two naive approaches, the held-out set and its two jobs, the three sets, the train/validate loop, splitting by subject, k-fold cross-validation, how much better it chooses, and the summary
 const DATA = {"depth":{"x":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],"folds":[[0.3863,0.3832,0.3832,0.3863,0.3863],[0.6885,0.7134,0.6947,0.7009,0.6947],[0.8037,0.8287,0.8318,0.8318,0.8193],[0.9065,0.9346,0.9346,0.919,0.9097],[0.9502,0.9564,0.9688,0.947,0.9533],[0.9626,0.9595,0.972,0.9502,0.9688],[0.9657,0.9751,0.972,0.9439,0.9688],[0.972,0.9533,0.972,0.9533,0.9688],[0.972,0.9533,0.9657,0.9533,0.9688],[0.972,0.9533,0.972,0.9533,0.9688],[0.972,0.9533,0.972,0.9533,0.9688],[0.972,0.9533,0.972,0.9533,0.9688],[0.972,0.9533,0.972,0.9533,0.9688],[0.972,0.9533,0.972,0.9533,0.9688],[0.972,0.9533,0.972,0.9533,0.9688]]},"grid":{"param_grid":{"max_depth":[3,5,7,10,null],"min_samples_split":[2,5,10,20]},"combos":[{"p":{"max_depth":3,"min_samples_split":2},"folds":[0.8,0.7911,0.8222,0.8304,0.808],"mean":0.8103},{"p":{"max_depth":3,"min_samples_split":5},"folds":[0.8,0.7911,0.8222,0.8304,0.808],"mean":0.8103},{"p":{"max_depth":3,"min_samples_split":10},"folds":[0.8,0.7911,0.8222,0.8304,0.808],"mean":0.8103},{"p":{"max_depth":3,"min_samples_split":20},"folds":[0.8,0.7911,0.8222,0.8304,0.808],"mean":0.8103},{"p":{"max_depth":5,"min_samples_split":2},"folds":[0.96,0.9511,0.9333,0.9643,0.9375],"mean":0.9492},{"p":{"max_depth":5,"min_samples_split":5},"folds":[0.96,0.9511,0.9333,0.9643,0.9375],"mean":0.9492},{"p":{"max_depth":5,"min_samples_split":10},"folds":[0.9644,0.9511,0.9289,0.9688,0.9375],"mean":0.9501},{"p":{"max_depth":5,"min_samples_split":20},"folds":[0.9644,0.9511,0.9289,0.9688,0.9375],"mean":0.9501},{"p":{"max_depth":7,"min_samples_split":2},"folds":[0.9422,0.9333,0.9378,0.9688,0.9554],"mean":0.9475},{"p":{"max_depth":7,"min_samples_split":5},"folds":[0.9511,0.9422,0.9422,0.9643,0.9509],"mean":0.9501},{"p":{"max_depth":7,"min_samples_split":10},"folds":[0.9689,0.9422,0.9333,0.9688,0.9554],"mean":0.9537},{"p":{"max_depth":7,"min_samples_split":20},"folds":[0.9644,0.9422,0.9378,0.9688,0.9464],"mean":0.9519},{"p":{"max_depth":10,"min_samples_split":2},"folds":[0.9511,0.9289,0.9378,0.9688,0.9509],"mean":0.9475},{"p":{"max_depth":10,"min_samples_split":5},"folds":[0.9556,0.9378,0.9422,0.9643,0.9509],"mean":0.9501},{"p":{"max_depth":10,"min_samples_split":10},"folds":[0.9733,0.9289,0.9333,0.9688,0.9554],"mean":0.9519},{"p":{"max_depth":10,"min_samples_split":20},"folds":[0.96,0.9378,0.9378,0.9643,0.9464],"mean":0.9493},{"p":{"max_depth":null,"min_samples_split":2},"folds":[0.9511,0.9289,0.9378,0.9688,0.9509],"mean":0.9475},{"p":{"max_depth":null,"min_samples_split":5},"folds":[0.9556,0.9378,0.9422,0.9643,0.9509],"mean":0.9501},{"p":{"max_depth":null,"min_samples_split":10},"folds":[0.9733,0.9289,0.9333,0.9688,0.9554],"mean":0.9519},{"p":{"max_depth":null,"min_samples_split":20},"folds":[0.96,0.9378,0.9378,0.9643,0.9464],"mean":0.9493}],"best":10,"test":0.9502},"walk":{"p":{"max_depth":5,"min_samples_split":10},"ntrain":898,"tree":{"rule":"Ay max <= 11.75","kids":[{"rule":"Az min <= 2.43","kids":[null,null]},{"rule":"Ax std <= 5.01","kids":[null,null]}]},"val":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],"bestTree":{"rule":"Ay max <= 11.75","kids":[{"rule":"Az min <= 2.37","kids":[null,null]},{"rule":"Ax std <= 5.01","kids":[null,null]}]},"test":[1,0,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1],"nfit":1123}};
 const TR = '#2a78d6', VA = '#d6453d', TE = '#7a8ea8', GOOD = '#1baf7a';
 const label = (g, x, y, s, o = {}) => el(g, 'text', Object.assign({ x, y, 'text-anchor': 'middle', 'font-size': 24, fill: '#222' }, o), s);
@@ -357,24 +357,66 @@ function kfold(g, t) {
   label(g, X0 + 5 * fw + 120, 60, 'max_depth=7', { 'font-size': 22, fill: DEEP, style: 'font-family: var(--mono)', 'font-weight': 700 });
 }
 
-// Figure 7.3: 5-fold CV accuracy against max_depth, mean and ±1 standard deviation across the folds
-const D = DATA.depth, M = D.folds.map(mean), SD = D.folds.map((f, i) => Math.sqrt(mean(f.map(v => (v - M[i]) ** 2))));
-function curve(g, t) {
-  const X0 = 170, X1 = 1450, Y0 = 50, Y1 = 610, sx = d => X0 + (d - 1) / 14 * (X1 - X0), sy = a => Y1 - (a - 0.3) / 0.72 * (Y1 - Y0);
-  for (let a = 0.3; a <= 1.0001; a += 0.1) { el(g, 'line', { x1: X0, x2: X1, y1: sy(a), y2: sy(a), stroke: '#ececec', 'stroke-width': 1.5 }); el(g, 'text', { x: X0 - 14, y: sy(a) + 7, 'text-anchor': 'end', 'font-size': 20, style: 'font-family: var(--mono)', fill: '#666' }, a.toFixed(1)); }
-  D.x.forEach(d => el(g, 'text', { x: sx(d), y: Y1 + 30, 'text-anchor': 'middle', 'font-size': 20, style: 'font-family: var(--mono)', fill: '#666' }, d));
-  label(g, (X0 + X1) / 2, Y1 + 70, 'max_depth', { 'font-size': 22, fill: '#444', style: 'font-family: var(--mono)' });
-  el(g, 'text', { x: X0 - 90, y: (Y0 + Y1) / 2, 'text-anchor': 'middle', 'font-size': 22, fill: '#444', transform: `rotate(-90 ${X0 - 90} ${(Y0 + Y1) / 2})` }, 'cross-validation accuracy');
-  el(g, 'rect', { x: X0, y: Y0, width: X1 - X0, height: Y1 - Y0, fill: 'none', stroke: '#666', 'stroke-width': 1.5 });
-  const n = Math.min(15, Math.floor(t / 0.25) + 1), I = [...Array(n).keys()];
-  if (n > 1) el(g, 'path', { d: I.map(i => (i ? 'L' : 'M') + sx(D.x[i]) + ',' + sy(M[i] + SD[i])).join('') + I.slice().reverse().map(i => 'L' + sx(D.x[i]) + ',' + sy(M[i] - SD[i])).join('') + 'Z', fill: VA, opacity: 0.16 });
-  el(g, 'path', { d: I.map(i => (i ? 'L' : 'M') + sx(D.x[i]) + ',' + sy(M[i])).join(''), fill: 'none', stroke: VA, 'stroke-width': 4 });
-  I.forEach(i => el(g, 'circle', { cx: sx(D.x[i]), cy: sy(M[i]), r: 7, fill: VA, stroke: '#fff', 'stroke-width': 2 }));
-  if (t >= 15 * 0.25) {
-    const b = M.indexOf(Math.max(...M));
-    el(g, 'circle', { cx: sx(D.x[b]), cy: sy(M[b]), r: 17, fill: 'none', stroke: '#222', 'stroke-width': 3 });
-    el(g, 'text', { x: sx(D.x[b]) + 10, y: sy(M[b]) + 60, 'font-size': 23, 'font-weight': 700, fill: '#222' }, `best CV depth = ${D.x[b]}, ${M[b].toFixed(3)}`);
-  }
+// split by subject: all of a person's windows on one side
+const SUBJ = ['#2a78d6', '#eb6834', '#1baf7a', '#7a3fb0', '#c9a400', '#d6453d'];
+function subjects(g, t) {
+  const r = rng(9), W = Array.from({ length: 36 }, (_, i) => ({ s: Math.floor(i / 6), rnd: r() }));
+  [['Split by window', w => w.rnd < 0.3], ['Split by subject', w => w.s >= 4]].forEach(([name, isTest], row) => {
+    const Y = 120 + row * 320, u = clamp01((t - row * 1.2) / 0.8);
+    el(g, 'text', { x: 80, y: Y, 'font-size': 26, 'font-weight': 700, fill: '#222' }, name);
+    label(g, 520, Y + 50, 'training', { 'font-size': 22, fill: TR, 'font-weight': 700 }); label(g, 1240, Y + 50, 'test', { 'font-size': 22, fill: TE, 'font-weight': 700 });
+    el(g, 'line', { x1: 960, x2: 960, y1: Y + 30, y2: Y + 250, stroke: '#c9c9c9', 'stroke-width': 2, 'stroke-dasharray': '6 6' });
+    const tr = W.filter(w => !isTest(w)), te = W.filter(isTest);
+    [[tr, 160, 720], [te, 1020, 440]].forEach(([set, x0, w], side) => set.forEach((d, i) => {
+      const per = Math.floor(w / 56), hx = 160 + (W.indexOf(d) % 12) * 60, hy = Y + 80 + Math.floor(W.indexOf(d) / 12) * 56, tx = x0 + (i % per) * 56, ty = Y + 80 + Math.floor(i / per) * 56;
+      el(g, 'circle', { cx: hx + (tx - hx) * ease(u), cy: hy + (ty - hy) * ease(u), r: 19, fill: SUBJ[d.s], stroke: '#fff', 'stroke-width': 2 });
+    }));
+  });
+  el(g, 'text', { x: 80, y: 735, 'font-size': 22, fill: '#666' }, 'each colour is one person');
+  el(g, 'text', { x: 1540, y: 735, 'text-anchor': 'end', 'font-size': 22, fill: '#666' }, 'the folds are split by person in the same way (GroupKFold)');
+}
+
+// back to chapter 5's windows: 5-fold cross-validation on the training windows alone (stratified folds, seed 4; computed with
+// chapter 5's tree code) picks a depth that does better on new windows than the depth training accuracy picks
+const CVT = [0.581, 0.693, 0.672, 0.671, 0.619, 0.618, 0.605, 0.632, 0.626, 0.626, 0.619, 0.619, 0.612, 0.612, 0.612];
+const CVC = '#7a3fb0', CVB = CVT.indexOf(Math.max(...CVT));
+function cvBetter(g, t) {
+  const { sx, sy, X0, Y0 } = depthAxes(g);
+  line(g, TRA, 15, '#a9c6ec', sx, sy); key(g, X0, Y0, 0, '#a9c6ec', 'training data');
+  el(g, 'circle', { cx: sx(DEP[PICK]), cy: sy(TRA[PICK]), r: 17, fill: 'none', stroke: '#a9c6ec', 'stroke-width': 3 });
+  line(g, CVT, Math.min(15, Math.floor(t / 0.1) + 1), CVC, sx, sy); key(g, X0, Y0, 1, CVC, '5-fold cross-validation on the training data');
+  if (t >= 1.7) { el(g, 'circle', { cx: sx(DEP[CVB]), cy: sy(CVT[CVB]), r: 17, fill: 'none', stroke: CVC, 'stroke-width': 3 });
+    el(g, 'text', { x: sx(DEP[CVB]) + 10, y: sy(0.555), 'font-size': 23, 'font-weight': 700, fill: CVC }, `picks max_depth = ${DEP[CVB]}`); }
+  if (t < 2.2) return;
+  line(g, NEW, Math.min(15, Math.floor((t - 2.2) / 0.08) + 1), NEWC, sx, sy); key(g, X0, Y0, 2, NEWC, 'new windows');
+  if (t < 3.6) return;
+  [[CVB, CVC], [PICK, '#222']].forEach(([i, col]) => el(g, 'circle', { cx: sx(DEP[i]), cy: sy(NEW[i]), r: 17, fill: 'none', stroke: col, 'stroke-width': 3 }));
+  label(g, 800, 735, `Chosen by cross-validation: ${Math.round(100 * NEW[CVB])}% on new windows. Chosen by training accuracy: ${Math.round(100 * NEW[PICK])}%.`, { 'font-size': 26, 'font-weight': 700, opacity: clamp01((t - 3.8) / 0.4) });
+}
+
+// the whole sequence: how the data was split at each stage, what that fixed, and what was still wrong
+function summary(g, t) {
+  const X0 = 70, W = 640, H = 60, ys = [70, 250, 430, 610];
+  const R = [
+    [[['all the data', 1, TR]], 'choose max_depth on the data we have', 'it overfits (100% on our data, 67% on new windows)', NEWC],
+    [[['train', 0.8, TR], ['test', 0.2, TE]], 'choose on a held-out test set', 'the test set both chooses and reports (92% vs 85%)', NEWC],
+    [[['train', 0.65, TR], ['val', 0.15, VA], ['test', 0.2, TE]], 'a validation set chooses; the test set reports', 'the winner depends on which windows are in validation', NEWC],
+    [[['5 folds take turns as validation', 0.8, 'folds'], ['test', 0.2, TE]], '5-fold cross-validation chooses, folds split by person', 'the test set is used once, at the end', GOOD]];
+  R.forEach(([segs, fix, still, col], r) => {
+    const k = el(g, 'g', { opacity: clamp01((t - 0.9 * r) / 0.5) }), y = ys[r];
+    el(k, 'text', { x: 30, y: y + H / 2 + 10, 'font-size': 28, 'font-weight': 700, fill: '#444' }, r + 1);
+    let x = X0;
+    segs.forEach(([name, f, c]) => {
+      const w = W * f;
+      if (c === 'folds') { for (let q = 0; q < 5; q++) el(k, 'rect', { x: x + q * w / 5 + 2, y, width: w / 5 - 4, height: H, rx: 6, fill: q === 4 ? VA : TR, opacity: q === 4 ? 0.9 : 0.6 });
+        label(k, x + w / 2, y + H + 30, name, { 'font-size': 20, fill: '#444' }); }
+      else { el(k, 'rect', { x: x + 2, y, width: w - 4, height: H, rx: 8, fill: c, opacity: 0.88 }); label(k, x + w / 2, y + 38, name, { 'font-size': 21, 'font-weight': 700, fill: '#fff' }); }
+      x += w;
+    });
+    el(k, 'text', { x: 780, y: y + 22, 'font-size': 25, 'font-weight': 700, fill: '#222' }, fix);
+    el(k, 'text', { x: 780, y: y + 60, 'font-size': 23, fill: col, 'font-weight': 700 }, (col === GOOD ? '' : 'still wrong: ') + still);
+    if (r < 3) arrow(k, X0 + W / 2, y + H + 52, X0 + W / 2, ys[r + 1] - 12, clamp01((t - 0.9 * r - 0.4) / 0.4));
+  });
 }
 
 STEPS = [
@@ -387,9 +429,11 @@ STEPS = [
   { title: 'How does the chosen model do on new windows?', draw: winnerOnNew },
   { title: 'How do we give each job its own set?', T: 1.9, draw: threeSets },
   { title: 'How do the three sets work together?', T: 3.2, draw: loop },
+  { title: 'Which windows go into each set?', T: 2.1, draw: subjects },
   { title: 'Does it matter which windows go into the validation set?', T: 4.4, draw: slices },
   { title: 'What if every slice takes a turn as the validation set?', T: 4.2, draw: kfold },
-  { title: 'Which max_depth does cross-validation pick?', T: 3.9, draw: curve },
+  { title: 'Does cross-validation choose a better max_depth?', T: 4.2, draw: cvBetter },
+  { title: 'How did we get here?', T: 3.4, draw: summary },
 ];
 start();
 
