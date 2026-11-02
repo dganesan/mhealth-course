@@ -96,6 +96,7 @@ function rng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) >>>
 // ------------------------------------------------------------ steps: each has a title, draw(g, t) and T, the length of its animation in seconds
 // `ctl` lists the ids of the bar controls the step shows; Play runs the animation
 let step = 0, t = 0, timer = null, STEPS = [];
+const PACE = 2.5;   // animations play this many times slower than their step times, to match talking through them
 function draw() {
   const S = STEPS[step], svg = $('fig'); svg.innerHTML = '';
   $('title').textContent = S.title; $('stepno').textContent = `step ${step + 1} of ${STEPS.length}`;
@@ -108,7 +109,7 @@ function play() {
   const S = STEPS[step]; clearInterval(timer); t = 0; if (S.reset) S.reset();
   if (!S.T) { draw(); return; }
   const t0 = performance.now();
-  timer = setInterval(() => { t = Math.min(S.T, (performance.now() - t0) / 1000); if (t >= S.T) clearInterval(timer); draw(); }, 30);
+  timer = setInterval(() => { t = Math.min(S.T, (performance.now() - t0) / 1000 / PACE); if (t >= S.T) clearInterval(timer); draw(); }, 30);
   draw();
 }
 // a step opens at the start of its animation and waits for Play; Back shows it finished
