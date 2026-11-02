@@ -229,6 +229,22 @@ function balanced(g, t) {
   el(c, 'text', { x: X, y: 500, 'font-size': 25, fill: '#666' }, 'balanced accuracy = mean of the recalls'); el(c, 'text', { x: X, y: 555, 'font-size': 40, 'font-weight': 700, fill: HL }, '(100% + 0%) / 2 = 50%');
 }
 
+// an activity tracker where "None" (the rest of the day) dominates: accuracy is high because None is easy and plentiful,
+// balanced accuracy shows that the activities themselves are often missed (illustrative counts)
+const NONE = [[30, 5, 15], [10, 15, 25], [5, 5, 890]], NN = ['Running', 'Cycling', 'None'];
+function noneClass(g, t) {
+  const L = matrix(g, NONE, NN, { x: 290, y: 190, cs: 150, vs: 32, fs: 22 }), u = s => clamp01((t - s) / 0.5);
+  const rec = NONE.map((r, i) => r[i] / rowSum(NONE, i)), acc = diag(NONE) / total(NONE), bal = rec.reduce((a, b) => a + b, 0) / 3;
+  rec.forEach((v, i) => el(g, 'text', { x: L.X0 + 3 * L.cs + 24, y: L.Y0 + i * L.cs + L.cs / 2 + 10, 'font-size': 26, 'font-weight': 700, fill: HL, opacity: u(1.2 + 0.3 * i) }, `recall ${pct(v)}`));
+  const X = 990, a = el(g, 'g', { opacity: u(0.4) }), c = el(g, 'g', { opacity: u(2.4) });
+  el(a, 'text', { x: X, y: 250, 'font-size': 25, fill: '#666' }, 'accuracy');
+  el(a, 'text', { x: X, y: 305, 'font-size': 40, 'font-weight': 700, fill: '#222' }, `${diag(NONE)} / ${total(NONE)} = ${(100 * acc).toFixed(1)}%`);
+  el(c, 'text', { x: X, y: 420, 'font-size': 25, fill: '#666' }, 'balanced accuracy');
+  el(c, 'text', { x: X, y: 475, 'font-size': 34, 'font-weight': 700, fill: HL }, `(${rec.map(pct).join(' + ')}) / 3 = ${pct(bal)}`);
+  el(c, 'text', { x: X, y: 560, 'font-size': 24, fill: '#444' }, 'None is 90% of the windows,');
+  el(c, 'text', { x: X, y: 594, 'font-size': 24, fill: '#444' }, 'so it dominates plain accuracy');
+}
+
 // Figure 7.5: the sleep-stage classifier; Play works through each class, then the two summary numbers
 const SL = [[630, 56, 9], [84, 228, 6], [12, 2, 48]], SN = ['Wakefulness', 'REM', 'NREM'];
 function sleep(g, t) {
@@ -258,6 +274,7 @@ STEPS = [
   { title: 'What is recall?', T: 1.1, draw: perClass('r'), playLabel: '▶ Next class', ...nextClass },
   { title: 'What does F1 add?', draw: f1, ctl: ['c-p', 'c-r'], enter() { P = 1; Rc = 0.01; syncF(); } },
   { title: 'What is balanced accuracy?', T: 2.2, draw: balanced },
+  { title: 'What if a None class dominates the data?', T: 3, draw: noneClass },
   { title: 'How well does the sleep-stage classifier do?', T: 3.8, draw: sleep },
 ];
 $('sp').addEventListener('input', () => { P = +$('sp').value / 100; syncF(); draw(); });
