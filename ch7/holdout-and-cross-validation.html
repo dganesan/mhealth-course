@@ -314,6 +314,25 @@ function loop(g, t) {
   box(k, 1270, 610, 260, 100, ['Estimate of', 'generalization'], 'out', { fs: 24 });
 }
 
+// one validation slice is one draw: the book's 5-fold scores of max_depth 5..8, one slice at a time; the winner changes with the slice
+const SL = [0, 1, 3], SD5 = [5, 6, 7, 8];
+function slices(g, t) {
+  const cx = d => 780 + (d - 5) * 210, ys = [230, 400, 570], cw = 160, ch = 100;
+  label(g, 330, 110, 'which part of the training data', { 'font-size': 22, fill: '#444' });
+  label(g, 330, 140, 'is the validation slice', { 'font-size': 22, fill: '#444' });
+  label(g, cx(6.5), 100, 'max_depth', { 'font-size': 22, fill: '#444', style: 'font-family: var(--mono)' });
+  SD5.forEach(d => label(g, cx(d), 145, d, { 'font-size': 24, fill: '#444', style: 'font-family: var(--mono)', 'font-weight': 700 }));
+  SL.forEach((f, r) => {
+    const u = clamp01((t - 0.3 - 1.2 * r) / 0.5); if (u <= 0) return;
+    const k = el(g, 'g', { opacity: u }), y = ys[r], sc = SD5.map(d => DATA.depth.folds[d - 1][f]), best = Math.max(...sc);
+    for (let q = 0; q < 5; q++) el(k, 'rect', { x: 130 + q * 80, y: y - 30, width: 76, height: 60, rx: 6, fill: q === f ? VA : TR, opacity: q === f ? 0.9 : 0.35 });
+    SD5.forEach((d, i) => { const win = sc[i] === best;
+      el(k, 'rect', { x: cx(d) - cw / 2, y: y - ch / 2, width: cw - 10, height: ch - 10, rx: 8, fill: '#f6f7f9', stroke: win ? VA : '#e2e2e2', 'stroke-width': win ? 5 : 1.5 });
+      label(k, cx(d) - 5, y + 4, sc[i].toFixed(3), { 'font-size': 26, 'font-weight': win ? 700 : 400, fill: win ? VA : '#222' }); });
+  });
+  if (t >= 3.8) label(g, 800, 720, 'Which max_depth wins depends on which windows land in the validation slice.', { 'font-size': 27, 'font-weight': 700, opacity: clamp01((t - 3.8) / 0.4) });
+}
+
 // Figure 7.2: five folds, each the validation fold once; the five scores averaged (max_depth=7 on the book's activity data)
 const F7 = DATA.depth.folds[6], mean = a => a.reduce((s, v) => s + v, 0) / a.length;
 function kfold(g, t) {
@@ -333,6 +352,7 @@ function kfold(g, t) {
     el(g, 'line', { x1: X0 + 5 * fw + 50, x2: X0 + 5 * fw + 190, y1: Y0 + 5 * (fh + gap) - 4, y2: Y0 + 5 * (fh + gap) - 4, stroke: '#222', 'stroke-width': 2 });
     label(g, X0 + 5 * fw + 120, Y0 + 5 * (fh + gap) + 40, mean(F7).toFixed(3), { 'font-size': 32, 'font-weight': 700, fill: '#222', style: 'font-family: var(--mono)' });
     label(g, X0 + 5 * fw + 120, Y0 + 5 * (fh + gap) + 76, 'average', { 'font-size': 21, fill: '#666' });
+    label(g, X0 + 2.5 * fw, Y0 + 5 * (fh + gap) + 60, 'the cost: 5 trees for each setting instead of 1', { 'font-size': 23, fill: '#444' });
   }
   label(g, X0 + 5 * fw + 120, 60, 'max_depth=7', { 'font-size': 22, fill: DEEP, style: 'font-family: var(--mono)', 'font-weight': 700 });
 }
@@ -367,7 +387,8 @@ STEPS = [
   { title: 'How does the chosen model do on new windows?', draw: winnerOnNew },
   { title: 'How do we give each job its own set?', T: 1.9, draw: threeSets },
   { title: 'How do the three sets work together?', T: 3.2, draw: loop },
-  { title: 'How does 5-fold cross-validation work?', T: 4.2, draw: kfold },
+  { title: 'Does it matter which windows go into the validation set?', T: 4.4, draw: slices },
+  { title: 'What if every slice takes a turn as the validation set?', T: 4.2, draw: kfold },
   { title: 'Which max_depth does cross-validation pick?', T: 3.9, draw: curve },
 ];
 start();
