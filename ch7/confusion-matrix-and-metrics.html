@@ -137,14 +137,14 @@ const HL = '#eb6834', SICK = '#d6453d', WELL = '#1baf7a';
 const label = (g, x, y, s, o = {}) => el(g, 'text', Object.assign({ x, y, 'text-anchor': 'middle', 'font-size': 24, fill: '#222' }, o), s);
 const pct = v => `${Math.round(100 * v)}%`;
 
-// a confusion matrix: rows are the true labels, columns the predicted labels; `mark` picks out cells
+// a confusion matrix: rows are the true labels, columns the predicted labels; `mark` picks out cells; `plain` turns off the shading by count
 function matrix(g, M, names, o = {}) {
   const n = M.length, cs = o.cs || 104, X0 = o.x || 300, Y0 = o.y || 120, mx = Math.max(...M.flat()), show = o.show == null ? n * n : o.show;
   label(g, X0 + n * cs / 2, Y0 - 70, 'predicted label', { 'font-size': 22, fill: '#444' });
   el(g, 'text', { x: X0 - 165, y: Y0 + n * cs / 2, 'text-anchor': 'middle', 'font-size': 22, fill: '#444', transform: `rotate(-90 ${X0 - 165} ${Y0 + n * cs / 2})` }, 'actual label');
   names.forEach((s, j) => { label(g, X0 + j * cs + cs / 2, Y0 - 20, s, { 'font-size': o.fs || 19, fill: '#444' }); el(g, 'text', { x: X0 - 14, y: Y0 + j * cs + cs / 2 + 7, 'text-anchor': 'end', 'font-size': o.fs || 19, fill: '#444' }, s); });
   M.forEach((row, i) => row.forEach((v, j) => {
-    const on = !o.mark || o.mark(i, j), seen = i * n + j < show, f = v / mx;
+    const on = !o.mark || o.mark(i, j), seen = i * n + j < show, f = o.plain ? 0.08 : v / mx;
     el(g, 'rect', { x: X0 + j * cs + 2, y: Y0 + i * cs + 2, width: cs - 4, height: cs - 4, rx: 6, fill: seen ? `rgba(42,120,214,${(0.07 + 0.75 * f).toFixed(3)})` : '#f6f7f9', opacity: on ? 1 : 0.22, stroke: o.ring && o.ring(i, j) ? HL : 'none', 'stroke-width': 5 });
     if (seen) label(g, X0 + j * cs + cs / 2, Y0 + i * cs + cs / 2 + 9, v, { 'font-size': o.vs || 27, 'font-weight': i === j ? 700 : 400, fill: on && f > 0.55 ? '#fff' : '#222', opacity: on ? 1 : 0.3 });
   }));
@@ -233,7 +233,7 @@ function balanced(g, t) {
 // balanced accuracy shows that the activities themselves are often missed (illustrative counts)
 const NONE = [[30, 5, 15], [10, 15, 25], [5, 5, 890]], NN = ['Running', 'Cycling', 'None'];
 function noneClass(g, t) {
-  const L = matrix(g, NONE, NN, { x: 290, y: 190, cs: 150, vs: 32, fs: 22 }), u = s => clamp01((t - s) / 0.5);
+  const L = matrix(g, NONE, NN, { x: 290, y: 190, cs: 150, vs: 32, fs: 22, plain: true }), u = s => clamp01((t - s) / 0.5);
   const rec = NONE.map((r, i) => r[i] / rowSum(NONE, i)), acc = diag(NONE) / total(NONE), bal = rec.reduce((a, b) => a + b, 0) / 3;
   rec.forEach((v, i) => el(g, 'text', { x: L.X0 + 3 * L.cs + 24, y: L.Y0 + i * L.cs + L.cs / 2 + 10, 'font-size': 26, 'font-weight': 700, fill: HL, opacity: u(1.2 + 0.3 * i) }, `recall ${pct(v)}`));
   const X = 990, a = el(g, 'g', { opacity: u(0.4) }), c = el(g, 'g', { opacity: u(2.4) });
