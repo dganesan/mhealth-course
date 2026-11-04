@@ -140,9 +140,9 @@ const pct = v => `${Math.round(100 * v)}%`;
 // a confusion matrix: rows are the true labels, columns the predicted labels; `mark` picks out cells; `plain` turns off the shading by count
 function matrix(g, M, names, o = {}) {
   const n = M.length, cs = o.cs || 104, X0 = o.x || 300, Y0 = o.y || 120, mx = Math.max(...M.flat()), show = o.show == null ? n * n : o.show;
-  label(g, X0 + n * cs / 2, Y0 - 70, 'predicted label', { 'font-size': 22, fill: '#444' });
-  el(g, 'text', { x: X0 - 165, y: Y0 + n * cs / 2, 'text-anchor': 'middle', 'font-size': 22, fill: '#444', transform: `rotate(-90 ${X0 - 165} ${Y0 + n * cs / 2})` }, 'actual label');
-  names.forEach((s, j) => { label(g, X0 + j * cs + cs / 2, Y0 - 20, s, { 'font-size': o.fs || 19, fill: '#444' }); el(g, 'text', { x: X0 - 14, y: Y0 + j * cs + cs / 2 + 7, 'text-anchor': 'end', 'font-size': o.fs || 19, fill: '#444' }, s); });
+  label(g, X0 + n * cs / 2, Y0 - 70, 'predicted label', { 'font-size': 30, 'font-weight': 700, fill: '#333' });
+  el(g, 'text', { x: X0 - 165, y: Y0 + n * cs / 2, 'text-anchor': 'middle', 'font-size': 30, 'font-weight': 700, fill: '#333', transform: `rotate(-90 ${X0 - 165} ${Y0 + n * cs / 2})` }, 'actual label');
+  names.forEach((s, j) => { label(g, X0 + j * cs + cs / 2, Y0 - 20, s, { 'font-size': o.fs || 22, fill: '#333' }); el(g, 'text', { x: X0 - 14, y: Y0 + j * cs + cs / 2 + 8, 'text-anchor': 'end', 'font-size': o.fs || 22, fill: '#444' }, s); });
   M.forEach((row, i) => row.forEach((v, j) => {
     const on = !o.mark || o.mark(i, j), seen = i * n + j < show, f = o.plain ? 0.08 : v / mx;
     el(g, 'rect', { x: X0 + j * cs + 2, y: Y0 + i * cs + 2, width: cs - 4, height: cs - 4, rx: 6, fill: seen ? `rgba(42,120,214,${(0.07 + 0.75 * f).toFixed(3)})` : '#f6f7f9', opacity: on ? 1 : 0.22, stroke: o.ring && o.ring(i, j) ? HL : 'none', 'stroke-width': 5 });
@@ -154,6 +154,44 @@ const HAR = [[20, 10, 10, 0, 0], [5, 30, 4, 0, 1], [5, 5, 30, 0, 0], [0, 0, 0, 3
 const diag = M => M.reduce((s, r, i) => s + r[i], 0), total = M => M.flat().reduce((a, b) => a + b, 0);
 const colSum = (M, j) => M.reduce((s, r) => s + r[j], 0), rowSum = (M, i) => M[i].reduce((a, b) => a + b, 0);
 
+// where we are: the pipeline built so far (chapters 3 to 7), with the test set's predictions still to be judged
+const SIG = (() => { const r = rng(11); return Array.from({ length: 120 }, (_, i) => Math.sin(i / 3.2) * (0.6 + 0.4 * Math.sin(i / 17)) + 0.25 * (r() - 0.5)); })();
+function wave(g, x, y, w, h) {
+  el(g, 'path', { d: SIG.map((v, i) => (i ? 'L' : 'M') + (x + i / (SIG.length - 1) * w).toFixed(1) + ',' + (y + h / 2 - v * h * 0.4).toFixed(1)).join(''), fill: 'none', stroke: DEEP, 'stroke-width': 2.5 });
+}
+const PAIRS = [['Sitting', 'Sitting'], ['Running', 'Walking'], ['Driving', 'Driving'], ['Standing', 'Sitting']];
+function where(g, t) {
+  const W = 240, H = 220, Y = 120, xs = [40, 360, 680, 1000, 1320], u = i => clamp01((t - 0.6 * i) / 0.5);
+  const names = ['accelerometer signal', 'cut into windows', 'extract features', 'train a tree', 'predict the test set'];
+  const notes = ['', '', '', 'max_depth chosen', ''];
+  xs.forEach((x, i) => {
+    const k = el(g, 'g', { opacity: u(i) });
+    el(k, 'rect', { x, y: Y, width: W, height: H, rx: 12, fill: '#f6f8fb', stroke: i === 4 ? HL : '#d4dbe5', 'stroke-width': i === 4 ? 3 : 2 });
+    if (i === 0) wave(k, x + 15, Y + 30, W - 30, H - 60);
+    if (i === 1) { for (let w = 0; w < 4; w++) el(k, 'rect', { x: x + 15 + w * (W - 30) / 4, y: Y + 20, width: (W - 30) / 4, height: H - 40, fill: w % 2 ? '#e3ecf8' : '#fff' });
+      wave(k, x + 15, Y + 30, W - 30, H - 60); for (let w = 1; w < 4; w++) el(k, 'line', { x1: x + 15 + w * (W - 30) / 4, x2: x + 15 + w * (W - 30) / 4, y1: Y + 14, y2: Y + H - 14, stroke: '#666', 'stroke-width': 2, 'stroke-dasharray': '6 4' }); }
+    if (i === 2) { ['mean', 'std', 'max'].forEach((h, c) => el(k, 'text', { x: x + 50 + c * 70, y: Y + 44, 'text-anchor': 'middle', 'font-size': 19, 'font-weight': 700, fill: '#444' }, h));
+      [[9.8, 1.2, 12.1], [9.6, 3.4, 17.0], [9.9, 0.3, 10.4], [9.7, 2.9, 15.8]].forEach((row, r) => row.forEach((v, c) => el(k, 'text', { x: x + 50 + c * 70, y: Y + 86 + r * 34, 'text-anchor': 'middle', 'font-size': 19, style: 'font-family: var(--mono)', fill: '#222' }, v.toFixed(1)))); }
+    if (i === 3) miniTree(k, x + W / 2, Y + H / 2 + 10, 70, BLUE);
+    if (i === 4) { el(k, 'text', { x: x + 20, y: Y + 40, 'font-size': 18, 'font-weight': 700, fill: '#444' }, 'actual');
+      el(k, 'text', { x: x + 130, y: Y + 40, 'font-size': 18, 'font-weight': 700, fill: '#444' }, 'predicted');
+      PAIRS.forEach(([a, p], r) => { const y = Y + 82 + r * 38;
+        el(k, 'text', { x: x + 20, y, 'font-size': 20, fill: '#222' }, a);
+        el(k, 'text', { x: x + 130, y, 'font-size': 20, 'font-weight': 700, fill: a === p ? OK : BAD }, p); }); }
+    label(k, x + W / 2, Y + H + 44, names[i], { 'font-size': 23, 'font-weight': 700, fill: i === 4 ? HL : '#222' });
+    if (notes[i]) label(k, x + W / 2, Y + H + 76, notes[i], { 'font-size': 20, fill: '#555' });
+    if (i) arrow(g, xs[i - 1] + W + 10, Y + H / 2, x - 10, Y + H / 2, u(i));
+  });
+  // what is done, and what is left
+  const b = el(g, 'g', { opacity: clamp01((t - 3.2) / 0.5) });
+  el(b, 'path', { d: `M${xs[0]},450 v20 H${xs[3] + W} v-20`, fill: 'none', stroke: BLUE, 'stroke-width': 3 });
+  label(b, (xs[0] + xs[3] + W) / 2, 515, 'done: features (chapters 3 and 4), trees (5 and 6), tuning on validation (7)', { 'font-size': 23, 'font-weight': 700, fill: BLUE });
+  el(b, 'path', { d: `M${xs[4]},450 v20 H${xs[4] + W} v-20`, fill: 'none', stroke: HL, 'stroke-width': 3 });
+  label(b, xs[4] + W / 2, 515, 'still to do', { 'font-size': 23, 'font-weight': 700, fill: HL });
+  const q = el(g, 'g', { opacity: clamp01((t - 3.9) / 0.5) });
+  label(q, 800, 610, 'Every test window gives an (actual, predicted) pair.', { 'font-size': 30, 'font-weight': 700 });
+  label(q, 800, 660, 'How do we turn these pairs into a measure of how well the tree is doing?', { 'font-size': 30, 'font-weight': 700 });
+}
 function build(g, t) { matrix(g, HAR, HN, { show: Math.floor(t / 0.12) }); }
 function accuracy(g, t) {
   const u = clamp01(t / 0.6);
@@ -233,7 +271,7 @@ function balanced(g, t) {
 // balanced accuracy shows that the activities themselves are often missed (illustrative counts)
 const NONE = [[30, 5, 15], [10, 15, 25], [5, 5, 890]], NN = ['Running', 'Cycling', 'None'];
 function noneClass(g, t) {
-  const L = matrix(g, NONE, NN, { x: 290, y: 190, cs: 150, vs: 32, fs: 22, plain: true }), u = s => clamp01((t - s) / 0.5);
+  const L = matrix(g, NONE, NN, { x: 290, y: 190, cs: 150, vs: 32, fs: 24, plain: true }), u = s => clamp01((t - s) / 0.5);
   const rec = NONE.map((r, i) => r[i] / rowSum(NONE, i)), acc = diag(NONE) / total(NONE), bal = rec.reduce((a, b) => a + b, 0) / 3;
   rec.forEach((v, i) => el(g, 'text', { x: L.X0 + 3 * L.cs + 24, y: L.Y0 + i * L.cs + L.cs / 2 + 10, 'font-size': 26, 'font-weight': 700, fill: HL, opacity: u(1.2 + 0.3 * i) }, `recall ${pct(v)}`));
   const X = 990, a = el(g, 'g', { opacity: u(0.4) }), c = el(g, 'g', { opacity: u(2.4) });
@@ -250,7 +288,7 @@ function noneClass(g, t) {
 const SL = [[630, 56, 9], [84, 228, 6], [12, 2, 48]], SN = ['Wakefulness', 'REM', 'NREM'];
 function sleep(g, t) {
   const t0 = 0.6, k = t < t0 ? -1 : Math.min(3, Math.floor((t - t0) / 1.2)), done = t >= t0 + 3.6, c = done ? -1 : k;
-  matrix(g, SL, SN, { x: 330, y: 160, cs: 140, vs: 30, fs: 20, plain: true, mark: (i, j) => c < 0 || i === c || j === c, ring: (i, j) => c >= 0 && i === c && j === c });
+  matrix(g, SL, SN, { x: 330, y: 160, cs: 140, vs: 30, fs: 23, plain: true, mark: (i, j) => c < 0 || i === c || j === c, ring: (i, j) => c >= 0 && i === c && j === c });
   const X = 950, rec = SL.map((r, i) => r[i] / rowSum(SL, i)), q = (s, show) => show ? s : '?';
   el(g, 'text', { x: X + 210, y: 120, 'text-anchor': 'middle', 'font-size': 22, fill: '#444' }, 'precision'); el(g, 'text', { x: X + 400, y: 120, 'text-anchor': 'middle', 'font-size': 22, fill: '#444' }, 'recall');
   SN.forEach((n, i) => {
@@ -266,6 +304,7 @@ function sleep(g, t) {
 }
 
 STEPS = [
+  { title: 'Where are we in the pipeline?', T: 4.4, draw: where },
   { title: 'How do we know how well a classifier is doing?', T: 25 * 0.12 + 0.2, draw: build },
   { title: 'How do we read accuracy off the matrix?', T: 1.2, draw: accuracy },
   { title: 'What are true and false positives and negatives?', T: 3, draw: kinds },
