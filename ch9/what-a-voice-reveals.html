@@ -154,11 +154,14 @@ function sound(id, buf) {
   if (again) { draw(); return; }
   const a = audio(), s = a.createBufferSource(); s.buffer = buf; s.connect(a.destination); s.start();
   NOW = { id, src: s, t0: a.currentTime, dur: buf.duration };
-  s.onended = () => { if (NOW && NOW.src === s) { NOW = null; draw(); } };
+  s.onended = () => { if (NOW && NOW.src === s) { HEARD[id] = 1; NOW = null; draw(); } };
   const tick = () => { if (NOW && NOW.src === s) { draw(); requestAnimationFrame(tick); } }; tick();
 }
 // how far through `id` the sound is (0 to 1), or -1 when it is not playing
 const playing = id => NOW && NOW.id === id ? Math.min(1, (AC.currentTime - NOW.t0) / NOW.dur) : -1;
+// how much of each clip has been heard on this step, so listening to a clip draws it
+let HEARD = {};
+const heard = id => { const p = playing(id); if (p >= 0) HEARD[id] = Math.max(HEARD[id] || 0, p); return HEARD[id] || 0; };
 // a play button drawn in the figure; it turns into a stop button while its sound plays
 function btn(g, x, y, text, id, get, col = BLUE) {
   const on = playing(id) >= 0, w = 56 + text.length * 12.5, k = el(g, 'g', { style: 'cursor:pointer' });
@@ -172,32 +175,48 @@ function btn(g, x, y, text, id, get, col = BLUE) {
 // (one resonance per formant); the spectra drawn on the page come from the same two parts
 const FORM = { aah: [[730, 90], [1090, 110], [2440, 170], [3400, 250]], eee: [[270, 60], [2290, 100], [3010, 170], [3400, 250]],
   ooo: [[300, 60], [870, 90], [2240, 170], [3400, 250]] };
-const TILT = 0.97;   // the glottal pulse falls off with frequency: a one-pole low-pass on the pulse train
-function synth({ f0 = 120, F = FORM.aah, dur = 2, jit = 0.002, shim = 0.02, trem = 0, seed = 3 }) {
+// one glottal cycle (a Rosenberg pulse: the folds open over 40% of the period and close over 16%), differentiated for the lips
+function pulse(P) {
+  const To = 0.4 * P, Tc = 0.16 * P, g = [];
+  for (let k = 0; k < To + Tc; k++) g.push(k < To ? 0.5 * (1 - Math.cos(Math.PI * k / To)) : Math.cos(Math.PI * (k - To) / (2 * Tc)));
+  return g;
+}
+function synth({ f0 = 120, F = FORM.aah, dur = 2, jit = 0.004, shim = 0.03, trem = 0, breath = 0.08, seed = 3 }) {
   const r = rng(seed), gauss = () => { let s = 0; for (let i = 0; i < 6; i++) s += r(); return (s - 3) / Math.sqrt(0.5); };
-  const n = Math.round(dur * SR), src = new Float32Array(n), marks = [];
-  for (let t = 0.03 * SR; t < n;) {   // one pulse per cycle; jitter moves it, shimmer scales it, tremor slowly swings both
-    const i = Math.round(t), m = Math.sin(2 * Math.PI * 5 * i / SR);
-    src[i] = (1 + shim * gauss()) * (1 + trem * 0.3 * m); marks.push(i);
-    t += SR / (f0 * (1 + trem * 0.04 * m)) * (1 + jit * gauss());
+  const n = Math.round(dur * SR), flow = new Float32Array(n), marks = [];
+  for (let t = 0.03 * SR; t < n;) {
+    // a real voice drifts slowly in pitch and falls a little; jitter moves each cycle, shimmer scales it, tremor (5 Hz) swings both
+    const i0 = Math.round(t), sec = i0 / SR, m = Math.sin(2 * Math.PI * 5 * sec);
+    const drift = 1 + 0.012 * Math.sin(2 * Math.PI * 0.6 * sec + 1) + 0.006 * Math.sin(2 * Math.PI * 1.7 * sec) - 0.03 * sec / dur;
+    const P = SR / (f0 * drift * (1 + trem * 0.04 * m)) * (1 + jit * gauss()), A = (1 + shim * gauss()) * (1 + trem * 0.3 * m);
+    pulse(P).forEach((v, k) => { if (i0 + k < n) flow[i0 + k] += A * v; });
+    marks.push(i0); t += P;
   }
-  let y = 0; for (let i = 0; i < n; i++) { y = src[i] + TILT * y; src[i] = y; }
-  let x = src;
+  // the lips pass the change in flow; a little breath noise rides on the open phase
+  const d = new Float32Array(n), e = new Float32Array(n); let sd = 0, se = 0;
+  for (let i = 1; i < n; i++) { d[i] = flow[i] - flow[i - 1]; e[i] = gauss() * flow[i]; sd += d[i] * d[i]; se += e[i] * e[i]; }
+  const k = breath * Math.sqrt(sd / Math.max(se, 1e-12));
+  let x = d.map((v, i) => v + k * e[i]);
   F.forEach(([fq, bw]) => {
-    const rr = Math.exp(-Math.PI * bw / SR), c = 2 * rr * Math.cos(2 * Math.PI * fq / SR), d = rr * rr, o = new Float32Array(n);
-    let y1 = 0, y2 = 0; for (let i = 0; i < n; i++) { const v = x[i] + c * y1 - d * y2; o[i] = v; y2 = y1; y1 = v; }
+    const rr = Math.exp(-Math.PI * bw / SR), c = 2 * rr * Math.cos(2 * Math.PI * fq / SR), dd = rr * rr, o = new Float32Array(n);
+    let y1 = 0, y2 = 0; for (let i = 0; i < n; i++) { const v = x[i] + c * y1 - dd * y2; o[i] = v; y2 = y1; y1 = v; }
     x = o;
   });
-  const o = new Float32Array(n); let p = 0, q = 0, mx = 0;   // remove the slow drift, then fade in and out
-  for (let i = 0; i < n; i++) { q = x[i] - p + 0.995 * q; p = x[i]; o[i] = q; mx = Math.max(mx, Math.abs(q)); }
-  const fade = 0.04 * SR;
-  for (let i = 0; i < n; i++) o[i] = o[i] / mx * 0.8 * Math.min(1, i / fade, (n - 1 - i) / fade);
+  let mx = 0; for (let i = 0; i < n; i++) mx = Math.max(mx, Math.abs(x[i]));
+  const fade = 0.06 * SR, o = new Float32Array(n);
+  for (let i = 0; i < n; i++) o[i] = x[i] / mx * 0.8 * Math.min(1, i / fade, (n - 1 - i) / fade);
   return { x: o, marks };
 }
 const memo = {};
 const voice = (key, o) => memo[key] || (memo[key] = synth(o));
-// the gain of the source and of the filter at frequency f, in dB
-function srcDb(f) { const w = 2 * Math.PI * f / SR; return -10 * Math.log10(1 - 2 * TILT * Math.cos(w) + TILT * TILT); }
+// the gain of the source (one differentiated pulse at pitch f0) and of the filter at frequency f, in dB
+const SRC = {};
+function srcDb(f, f0) {
+  if (!SRC[f0]) { const g = pulse(SR / f0); SRC[f0] = g.map((v, i) => v - (i ? g[i - 1] : 0)).concat([-g[g.length - 1]]); }
+  const w = 2 * Math.PI * f / SR; let re = 0, im = 0;
+  SRC[f0].forEach((v, i) => { re += v * Math.cos(w * i); im -= v * Math.sin(w * i); });
+  return 10 * Math.log10(re * re + im * im + 1e-12);
+}
 function filtDb(f, F) {
   const w = 2 * Math.PI * f / SR;
   return F.reduce((s, [fq, bw]) => { const r = Math.exp(-Math.PI * bw / SR), c = 2 * r * Math.cos(2 * Math.PI * fq / SR), d = r * r;
@@ -239,32 +258,32 @@ function mic(g, cx, cy, s = 1) {
 // ------------------------------------------------------------ 1: what a voice carries
 function carries(g, t) {
   mic(g, 800, 110, 1);
-  const B = [['Who is speaking?', 'biometric', ['a phone that answers', 'only its owner']],
-    ['How do they feel?', 'expressive', ['a call center that flags', 'an angry caller']],
-    ['How healthy are they?', 'clinical', ['screening for depression', 'or Parkinson\'s disease']]];
-  B.forEach(([q, kind, ex], i) => {
+  const B = [['Who is speaking?', 'biometric'], ['How do they feel?', 'expressive'], ['How healthy are they?', 'clinical']];
+  B.forEach(([q, kind], i) => {
     const cx = 300 + i * 500, u = clamp01((t - 0.3 - 0.7 * i) / 0.5);
     arrow(g, 800 + (cx - 800) * 0.08, 190, cx, 268, u, { col: '#7a8ea8' });
     const k = el(g, 'g', { opacity: u });
-    el(k, 'rect', { x: cx - 220, y: 280, width: 440, height: 260, rx: 14, fill: '#f6f8fb', stroke: '#d4dbe5', 'stroke-width': 2 });
-    label(k, cx, 340, q, { 'font-size': 31, 'font-weight': 700 });
-    label(k, cx, 385, kind, { 'font-size': 23, fill: DEEP, 'font-weight': 700 });
-    ex.forEach((s, j) => label(k, cx, 445 + j * 36, s, { 'font-size': 24, fill: '#333' }));
+    el(k, 'rect', { x: cx - 220, y: 280, width: 440, height: 170, rx: 14, fill: '#f6f8fb', stroke: '#d4dbe5', 'stroke-width': 2 });
+    label(k, cx, 352, q, { 'font-size': 31, 'font-weight': 700 });
+    label(k, cx, 400, kind, { 'font-size': 24, fill: DEEP, 'font-weight': 700 });
   });
-  const q = el(g, 'g', { opacity: clamp01((t - 2.6) / 0.5) });
-  label(q, 800, 630, 'A listener hears all three in a few seconds of speech.', { 'font-size': 30, 'font-weight': 700 });
-  label(q, 800, 680, 'Can a machine measure what the listener hears?', { 'font-size': 30, 'font-weight': 700 });
 }
 
 // ------------------------------------------------------------ 2: two clips, heard and seen
 const X0 = 330, WW = 1200, DUR = Math.max(D.sad.dur, D.angry.dur);
+// both clips are the same speaker saying the same sentence (SAVEE's common sentence 1)
+function sentence(g, y) {
+  label(g, 800, y, '“She had your dark suit in greasy wash water all year.”', { 'font-size': 27, 'font-style': 'italic', fill: '#222' });
+  label(g, 800, y + 32, 'the same speaker says the same sentence, once sad and once angry', { 'font-size': 20, fill: '#555' });
+}
 function clips(g, t) {
+  sentence(g, 40);
   EMO.forEach(([k, col], r) => {
     const y = 220 + r * 250, w = D[k].dur / DUR * WW;
     label(g, 140, y - 30, k, { 'font-size': 30, 'font-weight': 700, fill: col });
     btn(g, 80, y + 30, 'listen', k, () => clipBuf(k), col);
     el(g, 'line', { x1: X0, x2: X0 + WW, y1: y, y2: y, stroke: '#e3e3e3', 'stroke-width': 1.5 });
-    envelope(g, D[k].lo, D[k].hi, X0, y, w, 125, col, clamp01((t - 0.9 * r) / 1.2));
+    envelope(g, D[k].lo, D[k].hi, X0, y, w, 125, col, Math.max(clamp01((t - 0.9 * r) / 1.2), heard(k)));
     playhead(g, k, X0, w, D[k].dur, y - 115, y + 115);
   });
   timeAxis(g, X0, WW, Math.floor(DUR), 630);
@@ -277,7 +296,8 @@ const sdOf = a => { const v = a.filter(x => x), m = v.reduce((s, x) => s + x, 0)
 const voicedDb = k => medOf(D[k].db.filter((v, i) => D[k].f0[i]));
 const medOf = a => { const v = [...a].sort((p, q) => p - q); return v[Math.floor(v.length / 2)]; };
 function contours(g, t) {
-  const P = { y0: 110, y1: 350, lo: 100, hi: 250 }, I = { y0: 420, y1: 620, lo: -32, hi: -8 };
+  sentence(g, 30);
+  const P = { y0: 120, y1: 350, lo: 100, hi: 250 }, I = { y0: 420, y1: 620, lo: -32, hi: -8 };
   const panel = (A, ticks, name, unit) => {
     const sy = v => A.y1 - (v - A.lo) / (A.hi - A.lo) * (A.y1 - A.y0);
     ticks.forEach(v => { el(g, 'line', { x1: X0, x2: X0 + WW, y1: sy(v), y2: sy(v), stroke: '#ececec', 'stroke-width': 1.5 });
@@ -288,7 +308,7 @@ function contours(g, t) {
   };
   const sp = panel(P, [100, 150, 200, 250], 'pitch', 'Hz'), si = panel(I, [-30, -20, -10], 'loudness', 'dB');
   EMO.forEach(([k, col], r) => {
-    const C = D[k], sx = i => X0 + i * C.hop / DUR * WW, u = clamp01((t - 0.8 * r) / 1.2), n = Math.floor(C.db.length * u);
+    const C = D[k], sx = i => X0 + i * C.hop / DUR * WW, u = Math.max(clamp01((t - 0.8 * r) / 1.2), heard(k)), n = Math.floor(C.db.length * u);
     C.f0.slice(0, n).forEach((v, i) => { if (v) el(g, 'circle', { cx: sx(i), cy: sp(v), r: 4.5, fill: col }); });
     if (n > 1) el(g, 'path', { d: C.db.slice(0, n).map((v, i) => (i ? 'L' : 'M') + sx(i).toFixed(1) + ',' + si(Math.min(I.hi, Math.max(I.lo, v))).toFixed(1)).join(''), fill: 'none', stroke: col, 'stroke-width': 3 });
     playhead(g, k, X0, C.dur / DUR * WW, C.dur, P.y0, I.y1);
@@ -300,7 +320,7 @@ function contours(g, t) {
 }
 
 // ------------------------------------------------------------ 4: a steady and a shaky sustained vowel
-const STEADY_O = { f0: 120, jit: 0.002, shim: 0.02, trem: 0, seed: 3 }, SHAKY_O = { f0: 120, jit: 0.025, shim: 0.15, trem: 1, seed: 3 };
+const STEADY_O = { f0: 120, jit: 0.004, shim: 0.03, trem: 0, seed: 3 }, SHAKY_O = { f0: 120, jit: 0.05, shim: 0.3, trem: 1, breath: 0.12, seed: 3 };
 function sustained(g, t) {
   const R = [['steady', STEADY, 'steady', STEADY_O], ['with tremor', SHAKY, 'shaky', SHAKY_O]];
   R.forEach(([name, col, key, o], r) => {
@@ -317,8 +337,13 @@ function sustained(g, t) {
     el(zk, 'line', { x1: zx2 + 3, y1: y - 100, x2: ZX, y2: y - 100, stroke: '#9a9a9a', 'stroke-width': 1.5, 'stroke-dasharray': '6 5' });
     el(zk, 'line', { x1: zx2 + 3, y1: y + 100, x2: ZX, y2: y + 100, stroke: '#9a9a9a', 'stroke-width': 1.5, 'stroke-dasharray': '6 5' });
     el(zk, 'rect', { x: ZX, y: y - 100, width: ZW, height: 200, fill: '#fafafa', stroke: '#c9c9c9', 'stroke-width': 1.5 });
-    let d = ''; for (let i = a; i <= b; i++) d += (i === a ? 'M' : 'L') + sxz(i).toFixed(1) + ',' + (y - v.x[i] * 110).toFixed(1);
+    let zm = 0; for (let i = a; i <= b; i++) zm = Math.max(zm, Math.abs(v.x[i]));
+    const zs = 88 / zm;   // each zoom fills its box, so the two rows compare shape, not loudness
+    let d = ''; for (let i = a; i <= b; i++) d += (i === a ? 'M' : 'L') + sxz(i).toFixed(1) + ',' + (y - v.x[i] * zs).toFixed(1);
     el(zk, 'path', { d, fill: 'none', stroke: col, 'stroke-width': 2.5 });
+    // the first cycle's peak, carried across, so changes in peak height (shimmer) stand out
+    let pk = 0; for (let i = a; i < v.marks[k0 + 1]; i++) pk = Math.max(pk, v.x[i]);
+    el(zk, 'line', { x1: ZX, x2: ZX + ZW, y1: y - pk * zs, y2: y - pk * zs, stroke: '#444', 'stroke-width': 1.5, 'stroke-dasharray': '6 5' });
     for (let j = 0; j < 7; j++) {
       const p = v.marks[k0 + j], q = v.marks[k0 + j + 1];
       el(zk, 'line', { x1: sxz(p), x2: sxz(p), y1: y + 100, y2: y + 112, stroke: '#444', 'stroke-width': 2 });
@@ -348,9 +373,9 @@ function stems(g, x, y, w, h, f0, db, top, col, u = 1) {
 const maxOver = fn => { let m = -1e9; for (let f = 50; f <= 4000; f += 10) m = Math.max(m, fn(f)); return m; };
 function sourceFilter(g, t) {
   const F = FORM.aah, f0 = 120, W = 400, H = 270, Y = 200, xs = [80, 600, 1120];
-  const P = [['source: the vocal folds', 'a buzz at 120 Hz and its harmonics', f0, srcDb, '#7a3fb0'],
+  const P = [['source: the vocal folds', 'a buzz at 120 Hz and its harmonics', f0, f => srcDb(f, f0), '#7a3fb0'],
     ['filter: the vocal tract', 'resonances (formants) of "aah"', 0, f => filtDb(f, F), DEEP],
-    ['output: what the microphone records', 'the harmonics, shaped by the formants', f0, f => srcDb(f) + filtDb(f, F), ANG]];
+    ['output: what the microphone records', 'the harmonics, shaped by the formants', f0, f => srcDb(f, f0) + filtDb(f, F), ANG]];
   P.forEach(([h1, h2, ff, db, col], i) => {
     const u = clamp01((t - 0.9 * i) / 0.7); if (u <= 0) return;
     const x = xs[i], k = el(g, 'g', { opacity: Math.min(1, u * 2) });
@@ -381,7 +406,7 @@ function explore(g) {
   el(g, 'text', { x: 60, y: 290, 'font-size': 25, 'font-weight': 700, fill: '#7a3fb0' }, 'the source: which pitch');
   x = 60; [120, 220].forEach(p => { x += toggle(g, x, 345, `${p} Hz`, PIT === p, () => { PIT = p; playCur(); }); });
   btn(g, 60, 450, 'listen', VOW + PIT, async () => toBuf(cur().x), ANG);
-  const F = FORM[VOW], db = f => srcDb(f) + filtDb(f, F), top = maxOver(db), XX = 520, W = 1000, Y = 110, H = 420;
+  const F = FORM[VOW], db = f => srcDb(f, PIT) + filtDb(f, F), top = maxOver(db), XX = 520, W = 1000, Y = 110, H = 420;
   spectrumAxes(g, XX, Y, W, H);
   stems(g, XX, Y, W, H, PIT, db, top, ANG);
   stems(g, XX, Y, W, H, 0, f => filtDb(f, F) + (top - maxOver(f2 => filtDb(f2, F))), top, DEEP);
@@ -423,7 +448,7 @@ function pipeline(g, t) {
 }
 
 STEPS = [
-  { title: 'What can a microphone tell us about a person?', T: 3.2, draw: carries },
+  { title: 'What can a microphone tell us about a person?', T: 2.3, draw: carries },
   { title: 'Does emotion show in the voice?', T: 2.7, draw: clips },
   { title: 'How do pitch and loudness differ?', T: 2.6, draw: contours },
   { title: 'What does a shaky voice look like?', T: 2.3, draw: sustained },
@@ -431,7 +456,7 @@ STEPS = [
   { title: 'What changes the vowel, and what changes the pitch?', draw: explore },
   { title: 'What does the audio pipeline look like?', T: 4.4, draw: pipeline },
 ];
-STEPS.forEach(S => { const e = S.enter; S.enter = () => { stopSound(); if (e) e(); }; });
+STEPS.forEach(S => { const e = S.enter; S.enter = () => { stopSound(); HEARD = {}; if (e) e(); }; });
 start();
 
 })();
