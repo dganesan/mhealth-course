@@ -41,7 +41,8 @@
     <button id="prev" title="Previous step (←)">⏮ step</button>
     <button id="next" title="Next step (→)">step ⏭</button>
     <button id="play" class="primary" title="Play again (space)">▶ Play</button>
-
+    <span class="ctl" id="c-mf"><span class="lbl">start frequency</span><input type="range" id="smf" min="0" max="1000" step="1"><b id="v-mf"></b></span>
+    <span class="ctl" id="c-ln"><span class="lbl">energy</span><input type="range" id="sln" min="0" max="1000" step="1"><b id="v-ln"></b></span>
     <span class="step" id="stepno"></span>
   </div>
 </div>
@@ -351,33 +352,47 @@ function overview(g, t) {
   label(q, 800, 680, 'Every 30 ms window of the clip becomes 39 numbers.', { 'font-size': 30, 'font-weight': 700 });
 }
 
-// ------------------------------------------------------------ 2: equal steps in Hz do not sound equal
-const PAIRS = [[300, 400, BLUE], [900, 1000, PUR], [5000, 5100, ANG]];
+// ------------------------------------------------------------ 2: how far apart two tones sound (live: the start frequency from the slider)
+// a start frequency f; the tone 100 Hz above it, and the tone that sounds as far above it as 400 Hz does above 300 Hz
+const imel = m => 700 * (Math.pow(10, m / 2595) - 1), REF = mel(400) - mel(300);
+let MF = 200, LN = 1;
+const fSlider = v => 100 * Math.pow(60, v / 1000), nSlider = v => Math.pow(100, v / 1000);
+const syncMF = () => { $('smf').value = Math.round(1000 * Math.log(MF / 100) / Math.log(60)); $('v-mf').textContent = `${Math.round(MF)} Hz`; };
+const syncLN = () => { $('sln').value = Math.round(1000 * Math.log10(LN) / 2); $('v-ln').textContent = `×${LN < 10 ? LN.toFixed(1) : Math.round(LN)}`; };
+// the Play animation sweeps the slider, and leaves it where the sweep ends
+const sweep = (t, a, b, lo, hi) => lo * Math.pow(hi / lo, ease((t - a) / (b - a)));
 function melStep(g, t) {
-  PAIRS.forEach(([a, b, col], j) => {
-    const y = 190 + j * 130, k = el(g, 'g', { opacity: clamp01((t - 1.0 - 0.5 * j) / 0.4) });
-    btn(k, 40, y, `${a} Hz, then ${b} Hz`, 'p' + j, async () => tones([a, b]), col);
-  });
-  label(g, 230, 140, 'each pair is 100 Hz apart', { 'font-size': 22, fill: '#555', 'font-style': 'italic' });
-  // the mel scale
-  const PX = 700, PW = 820, PY = 100, PH = 470, FM = 8000, MM = mel(FM), sx = f => PX + f / FM * PW, sy = m => PY + PH - m / MM * PH;
+  if (t > 0 && t < 3.0) { MF = sweep(t, 1.0, 3.0, 200, 5000); syncMF(); }
+  const f = MF, X = imel(mel(f) + REF) - f, gap = mel(f + 100) - mel(f);
+  // the curve: pitch we hear against frequency
+  const PX = 640, PW = 900, PY = 80, PH = 470, FM = 7000, MM = mel(FM), sx = v => PX + v / FM * PW, sy = m => PY + PH - m / MM * PH;
   el(g, 'line', { x1: PX, x2: PX + PW, y1: PY + PH, y2: PY + PH, stroke: '#9a9a9a', 'stroke-width': 1.5 });
   el(g, 'line', { x1: PX, x2: PX, y1: PY, y2: PY + PH, stroke: '#9a9a9a', 'stroke-width': 1.5 });
-  [0, 2000, 4000, 6000, 8000].forEach(f => label(g, sx(f), PY + PH + 30, f ? `${f / 1000}k` : '0', { 'font-size': 19, fill: '#555' }));
+  [0, 1000, 2000, 3000, 4000, 5000, 6000, 7000].forEach(v => label(g, sx(v), PY + PH + 30, v ? `${v / 1000}k` : '0', { 'font-size': 19, fill: '#555' }));
   label(g, PX + PW / 2, PY + PH + 62, 'frequency (Hz)', { 'font-size': 21, fill: '#444' });
-  el(g, 'text', { x: PX - 70, y: PY + PH / 2, 'text-anchor': 'middle', 'font-size': 21, fill: '#444', transform: `rotate(-90 ${PX - 70} ${PY + PH / 2})` }, 'pitch we hear (mels)');
+  el(g, 'text', { x: PX - 40, y: PY + PH / 2, 'text-anchor': 'middle', 'font-size': 21, fill: '#444', transform: `rotate(-90 ${PX - 40} ${PY + PH / 2})` }, 'pitch we hear (mels)');
   const n = Math.floor(200 * clamp01(t / 0.9));
-  if (n > 1) el(g, 'path', { d: Array.from({ length: n }, (_, i) => { const f = i / 199 * FM; return (i ? 'L' : 'M') + sx(f).toFixed(1) + ',' + sy(mel(f)).toFixed(1); }).join(''), fill: 'none', stroke: '#444', 'stroke-width': 3.5 });
-  PAIRS.forEach(([a, b, col], j) => {
-    const k = el(g, 'g', { opacity: clamp01((t - 1.0 - 0.5 * j) / 0.4) }), ya = sy(mel(a)), yb = sy(mel(b));
-    el(k, 'rect', { x: PX - 22, y: yb, width: 16, height: Math.max(3, ya - yb), fill: col });
-    [a, b].forEach(f => el(k, 'line', { x1: PX - 6, x2: sx(f), y1: sy(mel(f)), y2: sy(mel(f)), stroke: col, 'stroke-width': 2, 'stroke-dasharray': '5 4' }));
-    el(k, 'circle', { cx: sx(b), cy: yb, r: 6, fill: col });
-    el(k, 'text', { x: sx(b) + 16, y: yb + (j === 2 ? 34 : 26), 'font-size': 21, 'font-weight': 700, fill: col }, `+${Math.round(mel(b) - mel(a))} mels`);
-  });
-  const q = el(g, 'g', { opacity: clamp01((t - 2.6) / 0.4) });
-  label(q, 800, 670, 'The same 100 Hz step sounds large at low frequencies and tiny at high ones.', { 'font-size': 27, 'font-weight': 700 });
-  label(q, 800, 710, 'The mel scale measures frequency the way we hear it.', { 'font-size': 24, fill: '#333' });
+  if (n > 1) el(g, 'path', { d: Array.from({ length: n }, (_, i) => { const v = i / 199 * FM; return (i ? 'L' : 'M') + sx(v).toFixed(1) + ',' + sy(mel(v)).toFixed(1); }).join(''), fill: 'none', stroke: '#444', 'stroke-width': 3.5 });
+  const k = el(g, 'g', { opacity: clamp01((t - 0.9) / 0.3) });
+  // the same-sounding step (green): its span in Hz along the bottom, its span in mels up the side
+  const y0 = sy(mel(f)), yx = sy(mel(f + X)), y1 = sy(mel(f + 100));
+  el(k, 'rect', { x: sx(f), y: PY + PH - 26, width: sx(f + X) - sx(f), height: 18, fill: GRN, opacity: 0.8 });
+  el(k, 'rect', { x: PX + 6, y: yx, width: 18, height: y0 - yx, fill: GRN, opacity: 0.8 });
+  el(k, 'path', { d: `M${sx(f)},${PY + PH - 26} V${y0} H${PX + 24} M${sx(f + X)},${PY + PH - 26} V${yx} H${PX + 24}`, fill: 'none', stroke: GRN, 'stroke-width': 2, 'stroke-dasharray': '5 4' });
+  // 100 Hz above f (red)
+  el(k, 'rect', { x: sx(f), y: PY + PH - 46, width: Math.max(3, sx(f + 100) - sx(f)), height: 16, fill: ANG });
+  el(k, 'rect', { x: PX + 28, y: y1, width: 14, height: Math.max(3, y0 - y1), fill: ANG });
+  el(k, 'circle', { cx: sx(f), cy: y0, r: 7, fill: '#222' });
+  // the readouts and the listen buttons
+  label(k, 40, 120, `starting at ${Math.round(f)} Hz`, { 'font-size': 30, 'font-weight': 700, 'text-anchor': 'start' });
+  el(k, 'text', { x: 40, y: 200, 'font-size': 24, fill: ANG, 'font-weight': 700 }, `+100 Hz sounds like +${Math.round(gap)} mels`);
+  btn(k, 40, 250, `${Math.round(f)} Hz, then ${Math.round(f + 100)} Hz`, 'a', async () => tones([f, f + 100]), ANG);
+  el(k, 'text', { x: 40, y: 350, 'font-size': 24, fill: '#0f7f58', 'font-weight': 700 }, `as big a step as 300 → 400 Hz`);
+  el(k, 'text', { x: 40, y: 382, 'font-size': 24, fill: '#0f7f58', 'font-weight': 700 }, `needs +${Math.round(X)} Hz here`);
+  btn(k, 40, 432, `${Math.round(f)} Hz, then ${Math.round(f + X)} Hz`, 'b', async () => tones([f, f + X]), GRN);
+  const q = el(g, 'g', { opacity: clamp01((t - 3.0) / 0.4) });
+  label(q, 800, 690, 'The higher the frequency, the more Hz it takes to hear the same step.', { 'font-size': 27, 'font-weight': 700 });
+  label(q, 800, 728, 'Drag the start frequency below, and listen.', { 'font-size': 23, fill: '#333' });
 }
 
 // ------------------------------------------------------------ 3: the mel filterbank
@@ -405,24 +420,49 @@ function bankStep(g, t) {
   label(q, 800, 712, 'Narrow filters at low frequencies, wide ones at high: 257 numbers become 26.', { 'font-size': 27, 'font-weight': 700 });
 }
 
-// ------------------------------------------------------------ 4: the log
+// ------------------------------------------------------------ 4: how much louder more energy sounds (live: the energy from the slider)
+// loudness grows as energy to the power 0.3 (about twice as loud for ten times the energy); the tone at the reference level and at LN times its energy
+const LOUD = n => Math.pow(n, 0.301);
+function loudStep(g, t) {
+  if (t > 0 && t < 3.0) { LN = sweep(t, 1.0, 3.0, 1, 100); syncLN(); }
+  const N = LN, PX = 640, PW = 900, PY = 80, PH = 470, sx = v => PX + (v - 1) / 99 * PW, sy = l => PY + PH - (l - 1) / 3 * PH;
+  el(g, 'line', { x1: PX, x2: PX + PW, y1: PY + PH, y2: PY + PH, stroke: '#9a9a9a', 'stroke-width': 1.5 });
+  el(g, 'line', { x1: PX, x2: PX, y1: PY, y2: PY + PH, stroke: '#9a9a9a', 'stroke-width': 1.5 });
+  [1, 10, 20, 40, 60, 80, 100].forEach(v => label(g, sx(v), PY + PH + 30, `×${v}`, { 'font-size': 19, fill: '#555' }));
+  [1, 2, 3, 4].forEach(l => el(g, 'text', { x: PX - 12, y: sy(l) + 7, 'text-anchor': 'end', 'font-size': 19, fill: '#555' }, `×${l}`));
+  label(g, PX + PW / 2, PY + PH + 62, 'energy', { 'font-size': 21, fill: '#444' });
+  el(g, 'text', { x: PX - 62, y: PY + PH / 2, 'text-anchor': 'middle', 'font-size': 21, fill: '#444', transform: `rotate(-90 ${PX - 62} ${PY + PH / 2})` }, 'how loud it sounds');
+  const n = Math.floor(200 * clamp01(t / 0.9));
+  if (n > 1) el(g, 'path', { d: Array.from({ length: n }, (_, i) => { const v = 1 + i / 199 * 99; return (i ? 'L' : 'M') + sx(v).toFixed(1) + ',' + sy(LOUD(v)).toFixed(1); }).join(''), fill: 'none', stroke: '#444', 'stroke-width': 3.5 });
+  const k = el(g, 'g', { opacity: clamp01((t - 0.9) / 0.3) }), L = LOUD(N), db = 10 * Math.log10(N);
+  el(k, 'path', { d: `M${sx(N)},${PY + PH} V${sy(L)} H${PX}`, fill: 'none', stroke: BLUE, 'stroke-width': 2.5, 'stroke-dasharray': '6 5' });
+  el(k, 'circle', { cx: sx(N), cy: sy(L), r: 9, fill: BLUE });
+  const fx = v => v < 10 ? v.toFixed(1) : Math.round(v);
+  label(k, 40, 120, `×${fx(N)} the energy`, { 'font-size': 30, 'font-weight': 700, 'text-anchor': 'start' });
+  el(k, 'text', { x: 40, y: 175, 'font-size': 26, fill: BLUE, 'font-weight': 700 }, `sounds about ×${L.toFixed(1)} as loud`);
+  el(k, 'text', { x: 40, y: 215, 'font-size': 24, fill: '#444' }, `that is +${db.toFixed(0)} dB`);
+  btn(k, 40, 290, 'the quiet tone', 'q', async () => tones([500], [0.03]), GREY);
+  btn(k, 40, 360, `×${fx(N)} the energy`, 'l', async () => tones([500], [0.03 * Math.sqrt(N)]), BLUE);
+  btn(k, 40, 430, 'both, one after the other', 'ql', async () => tones([500, 500], [0.03, 0.03 * Math.sqrt(N)]), DEEP);
+  const q = el(g, 'g', { opacity: clamp01((t - 3.0) / 0.4) });
+  label(q, 800, 690, 'Ten times the energy only doubles how loud it sounds.', { 'font-size': 27, 'font-weight': 700 });
+  label(q, 800, 728, 'The log follows this: every ten times more energy adds the same 10 dB.', { 'font-size': 23, fill: '#333' });
+}
+
+// ------------------------------------------------------------ 5: the log of the band energies
 function logStep(g, t) {
-  btn(g, 40, 90, '1× energy, then 10× energy', 'loud', async () => tones([500, 500], [0.08, 0.08 * Math.sqrt(10)]), BLUE);
-  const k0 = el(g, 'g', { opacity: clamp01((t - 0.3) / 0.4) });
-  el(k0, 'text', { x: 470, y: 98, 'font-size': 24, fill: '#333' }, 'Ten times the energy sounds about twice as loud, not ten times.');
-  const L = D.L, lo = Math.min(...L) - 3, hi = Math.max(...L), Y = 520, H = 300;
-  const k1 = el(g, 'g', { opacity: clamp01((t - 0.8) / 0.4) });
+  const L = D.L, lo = Math.min(...L) - 3, hi = Math.max(...L), Y = 480, H = 330;
+  const k1 = el(g, 'g', { opacity: clamp01(t / 0.4) });
   bars(k1, D.E, 80, 660, Y, H, GRN);
   label(k1, 410, Y + 44, 'the 26 energies', { 'font-size': 24, 'font-weight': 700 });
-  const k2 = el(g, 'g', { opacity: clamp01((t - 1.6) / 0.4) });
+  const k2 = el(g, 'g', { opacity: clamp01((t - 0.8) / 0.4) });
   bars(k2, L.map(v => (v - lo) / (hi - lo)), 860, 660, Y, H, GRN);
   label(k2, 1190, Y + 44, 'their log (in dB)', { 'font-size': 24, 'font-weight': 700 });
   arrow(k2, 755, Y - H / 2, 845, Y - H / 2, 1, { w: 3 });
-  const q = el(g, 'g', { opacity: clamp01((t - 2.4) / 0.4) });
-  label(q, 800, 650, 'Before the log, a few loud bands hide all the others.', { 'font-size': 27, 'font-weight': 700 });
-  label(q, 800, 692, 'After the log, every band counts, which is closer to how we hear loudness.', { 'font-size': 24, fill: '#333' });
+  const q = el(g, 'g', { opacity: clamp01((t - 1.6) / 0.4) });
+  label(q, 800, 640, 'Before the log, a few loud bands hide all the others.', { 'font-size': 27, 'font-weight': 700 });
+  label(q, 800, 682, 'After the log, every band counts, as it does for the ear.', { 'font-size': 24, fill: '#333' });
 }
-
 // ------------------------------------------------------------ 5: the DCT
 function dctStep(g, t) {
   const L = D.L, lo = Math.min(...L) - 6, hi = Math.max(...L) + 4, X = 140, W = 860, Y = 380, H = 300, bw = W / NM;
@@ -509,14 +549,18 @@ function clipStep(g, t) {
 
 STEPS = [
   { title: 'How does a 30 ms window become a few numbers?', T: 3.8, draw: overview },
-  { title: 'Do equal steps in Hz sound equal?', T: 3.0, draw: melStep },
+  { title: 'How far apart do two tones sound?', T: 3.4, draw: melStep, ctl: ['c-mf'], enter() { MF = 5000; syncMF(); } },
   { title: 'What does the mel filterbank do?', T: 3.7, draw: bankStep },
-  { title: 'Does ten times the energy sound ten times louder?', T: 2.8, draw: logStep },
+  { title: 'How much louder does more energy sound?', T: 3.4, draw: loudStep, ctl: ['c-ln'], enter() { LN = 100; syncLN(); } },
+  { title: 'What does the log do to the band energies?', T: 2.0, draw: logStep },
   { title: 'Do we need all 26 bands?', T: 3.8, draw: dctStep },
   { title: 'How is the sound changing?', T: 2.0, draw: deltaStep },
   { title: 'How does a whole clip reach the classifier?', T: 2.8, draw: clipStep },
 ];
 withSound(STEPS);
+// dragging a slider shows the step finished, at the new value
+$('smf').addEventListener('input', () => { clearInterval(timer); t = STEPS[step].T; MF = fSlider(+$('smf').value); syncMF(); stopSound(); draw(); });
+$('sln').addEventListener('input', () => { clearInterval(timer); t = STEPS[step].T; LN = nSlider(+$('sln').value); syncLN(); stopSound(); draw(); });
 start();
 
 })();
