@@ -184,10 +184,10 @@ function playhead(g, id, x0, w, dur, y1, y2) {
   const x = x0 + Math.min(1, p * NOW.dur / dur) * w;
   el(g, 'line', { x1: x, x2: x, y1, y2, stroke: '#222', 'stroke-width': 3 });
 }
-// a time axis for a clip of `dur` seconds drawn across width w, with a tick at every whole second
+// a time axis for a clip of `dur` seconds drawn across width w, with a tick every second (every 5 s for long clips)
 function timeAxis(g, x0, w, dur, y) {
   el(g, 'line', { x1: x0, x2: x0 + w, y1: y, y2: y, stroke: '#9a9a9a', 'stroke-width': 1.5 });
-  for (let s = 0; s <= dur + 1e-9; s += 1) { const x = x0 + s / dur * w;
+  for (let s = 0; s <= dur + 1e-9; s += dur > 12 ? 5 : 1) { const x = x0 + s / dur * w;
     el(g, 'line', { x1: x, x2: x, y1: y, y2: y + 8, stroke: '#9a9a9a', 'stroke-width': 1.5 });
     label(g, x, y + 32, `${s} s`, { 'font-size': 19, fill: '#555' }); }
 }
@@ -403,16 +403,16 @@ function explore(g) {
 
 // ------------------------------------------------------------ 7: the same pipeline as for the IMU
 // the IMU pipeline, applied to a recording: `sig` is the recording's envelope, `out` the two answers the classifier chooses between
-function pipeline(g, t, sig, what, out, last) {
+function pipeline(g, t, sig, what, out, last, notes = [], col = DEEP) {
   const W = 260, H = 220, Y = 120, xs = [40, 400, 760, 1120], u = i => clamp01((t - 0.6 * i) / 0.5);
   const names = [what, 'cut into 20 to 40 ms windows', 'extract features', 'train a classifier'], n = sig.lo.length;
   xs.forEach((x, i) => {
     const k = el(g, 'g', { opacity: u(i) });
     el(k, 'rect', { x, y: Y, width: W, height: H, rx: 12, fill: '#f6f8fb', stroke: i === 2 ? ANG : '#d4dbe5', 'stroke-width': i === 2 ? 3 : 2 });
-    if (i === 0) envelope(k, sig.lo, sig.hi, x + 15, Y + H / 2, W - 30, 85, DEEP);
+    if (i === 0) envelope(k, sig.lo, sig.hi, x + 15, Y + H / 2, W - 30, 85, col);
     if (i === 1) { const a = Math.floor(n * 0.30), b = Math.floor(n * 0.42);
       for (let w = 0; w < 4; w++) el(k, 'rect', { x: x + 15 + w * (W - 30) / 4, y: Y + 18, width: (W - 30) / 4, height: H - 36, fill: w % 2 ? '#e3ecf8' : '#fff' });
-      envelope(k, sig.lo.slice(a, b), sig.hi.slice(a, b), x + 15, Y + H / 2, W - 30, 85, DEEP);
+      envelope(k, sig.lo.slice(a, b), sig.hi.slice(a, b), x + 15, Y + H / 2, W - 30, 85, col);
       for (let w = 1; w < 4; w++) el(k, 'line', { x1: x + 15 + w * (W - 30) / 4, x2: x + 15 + w * (W - 30) / 4, y1: Y + 12, y2: Y + H - 12, stroke: '#666', 'stroke-width': 2, 'stroke-dasharray': '6 4' }); }
     if (i === 2) label(k, x + W / 2, Y + H / 2 + 30, '?', { 'font-size': 96, 'font-weight': 700, fill: ANG });
     if (i === 3) miniTree(k, x + W / 2, Y + H / 2 + 10, 72, BLUE);
@@ -428,22 +428,33 @@ function pipeline(g, t, sig, what, out, last) {
     label(b, (a + z) / 2, 486, s, { 'font-size': 23, 'font-weight': 700, fill: BLUE }); });
   el(b, 'path', { d: `M${xs[2]},430 v18 H${xs[2] + W} v-18`, fill: 'none', stroke: ANG, 'stroke-width': 3 });
   label(b, xs[2] + W / 2, 486, 'new for audio', { 'font-size': 23, 'font-weight': 700, fill: ANG });
+  notes.forEach((s, j) => label(b, xs[2] + W / 2, 524 + j * 30, s, { 'font-size': 20, fill: j ? '#333' : '#555', 'font-style': j ? 'normal' : 'italic' }));
   const q = el(g, 'g', { opacity: clamp01((t - 3.9) / 0.5) });
   label(q, 800, 660, last, { 'font-size': 30, 'font-weight': 700 });
 }
-const emotionPipe = (g, t) => pipeline(g, t, D.angry, 'a spoken sentence', ['sad?', 'angry?'], 'Which numbers should we pull out of a 30 ms window of speech?');
+const emotionPipe = (g, t) => pipeline(g, t, D.angry, 'a spoken sentence', ['sad?', 'angry?'], 'Which numbers separate one mood from another?');
 const parkinsonPipe = (g, t) => pipeline(g, t, minmax(voice('shaky', SHAKY_O).x, 700), 'a sustained "aaah"', ['healthy?', 'Parkinson\'s?'],
-  'The same pipeline; only the recording and the features change.');
+  'Which numbers capture how steady a voice is?');
+// no recording for depression: a sketch of a few minutes of speech, grey, with bursts of talk and long pauses
+const SKETCH = (() => { const r = rng(9), lo = [], hi = [];
+  while (lo.length < 700) { const n = 12 + Math.floor(r() * 30), a = 0.18 + r() * 0.25;
+    for (let i = 0; i < n; i++) { const v = a * Math.sin(Math.PI * i / n) * (0.6 + 0.4 * r()); hi.push(v); lo.push(-v); }
+    const p = 6 + Math.floor(r() * (r() < 0.3 ? 45 : 14)); for (let i = 0; i < p; i++) { hi.push(0.01); lo.push(-0.01); } }
+  return { lo: lo.slice(0, 700), hi: hi.slice(0, 700) }; })();
+const depressionPipe = (g, t) => pipeline(g, t, SKETCH, 'a few minutes of speech', ['not at risk?', 'at risk?'],
+  'Which numbers capture how someone speaks over minutes, not seconds?',
+  ['cues reported in depressed speech:', 'flatter, lower pitch; a quieter voice;', 'slower speech; longer pauses'], '#8a94a6');
 
 STEPS = [
   { title: 'What can a microphone tell us about a person?', T: 2.3, draw: carries },
   { title: 'Does emotion show in the voice?', T: 2.7, draw: clips },
   { title: 'How do pitch and loudness differ?', T: 2.6, draw: contours },
+  { title: 'How would we recognize a mood?', T: 4.4, draw: emotionPipe },
   { title: 'What does a shaky voice sound like?', T: 2.2, draw: sustained },
+  { title: 'How would we screen for Parkinson\'s disease?', T: 4.4, draw: parkinsonPipe },
+  { title: 'How would we screen for depression?', T: 4.4, draw: depressionPipe },
   { title: 'How is a voice produced?', T: 2.9, draw: sourceFilter },
   { title: 'What changes the vowel, and what changes the pitch?', draw: explore },
-  { title: 'How would we classify sad versus angry?', T: 4.4, draw: emotionPipe },
-  { title: 'How would we screen for Parkinson\'s disease?', T: 4.4, draw: parkinsonPipe },
 ];
 withSound(STEPS);
 start();
