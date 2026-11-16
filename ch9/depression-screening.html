@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Screening for Depression</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #ffffff; --ink: #222222; --ink-2: #666666; --ink-3: #9a9a9a; --rule: #dcdcdc; --grid: #ececec; --ma: #2a78d6;
+    --sans: "Helvetica Neue", Helvetica, -apple-system, Arial, sans-serif;
+    --mono: Menlo, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+  #app { height: 100vh; padding: 10px 14px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 10px; }
+  .head { padding: 4px 16px 0; }
+  h1 { margin: 0; font-size: clamp(24px, 2.4vw, 36px); font-weight: 700; letter-spacing: -0.01em; }
+  .main { user-select: none; -webkit-user-select: none; min-height: 0; border: 1px solid var(--rule); border-radius: 6px; padding: 10px 16px; }
+  .main svg { width: 100%; height: 100%; display: block; }
+  svg text { font-family: var(--sans); }
+  .bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px 18px; border: 1px solid var(--rule); border-radius: 6px; background: #f6f7f9; }
+  button { font: inherit; font-size: 18px; color: var(--ink); background: #fff; border: 1px solid #9a9a9a; border-radius: 6px; padding: 9px 16px; cursor: pointer; }
+  button:hover { border-color: var(--ink); }
+  button:disabled { opacity: .45; cursor: default; }
+  button.primary { background: var(--ma); color: #fff; border-color: var(--ma); font-weight: 700; min-width: 120px; }
+  .ctl { display: inline-flex; align-items: center; gap: 10px; margin-left: 10px; flex: 1; max-width: 640px; }
+  .ctl .lbl { font-family: var(--mono); font-size: 17px; color: var(--ink-2); white-space: nowrap; }
+  .ctl b { font-family: var(--mono); font-size: 18px; color: var(--ma); min-width: 3ch; }
+  input[type=range] { flex: 1; accent-color: var(--ma); height: 26px; }
+  .step { font-family: var(--mono); font-size: 17px; color: var(--ink-2); margin-left: auto; }
+  .hide { display: none !important; }
+</style>
+
+<div id="app">
+  <div class="head"><h1 id="title"></h1></div>
+  <div class="main"><svg id="fig" viewBox="0 0 1600 760"></svg></div>
+  <div class="bar">
+    <button id="prev" title="Previous step (←)">⏮ step</button>
+    <button id="next" title="Next step (→)">step ⏭</button>
+    <button id="play" class="primary" title="Play again (space)">▶ Play</button>
+
+    <span class="step" id="stepno"></span>
+  </div>
+</div>
+
+<script>
+(() => {
+// ------------------------------------------------------------ shared by the chapter 7 pages (built by tools/ch7-pages/build.py)
+const $ = id => document.getElementById(id);
+const NS = 'http://www.w3.org/2000/svg';
+const el = (parent, tag, attrs, text) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; parent.appendChild(e); return e; };
+const BLUE = '#2a78d6', DEEP = '#1d5fae', TINT = '#e8f1fd', GREY = '#9a9a9a', OK = '#1baf7a', BAD = '#d6453d';
+const CLS = { W: { name: 'Walking', col: '#2a78d6' }, R: { name: 'Running', col: '#7a3fb0' } };
+const clamp01 = v => Math.max(0, Math.min(1, v));
+const ease = u => { u = clamp01(u); return u * u * (3 - 2 * u); };
+// a rounded box with centred lines of text; kind is 'data' (grey), 'model' (white, blue edge), 'agg' (blue tint) or 'out' (blue tint, bold)
+function box(g, cx, cy, w, h, lines, kind = 'model', o = {}) {
+  const st = { data: ['#f6f7f9', GREY, '#222', 400], model: ['#fff', BLUE, '#222', 400], agg: [TINT, BLUE, DEEP, 700], out: [TINT, BLUE, DEEP, 700] }[kind];
+  const b = el(g, 'g', { opacity: o.opacity == null ? 1 : o.opacity });
+  el(b, 'rect', { x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 12, fill: o.fill || st[0], stroke: o.stroke || st[1], 'stroke-width': kind === 'out' ? 3 : 2 });
+  const fs = o.fs || 23, n = lines.length;
+  lines.forEach((s, i) => el(b, 'text', { x: cx, y: cy + (o.dy || 0) + (i - (n - 1) / 2) * fs * 1.2 + fs * 0.36, 'text-anchor': 'middle', 'font-size': fs, 'font-weight': o.weight || st[3], fill: o.color || st[2] }, s));
+  return b;
+}
+// an arrow from (x1,y1) to (x2,y2), drawn up to fraction u of its length
+function arrow(g, x1, y1, x2, y2, u = 1, o = {}) {
+  if (u <= 0) return;
+  const x = x1 + (x2 - x1) * u, y = y1 + (y2 - y1) * u, a = Math.atan2(y2 - y1, x2 - x1), col = o.col || '#7a8ea8', w = o.w || 2.5;
+  el(g, 'line', { x1, y1, x2: x - Math.cos(a) * 8, y2: y - Math.sin(a) * 8, stroke: col, 'stroke-width': w, 'stroke-dasharray': o.dash || 'none' });
+  el(g, 'path', { d: `M${x},${y} L${x - Math.cos(a - 0.4) * 15},${y - Math.sin(a - 0.4) * 15} L${x - Math.cos(a + 0.4) * 15},${y - Math.sin(a + 0.4) * 15} Z`, fill: col });
+}
+// the small tree drawn in the book's figures: a root, two inner nodes, four leaves
+function miniTree(g, cx, cy, s, col = BLUE, opacity = 1) {
+  const t = el(g, 'g', { opacity });
+  const P = { r: [0, -1], a: [-0.7, -0.3], b: [0.7, -0.3], l: [[-1, 0.4], [-0.4, 0.4], [0.4, 0.4], [1, 0.4]] }, X = p => cx + p[0] * s, Y = p => cy + p[1] * s;
+  [[P.r, P.a], [P.r, P.b], [P.a, P.l[0]], [P.a, P.l[1]], [P.b, P.l[2]], [P.b, P.l[3]]].forEach(([p, q]) => el(t, 'line', { x1: X(p), y1: Y(p), x2: X(q), y2: Y(q), stroke: col, 'stroke-width': Math.max(1.5, s / 18) }));
+  el(t, 'circle', { cx: X(P.r), cy: Y(P.r), r: s * 0.13, fill: col });
+  [P.a, P.b].forEach(p => el(t, 'circle', { cx: X(p), cy: Y(p), r: s * 0.1, fill: col }));
+  P.l.forEach(p => el(t, 'circle', { cx: X(p), cy: Y(p), r: s * 0.085, fill: col, 'fill-opacity': 0.75 }));
+  return t;
+}
+// a numbered chip for one training window, coloured by its activity
+function chip(g, x, y, id, c, o = {}) {
+  const s = o.s || 1, w = 40 * s, h = 32 * s;
+  const k = el(g, 'g', { opacity: o.opacity == null ? 1 : o.opacity });
+  el(k, 'rect', { x: x - w / 2, y: y - h / 2, width: w, height: h, rx: 6 * s, fill: CLS[c].col, stroke: o.ring || 'none', 'stroke-width': o.ring ? 4 : 0 });
+  el(k, 'text', { x, y: y + 7 * s, 'text-anchor': 'middle', 'font-size': 20 * s, 'font-weight': 700, fill: '#fff' }, id);
+  return k;
+}
+// a seeded random generator, so a page shows the same draw every time it loads
+function rng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+// ------------------------------------------------------------ steps: each has a title, draw(g, t) and T, the length of its animation in seconds
+// `ctl` lists the ids of the bar controls the step shows; Play runs the animation
+let step = 0, t = 0, timer = null, STEPS = [];
+const PACE = 2.5;   // animations play this many times slower than their step times, to match talking through them
+function draw() {
+  const S = STEPS[step], svg = $('fig'); svg.innerHTML = '';
+  $('title').textContent = S.title; $('stepno').textContent = `step ${step + 1} of ${STEPS.length}`;
+  $('prev').disabled = step === 0; $('next').disabled = step === STEPS.length - 1 && (!S.T || t >= S.T);
+  $('play').classList.toggle('hide', !S.T); $('play').textContent = S.playLabel || '▶ Play';
+  document.querySelectorAll('.ctl').forEach(c => c.classList.toggle('hide', !(S.ctl || []).includes(c.id)));
+  S.draw(el(svg, 'g', {}), t);
+}
+function play() {
+  const S = STEPS[step]; clearInterval(timer); t = 0; if (S.reset) S.reset();
+  if (!S.T) { draw(); return; }
+  const t0 = performance.now();
+  timer = setInterval(() => { t = Math.min(S.T, (performance.now() - t0) / 1000 / PACE); if (t >= S.T) clearInterval(timer); draw(); }, 30);
+  draw();
+}
+// a step opens at the start of its animation and waits for Play; Back shows it finished
+function go(s, back = false) {
+  clearInterval(timer); step = Math.max(0, Math.min(STEPS.length - 1, s)); history.replaceState(null, '', '#' + (step + 1));
+  if (STEPS[step].enter) STEPS[step].enter();
+  t = back ? STEPS[step].T || 0 : 0; draw();
+}
+function start() {
+  // stepping forward first shows the end of the current step's animation, then moves on
+  const fwd = () => { const S = STEPS[step]; if (S.T && t < S.T) { clearInterval(timer); t = S.T; draw(); } else go(step + 1); };
+  $('prev').onclick = () => go(step - 1, true); $('next').onclick = fwd; $('play').onclick = () => play();
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT') return;
+    if (e.key === 'ArrowRight') fwd(); else if (e.key === 'ArrowLeft') go(step - 1, true);
+    else if (e.key === ' ' && STEPS[step].T) { e.preventDefault(); play(); }
+  });
+  go((parseInt(location.hash.slice(1), 10) || 1) - 1);
+}
+
+// ------------------------------------------------------------ shared by the chapter 9 pages: playing sound from the figure, and drawing waveforms
+const SR = 16000;
+const label = (g, x, y, s, o = {}) => el(g, 'text', Object.assign({ x, y, 'text-anchor': 'middle', 'font-size': 24, fill: '#222' }, o), s);
+// ------------------------------------------------------------ sound: one thing plays at a time; the figure redraws while it plays
+let AC = null, NOW = null;
+const BUF = {};
+function audio() { if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); return AC; }
+function toBuf(x) { const b = audio().createBuffer(1, x.length, SR); b.copyToChannel(x, 0); return b; }
+// a WAV file carried in the page as base64, decoded once
+async function wavBuf(k, b64) {
+  if (!BUF[k]) { const s = atob(b64), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); BUF[k] = await audio().decodeAudioData(u.buffer); }
+  return BUF[k];
+}
+function stopSound() { if (NOW) { const s = NOW.src; NOW = null; try { s.stop(); } catch (e) {} } }
+function sound(id, buf) {
+  const again = NOW && NOW.id === id; stopSound();
+  if (again) { draw(); return; }
+  const a = audio(), s = a.createBufferSource(); s.buffer = buf; s.connect(a.destination); s.start();
+  NOW = { id, src: s, t0: a.currentTime, dur: buf.duration };
+  s.onended = () => { if (NOW && NOW.src === s) { HEARD[id] = 1; NOW = null; draw(); } };
+  const tick = () => { if (NOW && NOW.src === s) { draw(); requestAnimationFrame(tick); } }; tick();
+}
+// how far through `id` the sound is (0 to 1), or -1 when it is not playing
+const playing = id => NOW && NOW.id === id ? Math.min(1, (AC.currentTime - NOW.t0) / NOW.dur) : -1;
+// how much of each clip has been heard on this step, so listening to a clip draws it
+let HEARD = {};
+const heard = id => { const p = playing(id); if (p >= 0) HEARD[id] = Math.max(HEARD[id] || 0, p); return HEARD[id] || 0; };
+// a play button drawn in the figure; it turns into a stop button while its sound plays
+function btn(g, x, y, text, id, get, col = BLUE) {
+  const on = playing(id) >= 0, w = 56 + text.length * 12.5, k = el(g, 'g', { style: 'cursor:pointer' });
+  el(k, 'rect', { x, y: y - 27, width: w, height: 46, rx: 9, fill: col, opacity: on ? 0.75 : 1 });
+  el(k, 'text', { x: x + w / 2, y: y + 4, 'text-anchor': 'middle', 'font-size': 21, 'font-weight': 700, fill: '#fff' }, (on ? '■ ' : '▶ ') + text);
+  k.addEventListener('click', async e => { e.stopPropagation(); sound(id, await get()); });
+  return w;
+}
+
+// ------------------------------------------------------------ drawing helpers
+// a waveform drawn as its min/max envelope, from x0 to x0 + w, up to fraction u of its length
+function envelope(g, lo, hi, x0, y, w, h, col, u = 1) {
+  const n = Math.floor(lo.length * u); if (n < 2) return;
+  const sx = i => x0 + i / (lo.length - 1) * w;
+  el(g, 'path', { d: 'M' + hi.slice(0, n).map((v, i) => sx(i).toFixed(1) + ',' + (y - v * h).toFixed(1)).join('L') + 'L' +
+    lo.slice(0, n).map((v, i) => sx(i).toFixed(1) + ',' + (y - v * h).toFixed(1)).reverse().join('L') + 'Z', fill: col, opacity: 0.85 });
+}
+function minmax(x, bins) {
+  const lo = [], hi = [], k = x.length / bins;
+  for (let b = 0; b < bins; b++) { let a = 1, z = -1; for (let i = Math.floor(b * k); i < Math.floor((b + 1) * k); i++) { a = Math.min(a, x[i]); z = Math.max(z, x[i]); } lo.push(a); hi.push(z); }
+  return { lo, hi };
+}
+function playhead(g, id, x0, w, dur, y1, y2) {
+  const p = playing(id); if (p < 0) return;
+  const x = x0 + Math.min(1, p * NOW.dur / dur) * w;
+  el(g, 'line', { x1: x, x2: x, y1, y2, stroke: '#222', 'stroke-width': 3 });
+}
+// a time axis for a clip of `dur` seconds drawn across width w, with a tick every second (every 5 s for long clips)
+function timeAxis(g, x0, w, dur, y) {
+  el(g, 'line', { x1: x0, x2: x0 + w, y1: y, y2: y, stroke: '#9a9a9a', 'stroke-width': 1.5 });
+  for (let s = 0; s <= dur + 1e-9; s += dur > 12 ? 5 : 1) { const x = x0 + s / dur * w;
+    el(g, 'line', { x1: x, x2: x, y1: y, y2: y + 8, stroke: '#9a9a9a', 'stroke-width': 1.5 });
+    label(g, x, y + 32, `${s} s`, { 'font-size': 19, fill: '#555' }); }
+}
+// every step stops the sound and forgets what was heard when it opens
+function withSound(steps) { steps.forEach(S => { const e = S.enter; S.enter = () => { stopSound(); HEARD = {}; if (e) e(); }; }); }
+
+// the spectrogram as an image: one column per window, low frequencies at the bottom, in the book's colour map (magma)
+const MAGMA = [[0, [0, 0, 4]], [0.25, [59, 15, 112]], [0.5, [140, 41, 129]], [0.75, [222, 73, 104]], [0.9, [254, 159, 109]], [1, [252, 253, 191]]];
+function magma(v) {
+  for (let i = 1; i < MAGMA.length; i++) if (v <= MAGMA[i][0]) {
+    const [a, ca] = MAGMA[i - 1], [b, cb] = MAGMA[i], u = (v - a) / (b - a);
+    return ca.map((c, j) => Math.round(c + (cb[j] - c) * u));
+  }
+  return MAGMA[MAGMA.length - 1][1];
+}
+function specURL(S) {
+  const s = atob(S.data), cv = document.createElement('canvas'); cv.width = S.cols; cv.height = S.bins;
+  const cx = cv.getContext('2d'), im = cx.createImageData(S.cols, S.bins);
+  for (let c = 0; c < S.cols; c++) for (let b = 0; b < S.bins; b++) {
+    const [r, g, bl] = magma(s.charCodeAt(c * S.bins + b) / 255), o = ((S.bins - 1 - b) * S.cols + c) * 4;
+    im.data[o] = r; im.data[o + 1] = g; im.data[o + 2] = bl; im.data[o + 3] = 255;
+  }
+  cx.putImageData(im, 0, 0); return cv.toDataURL();
+}
+
+// ------------------------------------------------------------ the activity-recognition pipeline, applied to a recording
+// the IMU pipeline, applied to a recording: `sig` is the recording's envelope, `out` the two answers the classifier chooses between
+function pipeline(g, t, sig, what, out, last, notes = [], col = DEEP) {
+  const W = 260, H = 220, Y = 120, xs = [40, 400, 760, 1120], u = i => clamp01((t - 0.6 * i) / 0.5), ANG = '#d6453d';
+  const names = [what, 'cut into 20 to 40 ms windows', 'extract features', 'train a classifier'], n = sig.lo.length;
+  const top = Math.max(...sig.hi, ...sig.lo.map(v => -v)), sh = 85 / top;   // each recording fills its box, whatever its level
+  xs.forEach((x, i) => {
+    const k = el(g, 'g', { opacity: u(i) });
+    el(k, 'rect', { x, y: Y, width: W, height: H, rx: 12, fill: '#f6f8fb', stroke: i === 2 ? ANG : '#d4dbe5', 'stroke-width': i === 2 ? 3 : 2 });
+    if (i === 0) envelope(k, sig.lo, sig.hi, x + 15, Y + H / 2, W - 30, sh, col);
+    if (i === 1) { const a = Math.floor(n * 0.30), b = Math.floor(n * 0.42);
+      for (let w = 0; w < 4; w++) el(k, 'rect', { x: x + 15 + w * (W - 30) / 4, y: Y + 18, width: (W - 30) / 4, height: H - 36, fill: w % 2 ? '#e3ecf8' : '#fff' });
+      const zt = Math.max(...sig.hi.slice(a, b), ...sig.lo.slice(a, b).map(v => -v));
+      envelope(k, sig.lo.slice(a, b), sig.hi.slice(a, b), x + 15, Y + H / 2, W - 30, 85 / zt, col);
+      for (let w = 1; w < 4; w++) el(k, 'line', { x1: x + 15 + w * (W - 30) / 4, x2: x + 15 + w * (W - 30) / 4, y1: Y + 12, y2: Y + H - 12, stroke: '#666', 'stroke-width': 2, 'stroke-dasharray': '6 4' }); }
+    if (i === 2) label(k, x + W / 2, Y + H / 2 + 30, '?', { 'font-size': 96, 'font-weight': 700, fill: ANG });
+    if (i === 3) miniTree(k, x + W / 2, Y + H / 2 + 10, 72, BLUE);
+    label(k, x + W / 2, Y + H + 44, names[i], { 'font-size': 23, 'font-weight': 700, fill: i === 2 ? ANG : '#222' });
+    if (i) arrow(g, xs[i - 1] + W + 12, Y + H / 2, x - 12, Y + H / 2, u(i));
+  });
+  arrow(g, xs[3] + W + 12, Y + H / 2, xs[3] + W + 70, Y + H / 2, u(4));
+  const o = el(g, 'g', { opacity: u(4) });
+  out.forEach((s, j) => el(o, 'text', { x: xs[3] + W + 82, y: Y + H / 2 - 6 + j * 32, 'font-size': 22, 'font-weight': 700, fill: '#444' }, s));
+  const b = el(g, 'g', { opacity: clamp01((t - 3.2) / 0.5) });
+  [[xs[0], xs[1] + W, 'as for the IMU'], [xs[3], xs[3] + W, 'as for the IMU']].forEach(([a, z, s]) => {
+    el(b, 'path', { d: `M${a},430 v18 H${z} v-18`, fill: 'none', stroke: BLUE, 'stroke-width': 3 });
+    label(b, (a + z) / 2, 486, s, { 'font-size': 23, 'font-weight': 700, fill: BLUE }); });
+  el(b, 'path', { d: `M${xs[2]},430 v18 H${xs[2] + W} v-18`, fill: 'none', stroke: ANG, 'stroke-width': 3 });
+  label(b, xs[2] + W / 2, 486, 'new for audio', { 'font-size': 23, 'font-weight': 700, fill: ANG });
+  notes.forEach((s, j) => label(b, xs[2] + W / 2, 524 + j * 30, s, { 'font-size': 20, fill: j ? '#333' : '#555', 'font-style': j ? 'normal' : 'italic' }));
+  const q = el(g, 'g', { opacity: clamp01((t - 3.9) / 0.5) });
+  label(q, 800, 660, last, { 'font-size': 30, 'font-weight': 700 });
+}
+
+// ------------------------------------------------------------ rows of clips and pitch plots, for pages whose data D maps a key to a clip
+// ({label, dur, hop, lo, hi, db, f0, wav or mp3}); X0 and WW are the page's time axis, colOf(key) its colour for a clip
+// rows of clips, each a waveform on a shared time scale with a listen button
+// `fit` scales each clip to fill its row; without it, clips keep their recorded levels (so a quiet mood looks quiet)
+function rows(g, keys, y0, gap, h, dur, fit = false) {
+  dur = dur || Math.max(...keys.map(k => D[k].dur));
+  keys.forEach((k, r) => {
+    const y = y0 + r * gap, w = D[k].dur / dur * WW, col = colOf(k);
+    el(g, 'text', { x: 40, y: y - 12, 'font-size': 25, 'font-weight': 700, fill: col }, D[k].label);
+    btn(g, 40, y + 28, 'listen', k, () => wavBuf(k, D[k].wav || D[k].mp3), col);
+    el(g, 'line', { x1: X0, x2: X0 + WW, y1: y, y2: y, stroke: '#e3e3e3', 'stroke-width': 1.5 });
+    const pk = fit ? Math.max(...D[k].hi, ...D[k].lo.map(v => -v)) : 1;
+    envelope(g, D[k].lo, D[k].hi, X0, y, w, h / pk, col);
+    playhead(g, k, X0, w, D[k].dur, y - h - 5, y + h + 5);
+  });
+  timeAxis(g, X0, WW, dur, y0 + (keys.length - 1) * gap + h + 25);
+}
+// pitch contours of several clips on one plot, x from x0 to x0 + w, between y0 and y1; `rel` plots each relative to its own median
+function pitchPlot(g, keys, x0, w, y0, y1, lo, hi, ticks, unit, rel = false, dur) {
+  dur = dur || Math.max(...keys.map(k => D[k].dur));
+  const sy = v => y1 - (v - lo) / (hi - lo) * (y1 - y0);
+  ticks.forEach(v => { el(g, 'line', { x1: x0, x2: x0 + w, y1: sy(v), y2: sy(v), stroke: '#ececec', 'stroke-width': 1.5 });
+    el(g, 'text', { x: x0 - 12, y: sy(v) + 7, 'text-anchor': 'end', 'font-size': 19, style: 'font-family: var(--mono)', fill: '#666' }, (rel && v > 0 ? '+' : '') + v); });
+  el(g, 'text', { x: x0 - 75, y: (y0 + y1) / 2, 'text-anchor': 'middle', 'font-size': 21, fill: '#444', transform: `rotate(-90 ${x0 - 75} ${(y0 + y1) / 2})` }, unit);
+  keys.forEach(k => {
+    const C = D[k], v = C.f0.filter(x => x).sort((a, b) => a - b), med = v[Math.floor(v.length / 2)], col = colOf(k);
+    C.f0.forEach((f, i) => { if (!f) return; const val = rel ? 100 * (f - med) / med : f; if (val < lo || val > hi) return;
+      el(g, 'circle', { cx: x0 + i * C.hop / dur * w, cy: sy(val), r: 4, fill: col }); });
+  });
+}
+function pick(g, x, y, text, on, col, fn) {
+  const w = 30 + text.length * 13, k = el(g, 'g', { style: 'cursor:pointer' });
+  el(k, 'rect', { x, y: y - 26, width: w, height: 44, rx: 8, fill: on ? col : '#fff', stroke: col, 'stroke-width': 2.5 });
+  el(k, 'text', { x: x + w / 2, y: y + 4, 'text-anchor': 'middle', 'font-size': 21, 'font-weight': 700, fill: on ? '#fff' : col }, text);
+  k.addEventListener('click', e => { e.stopPropagation(); fn(); });
+  return w + 12;
+}
+
+
+// ------------------------------------------------------------ chapter 9, example: screening for depression from the voice. No recording: the cues
+// reported in depressed speech (after the review by Almaghrabi et al. 2023, as in the lecture), and the pipeline that would screen for it.
+const D = {};
+const CUES = [['pitch', 'varies a lot', 'flatter, lower'], ['loudness', 'normal', 'quieter'], ['speaking rate', 'normal', 'slower'],
+  ['pauses', 'short', 'longer'], ['voice quality', 'steady', 'more jitter and shimmer']];
+function cues(g, t) {
+  const Y = 170, R = 92, xs = [250, 760, 1260];
+  [['cue', '#222'], ['typical speech', '#1baf7a'], ['depressed speech', '#7a3fb0']].forEach(([s, c], i) => label(g, xs[i], Y - 40, s, { 'font-size': 27, 'font-weight': 700, fill: c }));
+  el(g, 'line', { x1: 80, x2: 1520, y1: Y - 20, y2: Y - 20, stroke: '#c9c9c9', 'stroke-width': 2 });
+  CUES.forEach(([c, a, b], r) => {
+    const y = Y + 40 + r * R, k = el(g, 'g', { opacity: clamp01((t - 0.4 * r) / 0.4) });
+    label(k, xs[0], y, c, { 'font-size': 26, 'font-weight': 700 });
+    label(k, xs[1], y, a, { 'font-size': 25, fill: '#333' });
+    arrow(k, xs[1] + 150, y - 8, xs[2] - 190, y - 8, 1, { col: '#9a9a9a' });
+    label(k, xs[2], y, b, { 'font-size': 25, 'font-weight': 700, fill: '#7a3fb0' });
+  });
+  label(g, 800, 720, 'cues reported across studies of depressed speech; no recording on this page', { 'font-size': 19, fill: '#555' });
+}
+// a sketch of a few minutes of speech, grey: bursts of talk and long pauses
+const SKETCH = (() => { const r = rng(9), lo = [], hi = [];
+  while (lo.length < 700) { const n = 12 + Math.floor(r() * 30), a = 0.18 + r() * 0.25;
+    for (let i = 0; i < n; i++) { const v = a * Math.sin(Math.PI * i / n) * (0.6 + 0.4 * r()); hi.push(v); lo.push(-v); }
+    const p = 6 + Math.floor(r() * (r() < 0.3 ? 45 : 14)); for (let i = 0; i < p; i++) { hi.push(0.01); lo.push(-0.01); } }
+  return { lo: lo.slice(0, 700), hi: hi.slice(0, 700) }; })();
+const depPipe = (g, t) => pipeline(g, t, SKETCH, 'a few minutes of speech', ['not at risk?', 'at risk?'],
+  'Which numbers capture how someone speaks over minutes, not seconds?', [], '#8a94a6');
+
+STEPS = [
+  { title: 'How does depression change the voice?', T: 2.2, draw: cues },
+  { title: 'How would we screen for depression?', T: 4.4, draw: depPipe },
+];
+withSound(STEPS);
+start();
+
+})();
+</script>
+</body>
+</html>
