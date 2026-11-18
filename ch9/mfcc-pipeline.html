@@ -441,9 +441,9 @@ function loudStep(g, t) {
   label(k, 40, 120, `×${fx(N)} the energy`, { 'font-size': 30, 'font-weight': 700, 'text-anchor': 'start' });
   el(k, 'text', { x: 40, y: 175, 'font-size': 26, fill: BLUE, 'font-weight': 700 }, `sounds about ×${L.toFixed(1)} as loud`);
   el(k, 'text', { x: 40, y: 215, 'font-size': 24, fill: '#444' }, `that is +${db.toFixed(0)} dB`);
-  btn(k, 40, 290, 'the quiet tone', 'q', async () => tones([500], [0.03]), GREY);
-  btn(k, 40, 360, `×${fx(N)} the energy`, 'l', async () => tones([500], [0.03 * Math.sqrt(N)]), BLUE);
-  btn(k, 40, 430, 'both, one after the other', 'ql', async () => tones([500, 500], [0.03, 0.03 * Math.sqrt(N)]), DEEP);
+  btn(k, 40, 290, 'the quiet tone', 'q', async () => tones([500], [0.05]), GREY);
+  btn(k, 40, 360, `×${fx(N)} the energy`, 'l', async () => tones([500], [0.05 * Math.sqrt(N)]), BLUE);
+  btn(k, 40, 430, 'both, one after the other', 'ql', async () => tones([500, 500], [0.05, 0.05 * Math.sqrt(N)]), DEEP);
   const q = el(g, 'g', { opacity: clamp01((t - 3.0) / 0.4) });
   label(q, 800, 690, 'Ten times the energy only doubles how loud it sounds.', { 'font-size': 27, 'font-weight': 700 });
   label(q, 800, 728, 'The log follows this: every ten times more energy adds the same 10 dB.', { 'font-size': 23, fill: '#333' });
@@ -547,21 +547,158 @@ function clipStep(g, t) {
   label(q, 800, 680, 'Averaging over the windows gives every clip the same 78 features, whatever its length.', { 'font-size': 27, 'font-weight': 700 });
 }
 
+// ------------------------------------------------------------ live class tests: students scan a QR code, listen to the projector, and rate on their phones.
+// Answers go to the Google Sheet behind ch4/spot-the-difference.html (tools/spot-the-difference-backend.gs), as text in "pairs" 20 and 19,
+// which that page does not use: "<test>|<date>|<phone id>|<rating>,<rating>,...". The projector keeps each phone's latest answer from today.
+// Opened from a file (not https), answers stay in this browser's localStorage, for testing.
+const API = location.protocol === 'https:' ? 'https://script.google.com/macros/s/AKfycbwl9bZajvzRGBFQHL9rMPdHwL7kuF76KvjF3JYfCNU7UIzaei5437aBAuwjlYRwin8SLA/exec' : '';
+const BUILD = '2026-11-18a';
+const today = () => new Date().toLocaleDateString('en-CA');
+const LIVE = {
+  pitch: { round: 20, items: [200, 500, 1000, 2000, 4000, 6000], opts: [1, 2, 3, 4, 5],
+    ask: 'How different do the two tones sound?', lo: '1 = the same', hi: '5 = very different',
+    name: f => `${f} Hz → ${f + 100} Hz`, play: f => tones([f, f + 100]) },
+  loud: { round: 19, items: [2, 4, 10, 30, 100], opts: [1, 1.5, 2, 3, 4, 6, 10],
+    ask: 'How many times louder is the second tone?', lo: '', hi: '',
+    name: n => `quiet, then ×${n} the energy`, play: n => tones([500, 500], [0.05, 0.05 * Math.sqrt(n)]) },
+};
+const RESP = { pitch: [], loud: [] }, SHOW = { pitch: false, loud: false }, MODEL = { pitch: false, loud: false };
+const api = {
+  async submit(round, text) {
+    if (!API) { const k = 'ch9-live-' + round, a = JSON.parse(localStorage.getItem(k) || '[]'); a.push({ t: Date.now(), text }); localStorage.setItem(k, JSON.stringify(a)); return { ok: true }; }
+    return (await fetch(`${API}?action=submit&round=${round}&text=${encodeURIComponent(text)}`)).json();
+  },
+  async list(round) {
+    if (!API) return { answers: JSON.parse(localStorage.getItem('ch9-live-' + round) || '[]') };
+    return (await fetch(`${API}?action=list&round=${round}&t=${Date.now()}`)).json();
+  },
+};
+// today's answers to one test, the latest from each phone, as arrays of ratings (null where a pair was not rated)
+function parse(test, answers) {
+  const by = {};
+  (answers || []).slice().sort((a, b) => a.t - b.t).forEach(a => { const p = String(a.text).split('|');
+    if (p[0] === test && p[1] === today() && p[2]) by[p[2]] = p[3].split(',').map(v => v === '' ? null : +v); });
+  return Object.values(by);
+}
+let QR = {};
+function qrURL(test) {
+  if (QR[test] || !window.qrcode) return QR[test];
+  const q = qrcode(0, 'M'); q.addData(location.origin + location.pathname + '?phone=' + test + '&v=' + BUILD); q.make();
+  return (QR[test] = q.createDataURL(8, 2));
+}
+const qs = document.createElement('script'); qs.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js'; qs.onload = () => draw(); document.head.appendChild(qs);
+// the projector polls the sheet every 3 s while a live step is showing
+setInterval(async () => {
+  const S = STEPS[step]; if (!S || !S.live || PHONE) return;
+  try { const r = await api.list(LIVE[S.live].round), a = parse(S.live, r.answers);
+    if (JSON.stringify(a) !== JSON.stringify(RESP[S.live])) { RESP[S.live] = a; if (!timer || t >= S.T) draw(); } } catch (e) {}
+}, 3000);
+
+// the projector's view of one live test: the QR code and the pairs on the left, the class's answers on the right
+function liveStep(test) {
+  const L = LIVE[test];
+  return (g, t) => {
+    const u = clamp01(t / 0.4), k0 = el(g, 'g', { opacity: u }), src = qrURL(test);
+    if (src) el(k0, 'image', { href: src, x: 40, y: 60, width: 200, height: 200 });
+    label(k0, 260, 110, 'Scan to answer', { 'font-size': 26, 'font-weight': 700, 'text-anchor': 'start' });
+    label(k0, 260, 150, L.ask, { 'font-size': 21, 'text-anchor': 'start', fill: '#333' });
+    label(k0, 260, 182, [L.lo, L.hi].filter(Boolean).join(',  '), { 'font-size': 19, 'text-anchor': 'start', fill: '#666' });
+    label(k0, 260, 236, `${RESP[test].length} answer${RESP[test].length === 1 ? '' : 's'}`, { 'font-size': 24, 'font-weight': 700, 'text-anchor': 'start', fill: BLUE });
+    L.items.forEach((v, i) => {
+      const y = 330 + i * 64, k = el(g, 'g', { opacity: clamp01((t - 0.3 - 0.2 * i) / 0.3) });
+      label(k, 52, y + 8, String(i + 1), { 'font-size': 24, 'font-weight': 700, fill: '#666' });
+      btn(k, 80, y, L.name(v), test + i, async () => L.play(v), DEEP);
+    });
+    // the chart
+    const PX = 820, PW = 700, PY = 120, PH = 440, pitch = test === 'pitch';
+    const XM = pitch ? 6500 : 100, YM = pitch ? 5 : 10, sx = v => PX + (pitch ? v : v - 1) / (pitch ? XM : XM - 1) * PW, sy = r => PY + PH - (r - 1) / (YM - 1) * PH;
+    const k = el(g, 'g', { opacity: clamp01((t - 1.2) / 0.4) });
+    el(k, 'line', { x1: PX, x2: PX + PW, y1: PY + PH, y2: PY + PH, stroke: '#9a9a9a', 'stroke-width': 1.5 });
+    el(k, 'line', { x1: PX, x2: PX, y1: PY, y2: PY + PH, stroke: '#9a9a9a', 'stroke-width': 1.5 });
+    (pitch ? [0, 1000, 2000, 3000, 4000, 5000, 6000] : [1, 10, 20, 40, 60, 80, 100]).forEach(v => label(k, sx(v), PY + PH + 30, pitch ? (v ? `${v / 1000}k` : '0') : `×${v}`, { 'font-size': 19, fill: '#555' }));
+    label(k, PX + PW / 2, PY + PH + 62, pitch ? 'lower tone of the pair (Hz)' : 'energy of the second tone', { 'font-size': 21, fill: '#444' });
+    (pitch ? [1, 2, 3, 4, 5] : [1, 2, 4, 6, 8, 10]).forEach(r => { el(k, 'line', { x1: PX, x2: PX + PW, y1: sy(r), y2: sy(r), stroke: '#efefef', 'stroke-width': 1.5 });
+      el(k, 'text', { x: PX - 12, y: sy(r) + 7, 'text-anchor': 'end', 'font-size': 19, fill: '#555' }, pitch ? r : `×${r}`); });
+    el(k, 'text', { x: PX - 55, y: PY + PH / 2, 'text-anchor': 'middle', 'font-size': 21, fill: '#444', transform: `rotate(-90 ${PX - 55} ${PY + PH / 2})` }, pitch ? 'how different it sounded' : 'how much louder it sounded');
+    let bx = PX; 
+    bx += pick(k, bx, PY - 50, SHOW[test] ? 'hide the answers' : 'show the class’s answers', SHOW[test], BLUE, () => { SHOW[test] = !SHOW[test]; draw(); });
+    pick(k, bx, PY - 50, pitch ? 'compare with the mel scale' : 'compare with the ear', MODEL[test], ANG, () => { MODEL[test] = !MODEL[test]; draw(); });
+    if (SHOW[test]) {
+      const R = RESP[test], means = [], rnd = rng(7);
+      L.items.forEach((v, i) => { const a = R.map(r => r[i]).filter(x => x != null);
+        a.forEach(x => el(k, 'circle', { cx: sx(v) + (rnd() - 0.5) * 22, cy: sy(Math.min(x, YM)), r: 6, fill: BLUE, opacity: 0.35 }));
+        if (a.length) means.push([v, a.reduce((p, q) => p + q) / a.length]); });
+      if (means.length > 1) el(k, 'path', { d: means.map(([v, m], i) => (i ? 'L' : 'M') + sx(v).toFixed(1) + ',' + sy(m).toFixed(1)).join(''), fill: 'none', stroke: BLUE, 'stroke-width': 4 });
+      means.forEach(([v, m]) => el(k, 'circle', { cx: sx(v), cy: sy(m), r: 10, fill: BLUE, stroke: '#fff', 'stroke-width': 2 }));
+      if (!means.length) label(k, PX + PW / 2, PY + PH / 2, 'no answers yet', { 'font-size': 22, fill: '#aaa', 'font-style': 'italic' });
+    }
+    if (MODEL[test]) {
+      if (pitch) {   // the gap in mels for +100 Hz, scaled so the lowest pair is a 5 and no gap at all is a 1
+        const gap = f => mel(f + 100) - mel(f), g0 = gap(L.items[0]);
+        el(k, 'path', { d: Array.from({ length: 121 }, (_, i) => { const f = 150 + i / 120 * 6200; return (i ? 'L' : 'M') + sx(f).toFixed(1) + ',' + sy(1 + 4 * gap(f) / g0).toFixed(1); }).join(''), fill: 'none', stroke: ANG, 'stroke-width': 3.5, 'stroke-dasharray': '10 7' });
+        el(k, 'text', { x: sx(2500), y: sy(1 + 4 * gap(2500) / g0) - 30, 'font-size': 22, 'font-weight': 700, fill: ANG }, 'the mel scale');
+      } else {       // loudness grows as energy to the power 0.3; and the line if loudness followed energy
+        el(k, 'path', { d: Array.from({ length: 121 }, (_, i) => { const n = 1 + i / 120 * 99; return (i ? 'L' : 'M') + sx(n).toFixed(1) + ',' + sy(LOUD(n)).toFixed(1); }).join(''), fill: 'none', stroke: ANG, 'stroke-width': 3.5, 'stroke-dasharray': '10 7' });
+        el(k, 'text', { x: sx(62), y: sy(LOUD(62)) - 22, 'font-size': 22, 'font-weight': 700, fill: ANG }, 'how the ear hears it');
+        el(k, 'line', { x1: sx(1), y1: sy(1), x2: sx(10), y2: sy(10), stroke: GREY, 'stroke-width': 3, 'stroke-dasharray': '4 6' });
+        el(k, 'text', { x: sx(11), y: sy(9.6), 'font-size': 21, fill: '#777' }, 'if loudness followed energy');
+      }
+    }
+    const q = el(g, 'g', { opacity: clamp01((t - 1.6) / 0.4) });
+    label(q, 800, 700, pitch ? 'Every pair is exactly 100 Hz apart. Do they all sound equally far apart?' : 'Each tone has more energy than the last. Does it sound that much louder?', { 'font-size': 26, 'font-weight': 700 });
+  };
+}
+
+// ------------------------------------------------------------ the phone: the pairs of one test, a rating for each, and Send
+function phoneView(test) {
+  const L = LIVE[test]; if (!L) return;
+  $('app').style.display = 'none';
+  const id = (() => { try { let v = localStorage.getItem('ch9-phone-id'); if (!v) { v = Math.random().toString(36).slice(2, 8); localStorage.setItem('ch9-phone-id', v); } return v; } catch (e) { return Math.random().toString(36).slice(2, 8); } })();
+  const R = L.items.map(() => null), box = document.createElement('div');
+  box.style.cssText = 'max-width:560px;margin:0 auto;padding:16px;font-family:var(--sans);';
+  box.innerHTML = `<h1 style="font-size:22px;margin:4px 0 6px">${L.ask}</h1>
+    <p style="color:#555;font-size:16px;margin:0 0 12px">Listen to each pair on the projector (or tap ▶ to play it here), then choose.${L.lo ? '<br>' + L.lo + ', ' + L.hi : ''}</p>
+    <div id="rows"></div><div style="display:flex;align-items:center;gap:12px;margin-top:14px"><button id="send" class="primary" style="font-size:19px;padding:10px 26px">Send</button><span id="msg" style="font-size:16px"></span></div>`;
+  document.body.appendChild(box);
+  const rows = box.querySelector('#rows');
+  L.items.forEach((v, i) => {
+    const r = document.createElement('div'); r.style.cssText = 'border-top:1px solid #ddd;padding:10px 0';
+    r.innerHTML = `<div style="display:flex;align-items:center;gap:10px;font-size:17px"><b>${i + 1}</b><span style="flex:1">${L.name(v)}</span><button class="pl" style="padding:6px 14px">▶</button></div><div class="op" style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"></div>`;
+    r.querySelector('.pl').onclick = () => { const s = audio().createBufferSource(); s.buffer = L.play(v); s.connect(audio().destination); s.start(); };
+    const op = r.querySelector('.op');
+    L.opts.forEach(o => { const b = document.createElement('button'); b.textContent = test === 'loud' ? `×${o}` : o; b.style.cssText = 'flex:1;min-width:44px;padding:9px 0;font-size:18px';
+      b.onclick = () => { R[i] = o; op.querySelectorAll('button').forEach(x => { x.style.background = '#fff'; x.style.color = '#222'; }); b.style.background = '#2a78d6'; b.style.color = '#fff'; };
+      op.appendChild(b); });
+    rows.appendChild(r);
+  });
+  box.querySelector('#send').onclick = async () => {
+    const m = box.querySelector('#msg'); if (R.every(x => x == null)) { m.textContent = 'Choose at least one answer.'; return; }
+    m.textContent = 'Sending…';
+    try { const r = await api.submit(L.round, `${test}|${today()}|${id}|${R.map(x => x == null ? '' : x).join(',')}`); m.textContent = r.ok ? 'Sent. You can change an answer and send again.' : 'Could not send: ' + (r.error || ''); }
+    catch (e) { m.textContent = 'Could not send. Check your connection.'; }
+  };
+}
+const PHONE = new URLSearchParams(location.search).get('phone');
+
 STEPS = [
   { title: 'How does a 30 ms window become a few numbers?', T: 3.8, draw: overview },
+  { title: 'Do pairs of tones 100 Hz apart sound equally far apart?', T: 2.0, draw: liveStep('pitch'), live: 'pitch' },
   { title: 'How far apart do two tones sound?', T: 3.4, draw: melStep, ctl: ['c-mf'], enter() { MF = 5000; syncMF(); } },
   { title: 'What does the mel filterbank do?', T: 3.7, draw: bankStep },
-  { title: 'How much louder does more energy sound?', T: 3.4, draw: loudStep, ctl: ['c-ln'], enter() { LN = 100; syncLN(); } },
+  { title: 'How much louder does more energy sound?', T: 2.0, draw: liveStep('loud'), live: 'loud' },
+  { title: 'How much louder does more energy sound, and why?', T: 3.4, draw: loudStep, ctl: ['c-ln'], enter() { LN = 100; syncLN(); } },
   { title: 'What does the log do to the band energies?', T: 2.0, draw: logStep },
   { title: 'Do we need all 26 bands?', T: 3.8, draw: dctStep },
   { title: 'How is the sound changing?', T: 2.0, draw: deltaStep },
   { title: 'How does a whole clip reach the classifier?', T: 2.8, draw: clipStep },
 ];
+if (PHONE) phoneView(PHONE); else {
 withSound(STEPS);
 // dragging a slider shows the step finished, at the new value
 $('smf').addEventListener('input', () => { clearInterval(timer); t = STEPS[step].T; MF = fSlider(+$('smf').value); syncMF(); stopSound(); draw(); });
 $('sln').addEventListener('input', () => { clearInterval(timer); t = STEPS[step].T; LN = nSlider(+$('sln').value); syncLN(); stopSound(); draw(); });
 start();
+}
 
 })();
 </script>
