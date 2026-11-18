@@ -567,15 +567,15 @@ function clipStep(g, t) {
 // which that page does not use: "<test>|<date>|<phone id>|<rating>,<rating>,...". The projector keeps each phone's latest answer from today.
 // Opened from a file (not https), answers stay in this browser's localStorage, for testing.
 const API = location.protocol === 'https:' ? 'https://script.google.com/macros/s/AKfycbwl9bZajvzRGBFQHL9rMPdHwL7kuF76KvjF3JYfCNU7UIzaei5437aBAuwjlYRwin8SLA/exec' : '';
-const BUILD = '2026-11-18a';
+const BUILD = '2026-11-18b';
 const today = () => new Date().toLocaleDateString('en-CA');
 const LIVE = {
-  pitch: { round: 20, items: [200, 500, 1000, 2000, 4000, 6000], opts: [1, 2, 3, 4, 5],
+  pitch: { round: 20, items: [2000, 200, 6000, 1000, 4000, 500], opts: [1, 2, 3, 4, 5],
     ask: 'How different do the two tones sound?', lo: '1 = the same', hi: '5 = very different',
-    name: f => `${f} Hz → ${f + 100} Hz`, play: f => tones([f, f + 100]) },
-  loud: { round: 19, items: [2, 4, 10, 30, 100], opts: [1, 1.5, 2, 3, 4, 6, 10],
+    name: f => `${f} Hz → ${f + 100} Hz`, reveal: 'Every pair is exactly 100 Hz apart.', play: f => tones([f, f + 100]) },
+  loud: { round: 19, items: [10, 2, 100, 4, 30], opts: [1, 1.5, 2, 3, 4, 6, 10],
     ask: 'How many times louder is the second tone?', lo: '', hi: '',
-    name: n => `quiet, then ×${n} the energy`, play: n => tones([500, 500], [0.05, 0.05 * Math.sqrt(n)]) },
+    name: n => `second tone ×${n} the energy`, reveal: 'The second tone has 2 to 100 times the energy of the first.', play: n => tones([500, 500], [0.05, 0.05 * Math.sqrt(n)]) },
 };
 const RESP = { pitch: [], loud: [] }, SHOW = { pitch: false, loud: false }, MODEL = { pitch: false, loud: false };
 const api = {
@@ -621,36 +621,39 @@ function liveStep(test) {
     label(k0, 260, 236, `${RESP[test].length} answer${RESP[test].length === 1 ? '' : 's'}`, { 'font-size': 24, 'font-weight': 700, 'text-anchor': 'start', fill: BLUE });
     L.items.forEach((v, i) => {
       const y = 330 + i * 64, k = el(g, 'g', { opacity: clamp01((t - 0.3 - 0.2 * i) / 0.3) });
-      label(k, 52, y + 8, String(i + 1), { 'font-size': 24, 'font-weight': 700, fill: '#666' });
-      btn(k, 80, y, L.name(v), test + i, async () => L.play(v), DEEP);
+      btn(k, 40, y, `pair ${'ABCDEF'[i]}`, test + i, async () => L.play(v), DEEP);
+      if (SHOW[test]) label(k, 230, y + 8, L.name(v), { 'font-size': 22, 'text-anchor': 'start', fill: '#333' });
     });
     // the chart
     const PX = 820, PW = 700, PY = 120, PH = 440, pitch = test === 'pitch';
     const XM = pitch ? 6500 : 100, YM = pitch ? 5 : 10, sx = v => PX + (pitch ? v : v - 1) / (pitch ? XM : XM - 1) * PW, sy = r => PY + PH - (r - 1) / (YM - 1) * PH;
     const k = el(g, 'g', { opacity: clamp01((t - 1.2) / 0.4) });
-    el(k, 'line', { x1: PX, x2: PX + PW, y1: PY + PH, y2: PY + PH, stroke: '#9a9a9a', 'stroke-width': 1.5 });
-    el(k, 'line', { x1: PX, x2: PX, y1: PY, y2: PY + PH, stroke: '#9a9a9a', 'stroke-width': 1.5 });
-    (pitch ? [0, 1000, 2000, 3000, 4000, 5000, 6000] : [1, 10, 20, 40, 60, 80, 100]).forEach(v => label(k, sx(v), PY + PH + 30, pitch ? (v ? `${v / 1000}k` : '0') : `×${v}`, { 'font-size': 19, fill: '#555' }));
-    label(k, PX + PW / 2, PY + PH + 62, pitch ? 'lower tone of the pair (Hz)' : 'energy of the second tone', { 'font-size': 21, fill: '#444' });
-    (pitch ? [1, 2, 3, 4, 5] : [1, 2, 4, 6, 8, 10]).forEach(r => { el(k, 'line', { x1: PX, x2: PX + PW, y1: sy(r), y2: sy(r), stroke: '#efefef', 'stroke-width': 1.5 });
-      el(k, 'text', { x: PX - 12, y: sy(r) + 7, 'text-anchor': 'end', 'font-size': 19, fill: '#555' }, pitch ? r : `×${r}`); });
-    el(k, 'text', { x: PX - 55, y: PY + PH / 2, 'text-anchor': 'middle', 'font-size': 21, fill: '#444', transform: `rotate(-90 ${PX - 55} ${PY + PH / 2})` }, pitch ? 'how different it sounded' : 'how much louder it sounded');
+    const kc = SHOW[test] ? k : el(g, 'g', { opacity: 0 });
+    el(kc, 'line', { x1: PX, x2: PX + PW, y1: PY + PH, y2: PY + PH, stroke: '#9a9a9a', 'stroke-width': 1.5 });
+    el(kc, 'line', { x1: PX, x2: PX, y1: PY, y2: PY + PH, stroke: '#9a9a9a', 'stroke-width': 1.5 });
+    (pitch ? [0, 1000, 2000, 3000, 4000, 5000, 6000] : [1, 10, 20, 40, 60, 80, 100]).forEach(v => label(kc, sx(v), PY + PH + 30, pitch ? (v ? `${v / 1000}k` : '0') : `×${v}`, { 'font-size': 19, fill: '#555' }));
+    label(kc, PX + PW / 2, PY + PH + 62, pitch ? 'lower tone of the pair (Hz)' : 'energy of the second tone', { 'font-size': 21, fill: '#444' });
+    (pitch ? [1, 2, 3, 4, 5] : [1, 2, 4, 6, 8, 10]).forEach(r => { el(kc, 'line', { x1: PX, x2: PX + PW, y1: sy(r), y2: sy(r), stroke: '#efefef', 'stroke-width': 1.5 });
+      el(kc, 'text', { x: PX - 12, y: sy(r) + 7, 'text-anchor': 'end', 'font-size': 19, fill: '#555' }, pitch ? r : `×${r}`); });
+    el(kc, 'text', { x: PX - 55, y: PY + PH / 2, 'text-anchor': 'middle', 'font-size': 21, fill: '#444', transform: `rotate(-90 ${PX - 55} ${PY + PH / 2})` }, pitch ? 'how different it sounded' : 'how much louder it sounded');
     let bx = PX; 
-    bx += pick(k, bx, PY - 50, SHOW[test] ? 'hide the answers' : 'show the class’s answers', SHOW[test], BLUE, () => { SHOW[test] = !SHOW[test]; draw(); });
-    pick(k, bx, PY - 50, pitch ? 'compare with the mel scale' : 'compare with the ear', MODEL[test], ANG, () => { MODEL[test] = !MODEL[test]; draw(); });
+    bx += pick(k, bx, PY - 50, SHOW[test] ? 'hide the answers' : 'show the answers', SHOW[test], BLUE, () => { SHOW[test] = !SHOW[test]; draw(); });
+    if (SHOW[test]) pick(k, bx, PY - 50, pitch ? 'compare with the mel scale' : 'compare with the ear', MODEL[test], ANG, () => { MODEL[test] = !MODEL[test]; draw(); });
+    else label(k, PX + PW / 2, PY + PH / 2, 'The answers and what each pair was appear here.', { 'font-size': 22, fill: '#aaa', 'font-style': 'italic' });
     if (SHOW[test]) {
       const R = RESP[test], means = [], rnd = rng(7);
       L.items.forEach((v, i) => { const a = R.map(r => r[i]).filter(x => x != null);
         a.forEach(x => el(k, 'circle', { cx: sx(v) + (rnd() - 0.5) * 22, cy: sy(Math.min(x, YM)), r: 6, fill: BLUE, opacity: 0.35 }));
         if (a.length) means.push([v, a.reduce((p, q) => p + q) / a.length]); });
+      means.sort((a, b) => a[0] - b[0]);
       if (means.length > 1) el(k, 'path', { d: means.map(([v, m], i) => (i ? 'L' : 'M') + sx(v).toFixed(1) + ',' + sy(m).toFixed(1)).join(''), fill: 'none', stroke: BLUE, 'stroke-width': 4 });
       means.forEach(([v, m]) => el(k, 'circle', { cx: sx(v), cy: sy(m), r: 10, fill: BLUE, stroke: '#fff', 'stroke-width': 2 }));
       if (!means.length) label(k, PX + PW / 2, PY + PH / 2, 'no answers yet', { 'font-size': 22, fill: '#aaa', 'font-style': 'italic' });
     }
-    if (MODEL[test]) {
+    if (MODEL[test] && SHOW[test]) {
       if (pitch) {   // the gap in mels for +100 Hz, scaled so the lowest pair is a 5 and no gap at all is a 1
-        const gap = f => mel(f + 100) - mel(f), g0 = gap(L.items[0]);
-        el(k, 'path', { d: Array.from({ length: 121 }, (_, i) => { const f = 150 + i / 120 * 6200; return (i ? 'L' : 'M') + sx(f).toFixed(1) + ',' + sy(1 + 4 * gap(f) / g0).toFixed(1); }).join(''), fill: 'none', stroke: ANG, 'stroke-width': 3.5, 'stroke-dasharray': '10 7' });
+        const gap = f => mel(f + 100) - mel(f), g0 = gap(Math.min(...L.items));
+        el(k, 'path', { d: Array.from({ length: 121 }, (_, i) => { const f = 200 + i / 120 * 6150; return (i ? 'L' : 'M') + sx(f).toFixed(1) + ',' + sy(1 + 4 * gap(f) / g0).toFixed(1); }).join(''), fill: 'none', stroke: ANG, 'stroke-width': 3.5, 'stroke-dasharray': '10 7' });
         el(k, 'text', { x: sx(2500), y: sy(1 + 4 * gap(2500) / g0) - 30, 'font-size': 22, 'font-weight': 700, fill: ANG }, 'the mel scale');
       } else {       // loudness grows as energy to the power 0.3; and the line if loudness followed energy
         el(k, 'path', { d: Array.from({ length: 121 }, (_, i) => { const n = 1 + i / 120 * 99; return (i ? 'L' : 'M') + sx(n).toFixed(1) + ',' + sy(LOUD(n)).toFixed(1); }).join(''), fill: 'none', stroke: ANG, 'stroke-width': 3.5, 'stroke-dasharray': '10 7' });
@@ -660,7 +663,7 @@ function liveStep(test) {
       }
     }
     const q = el(g, 'g', { opacity: clamp01((t - 1.6) / 0.4) });
-    label(q, 800, 700, pitch ? 'Every pair is exactly 100 Hz apart. Do they all sound equally far apart?' : 'Each tone has more energy than the last. Does it sound that much louder?', { 'font-size': 26, 'font-weight': 700 });
+    label(q, 800, 700, SHOW[test] ? L.reveal : 'Listen to each pair, then answer on your phone.', { 'font-size': 26, 'font-weight': 700 });
   };
 }
 
@@ -678,7 +681,7 @@ function phoneView(test) {
   const rows = box.querySelector('#rows');
   L.items.forEach((v, i) => {
     const r = document.createElement('div'); r.style.cssText = 'border-top:1px solid #ddd;padding:10px 0';
-    r.innerHTML = `<div style="display:flex;align-items:center;gap:10px;font-size:17px"><b>${i + 1}</b><span style="flex:1">${L.name(v)}</span><button class="pl" style="padding:6px 14px">▶</button></div><div class="op" style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"></div>`;
+    r.innerHTML = `<div style="display:flex;align-items:center;gap:10px;font-size:17px"><b style="flex:1">Pair ${'ABCDEF'[i]}</b><button class="pl" style="padding:6px 14px">▶</button></div><div class="op" style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"></div>`;
     r.querySelector('.pl').onclick = () => { const s = audio().createBufferSource(); s.buffer = L.play(v); s.connect(audio().destination); s.start(); };
     const op = r.querySelector('.op');
     L.opts.forEach(o => { const b = document.createElement('button'); b.textContent = test === 'loud' ? `×${o}` : o; b.style.cssText = 'flex:1;min-width:44px;padding:9px 0;font-size:18px';
@@ -697,10 +700,10 @@ const PHONE = new URLSearchParams(location.search).get('phone');
 
 STEPS = [
   { title: 'How does a 30 ms window become a few numbers?', T: 3.8, draw: overview },
-  { title: 'Do pairs of tones 100 Hz apart sound equally far apart?', T: 2.0, draw: liveStep('pitch'), live: 'pitch' },
+  { title: 'How different do the two tones in each pair sound?', T: 2.0, draw: liveStep('pitch'), live: 'pitch' },
   { title: 'How far apart do two tones sound?', T: 3.4, draw: melStep, ctl: ['c-mf'], enter() { MF = 5000; syncMF(); } },
   { title: 'What does the mel filterbank do?', T: 3.7, draw: bankStep },
-  { title: 'How much louder does more energy sound?', T: 2.0, draw: liveStep('loud'), live: 'loud' },
+  { title: 'How much louder is the second tone?', T: 2.0, draw: liveStep('loud'), live: 'loud' },
   { title: 'How much louder does more energy sound, and why?', T: 3.4, draw: loudStep, ctl: ['c-ln'], enter() { LN = 100; syncLN(); } },
   { title: 'What does the log do to the band energies?', T: 2.0, draw: logStep, enter() { LOUDER = false; } },
   { title: 'Do we need all 26 bands?', T: 3.8, draw: dctStep },
