@@ -320,8 +320,8 @@ const HEAT = heatURL(D.M), HEAT39 = heatURL([...D.M, ...D.d1, ...D.d2]);
 
 // ------------------------------------------------------------ 1: the pipeline, with the reason for each stage
 const STAGES = [['30 ms window', 'the mouth barely', 'moves in 30 ms', '480 samples'], ['spectrum', 'which frequencies', 'are present', '257 numbers'],
-  ['mel filterbank', 'the ear hears', 'pitch unevenly', '26 numbers'], ['log', 'the ear hears', 'loudness unevenly', '26 numbers'],
-  ['DCT, keep 13', 'keep the outline,', 'drop the detail', '13 numbers'], ['Δ and ΔΔ', 'how the sound', 'is changing', '39 numbers']];
+  ['mel filterbank', 'the ear hears', 'pitch unevenly', '26 bands'], ['log', 'the ear hears', 'loudness unevenly', '26 bands'],
+  ['DCT, keep 13', 'keep the outline,', 'drop the detail', '13 shape numbers'], ['Δ and ΔΔ', 'how the sound', 'is changing', '39 numbers']];
 function icon(g, i, cx, cy) {
   const s = { stroke: DEEP, 'stroke-width': 3, fill: 'none' };
   if (i === 0) el(g, 'path', Object.assign({ d: Array.from({ length: 61 }, (_, k) => (k ? 'L' : 'M') + (cx - 60 + k * 2) + ',' + (cy - 22 * Math.sin(k / 60 * 6 * Math.PI) * (0.6 + 0.4 * Math.sin(k / 9)))).join('') }, s));
@@ -450,18 +450,31 @@ function loudStep(g, t) {
 }
 
 // ------------------------------------------------------------ 5: the log of the band energies
+// the same window ten times louder (speaking up, or closer to the microphone) multiplies every band's energy by 10, so its log is 10 dB higher in every band
+let LOUDER = false;
 function logStep(g, t) {
-  const L = D.L, lo = Math.min(...L) - 3, hi = Math.max(...L), Y = 480, H = 330;
-  const k1 = el(g, 'g', { opacity: clamp01(t / 0.4) });
-  bars(k1, D.E, 80, 660, Y, H, GRN);
+  const L = D.L, up = LOUDER ? 10 : 0, lo = Math.min(...L) - 3, hi = Math.max(...L) + up, Y = 480, H = 300, PALE = '#bfe8d7';
+  const k1 = el(g, 'g', { opacity: clamp01(t / 0.4) }), em = LOUDER ? 10 : 1;
+  if (LOUDER) bars(k1, D.E.map(v => v * 10 / em), 80, 660, Y, H, PALE);
+  bars(k1, D.E.map(v => v / em), 80, 660, Y, H, GRN);
   label(k1, 410, Y + 44, 'the 26 energies', { 'font-size': 24, 'font-weight': 700 });
   const k2 = el(g, 'g', { opacity: clamp01((t - 0.8) / 0.4) });
+  if (LOUDER) bars(k2, L.map(v => (v + up - lo) / (hi - lo)), 860, 660, Y, H, PALE);
   bars(k2, L.map(v => (v - lo) / (hi - lo)), 860, 660, Y, H, GRN);
   label(k2, 1190, Y + 44, 'their log (in dB)', { 'font-size': 24, 'font-weight': 700 });
   arrow(k2, 755, Y - H / 2, 845, Y - H / 2, 1, { w: 3 });
+  const k3 = el(g, 'g', { opacity: clamp01((t - 1.6) / 0.4) });
+  const w = pick(k3, 80, 100, LOUDER ? 'back to the original window' : 'the same window, 10× louder', LOUDER, GRN, () => { LOUDER = !LOUDER; draw(); });
+  if (LOUDER) { el(k3, 'rect', { x: 100 + w, y: 86, width: 22, height: 22, fill: GRN }); el(k3, 'text', { x: 130 + w, y: 104, 'font-size': 20, fill: '#444' }, 'original');
+    el(k3, 'rect', { x: 230 + w, y: 86, width: 22, height: 22, fill: PALE }); el(k3, 'text', { x: 260 + w, y: 104, 'font-size': 20, fill: '#444' }, '10× louder'); }
   const q = el(g, 'g', { opacity: clamp01((t - 1.6) / 0.4) });
-  label(q, 800, 640, 'Before the log, a few loud bands hide all the others.', { 'font-size': 27, 'font-weight': 700 });
-  label(q, 800, 682, 'After the log, every band counts, as it does for the ear.', { 'font-size': 24, fill: '#333' });
+  if (!LOUDER) {
+    label(q, 800, 640, 'Before the log, a few loud bands hide all the others.', { 'font-size': 27, 'font-weight': 700 });
+    label(q, 800, 682, 'After the log, every band counts, as it does for the ear.', { 'font-size': 24, fill: '#333' });
+  } else {
+    label(q, 800, 640, 'Louder speech multiplies every band. After the log, it adds the same 10 dB to every band.', { 'font-size': 26, 'font-weight': 700 });
+    label(q, 800, 682, 'The shape stays the same, so after the next step only the first MFCC changes.', { 'font-size': 24, fill: '#333' });
+  }
 }
 // ------------------------------------------------------------ 5: the DCT
 function dctStep(g, t) {
@@ -484,12 +497,14 @@ function dctStep(g, t) {
     el(g, 'path', { d: Array.from({ length: 41 }, (_, s) => (s ? 'L' : 'M') + (CX + i * cw + 3 + s / 40 * (cw - 6)).toFixed(1) + ',' + (cy0 + ch / 2 + 34 - 11 * Math.cos(Math.PI * i * s / 40)).toFixed(1)).join(''), fill: 'none', stroke: i < k ? PUR : '#ccc', 'stroke-width': 2.5 });
   }
   label(g, CX + 6.5 * cw, cy0 + ch / 2 + 42, '…', { 'font-size': 26, fill: k > 5 ? PUR : '#ccc' });
+  ['level', 'tilt', 'hump'].forEach((s, i) => label(g, CX + (i + 0.5) * cw, cy0 + ch / 2 + 66, s, { 'font-size': 15, 'font-weight': 700, fill: i < k ? PUR : '#ccc' }));
   label(g, CX + CW / 2, 92, 'the 13 MFCCs', { 'font-size': 24, 'font-weight': 700, fill: PUR });
-  label(g, CX + CW / 2, cy0 + ch / 2 + 84, 'each one is the amount of one shape,', { 'font-size': 20, fill: '#444' });
-  label(g, CX + CW / 2, cy0 + ch / 2 + 110, 'from the overall level to fine wiggles', { 'font-size': 20, fill: '#444' });
+  label(g, CX + CW / 2, cy0 + ch / 2 + 100, 'each one is the amount of one shape,', { 'font-size': 20, fill: '#444' });
+  label(g, CX + CW / 2, cy0 + ch / 2 + 126, 'from the overall level to fine wiggles', { 'font-size': 20, fill: '#444' });
   const q = el(g, 'g', { opacity: clamp01((t - 3.4) / 0.4) });
-  label(q, 800, 652, 'Neighbouring bands have similar values, so a few smooth shapes describe them.', { 'font-size': 27, 'font-weight': 700 });
-  label(q, 800, 694, 'The first 13 keep the humps (the formants) and drop the fine detail.', { 'font-size': 24, fill: '#333' });
+  label(q, 800, 630, 'The 13 numbers are not 13 bands.', { 'font-size': 27, 'font-weight': 700 });
+  label(q, 800, 670, 'Each one says how much of one smooth shape, spread across all 26 bands, is in the curve.', { 'font-size': 25, 'font-weight': 700 });
+  label(q, 800, 712, 'Neighbouring bands rise and fall together, so the first 13 shapes are enough to redraw the outline.', { 'font-size': 24, fill: '#333' });
 }
 
 // ------------------------------------------------------------ 6: deltas
@@ -687,7 +702,7 @@ STEPS = [
   { title: 'What does the mel filterbank do?', T: 3.7, draw: bankStep },
   { title: 'How much louder does more energy sound?', T: 2.0, draw: liveStep('loud'), live: 'loud' },
   { title: 'How much louder does more energy sound, and why?', T: 3.4, draw: loudStep, ctl: ['c-ln'], enter() { LN = 100; syncLN(); } },
-  { title: 'What does the log do to the band energies?', T: 2.0, draw: logStep },
+  { title: 'What does the log do to the band energies?', T: 2.0, draw: logStep, enter() { LOUDER = false; } },
   { title: 'Do we need all 26 bands?', T: 3.8, draw: dctStep },
   { title: 'How is the sound changing?', T: 2.0, draw: deltaStep },
   { title: 'How does a whole clip reach the classifier?', T: 2.8, draw: clipStep },
